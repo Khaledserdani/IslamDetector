@@ -1,7 +1,7 @@
 name: Build and verify Islam Detector apps
 on:
   push:
-    branches: [ main, feature/islam-detector-pro, feature/three-engine-ai-pro ]
+    branches: [ main, feature/islam-detector-pro, feature/three-engine-ai-pro, feature/ultimate-edition-foundation ]
   pull_request:
   workflow_dispatch:
 permissions:
