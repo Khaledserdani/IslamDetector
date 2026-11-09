@@ -53,6 +53,12 @@ public final class GroundMapView extends View {
         return automaticScale;
     }
 
+    public void setScaleState(float value, boolean automatic) {
+        zoom = Math.max(0.55f, Math.min(value, 2.5f));
+        automaticScale = automatic;
+        invalidate();
+    }
+
     private float px(float x, float y, float cx, float unit) {
         return cx + (x - y) * unit * 0.72f;
     }
