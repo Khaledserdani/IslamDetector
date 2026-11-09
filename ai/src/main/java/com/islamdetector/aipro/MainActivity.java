@@ -58,7 +58,11 @@ public class MainActivity extends Activity {
     private TextToSpeech speech;
     private boolean speechReady = false;
     private boolean audioEnabled = true;
+    private boolean periodicVoiceEnabled = true;
     private float speechVolume = 0.75f;
+    private float mapZoom = 1.0f;
+    private boolean mapAutomaticScale = true;
+    private long lastPeriodicSpeech = 0;
 
     private boolean connected = false;
     private boolean running = false;
@@ -82,6 +86,12 @@ public class MainActivity extends Activity {
             if (destroyed) return;
             if (connected) pollStatus();
             else reconnectIfDue();
+            long now = System.currentTimeMillis();
+            if (running && audioEnabled && periodicVoiceEnabled &&
+                    now - lastPeriodicSpeech >= 30000) {
+                lastPeriodicSpeech = now;
+                speakNow("المسح مستمر، حافظ على حركة ثابتة للملف");
+            }
             ui.postDelayed(this, 2000);
         }
     };
@@ -94,6 +104,7 @@ public class MainActivity extends Activity {
         experimentStore = new ExperimentStore(this);
         audioEnabled = getPreferences(0).getBoolean("audio_enabled", true);
         speechVolume = getPreferences(0).getFloat("speech_volume", 0.75f);
+        periodicVoiceEnabled = getPreferences(0).getBoolean("periodic_voice", true);
         hostAddress = getPreferences(0).getString("host", "192.168.4.1");
         activeBase = normalizeHost(hostAddress);
         initializeSpeech();
@@ -237,6 +248,16 @@ public class MainActivity extends Activity {
         volume.setProgress(Math.round(speechVolume * 100));
         volume.setProgressTintList(android.content.res.ColorStateList.valueOf(0xff53b9a8));
         audioCard.addView(volume, match());
+        CheckBox periodic = new CheckBox(this);
+        periodic.setText("تذكير صوتي دوري أثناء المسح كل 30 ثانية");
+        periodic.setTextColor(0xffd4e1eb);
+        periodic.setTextSize(12);
+        periodic.setChecked(periodicVoiceEnabled);
+        audioCard.addView(periodic, match());
+        periodic.setOnCheckedChangeListener((button, checked) -> {
+            periodicVoiceEnabled = checked;
+            getPreferences(0).edit().putBoolean("periodic_voice", checked).apply();
+        });
         volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int value, boolean user) {
                 speechVolume = value / 100f;
@@ -291,6 +312,7 @@ public class MainActivity extends Activity {
                 13, 0xffffd99b, true);
         mapCard.addView(mapInfoView, match());
         groundMap = new GroundMapView(this);
+        groundMap.setScaleState(mapZoom, mapAutomaticScale);
         LinearLayout.LayoutParams mapParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(340));
         mapParams.topMargin = dp(10);
@@ -306,11 +328,21 @@ public class MainActivity extends Activity {
         scaleControls.addView(plus, new LinearLayout.LayoutParams(0, dp(46), 1f));
         add(page, scaleControls, 8);
         auto.setOnClickListener(v -> {
+            mapAutomaticScale = true;
+            mapZoom = 1.0f;
             groundMap.useAutomaticScale();
             mapInfoView.setText("المقياس تلقائي. الخريطة ما زالت تنتظر قياسات مكانية حقيقية.");
         });
-        minus.setOnClickListener(v -> groundMap.zoomOut());
-        plus.setOnClickListener(v -> groundMap.zoomIn());
+        minus.setOnClickListener(v -> {
+            mapAutomaticScale = false;
+            mapZoom = Math.max(0.55f, mapZoom / 1.2f);
+            groundMap.setScaleState(mapZoom, false);
+        });
+        plus.setOnClickListener(v -> {
+            mapAutomaticScale = false;
+            mapZoom = Math.min(2.5f, mapZoom * 1.2f);
+            groundMap.setScaleState(mapZoom, false);
+        });
 
         LinearLayout legend = card();
         add(legend, text("قواعد عرض الخريطة", 15, Color.WHITE, true), 1);
@@ -558,9 +590,13 @@ public class MainActivity extends Activity {
     }
 
     private void speak(String message) {
-        if (!audioEnabled || speech == null || !speechReady || speechVolume <= 0.01f) return;
         if (message.equals(lastAnnouncedState)) return;
         lastAnnouncedState = message;
+        speakNow(message);
+    }
+
+    private void speakNow(String message) {
+        if (!audioEnabled || speech == null || !speechReady || speechVolume <= 0.01f) return;
         Bundle parameters = new Bundle();
         parameters.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, speechVolume);
         speech.speak(message, TextToSpeech.QUEUE_FLUSH, parameters, "islam-detector-status");
