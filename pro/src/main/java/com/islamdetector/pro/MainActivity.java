@@ -73,6 +73,6 @@ public class MainActivity extends Activity {
   long add(long ts,double s,double c,double z,int cal,String raw){ContentValues v=new ContentValues();v.put("ts",ts);v.put("signal",s);if(!Double.isNaN(c))v.put("confidence",c);if(!Double.isNaN(z))v.put("depth",z);v.put("raw",raw);return getWritableDatabase().insert("samples",null,v);}
   void feedback(long id,String f){ContentValues v=new ContentValues();v.put("feedback",f);getWritableDatabase().update("samples",v,"id=?",new String[]{""+id});}
   Cursor latest(){return getReadableDatabase().rawQuery("SELECT id,ts,signal,confidence,depth,feedback FROM samples ORDER BY ts DESC LIMIT 8",null);}
-  String csv(){StringBuilder b=new StringBuilder("id,timestamp,signal,confidence,depth,feedback,raw_json\\n");try(Cursor c=getReadableDatabase().rawQuery("SELECT id,ts,signal,confidence,depth,feedback,raw FROM samples ORDER BY ts",null)){while(c.moveToNext()){for(int i=0;i<7;i++){if(i>0)b.append(',');String x=c.isNull(i)?"":c.getString(i).replace("\\\"","\\\"\\\"");b.append('"').append(x).append('"');}b.append('\\n');}}return b.toString();}
+  String csv(){StringBuilder b=new StringBuilder("id,timestamp,signal,confidence,depth,feedback,raw_json\n");try(Cursor c=getReadableDatabase().rawQuery("SELECT id,ts,signal,confidence,depth,feedback,raw FROM samples ORDER BY ts",null)){while(c.moveToNext()){for(int i=0;i<7;i++){if(i>0)b.append(',');String x=c.isNull(i)?"":c.getString(i).replace("\"","\"\"");b.append('"').append(x).append('"');}b.append('\n');}}return b.toString();}
  }
 }
