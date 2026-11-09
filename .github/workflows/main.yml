@@ -1,7 +1,7 @@
 name: Build and verify Islam Detector apps
 on:
   push:
-    branches: [ main, feature/islam-detector-pro ]
+    branches: [ main, feature/islam-detector-pro, feature/three-engine-ai-pro ]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -18,13 +18,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both APKs
-        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug
+      - name: Build all three independent apps
+        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug :ai:assembleDebug
       - name: Verify APKs
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk; do
+          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk ai/build/outputs/apk/debug/ai-debug.apk; do
             test -f "$APK"
             test "$(stat -c%s "$APK")" -gt 20000
             unzip -t "$APK"
@@ -35,10 +35,16 @@ jobs:
         with:
           name: IslamDetector-Original-APK
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 90
       - name: Upload Pro app
         uses: actions/upload-artifact@v4
         with:
           name: IslamDetector-Pro-APK
           path: pro/build/outputs/apk/debug/pro-debug.apk
-          retention-days: 30
+          retention-days: 90
+      - name: Upload three-engine AI app
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslamDetector-AI-Pro-APK
+          path: ai/build/outputs/apk/debug/ai-debug.apk
+          retention-days: 90
