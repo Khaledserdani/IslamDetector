@@ -1,0 +1,23 @@
+.program ads8861_capture
+.side_set 1
+
+; GP5 falling edge triggers the selected PI decay sample.
+; GP8=CONVST, GP9=SCLK, GP10=DOUT. DIN is tied HIGH externally.
+; At 125 MHz: CONVST high 96 cycles = 768 ns (> 710 ns maximum).
+; SCLK: 12 cycles high + 13 cycles low = 200 ns = 5 MHz.
+
+.wrap_target
+    wait 1 gpio 5 side 0
+    wait 0 gpio 5 side 0
+
+    set pins, 1 side 0 [31]
+    nop side 0 [31]
+    nop side 0 [31]
+
+    set pins, 0 side 0 [11]
+    set x, 15 side 0
+
+bitloop:
+    in pins, 1 side 1 [11]
+    jmp x-- bitloop side 0 [12]
+.wrap
