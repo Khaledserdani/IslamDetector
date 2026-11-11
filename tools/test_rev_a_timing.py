@@ -73,6 +73,9 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("jmp x-- bitloop side 0 [6]", self.pio_source)
         self.assertIn("#define ENABLE_ADS8861_CAPTURE 0", self.main_source)
         self.assertIn("clock_get_hz(clk_sys) != ADS8861_SYS_CLOCK_HZ", self.c_source)
+        self.assertIn("dma_channel_configure", self.c_source)
+        self.assertIn("pio_get_dreq(pio, sm, false)", self.c_source)
+        self.assertNotIn("PIO_FIFO_JOIN_RX", self.c_source)
 
 
 if __name__ == "__main__":
