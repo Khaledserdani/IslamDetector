@@ -10,10 +10,18 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import android.content.Intent;
+import android.net.Uri;
+import android.content.SharedPreferences;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private EditText amplitudeInput, tauInput, noiseInput;
+    private EditText amplitudeInput, tauInput, noiseInput, measuredInput;
+    private SharedPreferences experimentPrefs;
+    private static final int REQUEST_CSV = 701;
     private TextView resultText, statusText;
     private WaveView waveView;
     private double[] windowsUs = {8, 12, 16, 24, 36, 52, 72, 100};
@@ -25,6 +33,7 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(Color.rgb(8, 16, 29));
         getWindow().setNavigationBarColor(Color.rgb(8, 16, 29));
+        experimentPrefs = getSharedPreferences("experiments", MODE_PRIVATE);
         buildUi();
         runSimulation();
     }
@@ -85,6 +94,23 @@ public class MainActivity extends Activity {
         share.setOnClickListener(v -> shareReport());
         page.addView(share);
 
+        page.addView(section("القياسات الحقيقية"));
+        page.addView(label("أدخل قراءات mV أو استورد ملف CSV من الهاتف", 13, 0xffd5e2ef, false));
+        measuredInput = field("مثال: 12.5, 11.8, 10.2", "");
+        measuredInput.setSingleLine(false);
+        measuredInput.setMinLines(3);
+        measuredInput.setGravity(Gravity.TOP | Gravity.RIGHT);
+        page.addView(measuredInput);
+        Button analyze = button("تحليل وحفظ القياسات");
+        analyze.setOnClickListener(v -> analyzeMeasurements());
+        page.addView(analyze);
+        Button importCsv = button("استيراد ملف CSV");
+        importCsv.setOnClickListener(v -> openCsvPicker());
+        page.addView(importCsv);
+        Button history = button("سجل التجارب المحفوظة");
+        history.setOnClickListener(v -> showExperimentHistory());
+        page.addView(history);
+
         TextView footer = label("المرحلة التالية: ربط محرك فيزيائي موثّق، ومحاكاة الدوائر، ثم استقبال بيانات أجهزة القياس الحقيقية.", 12, 0xff9bb2c9, false);
         footer.setPadding(0, dp(18), 0, 0);
         page.addView(footer);
@@ -137,13 +163,84 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void shareReport() {
-        if (report.isEmpty()) runSimulation();
+    private void analyzeMeasurements() {
+        try {
+            double[] values = ExperimentData.parse(measuredInput.getText().toString());
+            double[] stats = LabMath.summarize(values);
+            report = ExperimentData.toCsv(values);
+            resultText.setText(String.format(Locale.US,
+                    "مصدر البيانات: قياسات أدخلها المستخدم\\nعدد القراءات: %d\\nأقل قيمة: %.4f mV\\nأعلى قيمة: %.4f mV\\nالمتوسط: %.4f mV\\nالمدى: %.4f mV\\nالانحراف المعياري: %.4f mV",
+                    (int)stats[5], stats[0], stats[1], stats[2], stats[3], stats[4]));
+            statusText.setText("وضع العمل: تحليل قياسات فعلية أدخلها المستخدم");
+            String key = "experiment_" + System.currentTimeMillis();
+            experimentPrefs.edit().putString(key, report).putString("last_key", key).apply();
+            Toast.makeText(this, "تم تحليل القياسات وحفظها محلياً", Toast.LENGTH_SHORT).show();
+        } catch (Exception ex) {
+            Toast.makeText(this, ex.getMessage() == null ? "تحقق من القراءات" : ex.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void openCsvPicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/csv", "text/comma-separated-values", "application/vnd.ms-excel", "text/plain"});
+        startActivityForResult(intent, REQUEST_CSV);
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_CSV || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            StringBuilder text = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (text.length() + line.length() > 2_000_000) throw new IllegalArgumentException("الملف أكبر من الحد المسموح");
+                text.append(line).append(' ');
+            }
+            measuredInput.setText(text.toString());
+            Toast.makeText(this, "تم تحميل الملف. اضغط تحليل وحفظ القياسات.", Toast.LENGTH_LONG).show();
+        } catch (Exception ex) {
+            Toast.makeText(this, "تعذر قراءة الملف: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showExperimentHistory() {
+        java.util.Map<String, ?> all = experimentPrefs.getAll();
+        java.util.ArrayList<String> keys = new java.util.ArrayList<>();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        for (String key : all.keySet()) {
+            if (key.startsWith("experiment_")) {
+                keys.add(key);
+                labels.add("تجربة " + key.substring("experiment_".length()));
+            }
+        }
+        java.util.Collections.sort(keys, java.util.Collections.reverseOrder());
+        labels.clear();
+        for (String key : keys) labels.add("تجربة " + key.substring("experiment_".length()));
+        if (keys.isEmpty()) {
+            new android.app.AlertDialog.Builder(this).setTitle("سجل التجارب").setMessage("لا توجد تجارب محفوظة بعد.").setPositiveButton("حسناً", null).show();
+            return;
+        }
+        new android.app.AlertDialog.Builder(this).setTitle("التجارب المحفوظة").setItems(labels.toArray(new String[0]), (dialog, which) -> {
+            report = experimentPrefs.getString(keys.get(which), "");
+            resultText.setText(report);
+            statusText.setText("وضع العمل: عرض تجربة محفوظة");
+        }).setNegativeButton("إغلاق", null).show();
+    }
+
+    private void shareText(String content, String subject) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/csv");
-        intent.putExtra(Intent.EXTRA_SUBJECT, "ISLAM LAB experiment");
-        intent.putExtra(Intent.EXTRA_TEXT, report);
-        startActivity(Intent.createChooser(intent, "تصدير بيانات التجربة"));
+        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, content);
+        startActivity(Intent.createChooser(intent, "تصدير البيانات"));
+    }
+    private void shareReport() {
+        if (report.isEmpty()) runSimulation();
+        shareText(report, "ISLAM LAB experiment");
     }
 
     private TextView section(String s) {
