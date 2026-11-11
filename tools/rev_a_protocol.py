@@ -231,6 +231,8 @@ def decode_device_info(frame: bytes) -> dict[str, int]:
         "adc_vref_uv", "active_profile_id", "profile_crc32",
     )
     result = dict(zip(keys, fields))
+    result["version"] = version
+    result["type"] = msg_type
     if result["adc_model_id"] not in (
         ADC_MODEL_ADS8861, ADC_MODEL_ADS8860, ADC_MODEL_ADS7054, ADC_MODEL_AD7980
     ):
