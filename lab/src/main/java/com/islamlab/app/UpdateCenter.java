@@ -155,4 +155,15 @@ public final class UpdateCenter {
     private static void postReady(Activity a, Listener l, File apk) {
         a.runOnUiThread(() -> l.onReady(apk));
     }
+    public static int clearDownloadedUpdates(Activity activity) {
+        File dir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) return 0;
+        File updates = new File(dir, "updates");
+        File[] files = updates.listFiles();
+        if (files == null) return 0;
+        int removed = 0;
+        for (File file : files) if (file.isFile() && file.delete()) removed++;
+        updates.delete();
+        return removed;
+    }
 }
