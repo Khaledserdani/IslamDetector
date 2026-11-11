@@ -100,7 +100,6 @@ static void timing_outputs_start(void) {
         printf("ERROR: ADS8861 capture engine could not be armed.\n");
         return;
     }
-    ads8861_sample_count = 0u;
 #endif
 
     gpio_set_function(TX_TEST_PIN, GPIO_FUNC_PWM);
