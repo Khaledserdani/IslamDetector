@@ -368,17 +368,20 @@
 
 ### 15.3 مقارنة ADC والتوفر المحلي
 
-**قرار Rev A المبدئي: ADS7054 هو أول ADC نجربه.**
-- ADS7054: 14-bit / 1MSPS، دخل تفاضلي، SNR نحو 79.6 dB، واستهلاك نموذجي 1.5 mW عند 1MSPS؛ حزمة X2QFN-8 صغيرة وتتطلب PCBA دقيقة.
-- AD7980: 16-bit / 1MSPS، SNR منشور 91.5 dB، حزمة MSOP-10 متاحة، لكنه يحتاج مرجعاً خارجياً ودخلاً pseudo-differential. ظهر بسعر مرجعي 32.88 USD للقطعة الواحدة على DigiKey.
-- ADS7054 ظهر بسعر مرجعي 5.21 USD للقطعة الواحدة على DigiKey. الأسعار بالدولار ليست أسعاراً جزائرية ولا تشمل الشحن/الضرائب.
-- نبدأ بـADS7054 لتوازن الأداء والتكلفة، ونحتفظ بـAD7980 فقط إذا أثبت قياس الضوضاء أن 14-bit غير كافٍ.
+**لا نثبت ADC قبل تثبيت خرج مضخم RX. لدينا مساران:**
+- ADS7054: 14-bit / 1MSPS، دخل تفاضلي، SNR نحو 79.6 dB، استهلاك 1.5 mW، X2QFN-8، لا يحتاج مرجعاً خارجياً. خيار اقتصادي بسعر مرجعي 5.21 USD على DigiKey.
+- ADS8860: 16-bit / 1MSPS، SNR نحو 93 dB، acquisition نحو 290 ns، دخل أحادي 0..VREF، حزمة VSSOP-10. خيار أداء أعلى وأسهل مع خرج RX أحادي الطرف، لكنه يحتاج مرجعاً خارجياً؛ ظهر بسعر مرجعي 22.04 USD على Mouser.
+- AD7980: 16-bit / 1MSPS، SNR 91.5 dB، pseudo-differential ومرجع خارجي؛ ظهر بسعر 32.88 USD على DigiKey، لذلك أقل جاذبية من ADS8860.
 
-**توفير محلي:** RP2040-Zero ظهر لدى MHTronic بسعر 1,700 دج (170 ألف سنتيم) وموسوم In stock وقت البحث؛ وظهر خيار RP2040-Zero لدى Powertech ضمن نطاق 2,500–2,800 دج (250–280 ألف سنتيم). لم يظهر عرض جزائري موثق لـADS7054 أو AD7980. الروابط:
+الأسعار بالدولار ليست أسعاراً جزائرية ولا تشمل الشحن والضرائب. ADS7054 هو الخيار الاقتصادي، وADS8860 هو خيار الأداء إذا أثبتت ميزانية الضوضاء والحاجة إلى 16-bit ذلك. لا نشتري أي ADC حتى نحدد common-mode ومجال الخرج ومرجع ADC.
+
+**توفير محلي:** RP2040-Zero ظهر لدى MHTronic بسعر 1,700 دج (170 ألف سنتيم) وموسوم In stock وقت البحث؛ وظهر خيار لدى Powertech ضمن نطاق 2,500–2,800 دج. لم يظهر عرض جزائري موثق لـADS7054 أو ADS8860 أو AD7980.
+روابط:
 - https://mhtronic.com/produit/module-developpement-miniature-rp2040-zero/
 - https://powertech-dz.org/product/eames-plastic-side-chair/
-- https://www.digikey.com/en/products/detail/texas-instruments/ADS7054IRUGR/8322721
-- https://www.digikey.com/en/products/detail/analog-devices-inc/AD7980BRMZRL7/1679878
+- https://www.ti.com/product/ADS7054
+- https://www.ti.com/product/ADS8860
+- https://www.analog.com/en/products/ad7980.html
 
 
 ### 15.4 بوابة قياس DD32 والسلامة المخبرية
