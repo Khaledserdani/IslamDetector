@@ -61,8 +61,8 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("nop side 0 [1]", self.pio_source)
 
     def test_adc_conversion_and_serial_readout_fit_minimum_window_gap(self):
-        # CONVST high: SET [31] + NOP [31] + NOP [31] = 96 cycles.
-        conversion_cycles = 3 * 32
+        # CONVST high: SET [15] + five NOP [15] instructions = 96 cycles.
+        conversion_cycles = 6 * 16
         # SCLK: IN [5] = 6 cycles high; JMP [6] = 7 cycles low.
         read_cycles = 16 * (6 + 7)
         # CONVST low instruction [11], SET X, NOP [1], JMP Y, OUT X.
