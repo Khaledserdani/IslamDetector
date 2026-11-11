@@ -164,6 +164,21 @@ ADC_INPUT_DIFFERENTIAL = 0x01
 ADC_INPUT_SINGLE_ENDED = 0x02
 ADC_INPUT_PSEUDO_DIFFERENTIAL = 0x03
 
+_ADC_METADATA = {
+    ADC_MODEL_ADS8861: (SAMPLE_FORMAT_TWOS_COMPLEMENT, 16, ADC_INPUT_DIFFERENTIAL),
+    ADC_MODEL_ADS8860: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_SINGLE_ENDED),
+    ADC_MODEL_ADS7054: (SAMPLE_FORMAT_UNSIGNED, 14, ADC_INPUT_DIFFERENTIAL),
+    ADC_MODEL_AD7980: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_PSEUDO_DIFFERENTIAL),
+}
+
+
+def _validate_adc_metadata(model_id: int, sample_format_id: int,
+                           resolution_bits: int, input_mode_id: int) -> None:
+    expected = _ADC_METADATA.get(model_id)
+    actual = (sample_format_id, resolution_bits, input_mode_id)
+    if expected is None or actual != expected:
+        raise ProtocolError("ADC model, resolution, input mode, and sample format are inconsistent")
+
 
 def encode_device_info(
     *,
@@ -190,6 +205,9 @@ def encode_device_info(
         ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
     ):
         raise ProtocolError("unsupported adc_input_mode_id")
+    _validate_adc_metadata(
+        adc_model_id, sample_format_id, adc_resolution_bits, adc_input_mode_id
+    )
 
     payload = _DEVICE_INFO.pack(
         _bounded(hw_rev, 0, 255, "hw_rev"),
@@ -247,6 +265,10 @@ def decode_device_info(frame: bytes) -> dict[str, int]:
         ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
     ):
         raise ProtocolError("unsupported ADC input mode")
+    _validate_adc_metadata(
+        result["adc_model_id"], result["sample_format_id"],
+        result["adc_resolution_bits"], result["adc_input_mode_id"]
+    )
     return result
 
 
