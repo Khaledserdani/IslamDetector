@@ -670,3 +670,9 @@ Commit اختبار PWM marker: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. أط
 
 تم التحقق من الوظائف الثلاث في GitHub Actions run #212 (ID `43076666839`) على commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`: protocol-tests وandroid-app وrp2040-firmware كلها completed/success. شمل ذلك بناء APK والتحقق منه، وبناء UF2 والتحقق منه. لم يتم تثبيت APK على الهاتف أو تفليش UF2 على لوحة فعلية.
 الرابط: https://github.com/Khaledserdani/IslamDetector/actions/runs/43076666839
+
+
+## 22) إصلاح خط أنابيب PWM marker
+
+مراجعة سلوك RP2040 PWM double-buffer وجدت أن CC يلتقط الكتابة عند الالتفاف التالي، ما كان يكرر profile 0 دورة إضافية عند بدء الاختبار. أصلحت Firmware بفصل active/queued profile وتهيئة compare للنافذة التالية قبل أول wrap، وأضفت اختباراً حسابياً يحاكي تسلسل الفهارس. المرجع الرسمي: https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#hardware_pwm
+الـcommit الخاص بالإصلاح والاختبار: `5cea3844f7a77c6b47087b0f6d2778e765cd4ed7` و`2a5231d3c637d8e5e623afac47669b341ac72223`. CI #218 على رأس PR الحالي جارٍ؛ اجتاز protocol-tests وAndroid، وRP2040 firmware ما زال يثبت toolchain. لا توجد قياسات فعلية على الأرجل بعد.
