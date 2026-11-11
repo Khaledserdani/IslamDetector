@@ -8,7 +8,7 @@
 ; SCLK = 6 cycles high + 7 cycles low = 9.615 MHz.
 ; DOUT MSB is sampled 120 ns after CONVST falls (12-cycle CONVST-low instruction + SET X + NOP) (t_d-CNV-DO max 12.3 ns).
 ;
-; The TX FIFO is preloaded with four 32-bit words. Each word carries two
+; One 32-bit word is explicitly pulled into OSR; the remaining three words are preloaded in TX FIFO. Each word carries two
 ; 12-bit delay-loop counts. OUT shift-right/autopull threshold is 24 bits.
 ; The eight trigger delays from TX falling are nominally:
 ; 8, 12, 16, 24, 36, 52, 72, 100 us.
