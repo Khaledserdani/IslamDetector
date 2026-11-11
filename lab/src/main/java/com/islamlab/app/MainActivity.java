@@ -54,11 +54,14 @@ public class MainActivity extends Activity {
         page.addView(warning);
 
         page.addView(section("إعداد تجربة الإشارة"));
-        amplitudeInput = field("سعة البداية (mV)", "1000");
-        tauInput = field("زمن الاضمحلال τ (µs)", "24");
-        noiseInput = field("سعة ضوضاء الاختبار الاسمية (mV)", "2");
+        page.addView(label("سعة البداية (mV)", 14, 0xffd5e2ef, true));
+        amplitudeInput = field("أدخل القيمة", "1000");
         page.addView(amplitudeInput);
+        page.addView(label("زمن الاضمحلال τ (µs)", 14, 0xffd5e2ef, true));
+        tauInput = field("أدخل القيمة", "24");
         page.addView(tauInput);
+        page.addView(label("سعة ضوضاء الاختبار الاسمية (mV)", 14, 0xffd5e2ef, true));
+        noiseInput = field("أدخل القيمة", "2");
         page.addView(noiseInput);
 
         Button run = button("تشغيل المحاكاة");
