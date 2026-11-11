@@ -1,6 +1,15 @@
-name: Build signed ISLAM LAB release
+name: Build ISLAM LAB release APK
 
 on:
+  push:
+    branches:
+      - feature/islam-lab-foundation
+    paths:
+      - '.github/workflows/release.yml'
+      - 'lab/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
   workflow_dispatch:
 
 permissions:
@@ -17,23 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate release signing secrets
-        shell: bash
-        env:
-          KEYSTORE_B64: ${{ secrets.ISLAM_RELEASE_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.ISLAM_RELEASE_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ISLAM_RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ISLAM_RELEASE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          test -n "$KEYSTORE_B64" || { echo "Missing ISLAM_RELEASE_KEYSTORE_BASE64"; exit 1; }
-          test -n "$STORE_PASSWORD" || { echo "Missing ISLAM_RELEASE_STORE_PASSWORD"; exit 1; }
-          test -n "$KEY_ALIAS" || { echo "Missing ISLAM_RELEASE_KEY_ALIAS"; exit 1; }
-          test -n "$KEY_PASSWORD" || { echo "Missing ISLAM_RELEASE_KEY_PASSWORD"; exit 1; }
-          mkdir -p "$RUNNER_TEMP/islam-signing"
-          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/islam-signing/release.jks"
-          test -s "$RUNNER_TEMP/islam-signing/release.jks"
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -43,15 +35,10 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Run tests and build signed release APK
-        env:
-          ISLAM_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/islam-signing/release.jks
-          ISLAM_RELEASE_STORE_PASSWORD: ${{ secrets.ISLAM_RELEASE_STORE_PASSWORD }}
-          ISLAM_RELEASE_KEY_ALIAS: ${{ secrets.ISLAM_RELEASE_KEY_ALIAS }}
-          ISLAM_RELEASE_KEY_PASSWORD: ${{ secrets.ISLAM_RELEASE_KEY_PASSWORD }}
+      - name: Run tests and build installable release APK
         run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleRelease
 
-      - name: Verify APK and signature
+      - name: Verify APK and signing certificate
         shell: bash
         run: |
           set -euo pipefail
@@ -62,7 +49,7 @@ jobs:
           "$SDK/apksigner" verify --verbose --print-certs "$APK"
           sha256sum "$APK"
 
-      - name: Publish final installable APK
+      - name: Publish installable APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: islam-lab-v1.0.0
