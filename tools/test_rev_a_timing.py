@@ -130,6 +130,29 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("pwm_set_chan_level(slice_num, PWM_CHAN_B, sample_compare_ticks[0])", self.main_source)
         self.assertIn("START_PULSE_US + sample_delays_us[i]", self.main_source)
 
+    def test_pwm_compare_pipeline_is_primed_without_startup_duplicate(self):
+        # RP2040 CC is double-buffered: writes while running latch at the
+        # next wrap. Prime profile 1 immediately after enabling PWM so the
+        # first wrap switches from profile 0 to profile 1, not one wrap later.
+        self.assertIn("static volatile uint8_t active_profile_index = 0u;", self.main_source)
+        self.assertIn("static volatile uint8_t queued_profile_index = 1u;", self.main_source)
+        enable_at = self.main_source.index("pwm_set_enabled(slice_num, true);")
+        prime_at = self.main_source.index(
+            "pwm_set_chan_level(slice_num, PWM_CHAN_B, sample_compare_ticks[1]);",
+            enable_at,
+        )
+        self.assertLess(enable_at, prime_at)
+        self.assertIn("active_profile_index = queued_profile_index;", self.main_source)
+        self.assertIn("sample_compare_ticks[queued_profile_index]", self.main_source)
+
+        active, queued = 0, 1
+        observed = [active]
+        for _ in range(8):
+            active = queued
+            queued = (active + 1) & 0x07
+            observed.append(active)
+        self.assertEqual(observed, [0, 1, 2, 3, 4, 5, 6, 7, 0])
+
 
 if __name__ == "__main__":
     unittest.main()
