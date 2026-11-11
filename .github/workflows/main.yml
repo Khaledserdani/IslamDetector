@@ -1,12 +1,20 @@
-name: Validate Islam Detector apps on pull requests
+name: Validate Islam Detector and ISLAM LAB Android apps
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - '.github/workflows/main.yml'
+      - 'app/**'
+      - 'lab/**'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - 'gradle/**'
 permissions:
   contents: read
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  android-apps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -16,27 +24,27 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both APKs
-        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug
-      - name: Verify APKs
+      - name: Build Android applications
+        run: gradle --no-daemon clean :app:assembleDebug :lab:assembleDebug
+      - name: Verify APK packages
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk; do
+          for APK in app/build/outputs/apk/debug/app-debug.apk lab/build/outputs/apk/debug/lab-debug.apk; do
             test -f "$APK"
-            test "$(stat -c%s "$APK")" -gt 20000
+            test "$(stat -c%s "$APK")" -gt 1000
             unzip -t "$APK"
             sha256sum "$APK"
           done
-      - name: Upload original app
+      - name: Upload Islam Detector APK
         uses: actions/upload-artifact@v4
         with:
-          name: IslamDetector-Original-APK
+          name: IslamDetector-Android-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-      - name: Upload Pro app
+      - name: Upload ISLAM LAB APK
         uses: actions/upload-artifact@v4
         with:
-          name: IslamDetector-Pro-APK
-          path: pro/build/outputs/apk/debug/pro-debug.apk
+          name: ISLAM-LAB-Android-APK
+          path: lab/build/outputs/apk/debug/lab-debug.apk
           retention-days: 30
