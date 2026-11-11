@@ -18,6 +18,7 @@ pico_sdk_init()
 
 add_executable(islam_rev_a_timing_test
     src/main.c
+    src/ads8861_capture.c
 )
 
 pico_generate_pio_header(islam_rev_a_timing_test
