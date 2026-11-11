@@ -29,9 +29,23 @@ jobs:
           submodules: false
       - name: Initialize TinyUSB submodule
         run: git -C pico-sdk submodule update --init lib/tinyusb
-      - name: Install ARM embedded toolchain
+      - name: Install ARM embedded toolchain (retry transient mirror DNS failures)
+        shell: bash
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if sudo DEBIAN_FRONTEND=noninteractive apt-get \
+              -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30 \
+              install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          exit 1
       - name: Build RP2040 logic timing firmware
         run: |
           cmake -S firmware/rp2040_timing_test -B build/rp2040 \
