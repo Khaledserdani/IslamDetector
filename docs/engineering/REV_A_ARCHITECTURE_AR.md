@@ -137,7 +137,11 @@ E_L(t) = 0.5 × L × I(t)^2
 - ADS7054: خيار اقتصادي 14-bit/1MSPS، SNR نحو 79.6 dB، 1.5mW، لا يحتاج مرجعاً خارجياً لكنه X2QFN-8 ودخله تفاضلي؛ يبقى fallback إذا تعذر ADS8860 أو كان فرق الأداء غير ضروري.
 - AD7980 يبقى احتياطياً، لكنه أعلى تكلفة من ADS8860.
 
-**قرار Rev A لواجهة RX المبدئي:** نبدأ بدائرة AD8032 مزدوجة على 5V أحادي التغذية: القناة الأولى Buffer/كسب أولي عالي الممانعة بعد حماية وتخميد RX، والثانية مرشح anti-alias + level shift/driver إلى مجال 0–5V للـADS8860. AD8032 سريع 80MHz وsettling نحو125ns إلى 0.1%، وضوضاء دخله نحو15nV/√Hz؛ تقدير الضوضاء الأبيض 6.7µV RMS عند 200kHz مثالية. هذا أقل من ضوضاء ADC المتوقعة، لكن يجب اختبار استعادة التشبع والضوضاء الفعلية قبل تثبيت قيم الكسب والمرشح.
+**تصحيح مهم في اختيار مضخم سائق ADC:** لا نعتمد AD8032 وحده كسائق نهائي لـADS8860. مواصفة AD8032 المنشورة 125ns إلى 0.1% لا تثبت وحدها settling بدقة 16-bit، حتى لو كان bandwidth=80MHz. يبقى AD8032 مرشح Buffer أولي فقط بعد حماية وتخميد RX، مع اختبار الاستعادة والضوضاء.
+- مرشح مرحلة التكييف/سائق ADC الأقوى: OPA2836 المزدوج على 5V؛ 205MHz bandwidth، slew rate=560V/µs، settling=22ns إلى 0.1% لخطوة 2V، وoverdrive recovery=60ns، وضوضاء 4.6nV/√Hz. لدى TI تصميم مرجعي يقدر OPA836 عند نحو25ns لاستقرار 14-bit في حالة محددة، لكن هذا لا يثبت تلقائياً دقة 16-bit في دارتنا.
+- مدى دخل OPA2836 على تغذية 5V محدود تقريباً من −0.2 إلى +3.9V؛ لذلك يجب وضع common-mode وإشارة RX ضمن هذا المجال، وعدم افتراض أن rail-to-rail output يعني rail-to-rail input.
+- ترتيب الدراسة: RX coil → حماية/تخميد/كتم → Buffer عالي الممانعة (AD8032 أو OPA2836 بعد تقييم common-mode) → مرشح/level shift → OPA2836 كسائق نهائي → ADS8860. قد نختصر المراحل إذا أثبتت المحاكاة أن OPA2836 وحده يحقق الضوضاء والاستعادة والمدى المطلوب.
+- لا نعتمد AD8032 أو OPA2836 نهائياً قبل محاكاة charge-kickback لمدخل ADS8860، والتحقق من settling إلى 16-bit خلال acquisition=290ns، والضوضاء المتكاملة، والاستقرار مع شبكة RC، واستعادة التشبع بعد نبضة TX. لا توجد قيم R/C معتمدة حتى الآن.
 
 AD603 يبقى ترقية اختيارية لاحقة لكسب متغير، لا يدخل في Rev A الأول لأنه يحتاج ±5V ودخله 100Ω ويستلزم Buffer إضافياً. AD845 بديل Buffer فقط إذا فشل AD8032 في اختبار الاستعادة أو القيادة.
 
@@ -341,6 +345,8 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - AD845: https://www.analog.com/en/products/ad845.html
 - AD743: https://www.analog.com/media/en/technical-documentation/data-sheets/ad743.pdf
 - AD8032: https://www.analog.com/en/products/ad8032.html
+- OPA2836/OPA836: https://www.ti.com/product/OPA836 — 205MHz، 560V/µs، 22ns إلى 0.1%، overdrive recovery 60ns؛ ومرجع تقدير 14-bit: https://www.ti.com.cn/lit/ug/tidud58/tidud58.pdf
+- ADS8860 input driver design note: https://www.ti.com/lit/ds/symlink/ads8860.pdf — راجع قسم القيادة وcharge-kickback؛ settling المضخم يجب التحقق منه بالنسبة لدقة ADC ونافذة acquisition.
 - AD8015: https://www.analog.com/en/products/ad8015.html
 - قائمة Power Lab المحلية: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
 
