@@ -70,6 +70,7 @@
 ## 6. واجهة ADS8861 إلى RP2040-Zero
 
 **تسلسل 3-Wire CS بدون Busy:**
+- يتضمن PIO input synchronizer وتعليمات WAIT latency؛ لذلك marker-fall إلى CONVST-rise ليس صفراً. يجب قياس التأخير الفعلي بمحلل منطقي وإدخاله كـtiming offset قبل اعتماد نافذة العينة.
 1. DIN مربوط إلى DVDD=HIGH.
 2. CONVST rising يلتقط الإشارة ويبدأ التحويل.
 3. يبقى CONVST HIGH حتى tconv-max=710ns.
