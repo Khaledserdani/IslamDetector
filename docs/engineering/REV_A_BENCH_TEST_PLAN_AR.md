@@ -49,7 +49,7 @@
 1. تحقق من GP4 period=10ms وpulse width=20µs.
 2. قس GP4 falling إلى أول CONVST rising: الهدف الاسمي8µs؛ صحح first delay count وفق القياس الفعلي.
 3. قس النوافذ الثماني:8/12/16/24/36/52/72/100µs من GP4 falling.
-4. تحقق من CONVST high=768ns، وSCLK period=104ns (نحو9.615MHz)، ووقت أول DOUT sample بعد120ns من CONVST falling.
+4. تحقق من CONVST high=768ns، وSCLK period=112ns (نحو8.929MHz، 50% duty)، ووقت أول DOUT sample بعد120ns من CONVST falling.
 5. تحقق من 16 clock لكل sample، ومن تسلسل ثماني كلمات لكل TX pulse.
 6. تحقق من عدم فقد DMA words وعدم اختلاط sweep مع النبضة التالية.
 7. سجل jitter peak-to-peak على الأقل10000 نبضة، مع تردد الساعة وحرارة اللوحة.
