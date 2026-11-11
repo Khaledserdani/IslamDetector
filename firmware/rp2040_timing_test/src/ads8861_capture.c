@@ -14,10 +14,10 @@
 // The first value assumes the 2-cycle GPIO synchronizer; hardware timing
 // measurement must confirm or trim this first offset.
 static const uint32_t delay_words[4] = {
-    0x000B23E3u, // 995, 178
-    0x002A60B2u, // 178, 678
-    0x0068E49Au, // 1178, 1678
-    0x00C6A882u  // 2178, 3178
+    0x000A23E3u, // 995, 162
+    0x002960A2u, // 162, 662
+    0x0067E48Au, // 1162, 1662
+    0x00C5A872u  // 2162, 3162
 };
 
 static PIO capture_pio;
