@@ -38,3 +38,13 @@ Use a logic analyzer or oscilloscope to verify:
 5. No pulses occur before command R; command S forces GP4 low.
 
 Measured timing and jitter must be recorded from the actual RP2040-Zero board. No timing accuracy is claimed until measured.
+
+## ADS8861 PIO capture driver (compiled, disabled by default)
+
+A separate PIO program and C helper compile with the timing test:
+- GP5 falling edge triggers one conversion at the selected decay delay.
+- GP8=CONVST, GP9=SCLK, GP10=DOUT; ADS8861 DIN must be strapped HIGH for 3-wire CS mode.
+- CONVST is held HIGH for96 PIO cycles at125MHz (768ns), exceeding the710ns maximum conversion time.
+- DOUT is read MSB-first with a5MHz SCLK (12 cycles HIGH +13 cycles LOW); 16 bits are pushed into the RX FIFO as a raw right-justified word.
+- Output remains disabled by `ENABLE_ADS8861_CAPTURE=0` until the real ADC, analog protection, supplies and wiring are installed and reviewed. Do not enable it against floating pins or without the physical ADC.
+- This is a firmware compile milestone only; it is not a hardware-loopback or ADC accuracy test.
