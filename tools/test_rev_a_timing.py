@@ -26,7 +26,7 @@ class RevATimingTests(unittest.TestCase):
         counts = []
         for word in words:
             counts.extend((word & 0xFFF, (word >> 12) & 0xFFF))
-        self.assertEqual(counts, [995, 178, 178, 678, 1178, 1678, 2178, 3178])
+        self.assertEqual(counts, [995, 162, 162, 662, 1162, 1662, 2162, 3162])
 
     def test_delay_loop_instruction_budget_hits_eight_nominal_windows(self):
         words = [
@@ -39,9 +39,9 @@ class RevATimingTests(unittest.TestCase):
 
         # First point: 2 input-sync + SET Y + OUT + (X+1) loop cycles.
         first_cycles = counts[0] + 5
-        # Later points: 319 cycles through conversion/readout, then JMP Y and OUT
+        # Later points: 335 cycles through conversion/readout, then JMP Y and OUT
         # add 2 cycles; the delay loop adds (X+1) cycles.
-        intervals = [322 + value for value in counts[1:]]
+        intervals = [338 + value for value in counts[1:]]
         cumulative = [first_cycles]
         for interval in intervals:
             cumulative.append(cumulative[-1] + interval)
@@ -57,18 +57,18 @@ class RevATimingTests(unittest.TestCase):
         self.assertEqual(convst_high_cycles * 8, 768)  # ns at 125 MHz
         self.assertGreater(768, 710)  # ADS8861 t_conv max, ns
 
-        # One SCLK period: IN [5] = 6 cycles high; JMP [6] = 7 low.
-        sclk_period_cycles = 6 + 7
-        self.assertEqual(sclk_period_cycles, 13)
-        self.assertAlmostEqual(125_000_000 / sclk_period_cycles, 9_615_384.615, places=2)
-        self.assertGreaterEqual(6 / 13, 0.45)
-        self.assertGreaterEqual(7 / 13, 0.45)
+        # One SCLK period: IN [6] = 7 cycles high; JMP [6] = 7 low.
+        sclk_period_cycles = 7 + 7
+        self.assertEqual(sclk_period_cycles, 14)
+        self.assertAlmostEqual(125_000_000 / sclk_period_cycles, 8_928_571.429, places=2)
+        self.assertEqual(7 / 14, 0.5)
+        self.assertEqual(7 / 14, 0.5)
         self.assertIn("set pins, 1 side 0 [15]", self.pio_source)
         self.assertEqual(self.pio_source.count("nop side 0 [15]"), 5)
 
     def test_capture_shift_width_matches_one_adc_word(self):
         self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
-        self.assertIn("in pins, 1 side 1 [5]", self.pio_source)
+        self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
         self.assertIn("uint32_t capture_buffer[ADS8861_SWEEP_SAMPLES]", self.c_source)
         self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
 
@@ -85,23 +85,23 @@ class RevATimingTests(unittest.TestCase):
     def test_adc_conversion_and_serial_readout_fit_minimum_window_gap(self):
         # CONVST high: SET [15] + five NOP [15] instructions = 96 cycles.
         conversion_cycles = 6 * 16
-        # SCLK: IN [5] = 6 cycles high; JMP [6] = 7 cycles low.
-        read_cycles = 16 * (6 + 7)
+        # SCLK: IN [6] = 7 cycles high; JMP [6] = 7 cycles low.
+        read_cycles = 16 * (7 + 7)
         # CONVST low instruction [11], SET X, NOP [1], JMP Y, OUT X.
         control_cycles = 12 + 1 + 2 + 1 + 1
         total_before_wait = conversion_cycles + read_cycles + control_cycles
         self.assertEqual(conversion_cycles, 96)
-        self.assertEqual(read_cycles, 208)
-        self.assertEqual(total_before_wait, 321)
+        self.assertEqual(read_cycles, 224)
+        self.assertEqual(total_before_wait, 337)
         # First two gaps are 4 us = 500 cycles; at least 1 us remains.
-        self.assertEqual(500 - total_before_wait, 179)
+        self.assertEqual(500 - total_before_wait, 163)
 
     def test_pio_is_one_pulse_triggered_and_keeps_capture_disabled_by_default(self):
         self.assertIn("wait 1 gpio 4", self.pio_source)
         self.assertIn("wait 0 gpio 4", self.pio_source)
         self.assertIn("set y, 7", self.pio_source)
         self.assertIn("out x, 12", self.pio_source)
-        self.assertIn("in pins, 1 side 1 [5]", self.pio_source)
+        self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
         self.assertIn("jmp x-- bitloop side 0 [6]", self.pio_source)
         self.assertIn("#define ENABLE_ADS8861_CAPTURE 0", self.main_source)
         self.assertIn("clock_get_hz(clk_sys) != ADS8861_SYS_CLOCK_HZ", self.c_source)
