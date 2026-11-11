@@ -134,7 +134,7 @@ E_L(t) = 0.5 × L × I(t)^2
 
 **قرار Rev A الهندسي المفضل:** نجعل ADS8860 هو مسار الأداء الأساسي، وADS7054 بديلاً اقتصادياً:
 - ADS8860: 16-bit/1MSPS، SNR نحو 93 dB، دخل 0..VREF، 290 ns acquisition، حزمة VSSOP-10. مناسب لمسار RX أحادي الطرف biased إلى منتصف 0–5V، ويعطي هامش دقة أعلى.
-- AD586JR مرجع 5V محلي مرشح لتغذية VREF: دخل 10.8–36V، خرج 5V، حتى 10mA، دقة ابتدائية ±0.4% وحرارة 25ppm/°C، ضوضاء 4µVpp من 0.1 إلى 10Hz. نعاير القيمة الفعلية، ونفصل تغذيته عن ضوضاء TX بمرشح ومسار أرضي مستقل.
+- ADR4540B مرجع 4.096V خارجي مرشح لـVREF: دخل 4.2–15V، دقة ابتدائية ±0.02%، معامل حرارة 2ppm/°C، خرج حتى 10mA، وضوضاء نموذجية 2.7µVpp من 0.1–10Hz. اختيار 4.096V يترك هامشاً واضحاً تحت حد ADS8860 التشغيلي 5.0V ويجعل منتصف المجال 2.048V. يحتاج تغذية 5V مستقرة (VIN لا يقل عن 4.2V)، وفصل ضوضاء TX وقياساً فعلياً قبل الاعتماد.
 - ADS7054: خيار اقتصادي 14-bit/1MSPS، SNR نحو 79.6 dB، 1.5mW، لا يحتاج مرجعاً خارجياً لكنه X2QFN-8 ودخله تفاضلي؛ يبقى fallback إذا تعذر ADS8860 أو كان فرق الأداء غير ضروري.
 - AD7980 يبقى احتياطياً، لكنه أعلى تكلفة من ADS8860.
 
@@ -359,10 +359,16 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - ADS8860: https://www.ti.com/product/ADS8860 — 16-bit, 1 MSPS, 93 dB SNR, 290 ns acquisition; price reference: https://www.mouser.com/ProductDetail/Texas-Instruments/ADS8860IDGSR?qs=7MVldsJ5Uay4E9prX9lV9Q%3D%3D — 22.04 USD at the observed single-unit listing.
 - AD7980: https://www.analog.com/en/products/ad7980.html — 16-bit / 1 MSPS; price reference: https://www.digikey.com/en/products/detail/analog-devices-inc/AD7980BRMZRL7/1679878 — 32.88 USD at the observed single-unit listing.
 
-### مرجع VREF المحلي المرشح
+### مرجع VREF المختار للدراسة — تصحيح حد الجهد
 
-ظهر AD586JR لدى Power Lab بسعر 1,450 دج (145 ألف سنتيم) و15 قطعة حسب القائمة. هو مرجع 5V يغذى من 10.8–36V ويستطيع sourcing/sinking حتى 10mA. نسخة J لها دقة ابتدائية ±20mV (±0.4%) ودرجة حرارة 25ppm/°C؛ لذلك لا نعاملها كمرجع 16-bit مطلق دون معايرة، ويجب فحص الضوضاء واستقرار الحمل ومكثف VREF. إذا توفرت درجة L/B/M أصلية، تكون أفضل من J للدقة/الحرارة.
-المراجع: https://www.analog.com/en/products/ad586.html ؛ https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
+كان AD586JR المحلي مرشحاً أولياً لمرجع 5V، لكن ورقة بياناته تضمن 4.980–5.020V للدرجة J؛ الطرف الأعلى 5.020V يتجاوز حد التشغيل الأعلى 5.0V لمدخل REF في ADS8860. لذلك **نسحب AD586JR من دور VREF المباشر** ولا نعتمد عليه في Rev A بهذه الصورة.
+البديل المفضل للدراسة هو ADR4540B بخرج اسمي 4.096V، دقة ابتدائية ±0.02% ومعامل حرارة 2ppm/°C، وتغذية 4.2–15V. يغذى من 5V نظيفة مع هامش كافٍ، ويترك مجال ADS8860 أقل من 5V بوضوح. لم نعثر على عرض محلي موثق له؛ السعر المرجعي الرسمي يبدأ من 3.65 USD عند كمية 1000، وليس سعر قطعة مفردة أو سعراً جزائرياً.
+المراجع:
+- ADR4540: https://www.analog.com/en/products/adr4540.html
+- ADR4540 datasheet: https://www.analog.com/media/en/technical-documentation/data-sheets/ADR4520_4525_4530_4533_4540_4550.pdf
+- ADS8860 VREF range: https://www.ti.com/product/ADS8860
+- AD586J output range: https://www.analog.com/media/en/technical-documentation/data-sheets/AD586.pdf
+
 
 ### مراجعة ADCs الموجودة محلياً — ما لا نشتريه
 
