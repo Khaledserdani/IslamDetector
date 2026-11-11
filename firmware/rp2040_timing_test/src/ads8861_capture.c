@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "ads8861_capture.h"
 
 #include "hardware/gpio.h"
