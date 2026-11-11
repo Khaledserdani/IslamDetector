@@ -342,3 +342,15 @@
 ### حالة الإنجاز
 
 هذه الوثيقة **تصميم أولي محسوب ومراجع بالمصادر**؛ ليست مخطط KiCad نهائياً، ولا PCBA مصنعة، ولا اختباراً على الطاولة أو في الميدان. الخطوة العملية التالية هي قياس الملفين ثم اختبار TX منخفض الطاقة على حمل بديل، وبعدها استكمال مخطط الحماية وRX بقيم موثقة.
+
+
+### 15.1 نتيجة مراجعة توقيت ESP32-S3 مقابل RP2040
+
+أظهرت مراجعة وثائق Espressif أن ESP32-S3 لا يدعم أحداث MCPWM-ETM، رغم امتلاكه MCPWM وRMT. لذلك لا نفترض وجود ربط عتادي مباشر من حدث المؤقت إلى أخذ عينة ADC عبر ETM على هذه اللوحة. كما أن RMT DMA محدود بقناة TX واحدة وفق توثيق الشريحة.
+
+**التوصية الحالية لـRev A:** إبقاء RP2040 كمرشح مفضل لمحرك التوقيت والاكتساب باستخدام PIO/DMA، مع ESP32-S3 للاتصال والواجهة. هذا ليس اعتماد شراء نهائياً؛ يجب إثباته على نموذج اختبار وقياس jitter وفقد العينات، مع الاحتفاظ باختبار ESP32-S3-only لتقليل المكونات إن أمكن.
+
+وثيقة التصميم تفصل مقارنة البنى الثلاث، وتذكر المراجع الرسمية:
+- https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/mcpwm_etm.html
+- https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/rmt.html
+- https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html
