@@ -675,4 +675,17 @@ Commit اختبار PWM marker: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. أط
 ## 22) إصلاح خط أنابيب PWM marker
 
 مراجعة سلوك RP2040 PWM double-buffer وجدت أن CC يلتقط الكتابة عند الالتفاف التالي، ما كان يكرر profile 0 دورة إضافية عند بدء الاختبار. أصلحت Firmware بفصل active/queued profile وتهيئة compare للنافذة التالية قبل أول wrap، وأضفت اختباراً حسابياً يحاكي تسلسل الفهارس. المرجع الرسمي: https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#hardware_pwm
-الـcommit الخاص بالإصلاح والاختبار: `5cea3844f7a77c6b47087b0f6d2778e765cd4ed7` و`2a5231d3c637d8e5e623afac47669b341ac72223`. CI #218 على رأس PR الحالي جارٍ؛ اجتاز protocol-tests وAndroid، وRP2040 firmware ما زال يثبت toolchain. لا توجد قياسات فعلية على الأرجل بعد.
+الـcommit الخاص بالإصلاح والاختبار: `5cea3844f7a77c6b47087b0f6d2778e765cd4ed7` و`2a5231d3c637d8e5e623afac47669b341ac72223`. اكتمل CI #218 على رأس PR الحالي بنجاح في الوظائف الثلاث؛ تفاصيل التشغيل والـartifacts في القسم 23. لا توجد قياسات فعلية على الأرجل بعد.
+
+
+## 23) اكتمال CI #218 — 2026-11-11
+
+تم التحقق من GitHub Actions run #218 (ID `43077128517`) على commit `6d6e2bf7af9d7a99d944c56d850574de5eb3db16`، ونجحت الوظائف الثلاث: `protocol-tests` و`rp2040-firmware` و`android-app`. اكتمل تثبيت ARM toolchain وبناء RP2040 UF2 والتحقق منه ورفعه، كما اكتمل بناء Android APK والتحقق منه ورفعه.
+
+Artifacts:
+- `IslamDetector-Original-APK` — ID `13881397828`، 18,729 bytes.
+- `IslamDetector-RevA-RP2040-Timing-Test-UF2` — ID `13881663503`، 27,606 bytes.
+
+رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43077128517
+
+هذا يثبت نجاح CI والبناء فقط، ولا يثبت تثبيت APK أو تفليش UF2 على أجهزة فعلية. لا تزال قياسات التوقيت الفعلية وHardware Loopback وADC/AFE مطلوبة، و`ENABLE_ADS8861_CAPTURE=0`. PR #7 ما زال Draft وغير مدمج.
