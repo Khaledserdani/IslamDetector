@@ -3,6 +3,7 @@
 
 #include "hardware/gpio.h"
 #include "hardware/clocks.h"
+#include "hardware/dma.h"
 #include "hardware/pio.h"
 #include "ads8861_capture.pio.h"
 
@@ -22,7 +23,11 @@ static PIO capture_pio;
 static uint capture_sm;
 static uint capture_offset;
 static pio_sm_config capture_config;
+static int capture_dma = -1;
+static dma_channel_config capture_dma_config;
+static uint32_t capture_buffer[ADS8861_SWEEP_SAMPLES];
 static bool capture_configured = false;
+static bool capture_active = false;
 
 static void capture_set_pin_directions(PIO pio, uint sm) {
     pio_sm_set_consecutive_pindirs(pio, sm, ADS8861_CONVST_PIN, 1u, true);
@@ -34,6 +39,33 @@ static void capture_force_idle(PIO pio, uint sm) {
     pio_sm_set_pins_with_mask(
         pio, sm, 0u,
         (1u << ADS8861_CONVST_PIN) | (1u << ADS8861_SCLK_PIN));
+}
+
+static bool capture_arm_next_sweep(PIO pio, uint sm) {
+    if (clock_get_hz(clk_sys) != ADS8861_SYS_CLOCK_HZ) {
+        return false;
+    }
+
+    pio_sm_set_enabled(pio, sm, false);
+    pio_sm_init(pio, sm, capture_offset, &capture_config);
+    capture_set_pin_directions(pio, sm);
+    pio_sm_clear_fifos(pio, sm);
+    capture_force_idle(pio, sm);
+
+    // TX FIFO has four words; PIO autopull extracts two 12-bit delays per word.
+    for (size_t i = 0u; i < 4u; ++i) {
+        pio_sm_put_blocking(pio, sm, delay_words[i]);
+    }
+
+    // RX DMA drains the normal four-word PIO FIFO while the PIO captures
+    // eight samples. This avoids disabling TX FIFO with PIO_FIFO_JOIN_RX.
+    dma_channel_configure(
+        (uint)capture_dma, &capture_dma_config, capture_buffer,
+        &pio->rxf[sm], ADS8861_SWEEP_SAMPLES, false);
+    dma_start_channel_mask(1u << (uint)capture_dma);
+    pio_sm_set_enabled(pio, sm, true);
+    capture_active = true;
+    return true;
 }
 
 bool ads8861_capture_init(PIO pio, uint sm) {
@@ -56,7 +88,7 @@ bool ads8861_capture_init(PIO pio, uint sm) {
     sm_config_set_in_pins(&capture_config, ADS8861_DOUT_PIN);
     sm_config_set_in_shift(&capture_config, false, true, 16u);
     sm_config_set_out_shift(&capture_config, true, true, 24u);
-    sm_config_set_fifo_join(&capture_config, PIO_FIFO_JOIN_RX);
+    // Keep TX and RX FIFOs separate: four delay words TX, DMA-drained RX.
     sm_config_set_clkdiv(&capture_config, 1.0f);
 
     pio_gpio_init(pio, ADS8861_CONVST_PIN);
@@ -71,45 +103,52 @@ bool ads8861_capture_init(PIO pio, uint sm) {
     pio_sm_clear_fifos(pio, sm);
     capture_force_idle(pio, sm);
 
+    capture_dma = dma_claim_unused_channel(true);
+    capture_dma_config = dma_channel_get_default_config((uint)capture_dma);
+    channel_config_set_transfer_data_size(&capture_dma_config, DMA_SIZE_32);
+    channel_config_set_read_increment(&capture_dma_config, false);
+    channel_config_set_write_increment(&capture_dma_config, true);
+    channel_config_set_dreq(
+        &capture_dma_config, pio_get_dreq(pio, sm, false));
+
     capture_configured = true;
     return true;
 }
 
 bool ads8861_capture_start(PIO pio, uint sm) {
-    if (!capture_configured || pio != capture_pio || sm != capture_sm ||
-        clock_get_hz(clk_sys) != ADS8861_SYS_CLOCK_HZ) {
+    if (!capture_configured || pio != capture_pio || sm != capture_sm) {
         return false;
     }
-
-    pio_sm_set_enabled(pio, sm, false);
-    pio_sm_init(pio, sm, capture_offset, &capture_config);
-    capture_set_pin_directions(pio, sm);
-    pio_sm_clear_fifos(pio, sm);
-    capture_force_idle(pio, sm);
-
-    for (size_t i = 0u; i < 4u; ++i) {
-        pio_sm_put_blocking(pio, sm, delay_words[i]);
-    }
-
-    pio_sm_set_enabled(pio, sm, true);
-    return true;
+    return capture_arm_next_sweep(pio, sm);
 }
 
 void ads8861_capture_stop(PIO pio, uint sm) {
     if (capture_configured && pio == capture_pio && sm == capture_sm) {
         pio_sm_set_enabled(pio, sm, false);
+        if (capture_active && dma_channel_is_busy((uint)capture_dma)) {
+            dma_channel_abort((uint)capture_dma);
+        }
+        capture_active = false;
         capture_force_idle(pio, sm);
         pio_sm_clear_fifos(pio, sm);
     }
 }
 
-bool ads8861_capture_try_read(PIO pio, uint sm, uint16_t *raw_sample) {
-    if (pio == NULL || raw_sample == NULL || sm >= NUM_PIO_STATE_MACHINES) {
+bool ads8861_capture_try_read_sweep(
+    PIO pio, uint sm, uint16_t samples[ADS8861_SWEEP_SAMPLES]) {
+    if (!capture_configured || !capture_active || pio != capture_pio ||
+        sm != capture_sm || samples == NULL ||
+        dma_channel_is_busy((uint)capture_dma)) {
         return false;
     }
-    if (pio_sm_is_rx_fifo_empty(pio, sm)) {
-        return false;
+
+    for (size_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
+        samples[i] = (uint16_t)(capture_buffer[i] & 0xFFFFu);
     }
-    *raw_sample = (uint16_t)(pio_sm_get(pio, sm) & 0xFFFFu);
+
+    // Re-arm before the next TX pulse. At the prototype's 100 Hz PRF there
+    // is ample idle time; missed/late re-arm must be visible in hardware tests.
+    capture_active = false;
+    (void)capture_arm_next_sweep(pio, sm);
     return true;
 }
