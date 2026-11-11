@@ -528,3 +528,8 @@
 أضيفت الوثيقة `docs/engineering/REV_A_PINMAP_DRAFT_AR.md` وتحتوي pinout مبدئياً لـADS8861 VSSOP-10 وTHS4521 SOIC-8 وADR4540B SOIC-8، مع GPIO map مبدئي لـRP2040-Zero وشبكات التغذية. الوثيقة مسودة؛ لا تمثل KiCad أو PCB نهائياً. ما يزال اختيار حماية RX وكسب THS4521 ومقاومات التغذية الراجعة مفتوحاً على قياس الملف وموجة RX.
 تم تحديث `REV_A_DATA_PROTOCOL_AR.md` بإضافة DEVICE_INFO (TYPE 0x82) لتحديد ADC_MODEL_ID وSAMPLE_FORMAT_ID وADC_RESOLUTION_BITS وADC_INPUT_MODE_ID وVREF، حتى يفسر Android عينات ADS8861 signed two's-complement بشكل صحيح ويحفظ raw16 دون فقد.
 مرجع ADS8861 مع THS4521: https://www.ti.com/lit/ds/symlink/ads8861.pdf ؛ مرجع ADR4540B: https://www.analog.com/media/en/technical-documentation/data-sheets/ADR4520_4525_4530_4533_4540_4550.pdf
+
+
+### 15.17 برنامج PIO لقراءة ADS8861
+
+أضيف `firmware/rp2040_timing_test/pio/ads8861_capture.pio` وملفا `src/ads8861_capture.c/.h`. ينتظر GP5 falling، يرفع GP8/CONVST لمدة96 دورة عند125MHz=768ns، ثم يقرأ16-bit MSB-first عبر GP9/SCLK=5MHz من GP10/DOUT. DIN مربوط HIGH خارجياً لاختيار3-Wire CS. السائق مدمج في البناء لكنه معطل افتراضياً حتى توصيل ADC والحماية؛ لا توجد نتيجة Hardware أو loopback. تأخير PIO input synchronizer/WAIT بين marker وCONVST يجب قياسه بمحلل منطقي ومعايرته.
