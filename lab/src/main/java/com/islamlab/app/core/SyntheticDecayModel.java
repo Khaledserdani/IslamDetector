@@ -31,7 +31,7 @@ public final class SyntheticDecayModel {
 
     private static double noiseAt(double t, double nominalNoiseMv) {
         // Deterministic multi-tone test disturbance: repeatable, not stochastic noise.
-        return nominalRmsMv * (Math.sin(0.73 * t) + Math.sin(1.17 * t) +
+        return nominalNoiseMv * (Math.sin(0.73 * t) + Math.sin(1.17 * t) +
                 Math.sin(1.91 * t)) / Math.sqrt(1.5);
     }
 
