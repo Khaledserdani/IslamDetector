@@ -83,7 +83,6 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 | 0x05 | SET_PROFILE | اختيار ملف من قائمة ملفات مسموحة فقط |
 | 0x06 | SELF_TEST | فحص المسار المرجعي الداخلي عند توقف القياس |
 | 0x80 | ACK | تأكيد الأمر أو رفضه مع سبب |
-| 0x81 | HELLO_ACK | إصدار Firmware وحالة جاهزية المتحكم |
 | 0x82 | DEVICE_INFO | معلومات ADC/المرجع/صيغة العينة/الملف النشط |
 
 في Rev A، لا يقبل SET_PROFILE أرقاماً عشوائية لعرض النبضة أو تيارها أو معدلها. يختار فقط ملفاً معرفاً مسبقاً ومسموحاً في Firmware. لا يسمح بتعديل ملفات الإثارة أثناء نبضة قائمة؛ يطبق التغيير عند توقف القياس وبعد ACK.
@@ -101,7 +100,9 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 | ADC_INPUT_MODE_ID | 1 | 0x01 differential؛ 0x02 single-ended؛ 0x03 pseudo-differential |
 | ADC_VREF_UV | 4 | قيمة المرجع الاسمية بالميكروفولت؛ ADS8861 مع ADR4540B=4096000؛ القيمة0 تعني أن المرجع داخلي/AVDD وليس مرجعاً خارجياً |
 | ACTIVE_PROFILE_ID | 1 | جدول التأخيرات النشط |
-| PROFILE_CRC32 | 4 | CRC32 لجدول الملف |
+| PROFILE_CRC32 | 4 | CRC32/ISO-HDLC لجدول الملف |
+
+مرجع Python الحالي يدعم MEASUREMENT وDEVICE_INFO في stream decoder؛ رسائل ACK وأوامر التحكم ما زالت مواصفة وليست تنفيذاً برمجياً كاملاً.
 
 يجب على ESP32-S3 طلب DEVICE_INFO عند الاتصال أو إعادة الاتصال، وحفظ هذه البيانات مع جلسة القياس. عند ADS8861، يحول التطبيق raw16 إلى signed int16 وفق SAMPLE_FORMAT_ID=0x01، مع الاحتفاظ بالـraw الأصلي. إذا تغير ADC_MODEL_ID أو SAMPLE_FORMAT_ID، لا تخلط البيانات مع جلسة قديمة. تركيبات metadata المقبولة: ADS8861=(two's-complement,16,differential)، ADS8860=(unsigned,16,single-ended)، ADS7054=(unsigned,14,differential)، AD7980=(unsigned,16,pseudo-differential). في ADS7054 تبقى البتات العليا غير المستخدمة صفراً داخل حاوية16-bit.
 
