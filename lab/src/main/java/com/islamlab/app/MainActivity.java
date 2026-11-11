@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
     private SharedPreferences experimentPrefs;
     private static final int REQUEST_CSV = 701;
     private static final int REQUEST_EXPORT = 702;
+    private static final int REQUEST_MODULE = 703;
     private String pendingExportContent = "";
     private TextView resultText, statusText;
     private WaveView waveView;
@@ -114,7 +115,14 @@ public class MainActivity extends Activity {
         history.setOnClickListener(v -> showExperimentHistory());
         page.addView(history);
         page.addView(section("مركز التحديثات والملفات"));
-        page.addView(label("يفحص قناة التحديثات، ويتحقق من بصمة APK قبل فتح مثبت أندرويد.", 13, 0xffd5e2ef, false));
+        page.addView(label("إضافة حزم علمية بصيغة JSON إلى مساحة التطبيق الخاصة. الحزم بيانات فقط ولا تشغّل شيفرات برمجية.", 13, 0xffd5e2ef, false));
+        Button importModule = button("استيراد حزمة علمية JSON");
+        importModule.setOnClickListener(v -> openModulePicker());
+        page.addView(importModule);
+        Button modules = button("إدارة الوحدات العلمية المثبتة");
+        modules.setOnClickListener(v -> showModules());
+        page.addView(modules);
+        page.addView(label("يفحص قناة تحديث التطبيق ويتحقق من بصمة APK قبل فتح مثبت أندرويد.", 13, 0xffd5e2ef, false));
         Button cleanUpdates = button("حذف ملفات التحديثات المنزّلة");
         cleanUpdates.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
                 .setTitle("تنظيف ملفات التحديث")
@@ -225,6 +233,19 @@ public class MainActivity extends Activity {
             pendingExportContent = "";
             return;
         }
+        if (requestCode == REQUEST_MODULE) {
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+            try {
+                InputStream moduleInput = getContentResolver().openInputStream(data.getData());
+                if (moduleInput == null) throw new IllegalStateException("تعذر فتح ملف الحزمة");
+                ModuleCenter.InstalledModule installed = ModuleCenter.install(this, moduleInput);
+                Toast.makeText(this, "تم تثبيت الوحدة: " + installed.title, Toast.LENGTH_LONG).show();
+                showModules();
+            } catch (Exception ex) {
+                Toast.makeText(this, "رفض الحزمة: " + (ex.getMessage() == null ? "ملف غير صالح" : ex.getMessage()), Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (requestCode != REQUEST_CSV || resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         try (InputStream in = getContentResolver().openInputStream(uri);
@@ -299,6 +320,38 @@ public class MainActivity extends Activity {
                                                     }).setNegativeButton("إلغاء", null).show();
                                         }
                                     }).setNegativeButton("إغلاق", null).show();
+                }).setNegativeButton("إغلاق", null).show();
+    }
+
+    private void openModulePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent, REQUEST_MODULE);
+    }
+
+    private void showModules() {
+        java.util.List<ModuleCenter.InstalledModule> installed = ModuleCenter.list(this);
+        if (installed.isEmpty()) {
+            new android.app.AlertDialog.Builder(this).setTitle("الوحدات العلمية")
+                    .setMessage("لا توجد حزم مثبتة. استورد ملف JSON يحتوي على schemaVersion و id و title و version و type و data.")
+                    .setPositiveButton("حسناً", null).show();
+            return;
+        }
+        String[] labels = new String[installed.size()];
+        for (int i=0;i<installed.size();i++) labels[i] = installed.get(i).toString();
+        new android.app.AlertDialog.Builder(this).setTitle("الوحدات العلمية المثبتة")
+                .setItems(labels, (dialog, which) -> {
+                    ModuleCenter.InstalledModule module = installed.get(which);
+                    new android.app.AlertDialog.Builder(this).setTitle(module.title)
+                            .setMessage("المعرّف: " + module.id + "\nالإصدار: " + module.version
+                                    + "\nالنوع: " + module.type
+                                    + "\nالتخزين: مساحة التطبيق الخاصة")
+                            .setPositiveButton("حذف الوحدة", (d, w) -> {
+                                boolean removed = ModuleCenter.delete(this, module.id);
+                                Toast.makeText(this, removed ? "تم حذف الوحدة" : "تعذر حذف الوحدة", Toast.LENGTH_SHORT).show();
+                                showModules();
+                            }).setNegativeButton("إغلاق", null).show();
                 }).setNegativeButton("إغلاق", null).show();
     }
 
