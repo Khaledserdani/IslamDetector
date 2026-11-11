@@ -1,6 +1,7 @@
 package com.islamlab.app;
 
 import android.app.Activity;
+import com.islamlab.app.core.SyntheticDecayModel;
 import android.os.Bundle;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -18,6 +19,7 @@ public class MainActivity extends Activity {
     private double[] windowsUs = {8, 12, 16, 24, 36, 52, 72, 100};
     private double[] samplesMv = new double[8];
     private String report = "";
+    private SyntheticDecayModel.Result currentResult;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -108,16 +110,16 @@ public class MainActivity extends Activity {
             double tau = Double.parseDouble(tauInput.getText().toString().trim());
             double noise = Double.parseDouble(noiseInput.getText().toString().trim());
             if (a <= 0 || tau <= 0 || noise < 0 || a > 1_000_000 || tau > 1_000_000 || noise > 1_000_000) throw new IllegalArgumentException();
+            currentResult = SyntheticDecayModel.simulate(a, tau, noise);
+            SyntheticDecayModel.Sample[] samples = currentResult.samples;
             StringBuilder b = new StringBuilder("النافذة µs   الإشارة   الضوضاء   الإجمالي mV\n");
             b.append("------------------------------------------\n");
-            report = "ISLAM LAB - Synthetic waveform test\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_RMS_mV," + noise + "\nwindow_us,signal_mV,noise_mV,total_mV\n";
-            for (int i = 0; i < windowsUs.length; i++) {
-                double t = windowsUs[i];
-                double signal = a * Math.exp(-t / tau);
-                double noiseValue = noiseAt(t, noise);
-                samplesMv[i] = signal + noiseValue;
-                b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\n", t, signal, noiseValue, samplesMv[i]));
-                report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\n", t, signal, noiseValue, samplesMv[i]);
+            report = "ISLAM LAB - Synthetic waveform test\nModel," + currentResult.modelName + "\nModel_version," + currentResult.modelVersion + "\nSource_type,synthetic\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_nominal_mV," + noise + "\nwindow_us,signal_mV,noise_mV,total_mV\n";
+            for (int i = 0; i < samples.length; i++) {
+                SyntheticDecayModel.Sample sample = samples[i];
+                samplesMv[i] = sample.totalMv;
+                b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\n", sample.timeUs, sample.signalMv, sample.noiseMv, sample.totalMv));
+                report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\n", sample.timeUs, sample.signalMv, sample.noiseMv, sample.totalMv);
             }
             resultText.setText(b.toString());
             waveView.invalidate();
@@ -125,10 +127,6 @@ public class MainActivity extends Activity {
         } catch (Exception ex) {
             Toast.makeText(this, "أدخل قيماً رقمية موجبة وصحيحة", Toast.LENGTH_LONG).show();
         }
-    }
-
-    private double noiseAt(double t, double rms) {
-        return rms * (Math.sin(0.73 * t) + Math.sin(1.17 * t) + Math.sin(1.91 * t)) / Math.sqrt(1.5);
     }
 
     private void shareReport() {
@@ -176,10 +174,7 @@ public class MainActivity extends Activity {
             float prevX=left, prevY=bottom;
             for(int i=0;i<=160;i++) {
                 double t=windowsUs[windowsUs.length-1]*i/160.0;
-                double amp=Double.parseDouble(amplitudeInput.getText().toString().trim());
-                double tau=Double.parseDouble(tauInput.getText().toString().trim());
-                double rms=Double.parseDouble(noiseInput.getText().toString().trim());
-                double val=amp*Math.exp(-t/tau)+noiseAt(t,rms);
+                double val=currentResult.valueAt(t);
                 float x=left+(right-left)*i/160f;
                 float y=bottom-(float)(val/max)*(bottom-top);
                 if(i>0)c.drawLine(prevX,prevY,x,y,paint);
