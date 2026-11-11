@@ -30,7 +30,8 @@ static uint slice_num;
 static float pwm_divider;
 static uint16_t pulse_ticks;
 static uint16_t sample_compare_ticks[8];
-static volatile uint8_t profile_index = 0u;
+static volatile uint8_t active_profile_index = 0u;
+static volatile uint8_t queued_profile_index = 1u;
 static volatile bool running = false;
 #if ENABLE_ADS8861_CAPTURE
 static uint ads8861_sm;
@@ -51,11 +52,13 @@ static void pwm_wrap_isr(void) {
         return;
     }
 
-    profile_index = (uint8_t)((profile_index + 1u) & 0x07u);
+    // At this wrap, the previously queued compare becomes active.
+    active_profile_index = queued_profile_index;
+    queued_profile_index = (uint8_t)((active_profile_index + 1u) & 0x07u);
     // Precomputed before PWM starts: keep floating-point work out of the ISR.
-    // The double-buffered compare value takes effect at the next wrap.
+    // The write is double-buffered and becomes active at the following wrap.
     pwm_set_chan_level(slice_num, PWM_CHAN_B,
-                       sample_compare_ticks[profile_index]);
+                       sample_compare_ticks[queued_profile_index]);
 }
 
 static void timing_outputs_stop(void) {
@@ -117,7 +120,8 @@ static void timing_outputs_start(void) {
         }
         sample_compare_ticks[i] = (uint16_t)compare;
     }
-    profile_index = 0u;
+    active_profile_index = 0u;
+    queued_profile_index = 1u;
 
     pwm_config config = pwm_get_default_config();
     pwm_config_set_clkdiv(&config, pwm_divider);
@@ -132,6 +136,9 @@ static void timing_outputs_start(void) {
     pwm_set_irq_enabled(slice_num, true);
     running = true;
     pwm_set_enabled(slice_num, true);
+    // Prime the double buffer before the first 10 ms wrap. Without this,
+    // profile 0 would be repeated for one extra period at startup.
+    pwm_set_chan_level(slice_num, PWM_CHAN_B, sample_compare_ticks[1]);
 
     printf("RUN: logic-only timing test started. rate=%u Hz, TX pulse=%u us, "
            "PWM tick=160 ns, delay profile=8/12/16/24/36/52/72/100 us.\n",
@@ -203,8 +210,9 @@ int main(void) {
         } else if (ch == 'S' || ch == 's') {
             timing_outputs_stop();
         } else if (ch == 'I' || ch == 'i') {
-            printf("running=%u profile_index=%u pulse=%u us rate=%u Hz\n",
-                   running ? 1u : 0u, profile_index,
+            printf("running=%u active_profile=%u queued_profile=%u pulse=%u us rate=%u Hz\n",
+                   running ? 1u : 0u, active_profile_index,
+                   queued_profile_index,
                    START_PULSE_US, START_RATE_HZ);
         } else if (ch == '?' || ch == 'h' || ch == 'H') {
             print_help();
