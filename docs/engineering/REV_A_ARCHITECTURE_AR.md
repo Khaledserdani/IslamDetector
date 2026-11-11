@@ -304,6 +304,23 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - Powertech: https://powertech-dz.org/product/eames-plastic-side-chair/
 
 
+### مراجعة ADCs الموجودة محلياً — ما لا نشتريه
+
+ظهر في Power Lab:
+- AD7703 بسعر 4,500 دج (450 ألف سنتيم): رغم تسويقه كـ20-bit، هو Sigma-Delta بحد أقصى 4 kSPS مع مرشح رقمي بطيء؛ لا يستطيع التقاط نافذة اضمحلال مبكرة عند 8–100 µs. غير مناسب كـPI RX ADC.
+- AD7705/TM7705 بسعر نحو 750 دج (75 ألف سنتيم): 16-bit Sigma-Delta، ومعدل تحديث حتى 500 SPS مع settling time للمرشح بالميلي ثانية؛ غير مناسب لمسار الاستقبال السريع.
+- ADC2311 بسعر 2,500 دج (250 ألف سنتيم): صفحة البائع تسميه Audio A/D Converter وتدعي 16-bit/5 MSPS، لكن لم نعثر على ورقة بيانات موثوقة تثبت هذا الادعاء أو أزمنة الاكتساب والتحويل. لا يُشترى قبل الحصول على رقم مصنع/ورقة بيانات أصلية والتحقق من الحزمة والوظائف.
+
+روابط عروض البائع:
+- AD7703: https://powerlab.dz/product/ad7703bn-convertisseur-a-d-20-bit/
+- AD7705/TM7705: https://powerlab.dz/product/tm7705-ad7705-convertisseur-analogique-numerique-16-bit-spi/
+- ADC2311: https://powerlab.dz/product/adc2311-audio-a-d-converter/
+
+المراجع الرسمية:
+- AD7703: https://www.analog.com/en/products/ad7703.html — 4 kSPS.
+- AD7705: https://www.analog.com/en/products/ad7705.html — Sigma-Delta ومرشح رقمي بطيء؛ تحديث حتى 500 SPS.
+- ADC2311: لم نعثر على ورقة بيانات أصلية موثوقة؛ لذلك يبقى غير معتمد.
+
 ## 14. بروتوكول قياس ملف DD32 قبل أي تشغيل قدرة
 
 المواصفات المرجعية للملفين ما زالت مواصفات تصميم وليست قياسات. قبل توصيل MOSFET:
