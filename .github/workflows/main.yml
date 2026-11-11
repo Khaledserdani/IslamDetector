@@ -29,9 +29,10 @@ jobs:
           submodules: false
       - name: Initialize TinyUSB submodule
         run: git -C pico-sdk submodule update --init lib/tinyusb
-      - name: Install ARM embedded toolchain
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi
+      - name: Install Arm GNU Toolchain 15.3.Rel2
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.14.0
+        with:
+          release: '15.3.Rel2'
       - name: Build RP2040 logic timing firmware
         run: |
           cmake -S firmware/rp2040_timing_test -B build/rp2040 \
