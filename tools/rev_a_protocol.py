@@ -167,7 +167,7 @@ ADC_INPUT_PSEUDO_DIFFERENTIAL = 0x03
 _ADC_METADATA = {
     ADC_MODEL_ADS8861: (SAMPLE_FORMAT_TWOS_COMPLEMENT, 16, ADC_INPUT_DIFFERENTIAL),
     ADC_MODEL_ADS8860: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_SINGLE_ENDED),
-    ADC_MODEL_ADS7054: (SAMPLE_FORMAT_UNSIGNED, 14, ADC_INPUT_DIFFERENTIAL),
+    ADC_MODEL_ADS7054: (SAMPLE_FORMAT_TWOS_COMPLEMENT, 14, ADC_INPUT_DIFFERENTIAL),
     ADC_MODEL_AD7980: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_PSEUDO_DIFFERENTIAL),
 }
 
@@ -275,14 +275,20 @@ def decode_device_info(frame: bytes) -> dict[str, int]:
 SAMPLE_FORMAT_UNSIGNED = 0x02
 
 
-def interpret_sample(raw_word: int, sample_format_id: int) -> int:
-    """Interpret one raw ADC word using DEVICE_INFO metadata."""
-    if not isinstance(raw_word, int) or not 0 <= raw_word <= 0xFFFF:
-        raise ProtocolError("raw ADC word must be an unsigned 16-bit integer")
+def interpret_sample(
+    raw_word: int, sample_format_id: int, resolution_bits: int = 16
+) -> int:
+    """Interpret a right-justified raw ADC word using DEVICE_INFO metadata."""
+    if resolution_bits not in (14, 16):
+        raise ProtocolError("resolution_bits must be 14 or 16")
+    maximum = (1 << resolution_bits) - 1
+    if not isinstance(raw_word, int) or not 0 <= raw_word <= maximum:
+        raise ProtocolError(f"raw ADC word must fit in {resolution_bits} bits")
     if sample_format_id == SAMPLE_FORMAT_UNSIGNED:
         return raw_word
     if sample_format_id == SAMPLE_FORMAT_TWOS_COMPLEMENT:
-        return raw_word - 0x10000 if raw_word & 0x8000 else raw_word
+        sign_bit = 1 << (resolution_bits - 1)
+        return raw_word - (1 << resolution_bits) if raw_word & sign_bit else raw_word
     raise ProtocolError(f"unsupported SAMPLE_FORMAT_ID: {sample_format_id}")
 
 
