@@ -87,7 +87,7 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("sm_config_set_out_shift(&capture_config, true, true, 24u)", self.c_source)
         self.assertIn("dma_channel_configure", self.c_source)
         self.assertIn("pio_get_dreq(pio, sm, false)", self.c_source)
-        self.assertNotIn("PIO_FIFO_JOIN_RX", self.c_source)
+        self.assertNotIn("sm_config_set_fifo_join(", self.c_source)
 
 
 if __name__ == "__main__":
