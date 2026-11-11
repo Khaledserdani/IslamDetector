@@ -7,6 +7,12 @@ from rev_a_protocol import (
     MeasurementStreamDecoder,
     SAMPLE_FORMAT_TWOS_COMPLEMENT,
     SAMPLE_FORMAT_UNSIGNED,
+    ADC_MODEL_ADS8861,
+    ADC_INPUT_DIFFERENTIAL,
+    TYPE_DEVICE_INFO,
+    ProtocolStreamDecoder,
+    encode_device_info,
+    decode_device_info,
     interpret_sample,
     ProtocolError,
     crc16_ccitt_false,
@@ -110,6 +116,54 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(parser.feed(b"junkI"), [])
         decoded = parser.feed(frame[1:])
         self.assertEqual(len(decoded), 1)
+
+    def test_device_info_round_trip(self):
+        frame = encode_device_info(
+            hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_ADS8861,
+            sample_format_id=SAMPLE_FORMAT_TWOS_COMPLEMENT,
+            adc_resolution_bits=16,
+            adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+            adc_vref_uv=4096000,
+            active_profile_id=2,
+            profile_crc32=0x1234ABCD,
+        )
+        decoded = decode_device_info(frame)
+        self.assertEqual(decoded["adc_model_id"], ADC_MODEL_ADS8861)
+        self.assertEqual(decoded["sample_format_id"], SAMPLE_FORMAT_TWOS_COMPLEMENT)
+        self.assertEqual(decoded["adc_vref_uv"], 4096000)
+        self.assertEqual(decoded["profile_crc32"], 0x1234ABCD)
+
+    def test_protocol_stream_decoder_accepts_device_info_and_measurement(self):
+        info = encode_device_info(
+            hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_ADS8861,
+            sample_format_id=SAMPLE_FORMAT_TWOS_COMPLEMENT,
+            adc_resolution_bits=16,
+            adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+            adc_vref_uv=4096000,
+            active_profile_id=2,
+            profile_crc32=0x1234ABCD,
+        )
+        measurement = self.sample_frame()
+        parser = ProtocolStreamDecoder()
+        decoded = parser.feed(info + measurement)
+        self.assertEqual([item["type"] for item in decoded], [TYPE_DEVICE_INFO, 0x10])
+
+    def test_device_info_rejects_bad_crc(self):
+        frame = bytearray(encode_device_info(
+            hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_ADS8861,
+            sample_format_id=SAMPLE_FORMAT_TWOS_COMPLEMENT,
+            adc_resolution_bits=16,
+            adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+            adc_vref_uv=4096000,
+            active_profile_id=2,
+            profile_crc32=0x1234ABCD,
+        ))
+        frame[-3] ^= 0x01
+        with self.assertRaises(ProtocolError):
+            decode_device_info(bytes(frame))
 
     def test_adc_sample_format_metadata_interpretation(self):
         self.assertEqual(interpret_sample(0x0001, SAMPLE_FORMAT_TWOS_COMPLEMENT), 1)
