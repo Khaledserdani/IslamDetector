@@ -149,6 +149,21 @@ def decode_measurement(frame: bytes) -> dict[str, Any]:
     }
 
 
+SAMPLE_FORMAT_TWOS_COMPLEMENT = 0x01
+SAMPLE_FORMAT_UNSIGNED = 0x02
+
+
+def interpret_sample(raw_word: int, sample_format_id: int) -> int:
+    """Interpret one raw ADC word using DEVICE_INFO metadata."""
+    if not isinstance(raw_word, int) or not 0 <= raw_word <= 0xFFFF:
+        raise ProtocolError("raw ADC word must be an unsigned 16-bit integer")
+    if sample_format_id == SAMPLE_FORMAT_UNSIGNED:
+        return raw_word
+    if sample_format_id == SAMPLE_FORMAT_TWOS_COMPLEMENT:
+        return raw_word - 0x10000 if raw_word & 0x8000 else raw_word
+    raise ProtocolError(f"unsupported SAMPLE_FORMAT_ID: {sample_format_id}")
+
+
 class MeasurementStreamDecoder:
     """Incremental UART stream parser with sync recovery and CRC validation."""
 
