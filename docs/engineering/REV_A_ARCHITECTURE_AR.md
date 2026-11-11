@@ -161,6 +161,8 @@ E_L(t) = 0.5 × L × I(t)^2
 - THS4521 datasheet: https://www.ti.com/lit/ds/symlink/ths4521.pdf
 - ADR4540B datasheet: https://www.analog.com/media/en/technical-documentation/data-sheets/ADR4520_4525_4530_4533_4540_4550.pdf
 
+**تنفيذ Firmware أولي:** أضيف برنامج PIO `ads8861_capture.pio` وسائق C اختياري؛ GP8=CONVST وGP9=SCLK وGP10=DOUT، يقرأ16-bit عند5MHz بعد CONVST=768ns. البرنامج مدمج في البناء لكنه معطل افتراضياً (`ENABLE_ADS8861_CAPTURE=0`) حتى تركيب ADC وحماية RX. تأخير WAIT/synchronizer من GP5 إلى CONVST يجب قياسه وتصحيحه؛ لا يوجد اختبار Hardware بعد.
+
 ### مراجعة ADCs الموجودة محلياً — ما لا نشتريه
 
 ظهر في Power Lab:
