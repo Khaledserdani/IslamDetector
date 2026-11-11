@@ -5,6 +5,7 @@
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
+#include "hardware/pio_instructions.h"
 #include "ads8861_capture.pio.h"
 
 #define ADS8861_SYS_CLOCK_HZ 125000000u
@@ -52,8 +53,12 @@ static bool capture_arm_next_sweep(PIO pio, uint sm) {
     pio_sm_clear_fifos(pio, sm);
     capture_force_idle(pio, sm);
 
-    // TX FIFO has four words; PIO autopull extracts two 12-bit delays per word.
-    for (size_t i = 0u; i < 4u; ++i) {
+    // Load the first word into OSR explicitly, avoiding any dependency on
+    // the reset value of the OSR shift counter. The remaining three words
+    // stay in TX FIFO; autopull occurs after each pair of 12-bit OUTs.
+    pio_sm_put_blocking(pio, sm, delay_words[0]);
+    pio_sm_exec(pio, sm, pio_encode_pull(false, true));
+    for (size_t i = 1u; i < 4u; ++i) {
         pio_sm_put_blocking(pio, sm, delay_words[i]);
     }
 
