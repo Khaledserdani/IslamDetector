@@ -1,0 +1,10 @@
+.program sample_marker_echo
+; Logic-only timing test.
+; GP5 is the PWM sample marker input. GP6 is a short PIO response pulse.
+; This does NOT clock an ADC or drive a MOSFET.
+.wrap_target
+    wait 1 gpio 5
+    wait 0 gpio 5
+    set pins, 1 [2]
+    set pins, 0
+.wrap
