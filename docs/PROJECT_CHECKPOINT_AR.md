@@ -114,6 +114,7 @@
 - `docs/engineering/COIL_TOPOLOGY_STUDY_AR.md`: مقارنة هندسات ملف البحث، مخاطر إلغاء الهدف في RX التفاضلي، وتعويض Time-Domain Bucking.
 - `docs/engineering/COIL_TOPOLOGY_COMPARISON_TEMPLATE.csv`: قالب تسجيل التجارب المقارنة بين هندسات الملفات.
 - `docs/engineering/ADS8861_PIO_TIMING_AUDIT_AR.md`: تدقيق حسابي لتوقيت PIO/ADS8861 وجدول النوافذ.
+- `docs/engineering/RX_RECOVERY_BUDGET_AR.md`: ميزانية استعادة RX بعد TX وخيارات blanking وخطة القياس.
 - `docs/engineering/REV_A_MEASUREMENT_LOG_TEMPLATE.csv`: قالب تسجيل القياسات.
 - `firmware/rp2040_timing_test/`: برنامج اختبار التوقيت وPIO.
 
