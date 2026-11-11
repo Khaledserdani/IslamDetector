@@ -538,7 +538,7 @@
 ### 15.15 تدقيق قراءة ADS8861 وتحديث PR (2026-11-11)
 
 - راجعت ورقة TI الأصلية: في 3-wire CS mode، ربط DIN إلى DVDD يختار ̅CS mode؛ CONVST rising يبدأ أخذ العينة والتحويل، وبعد اكتمال tconv-max=710ns يبقى CONVST عالياً حتى هبوطه، وعند الهبوط يظهر MSB بعد t_d-CNV-DO بحد أقصى12.3ns. مرجع المصنع: https://www.ti.com/lit/ds/symlink/ads8861.pdf
-- اكتشفت أن أول PIO IN في النسخة السابقة كان سيقع بعد8ns فقط من هبوط CONVST، وهو أقل من12.3ns. أضيفت مهلة PIO 16ns قبل أول SCLK/IN. هذا حساب زمني من 125MHz وليس قياساً فعلياً.
+- اكتشفت أن أول PIO IN في النسخة السابقة كان سيقع بعد8ns فقط من هبوط CONVST، وهو أقل من12.3ns. بعد مراجعة تعليمات PIO كاملة، زمن CONVST-low instruction [11] + SET X + NOP يجعل أول SCLK بعد120ns من هبوط CONVST، وليس16ns. هذا حساب زمني من125MHz وليس قياساً فعلياً.
 - ADS8861 output two's-complement confirmed by datasheet transfer function. ADS7054 كذلك fully-differential, 14-bit, two's-complement، لكنه يستخدم AVDD كمرجع ولا يقبل ADR4540 مباشرة كمرجع مستقل؛ راجع https://www.ti.com/lit/ds/symlink/ads7054.pdf.
 - أُنشئ PR #7 كمسودة جديدة لأن PR #6 مغلق: https://github.com/Khaledserdani/IslamDetector/pull/7. لا يدمج في main. Head SHA عند الإنشاء: `275c9cdc0157779c59cf4dac8072eb2ea47f9052`.
 - لم يظهر بعد تشغيل CI مرتبط بهذا الرأس عند كتابة هذه النقطة؛ لا نسجل نجاح بناء UF2 أو APK جديد حتى تظهر نتائج فعلية. برنامج ADS8861 PIO لا يزال معطلاً افتراضياً ولا يعمل إلا بعد تركيب ADC وحماية الإشارة والتغذية.
@@ -559,4 +559,15 @@ Figure 73 في ورقة ADS8861 يثبت استخدام THS4521 مع ADS8861 ف�
 
 ### 15.19 اعتماد مبدأ ثماني نوافذ داخل نبضة TX واحدة (2026-11-11)
 
-تم تغيير نموذج أخذ العينات: بدلاً من توزيع ثماني نوافذ على ثماني نبضات (ما يخلط حركة الملف/الهدف وتغير التربة مع منحنى الاضمحلال)، يلتقط RP2040 الآن النقاط 8/12/16/24/36/52/72/100µs داخل اضمحلال نبضة TX واحدة. برنامج PIO يراقب هبوط GP4، يستخدم 4 كلمات TX FIFO لحمل ثمانية تأخيرات 12-bit، ويستخدم DMA لتفريغ RX FIFO ذي الأربعة عناصر إلى RAM دون تعطيل TX FIFO، ويقرأ ADS8861 بسرعة SCLK≈9.615MHz. زمن CONVST العالي768ns، وأول SCLK بعد120ns من هبوط CONVST، وقراءة16-bit نحو1.664µs، والفاصل الأدنى4µs. هذه حسابات تعليمات فقط؛ توقيت GP4→CONVST، jitter، ودقة ADC لم تقاس بعد. البرنامج معطل افتراضياً ENABLE_ADS8861_CAPTURE=0، ولا يوصل GP4 ببوابة MOSFET أو ملف. مرجع توقيت ADC: https://www.ti.com/lit/ds/symlink/ads8861.pdf.
+تم تغيير نموذج أخذ العينات: بدلاً من توزيع ثماني نوافذ على ثماني نبضات (ما يخلط حركة الملف/الهدف وتغير التربة مع منحنى الاضمحلال)، يلتقط RP2040 الآن النقاط 8/12/16/24/36/52/72/100µs داخل اضمحلال نبضة TX واحدة. برنامج PIO يراقب هبوط GP4، يحمل كلمة delay واحدة صراحة في OSR وثلاث كلمات أخرى في TX FIFO (كل كلمة تحمل تأخيرين 12-bit)، ويستخدم DMA لتفريغ RX FIFO ذي الأربعة عناصر إلى RAM دون تعطيل TX FIFO، ويقرأ ADS8861 بسرعة SCLK≈9.615MHz. زمن CONVST العالي768ns، وأول SCLK بعد120ns من هبوط CONVST، وقراءة16-bit نحو1.664µs، والفاصل الأدنى4µs. هذه حسابات تعليمات فقط؛ توقيت GP4→CONVST، jitter، ودقة ADC لم تقاس بعد. البرنامج معطل افتراضياً ENABLE_ADS8861_CAPTURE=0، ولا يوصل GP4 ببوابة MOSFET أو ملف. مرجع توقيت ADC: https://www.ti.com/lit/ds/symlink/ads8861.pdf.
+
+
+### 15.20 نجاح بناء CI الكامل (2026-11-11)
+
+- GitHub Actions run #177، commit `6f48f3c1a4da96ba883da9f63929e13afa37bb98`: الحالة completed / success.
+- protocol-tests: نجاح جميع اختبارات البروتوكول والتوقيت (23 اختباراً).
+- Android: بناء APK الأصلي، Verify APK، ورفع artifact بنجاح. Artifact ID: `13874499947`، الحجم المضغوط 18,730 بايت.
+- RP2040: toolchain + Pico SDK 2.3.1، Build، Verify UF2، ورفع artifact بنجاح. Artifact ID: `13875528350`، الحجم 27,606 بايت.
+- ملف UF2 ناتج Firmware توقيت/التقاط اختباري، وليس Firmware قيادة ملف بحث أو جهازاً نهائياً. ENABLE_ADS8861_CAPTURE=0 في النسخة الحالية.
+- لا يوجد اختبار فعلي على لوحة RP2040-Zero أو ADS8861، ولا قياس راسم/محلل منطقي أو اختبار coil/analog front-end. نجاح CI يثبت البناء والتحقق البنيوي فقط.
+- رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43066431469
