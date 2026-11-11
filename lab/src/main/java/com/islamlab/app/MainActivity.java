@@ -3,6 +3,7 @@ package com.islamlab.app;
 import android.app.Activity;
 import com.islamlab.app.core.SyntheticDecayModel;
 import android.os.Bundle;
+import android.os.Build;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Color;
@@ -110,6 +111,9 @@ public class MainActivity extends Activity {
         Button history = button("سجل التجارب المحفوظة");
         history.setOnClickListener(v -> showExperimentHistory());
         page.addView(history);
+        Button diagnostics = button("إنشاء تقرير تشخيصي آمن ومشاركته");
+        diagnostics.setOnClickListener(v -> shareDiagnostics());
+        page.addView(diagnostics);
 
         TextView footer = label("المرحلة التالية: ربط محرك فيزيائي موثّق، ومحاكاة الدوائر، ثم استقبال بيانات أجهزة القياس الحقيقية.", 12, 0xff9bb2c9, false);
         footer.setPadding(0, dp(18), 0, 0);
@@ -198,7 +202,7 @@ public class MainActivity extends Activity {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (text.length() + line.length() > 2_000_000) throw new IllegalArgumentException("الملف أكبر من الحد المسموح");
-                text.append(line).append(' ');
+                text.append(line).append('\\n');
             }
             measuredInput.setText(text.toString());
             Toast.makeText(this, "تم تحميل الملف. اضغط تحليل وحفظ القياسات.", Toast.LENGTH_LONG).show();
@@ -231,6 +235,21 @@ public class MainActivity extends Activity {
         }).setNegativeButton("إغلاق", null).show();
     }
 
+    private void shareDiagnostics() {
+        int saved = 0;
+        for (String key : experimentPrefs.getAll().keySet()) if (key.startsWith("experiment_")) saved++;
+        String version = "غير معروف";
+        try { version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+        catch (Exception ignored) { }
+        String diagnostic = "ISLAM LAB - Safe diagnostic report\\n"
+                + "App version: " + version + "\\n"
+                + "Android version: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")\\n"
+                + "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\n"
+                + "Saved experiment count: " + saved + "\\n"
+                + "Network/location access: not requested by this app\\n"
+                + "Note: this report excludes personal files, location, and raw experiment values."; 
+        shareText(diagnostic, "ISLAM LAB safe diagnostic report");
+    }
     private void shareText(String content, String subject) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/csv");
