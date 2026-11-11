@@ -4,7 +4,7 @@
 ; One GP4 TX falling edge starts an entire 8-window decay sweep.
 ; GP8=CONVST, GP9=SCLK, GP10=DOUT. ADS8861 DIN is tied HIGH (3-wire CS).
 ; clk_sys/PIO clock must be 125 MHz.
-; CONVST high = 96 cycles = 768 ns (> 710 ns tconv-max).
+; CONVST high = six 16-cycle instructions = 96 cycles = 768 ns (> 710 ns tconv-max).
 ; SCLK = 6 cycles high + 7 cycles low = 9.615 MHz.
 ; DOUT MSB is sampled 120 ns after CONVST falls (12-cycle CONVST-low instruction + SET X + NOP) (t_d-CNV-DO max 12.3 ns).
 ;
@@ -26,9 +26,12 @@ sample_loop:
 delay_loop:
     jmp x-- delay_loop side 0
 
-    set pins, 1 side 0 [31]
-    nop side 0 [31]
-    nop side 0 [31]
+    set pins, 1 side 0 [15]
+    nop side 0 [15]
+    nop side 0 [15]
+    nop side 0 [15]
+    nop side 0 [15]
+    nop side 0 [15]
     set pins, 0 side 0 [11]
     set x, 15 side 0
     nop side 0 [1]
