@@ -77,7 +77,7 @@
 2. CONVST rising يلتقط الإشارة ويبدأ التحويل.
 3. يبقى CONVST HIGH حتى tconv-max=710ns.
 4. CONVST falling يفتح DOUT ويظهر MSB؛ في Firmware الحالي يبدأ أول SCLK بعد120ns من الهبوط.
-5. اقرأ16-bit MSB-first؛ PIO يلتقط DOUT على SCLK rising بعد مهلة صلاحية، مع SCLK≈9.615MHz (104ns period).
+5. اقرأ16-bit MSB-first؛ PIO يلتقط DOUT على SCLK rising بعد مهلة صلاحية، مع SCLK≈8.929MHz (112ns period, 50% duty).
 6. CONVST high=768ns (96 دورة PIO) ويتجاوز tconv-max=710ns. جدول النوافذ8/12/16/24/36/52/72/100µs من GP4 falling، ثماني عينات في نبضة واحدة.
 7. أقصر فاصل بين CONVST rising هو4µs؛ بعد768ns تحويل يبقى نحو3.232µs اكتساب، أعلى من tACQ(min)=290ns.
 8. DMA يفرغ RX FIFO ذي الأربعة عناصر إلى RAM؛ كلمة delay أولى محملة في OSR وثلاث كلمات تبقى في TX FIFO. لا يستخدم PIO FIFO join الذي يعطل TX.
