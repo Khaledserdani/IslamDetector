@@ -2,11 +2,17 @@
 #include "ads8861_capture.h"
 
 #include "hardware/gpio.h"
+#include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "ads8861_capture.pio.h"
 
 bool ads8861_capture_init(PIO pio, uint sm) {
     if (pio == NULL || sm >= NUM_PIO_STATE_MACHINES) {
+        return false;
+    }
+    // The PIO delay constants are calculated for a 125 MHz clk_sys.
+    // Refuse to arm capture if another clock configuration is active.
+    if (clock_get_hz(clk_sys) != 125000000u) {
         return false;
     }
     if (!pio_can_add_program(pio, &ads8861_capture_program)) {
