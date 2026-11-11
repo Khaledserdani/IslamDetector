@@ -11,6 +11,7 @@ from typing import Any
 SYNC = b"IS"
 VERSION = 1
 TYPE_MEASUREMENT = 0x10
+TYPE_DEVICE_INFO = 0x82
 MAX_SAMPLES = 8
 INVALID_CURRENT_MA = 0xFFFF
 INVALID_TEMPERATURE_CENTI_C = 0x7FFF
@@ -20,6 +21,8 @@ FLAG_SWEEP_COMPLETE = 1 << 8
 _HEADER = struct.Struct("<BBHIIBHIHHHhBB")
 _HEADER_SIZE = _HEADER.size  # 29 bytes
 _U16 = struct.Struct("<H")
+_CONTROL_HEADER = struct.Struct("<BBH")
+_DEVICE_INFO = struct.Struct("<8BIBI")  # 17-byte payload
 
 
 class ProtocolError(ValueError):
@@ -149,7 +152,102 @@ def decode_measurement(frame: bytes) -> dict[str, Any]:
     }
 
 
+ADC_MODEL_ADS8861 = 0x01
+ADC_MODEL_ADS8860 = 0x02
+ADC_MODEL_ADS7054 = 0x03
+ADC_MODEL_AD7980 = 0x04
+
 SAMPLE_FORMAT_TWOS_COMPLEMENT = 0x01
+SAMPLE_FORMAT_UNSIGNED = 0x02
+
+ADC_INPUT_DIFFERENTIAL = 0x01
+ADC_INPUT_SINGLE_ENDED = 0x02
+ADC_INPUT_PSEUDO_DIFFERENTIAL = 0x03
+
+
+def encode_device_info(
+    *,
+    hw_rev: int,
+    fw_major: int,
+    fw_minor: int,
+    fw_patch: int,
+    adc_model_id: int,
+    sample_format_id: int,
+    adc_resolution_bits: int,
+    adc_input_mode_id: int,
+    adc_vref_uv: int,
+    active_profile_id: int,
+    profile_crc32: int,
+) -> bytes:
+    """Encode DEVICE_INFO (TYPE 0x82) using the fixed v1 metadata payload."""
+    if adc_model_id not in (ADC_MODEL_ADS8861, ADC_MODEL_ADS8860, ADC_MODEL_ADS7054, ADC_MODEL_AD7980):
+        raise ProtocolError("unsupported adc_model_id")
+    if sample_format_id not in (SAMPLE_FORMAT_TWOS_COMPLEMENT, SAMPLE_FORMAT_UNSIGNED):
+        raise ProtocolError("unsupported sample_format_id")
+    if adc_resolution_bits not in (14, 16):
+        raise ProtocolError("adc_resolution_bits must be 14 or 16")
+    if adc_input_mode_id not in (
+        ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
+    ):
+        raise ProtocolError("unsupported adc_input_mode_id")
+
+    payload = _DEVICE_INFO.pack(
+        _bounded(hw_rev, 0, 255, "hw_rev"),
+        _bounded(fw_major, 0, 255, "fw_major"),
+        _bounded(fw_minor, 0, 255, "fw_minor"),
+        _bounded(fw_patch, 0, 255, "fw_patch"),
+        _bounded(adc_model_id, 0, 255, "adc_model_id"),
+        _bounded(sample_format_id, 0, 255, "sample_format_id"),
+        _bounded(adc_resolution_bits, 0, 255, "adc_resolution_bits"),
+        _bounded(adc_input_mode_id, 0, 255, "adc_input_mode_id"),
+        _bounded(adc_vref_uv, 0, 0xFFFFFFFF, "adc_vref_uv"),
+        _bounded(active_profile_id, 0, 255, "active_profile_id"),
+        _bounded(profile_crc32, 0, 0xFFFFFFFF, "profile_crc32"),
+    )
+    body_length = _CONTROL_HEADER.size + len(payload)
+    body = _CONTROL_HEADER.pack(VERSION, TYPE_DEVICE_INFO, body_length) + payload
+    return SYNC + body + _U16.pack(crc16_ccitt_false(body))
+
+
+def decode_device_info(frame: bytes) -> dict[str, int]:
+    """Validate and decode one DEVICE_INFO response."""
+    expected_body_length = _CONTROL_HEADER.size + _DEVICE_INFO.size
+    if len(frame) != 2 + expected_body_length + 2:
+        raise ProtocolError("DEVICE_INFO frame length mismatch")
+    if frame[:2] != SYNC:
+        raise ProtocolError("bad sync word")
+    body = frame[2:-2]
+    if crc16_ccitt_false(body) != _U16.unpack(frame[-2:])[0]:
+        raise ProtocolError("CRC mismatch")
+    version, msg_type, length = _CONTROL_HEADER.unpack(body[:_CONTROL_HEADER.size])
+    if version != VERSION or msg_type != TYPE_DEVICE_INFO:
+        raise ProtocolError("not a supported DEVICE_INFO frame")
+    if length != len(body):
+        raise ProtocolError("declared DEVICE_INFO length mismatch")
+    fields = _DEVICE_INFO.unpack(body[_CONTROL_HEADER.size:])
+    keys = (
+        "hw_rev", "fw_major", "fw_minor", "fw_patch", "adc_model_id",
+        "sample_format_id", "adc_resolution_bits", "adc_input_mode_id",
+        "adc_vref_uv", "active_profile_id", "profile_crc32",
+    )
+    result = dict(zip(keys, fields))
+    if result["adc_model_id"] not in (
+        ADC_MODEL_ADS8861, ADC_MODEL_ADS8860, ADC_MODEL_ADS7054, ADC_MODEL_AD7980
+    ):
+        raise ProtocolError("unsupported adc_model_id")
+    if result["sample_format_id"] not in (
+        SAMPLE_FORMAT_TWOS_COMPLEMENT, SAMPLE_FORMAT_UNSIGNED
+    ):
+        raise ProtocolError("unsupported sample_format_id")
+    if result["adc_resolution_bits"] not in (14, 16):
+        raise ProtocolError("invalid ADC resolution")
+    if result["adc_input_mode_id"] not in (
+        ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
+    ):
+        raise ProtocolError("unsupported ADC input mode")
+    return result
+
+
 SAMPLE_FORMAT_UNSIGNED = 0x02
 
 
@@ -164,7 +262,7 @@ def interpret_sample(raw_word: int, sample_format_id: int) -> int:
     raise ProtocolError(f"unsupported SAMPLE_FORMAT_ID: {sample_format_id}")
 
 
-class MeasurementStreamDecoder:
+class ProtocolStreamDecoder:
     """Incremental UART stream parser with sync recovery and CRC validation."""
 
     MIN_BODY_LENGTH = _HEADER_SIZE + 2
@@ -198,14 +296,21 @@ class MeasurementStreamDecoder:
             if len(self._buffer) < 6:
                 break
 
-            if self._buffer[2] != VERSION or self._buffer[3] != TYPE_MEASUREMENT:
+            if self._buffer[2] != VERSION:
                 del self._buffer[0]
                 self.discarded_bytes += 1
                 self.rejected_frames += 1
                 continue
 
+            msg_type = self._buffer[3]
             body_length = int.from_bytes(self._buffer[4:6], "little")
-            if not self.MIN_BODY_LENGTH <= body_length <= self.MAX_BODY_LENGTH:
+            if msg_type == TYPE_MEASUREMENT:
+                length_ok = self.MIN_BODY_LENGTH <= body_length <= self.MAX_BODY_LENGTH
+            elif msg_type == TYPE_DEVICE_INFO:
+                length_ok = body_length == _CONTROL_HEADER.size + _DEVICE_INFO.size
+            else:
+                length_ok = False
+            if not length_ok:
                 del self._buffer[0]
                 self.discarded_bytes += 1
                 self.rejected_frames += 1
@@ -217,7 +322,11 @@ class MeasurementStreamDecoder:
 
             candidate = bytes(self._buffer[:frame_length])
             try:
-                item = decode_measurement(candidate)
+                item = (
+                    decode_measurement(candidate)
+                    if msg_type == TYPE_MEASUREMENT
+                    else decode_device_info(candidate)
+                )
             except ProtocolError:
                 # Advance one byte, not a whole claimed frame: a valid SYNC
                 # may occur later in the buffered stream after corruption.
@@ -241,3 +350,7 @@ def _bounded(value: int, minimum: int, maximum: int, field: str) -> int:
     if not isinstance(value, int) or not minimum <= value <= maximum:
         raise ProtocolError(f"{field} must be an integer in {minimum}..{maximum}")
     return value
+
+
+# Backwards-compatible name retained for telemetry-only callers.
+MeasurementStreamDecoder = ProtocolStreamDecoder
