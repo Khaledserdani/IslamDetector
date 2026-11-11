@@ -29,8 +29,8 @@ public final class SyntheticDecayModel {
         return new Result(amplitudeMv, tauUs, nominalNoiseMv, samples);
     }
 
-    private static double noiseAt(double t, double nominalRmsMv) {
-        // Deterministic multi-tone fixture: repeatable, not a stochastic noise source.
+    private static double noiseAt(double t, double nominalNoiseMv) {
+        // Deterministic multi-tone test disturbance: repeatable, not stochastic noise.
         return nominalRmsMv * (Math.sin(0.73 * t) + Math.sin(1.17 * t) +
                 Math.sin(1.91 * t)) / Math.sqrt(1.5);
     }
