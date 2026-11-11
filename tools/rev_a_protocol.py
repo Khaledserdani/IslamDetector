@@ -214,6 +214,8 @@ class MeasurementStreamDecoder:
             decoded.append(item)
             del self._buffer[:frame_length]
 
+        return decoded
+
     def reset(self) -> None:
         self._buffer.clear()
         self.discarded_bytes = 0
