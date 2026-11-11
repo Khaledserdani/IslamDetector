@@ -127,14 +127,14 @@ E_L(t) = 0.5 × L × I(t)^2
 
 | ADC | الدقة/السرعة | نوع الدخل | السعر المرجعي الظاهر | الحكم |
 |---|---|---|---:|---|
-| ADS8861 | 16-bit / 1MSPS، true differential، SNR نموذجي96.1dB عند VREF=5V | تفاضلي ±VREF، common-mode 0..VREF | 19.71 USD للقطعة الواحدة على Mouser | المسار الأساسي المقترح لملف DD؛ خرج two's-complement |
+| ADS8861 | 16-bit / 1MSPS، true differential، SNR نموذجي96.5dB عند VREF=5V | تفاضلي ±VREF، common-mode 0..VREF | 19.71 USD للقطعة الواحدة على Mouser | المسار الأساسي المقترح لملف DD؛ خرج two's-complement |
 | ADS8860 | 16-bit / 1MSPS، SNR نحو93dB، acquisition نحو290ns | أحادي0..VREF | 22.04 USD للقطعة الواحدة على Mouser | fallback إذا صار RX single-ended |
 | ADS7054 | 14-bit / 1MSPS | تفاضلي مع common-mode محدود | 5.21 USD للقطعة الواحدة على DigiKey | خيار اقتصادي أقل دقة |
 | AD7980 | 16-bit / 1MSPS، SNR91.5dB | pseudo-differential0..VREF | 32.88 USD للقطعة الواحدة على DigiKey | أقل جاذبية من ADS8861 سعراً |
 | RP2040 الداخلي | 12-bit / 500kSPS، ENOB نموذجي 8.7 | أحادي | مدمج | لاختبار التوقيت/الإشارة الكبيرة فقط، لا للحساسية النهائية |
 
 **قرار Rev A الهندسي المفضل بعد مراجعة طبيعة ملف DD:** نعطي الأولوية لمسار تفاضلي حقيقي بدلاً من تحويل إشارة RX إلى single-ended مبكراً:
-- **ADS8861**: SAR ADC بدقة16-bit وسرعة1MSPS، دخل true-differential، مدى تفاضلي ±VREF عندما يكون common-mode=VREF/2، ويقبل common-mode من0 إلىVREF. عند VREF=5V أظهر datasheet SNR نموذجي96.1dB؛ عند اختيار VREF=4.096V يجب أخذ SNR من منحنى المرجع الفعلي والتحقق منه ميدانياً. خرج ADC هو two's-complement، لذلك يجب حفظ raw 16-bit وتحديد صيغة العينة في بيانات تعريف الجهاز.
+- **ADS8861**: SAR ADC بدقة16-bit وسرعة1MSPS، دخل true-differential، مدى تفاضلي ±VREF عندما يكون common-mode=VREF/2، ويقبل common-mode من0 إلىVREF. عند VREF=5V أظهر datasheet SNR نموذجي96.5dB؛ عند اختيار VREF=4.096V يجب أخذ SNR من منحنى المرجع الفعلي والتحقق منه ميدانياً. خرج ADC هو two's-complement، لذلك يجب حفظ raw 16-bit وتحديد صيغة العينة في بيانات تعريف الجهاز.
 - **THS4521**: مرشح FDA مباشر لقيادة ADS8861 من خرج RX التفاضلي: 145MHz، slew=490V/µs، ضوضاء دخل4.6nV/√Hz، تغذية أحادية2.5–5.5V، دخل common-mode يشمل السكة السالبة وخرج rail-to-rail، وتحكم VOCM. لدى TI تطبيق مرجعي مباشر THS4521+ADS8861 لدخل تفاضلي، لذلك هذا المسار أقرب لطبيعة DD RX من ADS8860 single-ended.
 - **ADR4540B** مرجع4.096V خارجي مرشح: دقة ابتدائية±0.02%، معامل حرارة2ppm/°C، دخل4.2–15V، خرج حتى10mA، وضوضاء2.7µVpp (0.1–10Hz) و83.5nV/√Hz عند1kHz. VREF=4.096V يبقى دون حد ADS8861/ADS8860 الأعلى5.0V، ويعطي VREF/2=2.048V لـVOCM. يحتاج تغذية5V مستقرة لا تقل عن4.2V عند أرجل المرجع.
 - **ADS8860** يبقى بديلاً إذا انتهى تصميم RX إلى single-ended 0..VREF؛ أما **ADS7054** فهو خيار اقتصادي14-bit/1MSPS لكنه لا يعطي نفس هامش الدقة.
