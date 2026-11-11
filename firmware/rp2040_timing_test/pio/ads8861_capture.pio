@@ -5,7 +5,7 @@
 ; GP8=CONVST, GP9=SCLK, GP10=DOUT. ADS8861 DIN is tied HIGH (3-wire CS).
 ; clk_sys/PIO clock must be 125 MHz.
 ; CONVST high = six 16-cycle instructions = 96 cycles = 768 ns (> 710 ns tconv-max).
-; SCLK = 6 cycles high + 7 cycles low = 9.615 MHz.
+; SCLK = 7 cycles high + 7 cycles low = 8.929 MHz (50% duty).
 ; DOUT MSB is sampled 120 ns after CONVST falls (12-cycle CONVST-low instruction + SET X + NOP) (t_d-CNV-DO max 12.3 ns).
 ;
 ; One 32-bit word is explicitly pulled into OSR; the remaining three words are preloaded in TX FIFO. Each word carries two
@@ -37,7 +37,7 @@ delay_loop:
     nop side 0 [1]
 
 bitloop:
-    in pins, 1 side 1 [5]
+    in pins, 1 side 1 [6]
     jmp x-- bitloop side 0 [6]
 
     jmp y-- sample_loop side 0
