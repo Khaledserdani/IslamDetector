@@ -16,7 +16,7 @@
 - PR #7 مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
 - آخر رأس موثق بعد تحديثات التوثيق: `a56ab85a6ec2b70034d0d1bbfe3dc1ab671e8908`.
-- - آخر تشغيل مكتمل ومؤكد على الفرع: GitHub Actions run #203 على commit `08c63bcf1bbb4a5ec3c30c348eea08b534ff1cee` — completed / success.
+- - آخر تشغيل مكتمل ومؤكد عند آخر تحديث للسجل: GitHub Actions run #208 على commit `d97710c342f3d5c03f616842a19ff548b1733ae9` — completed / success.
 - نجحت وظائف Android APK build وverify/upload، وRP2040 firmware build وUF2 verification/upload، وprotocol-tests.
 - Artifacts: `IslamDetector-Original-APK` (18,727 bytes) و`IslamDetector-RevA-RP2040-Timing-Test-UF2` (27,606 bytes)؛ ملفات اختبار بناء وليست إثباتاً لتشغيل العتاد أو تثبيت التطبيق.
 - تحديثات التوثيق اللاحقة لم تطلق CI جديداً لأن مسارات Workflow الحالية لا تشمل ملفات docs وISLAM.md.
@@ -114,6 +114,7 @@
 - `docs/engineering/REV_A_PINMAP_DRAFT_AR.md`: خريطة أرجل أولية غير نهائية.
 - `docs/engineering/COIL_TOPOLOGY_STUDY_AR.md`: مقارنة هندسات ملف البحث، مخاطر إلغاء الهدف في RX التفاضلي، وتعويض Time-Domain Bucking.
 - `docs/engineering/COIL_TOPOLOGY_COMPARISON_TEMPLATE.csv`: قالب تسجيل التجارب المقارنة بين هندسات الملفات.
+- `docs/engineering/ADS8861_PIO_TIMING_AUDIT_AR.md`: تدقيق حسابي لتوقيت PIO/ADS8861 وجدول النوافذ.
 - `docs/engineering/REV_A_MEASUREMENT_LOG_TEMPLATE.csv`: قالب تسجيل القياسات.
 - `firmware/rp2040_timing_test/`: برنامج اختبار التوقيت وPIO.
 
