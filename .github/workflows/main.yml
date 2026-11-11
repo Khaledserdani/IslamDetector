@@ -2,10 +2,15 @@ name: Validate Islam Detector app and Rev A firmware
 on:
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '*.csv'
+    paths:
+      - '.github/workflows/main.yml'
+      - 'tools/**'
+      - 'firmware/rp2040_timing_test/**'
+      - 'app/**'
+      - 'pro/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle/**'
 permissions:
   contents: read
 concurrency:
