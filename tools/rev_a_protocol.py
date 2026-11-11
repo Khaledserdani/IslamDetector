@@ -14,6 +14,7 @@ TYPE_MEASUREMENT = 0x10
 MAX_SAMPLES = 8
 INVALID_CURRENT_MA = 0xFFFF
 INVALID_TEMPERATURE_CENTI_C = 0x7FFF
+FLAG_SWEEP_COMPLETE = 1 << 8
 
 # Fields from VERSION through SAMPLE_COUNT; SYNC and CRC are outside this.
 _HEADER = struct.Struct("<BBHIIBHIHHHhBB")
@@ -57,6 +58,8 @@ def encode_measurement(
         raise ProtocolError("valid_mask sets bits beyond sample_count")
     if pulse_rate_hz <= 0:
         raise ProtocolError("pulse_rate_hz must be positive")
+    if flags & FLAG_SWEEP_COMPLETE and count != MAX_SAMPLES:
+        raise ProtocolError("a complete sweep must contain exactly 8 samples")
     if temp_centi_c == INVALID_TEMPERATURE_CENTI_C:
         pass
     elif not -32768 <= temp_centi_c <= 32766:
@@ -121,6 +124,10 @@ def decode_measurement(frame: bytes) -> dict[str, Any]:
         raise ProtocolError("sample payload length mismatch")
     if valid_mask & ~((1 << sample_count) - 1):
         raise ProtocolError("valid_mask sets bits beyond sample_count")
+    if pulse_rate_hz == 0:
+        raise ProtocolError("pulse_rate_hz must be positive")
+    if flags & FLAG_SWEEP_COMPLETE and sample_count != MAX_SAMPLES:
+        raise ProtocolError("complete sweep does not contain 8 samples")
 
     samples = list(struct.unpack("<" + "H" * sample_count, body[_HEADER_SIZE:]))
     return {
