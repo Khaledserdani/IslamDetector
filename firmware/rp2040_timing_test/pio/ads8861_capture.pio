@@ -6,7 +6,7 @@
 ; clk_sys/PIO clock must be 125 MHz.
 ; CONVST high = 96 cycles = 768 ns (> 710 ns tconv-max).
 ; SCLK = 6 cycles high + 7 cycles low = 9.615 MHz.
-; DOUT MSB is sampled 24 ns after CONVST falls (t_d-CNV-DO max 12.3 ns).
+; DOUT MSB is sampled 120 ns after CONVST falls (12-cycle CONVST-low instruction + SET X + NOP) (t_d-CNV-DO max 12.3 ns).
 ;
 ; The TX FIFO is preloaded with four 32-bit words. Each word carries two
 ; 12-bit delay-loop counts. OUT shift-right/autopull threshold is 24 bits.
