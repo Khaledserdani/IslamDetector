@@ -150,6 +150,22 @@ class ProtocolTests(unittest.TestCase):
         decoded = parser.feed(info + measurement)
         self.assertEqual([item["type"] for item in decoded], [TYPE_DEVICE_INFO, 0x10])
 
+    def test_ads7054_device_info_uses_signed_14bit_format(self):
+        frame = encode_device_info(
+            hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=0x03,
+            sample_format_id=SAMPLE_FORMAT_TWOS_COMPLEMENT,
+            adc_resolution_bits=14,
+            adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+            adc_vref_uv=3300000,
+            active_profile_id=2,
+            profile_crc32=0x1234ABCD,
+        )
+        decoded = decode_device_info(frame)
+        self.assertEqual(decoded["sample_format_id"], SAMPLE_FORMAT_TWOS_COMPLEMENT)
+        self.assertEqual(decoded["adc_resolution_bits"], 14)
+        self.assertEqual(decoded["adc_vref_uv"], 3300000)
+
     def test_device_info_rejects_inconsistent_adc_metadata(self):
         with self.assertRaises(ProtocolError):
             encode_device_info(
@@ -184,6 +200,11 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(interpret_sample(0x8000, SAMPLE_FORMAT_TWOS_COMPLEMENT), -32768)
         self.assertEqual(interpret_sample(0xFFFF, SAMPLE_FORMAT_TWOS_COMPLEMENT), -1)
         self.assertEqual(interpret_sample(0xFFFF, SAMPLE_FORMAT_UNSIGNED), 65535)
+        self.assertEqual(interpret_sample(0x1FFF, SAMPLE_FORMAT_TWOS_COMPLEMENT, 14), 8191)
+        self.assertEqual(interpret_sample(0x2000, SAMPLE_FORMAT_TWOS_COMPLEMENT, 14), -8192)
+        self.assertEqual(interpret_sample(0x3FFF, SAMPLE_FORMAT_TWOS_COMPLEMENT, 14), -1)
+        with self.assertRaises(ProtocolError):
+            interpret_sample(0x4000, SAMPLE_FORMAT_TWOS_COMPLEMENT, 14)
         with self.assertRaises(ProtocolError):
             interpret_sample(0x10000, SAMPLE_FORMAT_UNSIGNED)
         with self.assertRaises(ProtocolError):
