@@ -9,10 +9,14 @@
 #include "hardware/pwm.h"
 
 #include "sample_marker_echo.pio.h"
+#include "ads8861_capture.h"
 
 #define TX_TEST_PIN       4u
 #define SAMPLE_MARKER_PIN 5u
 #define PIO_ECHO_PIN      6u
+
+// Enable only after ADS8861 hardware and analog protection are fitted.
+#define ENABLE_ADS8861_CAPTURE 0
 
 #define PWM_WRAP_VALUE    62499u
 #define START_PULSE_US    20u
@@ -28,6 +32,10 @@ static uint16_t pulse_ticks;
 static uint16_t sample_compare_ticks[8];
 static volatile uint8_t profile_index = 0u;
 static volatile bool running = false;
+#if ENABLE_ADS8861_CAPTURE
+static uint ads8861_sm;
+static bool ads8861_ready = false;
+#endif
 
 static uint16_t us_to_pwm_ticks(uint32_t microseconds) {
     const float tick_hz = (float)clock_get_hz(clk_sys) / pwm_divider;
@@ -158,6 +166,15 @@ int main(void) {
 
     setup_pio_echo();
 
+#if ENABLE_ADS8861_CAPTURE
+    ads8861_sm = pio_claim_unused_sm(pio0, true);
+    ads8861_ready = ads8861_capture_init(pio0, ads8861_sm);
+    printf("ADS8861 PIO capture: %s (DIN must be strapped HIGH).\\n",
+           ads8861_ready ? "enabled" : "init failed");
+#else
+    printf("ADS8861 PIO driver compiled but disabled; no ADC hardware assumed.\\n");
+#endif
+
     slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
     irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_wrap_isr);
     irq_set_enabled(PWM_IRQ_WRAP, true);
@@ -178,6 +195,13 @@ int main(void) {
         } else if (ch == '?' || ch == 'h' || ch == 'H') {
             print_help();
         }
+#if ENABLE_ADS8861_CAPTURE
+        uint16_t raw_sample;
+        if (ads8861_ready &&
+            ads8861_capture_try_read(pio0, ads8861_sm, &raw_sample)) {
+            printf("ADS8861_RAW16=%04X (two's-complement raw)\\n", raw_sample);
+        }
+#endif
         tight_loop_contents();
     }
 }
