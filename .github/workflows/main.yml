@@ -1,4 +1,4 @@
-name: Validate Islam Detector apps on pull requests
+name: Validate Islam Detector Android app
 on:
   pull_request:
     branches: [ main ]
@@ -16,27 +16,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both APKs
-        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug
-      - name: Verify APKs
+      - name: Build original Android app
+        run: gradle --no-daemon clean :app:assembleDebug
+      - name: Verify APK
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk; do
-            test -f "$APK"
-            test "$(stat -c%s "$APK")" -gt 20000
-            unzip -t "$APK"
-            sha256sum "$APK"
-          done
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          test "$(stat -c%s "$APK")" -gt 20000
+          unzip -t "$APK"
+          sha256sum "$APK"
       - name: Upload original app
         uses: actions/upload-artifact@v4
         with:
           name: IslamDetector-Original-APK
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-      - name: Upload Pro app
-        uses: actions/upload-artifact@v4
-        with:
-          name: IslamDetector-Pro-APK
-          path: pro/build/outputs/apk/debug/pro-debug.apk
           retention-days: 30
