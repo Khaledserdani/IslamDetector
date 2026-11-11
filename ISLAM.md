@@ -542,3 +542,11 @@
 - ADS8861 output two's-complement confirmed by datasheet transfer function. ADS7054 كذلك fully-differential, 14-bit, two's-complement، لكنه يستخدم AVDD كمرجع ولا يقبل ADR4540 مباشرة كمرجع مستقل؛ راجع https://www.ti.com/lit/ds/symlink/ads7054.pdf.
 - أُنشئ PR #7 كمسودة جديدة لأن PR #6 مغلق: https://github.com/Khaledserdani/IslamDetector/pull/7. لا يدمج في main. Head SHA عند الإنشاء: `275c9cdc0157779c59cf4dac8072eb2ea47f9052`.
 - لم يظهر بعد تشغيل CI مرتبط بهذا الرأس عند كتابة هذه النقطة؛ لا نسجل نجاح بناء UF2 أو APK جديد حتى تظهر نتائج فعلية. برنامج ADS8861 PIO لا يزال معطلاً افتراضياً ولا يعمل إلا بعد تركيب ADC وحماية الإشارة والتغذية.
+
+
+### 15.16 مقارنة ADS7054 وADS8861 — فصل المسارين
+
+- ADS7054 صحيح أنه ADC تفاضلي fully-differential 14-bit/1MSPS، وخرج two's-complement؛ لكنه لا يقبل مرجع ADR4540B الخارجي، لأن AVDD هو مرجع التحويل (3.3V في التطبيق المقترح). يحتاج VCM=AVDD/2±0.1V، وواجهة CS/SCLK مستقلة، 18 حافة SCLK هابطة لكل إطار و24 clock لمعايرة offset عند بدء التشغيل.
+- لذلك لا يعاد استخدام برنامج ADS8861 PIO معه؛ يلزم Driver مختلف تماماً. حزمة X2QFN-8 الصغيرة تزيد صعوبة التجميع اليدوي.
+- ADS8861 يبقى المسار الرئيسي Rev A (16-bit، true-differential، external REF=4.096V). ADS7054 خيار اقتصادي منفصل إذا ثبتت جدواه بالتوفر والسعر والاختبار.
+- المصدر: https://www.ti.com/lit/ds/symlink/ads7054.pdf
