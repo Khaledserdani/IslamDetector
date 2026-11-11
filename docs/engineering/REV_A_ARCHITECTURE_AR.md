@@ -107,6 +107,32 @@ E_L(t) = 0.5 × L × I(t)^2
 - ADC خارجي 14/16-bit سريع بواجهة SPI: يقارن وفق زمن الالتقاط، acquisition time، ENOB عند التردد المطلوب، مدى الدخل، توفره محلياً، وسهولة PCBA.
 - لا نعتمد ADS1115 أو TM7705 كمسار PI سريع رئيسي؛ معدل التحويل المعلن لهما غير ملائم لمسح منحنى الاضمحلال متعدد النوافذ.
 
+
+
+## 4.1 حسم أولي: هل نحتاج متحكم توقيت ثانياً؟
+
+تمت مراجعة وثائق Espressif الرسمية، وظهرت نقطة مهمة:
+- ESP32-S3 يملك MCPWM وRMT ويمكنهما توليد نبضات دقيقة، لكن وثائق ESP-IDF الحالية تنص صراحة أن **ESP32-S3 لا يدعم أحداث MCPWM-ETM**.
+- RMT في ESP32-S3 يدعم DMA على قناة TX واحدة فقط (القناة 3)، وليس هناك ربط ETM عام يطلق SPI/ADC مباشرة عند كل نقطة زمنية.
+- ADC الداخلي ليس بديلاً مضموناً لمسار القياس؛ وثائق Espressif توثق قيوداً على ADC2 مع Wi-Fi، كما أن دقته العملية أقل من ADC SAR خارجي مناسب.
+
+**النتيجة:** لا نرفض قدرة ESP32-S3 على توليد النبضات؛ لكن لا نعتمد عليه وحده في Rev A قبل إثبات توليد ثماني نقاط CS/قراءة ADC متزامنة بدقة مع Wi-Fi يعمل. التصميم الأكثر قابلية للتحقق حالياً هو:
+- RP2040 يتولى TX timing + sample scheduling + SPI clocking/ADC capture عبر PIO وDMA.
+- ESP32-S3 يتولى Wi-Fi وواجهة الهاتف، ويستقبل إطارات مكتملة من RP2040.
+- يبقى اختبار بديل ESP32-S3-only مطلوباً إذا أمكن بناء تسلسل RMT/PIO خارجي يثبت التوقيت من دون تعقيد أو فقد عينات.
+
+| البنية | الميزة | العائق | الحكم الحالي |
+|---|---|---|---|
+| ESP32-S3 فقط + ADC خارجي | أقل قطعاً وتكلفة | لا MCPWM-ETM على S3؛ إثبات توقيت CS وقراءة SPI مع Wi-Fi أصعب | خيار اختبار، لا نعتمده بعد |
+| RP2040 + ADC خارجي + ESP32-S3 | PIO/DMA لتوقيت وأخذ عينات حتمي، وفصل Wi-Fi عن القياس | MCU إضافي وواجهة اتصال واستهلاك/تعقيد إضافي | الخيار المفضل مبدئياً لـRev A |
+| ADC الداخلي لـESP32-S3 | أقل كلفة وقطع | ضوضاء/ENOB، وقيود ADC2 مع Wi-Fi، ومدى/سرعة يجب إثباتها | لا يستخدم كمسار دقة رئيسي |
+
+مراجع هذه النقطة:
+- Espressif MCPWM ETM for ESP32-S3: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/mcpwm_etm.html
+- Espressif MCPWM: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/index.html
+- Espressif RMT FAQ: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/rmt.html
+- RP2040 PIO/ADC official docs: https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html
+
 ## 5. واجهة ESP32-S3 مع متحكم القياس
 
 القرار المبدئي هو UART مؤطر بسرعة اختبار 921600 baud بين متحكم القياس وESP32-S3؛ كمية البيانات المتوقعة من 8 نوافذ × 2 بايت × 1000 إطار/ثانية تقارب 16 kB/s قبل الترويسات، وهي ضمن قدرة UART بهامش مناسب. إذا أظهرت الاختبارات حاجة لقنوات أو معدلات أعلى، ننتقل إلى SPI.
