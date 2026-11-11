@@ -521,3 +521,10 @@
 
 بما أن ملف RX في DD له طرفان وإشارة تفاضلية، أصبح ADS8861 true-differential مع THS4521 FDA هو المسار الأول للدراسة، بدلاً من ADS8860 single-ended. يسمح ADS8861 بمدى common-mode من0 إلىVREF، ويبلغ full-scale التفاضلي ±VREF عند VCM=VREF/2. خرج ADC two's-complement؛ البروتوكول يحتفظ raw16 ويعرّف ADC_MODEL_ID وSAMPLE_FORMAT_ID في GET_INFO. مرجع ADR4540B=4.096V يعطي VCM=2.048V. مرشح TI المرجعي يستخدم10Ω لكل خط و10nF C0G تفاضلياً؛ تبقى القيم للمحاكاة فقط. يلزم فحص THS4521 input range، وحماية RX، وphase margin>40°، وsettling16-bit قبل المخطط النهائي.
 مراجع المصنع: https://www.ti.com/lit/ds/symlink/ads8861.pdf ؛ https://www.ti.com/lit/ds/symlink/ths4521.pdf
+
+
+### 15.16 مسودة التوصيلات pin-level وبروتوكول صيغة ADC
+
+أضيفت الوثيقة `docs/engineering/REV_A_PINMAP_DRAFT_AR.md` وتحتوي pinout مبدئياً لـADS8861 VSSOP-10 وTHS4521 SOIC-8 وADR4540B SOIC-8، مع GPIO map مبدئي لـRP2040-Zero وشبكات التغذية. الوثيقة مسودة؛ لا تمثل KiCad أو PCB نهائياً. ما يزال اختيار حماية RX وكسب THS4521 ومقاومات التغذية الراجعة مفتوحاً على قياس الملف وموجة RX.
+تم تحديث `REV_A_DATA_PROTOCOL_AR.md` بإضافة DEVICE_INFO (TYPE 0x82) لتحديد ADC_MODEL_ID وSAMPLE_FORMAT_ID وADC_RESOLUTION_BITS وADC_INPUT_MODE_ID وVREF، حتى يفسر Android عينات ADS8861 signed two's-complement بشكل صحيح ويحفظ raw16 دون فقد.
+مرجع ADS8861 مع THS4521: https://www.ti.com/lit/ds/symlink/ads8861.pdf ؛ مرجع ADR4540B: https://www.analog.com/media/en/technical-documentation/data-sheets/ADR4520_4525_4530_4533_4540_4550.pdf
