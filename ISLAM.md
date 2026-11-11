@@ -533,3 +533,12 @@
 ### 15.17 برنامج PIO لقراءة ADS8861
 
 أضيف `firmware/rp2040_timing_test/pio/ads8861_capture.pio` وملفا `src/ads8861_capture.c/.h`. ينتظر GP5 falling، يرفع GP8/CONVST لمدة96 دورة عند125MHz=768ns، ثم يقرأ16-bit MSB-first عبر GP9/SCLK=5MHz من GP10/DOUT. DIN مربوط HIGH خارجياً لاختيار3-Wire CS. السائق مدمج في البناء لكنه معطل افتراضياً حتى توصيل ADC والحماية؛ لا توجد نتيجة Hardware أو loopback. تأخير PIO input synchronizer/WAIT بين marker وCONVST يجب قياسه بمحلل منطقي ومعايرته.
+
+
+### 15.15 تدقيق قراءة ADS8861 وتحديث PR (2026-11-11)
+
+- راجعت ورقة TI الأصلية: في 3-wire CS mode، ربط DIN إلى DVDD يختار ̅CS mode؛ CONVST rising يبدأ أخذ العينة والتحويل، وبعد اكتمال tconv-max=710ns يبقى CONVST عالياً حتى هبوطه، وعند الهبوط يظهر MSB بعد t_d-CNV-DO بحد أقصى12.3ns. مرجع المصنع: https://www.ti.com/lit/ds/symlink/ads8861.pdf
+- اكتشفت أن أول PIO IN في النسخة السابقة كان سيقع بعد8ns فقط من هبوط CONVST، وهو أقل من12.3ns. أضيفت مهلة PIO 16ns قبل أول SCLK/IN. هذا حساب زمني من 125MHz وليس قياساً فعلياً.
+- ADS8861 output two's-complement confirmed by datasheet transfer function. ADS7054 كذلك fully-differential, 14-bit, two's-complement، لكنه يستخدم AVDD كمرجع ولا يقبل ADR4540 مباشرة كمرجع مستقل؛ راجع https://www.ti.com/lit/ds/symlink/ads7054.pdf.
+- أُنشئ PR #7 كمسودة جديدة لأن PR #6 مغلق: https://github.com/Khaledserdani/IslamDetector/pull/7. لا يدمج في main. Head SHA عند الإنشاء: `275c9cdc0157779c59cf4dac8072eb2ea47f9052`.
+- لم يظهر بعد تشغيل CI مرتبط بهذا الرأس عند كتابة هذه النقطة؛ لا نسجل نجاح بناء UF2 أو APK جديد حتى تظهر نتائج فعلية. برنامج ADS8861 PIO لا يزال معطلاً افتراضياً ولا يعمل إلا بعد تركيب ADC وحماية الإشارة والتغذية.
