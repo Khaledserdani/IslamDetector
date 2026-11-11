@@ -71,10 +71,6 @@ static void timing_outputs_start(void) {
         return;
     }
 
-    gpio_set_function(TX_TEST_PIN, GPIO_FUNC_PWM);
-    gpio_set_function(SAMPLE_MARKER_PIN, GPIO_FUNC_PWM);
-
-    slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
     // At the standard 125 MHz RP2040 system clock:
     // 125 MHz / 20 / 62500 = exactly 100 Hz.
     // One PWM tick is 160 ns; all eight delays are precomputed.
@@ -83,6 +79,10 @@ static void timing_outputs_start(void) {
                clock_get_hz(clk_sys));
         return;
     }
+
+    gpio_set_function(TX_TEST_PIN, GPIO_FUNC_PWM);
+    gpio_set_function(SAMPLE_MARKER_PIN, GPIO_FUNC_PWM);
+    slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
     pwm_divider = 20.0f;
 
     pulse_ticks = us_to_pwm_ticks(START_PULSE_US);
