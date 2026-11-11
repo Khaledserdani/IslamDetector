@@ -116,8 +116,8 @@ public class MainActivity extends Activity {
                 double signal = a * Math.exp(-t / tau);
                 double noiseValue = noiseAt(t, noise);
                 samplesMv[i] = signal + noiseValue;
-                b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\\n", t, signal, noiseValue, samplesMv[i]));
-                report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\\n", t, signal, noiseValue, samplesMv[i]);
+                b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\n", t, signal, noiseValue, samplesMv[i]));
+                report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\n", t, signal, noiseValue, samplesMv[i]);
             }
             resultText.setText(b.toString());
             waveView.invalidate();
@@ -127,7 +127,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    private double noiseAt(double t, double rms) {\n        return rms * (Math.sin(0.73 * t) + Math.sin(1.17 * t) + Math.sin(1.91 * t)) / Math.sqrt(1.5);\n    }\n\n    private void shareReport() {
+    private double noiseAt(double t, double rms) {
+        return rms * (Math.sin(0.73 * t) + Math.sin(1.17 * t) + Math.sin(1.91 * t)) / Math.sqrt(1.5);
+    }
+
+    private void shareReport() {
         if (report.isEmpty()) runSimulation();
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/csv");
