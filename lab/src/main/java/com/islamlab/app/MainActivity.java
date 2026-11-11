@@ -240,7 +240,24 @@ public class MainActivity extends Activity {
         }).setNegativeButton("إغلاق", null).show();
     }
 
-    private void checkForUpdates() {\n        statusText.setText("جارٍ الاتصال بقناة التحديثات…");\n        UpdateCenter.check(this, new UpdateCenter.Listener() {\n            @Override public void onMessage(String message) {\n                statusText.setText(message);\n                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();\n            }\n            @Override public void onReady(java.io.File apk) {\n                statusText.setText("تم تنزيل التحديث والتحقق من SHA-256. بانتظار موافقتك في مثبت أندرويد.");\n                new android.app.AlertDialog.Builder(MainActivity.this)\n                        .setTitle("تحديث جاهز للتثبيت")\n                        .setMessage("تم التحقق من سلامة الملف. هل تريد فتح مثبت أندرويد الآن؟")\n                        .setPositiveButton("تثبيت", (dialog, which) -> UpdateCenter.install(MainActivity.this, apk))\n                        .setNegativeButton("لاحقاً", null).show();\n            }\n        });\n    }\n\n    private void shareDiagnostics() {
+    private void checkForUpdates() {
+        statusText.setText("جارٍ الاتصال بقناة التحديثات…");
+        UpdateCenter.check(this, new UpdateCenter.Listener() {
+            @Override public void onMessage(String message) {
+                statusText.setText(message);
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+            }
+            @Override public void onReady(java.io.File apk) {
+                statusText.setText("تم تنزيل التحديث والتحقق من SHA-256. بانتظار موافقتك في مثبت أندرويد.");
+                new android.app.AlertDialog.Builder(MainActivity.this)
+                        .setTitle("تحديث جاهز للتثبيت")
+                        .setMessage("تم التحقق من سلامة الملف. هل تريد فتح مثبت أندرويد الآن؟")
+                        .setPositiveButton("تثبيت", (dialog, which) -> UpdateCenter.install(MainActivity.this, apk))
+                        .setNegativeButton("لاحقاً", null).show();
+            }
+        });
+    }
+    private void shareDiagnostics() {
         int saved = 0;
         for (String key : experimentPrefs.getAll().keySet()) if (key.startsWith("experiment_")) saved++;
         String version = "غير معروف";
