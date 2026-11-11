@@ -176,3 +176,8 @@
 - `rp2040-firmware`: completed / success، بما يشمل بناء UF2 والتحقق منه ورفعه كـartifact.
 النتيجة: جميع الوظائف الثلاث ناجحة. لا يعني ذلك أن APK ثُبّت على هاتف أو أن UF2 فُلح على لوحة فعلية.
 رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43076666839
+
+
+## 14. تدقيق PWM marker بعد CI #212
+
+وجدت مراجعة RP2040 PWM أن CC مزدوج التخزين، وأن الكتابة أثناء التشغيل تُفعّل عند الالتفاف التالي. لذلك كان تسلسل ISR السابق يكرر نافذة profile 0 دورة إضافية عند بدء التشغيل. عولج ذلك في `firmware/rp2040_timing_test/src/main.c` بفصل active/queued profile وحجز profile 1 بعد تمكين PWM وقبل أول التفاف. أضيف اختبار `test_pwm_compare_pipeline_is_primed_without_startup_duplicate` في `tools/test_rev_a_timing.py` لمحاكاة تسلسل 0..7 دون التكرار البدئي. commit الإصلاح والاختبار: `2a5231d3c637d8e5e623afac47669b341ac72223` و`5cea3844f7a77c6b47087b0f6d2778e765cd4ed7`. تشغيل CI #218 جارٍ؛ لا تسجل نجاحه حتى يكتمل RP2040 firmware.
