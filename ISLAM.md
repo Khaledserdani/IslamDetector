@@ -648,3 +648,19 @@ Figure 73 في ورقة ADS8861 يثبت استخدام THS4521 مع ADS8861 ف�
 Commit اختبار PWM marker: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. أطلق تحديث الاختبار CI جديداً؛ لا تسجل نجاحه قبل التحقق من run الناتج.
 
 الحالة باقية: `ENABLE_ADS8861_CAPTURE=0`، ولا توجد قياسات فعلية لـjitter أو settling أو Hardware Loopback. PR #7 ما زال Draft وغير مدمج.
+
+
+## 19) تدقيق دقة سائق مرجع ADC — 2026-11-11
+
+أضيف في `docs/engineering/REV_A_ANALOG_FRONT_END_AR.md` تنبيه حسابي لسائق المرجع المركب OPA333+THS4281: settling المنشور لـTHS4281 إلى0.01% خلال150ns لخطوة2V يعادل200µV؛ نصف LSB النظري لـADS8861 بدقة16-bit وVREF=4.096V يساوي31.25µV. لذلك مواصفة THS4281 المنشورة لا تثبت وحدها استقرار المرجع إلى نصف LSB. يجب تحليل الحلقة المركبة وقياس droop/settling على شبكة REF الفعلية، ولا تعتمد قيم0.2Ω و10µF كـBOM قبل ذلك.
+
+المراجع الرسمية:
+- https://www.ti.com/product/THS4281
+- https://www.ti.com/product/ADS8861
+
+## 20) حالة CI بعد إضافة اختبار PWM marker
+
+- run #211 (ID `43076181689`) مكتمل وناجح في الوظائف الثلاث على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1`.
+- أضيف اختبار حسابي لعلاقة GP5 marker بهبوط GP4 في `tools/test_rev_a_timing.py`، commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`.
+- run #212 (ID `43076666839`) على commit الاختبار: protocol-tests وandroid-app نجحا؛ rp2040-firmware كان لا يزال في مرحلة تثبيت ARM toolchain عند آخر تحقق. لا تسجل run #212 نجاحاً كاملاً حتى ينتهي.
+- PR #7 ما زال Draft وغير مدمج؛ آخر رأس موثق عند كتابة هذا السطر كان `b5672d5d0fca6efbf5a8bfc6879f713c97d8ddb9`.
