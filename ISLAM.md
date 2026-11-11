@@ -368,12 +368,17 @@
 
 ### 15.3 مقارنة ADC والتوفر المحلي
 
-أضيفت مقارنة AD7980 مع ADS7054:
-- AD7980: 16-bit / 1MSPS، SNR منشور 91.5 dB عند 10 kHz، حزمة MSOP-10 متاحة، لكن يحتاج مرجعاً خارجياً ودخلاً pseudo-differential ضمن 0..VREF.
-- ADS7054: 14-bit / 1MSPS، دخل تفاضلي، صغير جداً X2QFN-8، لكن يتطلب تكييف common-mode دقيقاً وPCBA دقيقة.
-- لا اختيار نهائي حتى اختبار الضوضاء والاستقرار مع مضخم RX.
+**قرار Rev A المبدئي: ADS7054 هو أول ADC نجربه.**
+- ADS7054: 14-bit / 1MSPS، دخل تفاضلي، SNR نحو 79.6 dB، واستهلاك نموذجي 1.5 mW عند 1MSPS؛ حزمة X2QFN-8 صغيرة وتتطلب PCBA دقيقة.
+- AD7980: 16-bit / 1MSPS، SNR منشور 91.5 dB، حزمة MSOP-10 متاحة، لكنه يحتاج مرجعاً خارجياً ودخلاً pseudo-differential. ظهر بسعر مرجعي 32.88 USD للقطعة الواحدة على DigiKey.
+- ADS7054 ظهر بسعر مرجعي 5.21 USD للقطعة الواحدة على DigiKey. الأسعار بالدولار ليست أسعاراً جزائرية ولا تشمل الشحن/الضرائب.
+- نبدأ بـADS7054 لتوازن الأداء والتكلفة، ونحتفظ بـAD7980 فقط إذا أثبت قياس الضوضاء أن 14-bit غير كافٍ.
 
-**توفير محلي:** ظهر RP2040-Zero لدى MHTronic بسعر 1,700 دج (170 ألف سنتيم) وموسوم متوفراً وقت البحث؛ وظهر لدى Powertech بسعر 2,500–2,800 دج. لا يوجد عرض جزائري موثق لـADS7054 أو AD7980 في البحث الحالي. لذلك لا تشترى مرحلة ADC أو قدرة قبل مقارنة التوفر والتصميم.
+**توفير محلي:** RP2040-Zero ظهر لدى MHTronic بسعر 1,700 دج (170 ألف سنتيم) وموسوم In stock وقت البحث؛ وظهر خيار RP2040-Zero لدى Powertech ضمن نطاق 2,500–2,800 دج (250–280 ألف سنتيم). لم يظهر عرض جزائري موثق لـADS7054 أو AD7980. الروابط:
+- https://mhtronic.com/produit/module-developpement-miniature-rp2040-zero/
+- https://powertech-dz.org/product/eames-plastic-side-chair/
+- https://www.digikey.com/en/products/detail/texas-instruments/ADS7054IRUGR/8322721
+- https://www.digikey.com/en/products/detail/analog-devices-inc/AD7980BRMZRL7/1679878
 
 
 ### 15.4 بوابة قياس DD32 والسلامة المخبرية
