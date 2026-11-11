@@ -14,7 +14,7 @@
 #define SAMPLE_MARKER_PIN 5u
 #define PIO_ECHO_PIN      6u
 
-#define PWM_WRAP_VALUE    65535u
+#define PWM_WRAP_VALUE    62499u
 #define START_PULSE_US    20u
 #define START_RATE_HZ     100u
 
@@ -25,6 +25,7 @@ static const uint16_t sample_delays_us[8] = {
 static uint slice_num;
 static float pwm_divider;
 static uint16_t pulse_ticks;
+static uint16_t sample_compare_ticks[8];
 static volatile uint8_t profile_index = 0u;
 static volatile bool running = false;
 
@@ -42,13 +43,10 @@ static void pwm_wrap_isr(void) {
     }
 
     profile_index = (uint8_t)((profile_index + 1u) & 0x07u);
-    const uint32_t sample_compare =
-        us_to_pwm_ticks(START_PULSE_US + sample_delays_us[profile_index]);
-
-    if (sample_compare < PWM_WRAP_VALUE) {
-        // RP2040 PWM compare values are double-buffered and take effect at wrap.
-        pwm_set_chan_level(slice_num, PWM_CHAN_B, (uint16_t)sample_compare);
-    }
+    // Precomputed before PWM starts: keep floating-point work out of the ISR.
+    // The double-buffered compare value takes effect at the next wrap.
+    pwm_set_chan_level(slice_num, PWM_CHAN_B,
+                       sample_compare_ticks[profile_index]);
 }
 
 static void timing_outputs_stop(void) {
@@ -77,13 +75,26 @@ static void timing_outputs_start(void) {
     gpio_set_function(SAMPLE_MARKER_PIN, GPIO_FUNC_PWM);
 
     slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
-    const float ideal_divider = (float)clock_get_hz(clk_sys) /
-                                ((float)START_RATE_HZ * (float)(PWM_WRAP_VALUE + 1u));
-    // RP2040 PWM divider has 4 fractional bits; use the quantized value
-    // for both configuration and delay-to-tick conversion.
-    pwm_divider = (float)((uint32_t)(ideal_divider * 16.0f + 0.5f)) / 16.0f;
+    // At the standard 125 MHz RP2040 system clock:
+    // 125 MHz / 20 / 62500 = exactly 100 Hz.
+    // One PWM tick is 160 ns; all eight delays are precomputed.
+    if (clock_get_hz(clk_sys) != 125000000u) {
+        printf("ERROR: timing test expects 125 MHz system clock; got %u Hz.\n",
+               clock_get_hz(clk_sys));
+        return;
+    }
+    pwm_divider = 20.0f;
 
     pulse_ticks = us_to_pwm_ticks(START_PULSE_US);
+    for (uint8_t i = 0u; i < 8u; ++i) {
+        const uint32_t compare =
+            us_to_pwm_ticks(START_PULSE_US + sample_delays_us[i]);
+        if (compare >= PWM_WRAP_VALUE) {
+            printf("ERROR: sample compare exceeds PWM period.\n");
+            return;
+        }
+        sample_compare_ticks[i] = (uint16_t)compare;
+    }
     profile_index = 0u;
 
     pwm_config config = pwm_get_default_config();
@@ -92,11 +103,8 @@ static void timing_outputs_start(void) {
 
     pwm_init(slice_num, &config, false);
 
-    const uint32_t first_sample_compare =
-        us_to_pwm_ticks(START_PULSE_US + sample_delays_us[0]);
-
     pwm_set_chan_level(slice_num, PWM_CHAN_A, pulse_ticks);
-    pwm_set_chan_level(slice_num, PWM_CHAN_B, (uint16_t)first_sample_compare);
+    pwm_set_chan_level(slice_num, PWM_CHAN_B, sample_compare_ticks[0]);
 
     pwm_clear_irq(slice_num);
     pwm_set_irq_enabled(slice_num, true);
@@ -104,7 +112,7 @@ static void timing_outputs_start(void) {
     pwm_set_enabled(slice_num, true);
 
     printf("RUN: logic-only timing test started. rate=%u Hz, TX pulse=%u us, "
-           "delay profile=8/12/16/24/36/52/72/100 us.\n",
+           "PWM tick=160 ns, delay profile=8/12/16/24/36/52/72/100 us.\n",
            START_RATE_HZ, START_PULSE_US);
     printf("Pins: GP4=TX_TEST (logic only), GP5=SAMPLE_MARKER, GP6=PIO_ECHO.\n");
     printf("Do NOT connect GP4 to a gate driver or coil.\n");
