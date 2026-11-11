@@ -24,7 +24,7 @@
 | 10 | DVDD | +3V3_DIG، مكثف 1µF ملاصق |
 
 - مجال VREF التشغيلي: 2.5–5.0V؛ المرشح ADR4540B=4.096V.
-- المدخل true-differential: AINP−AINN. يسمح common-mode من0 إلىVREF، ويبلغ full-scale ±VREF عند VCM=VREF/2.
+- المدخل true-differential: AINP−AINN. يسمح common-mode من0 إلىVREF، ويبلغ full-scale ±VREF عند VCM=VREF/2. عند VREF=4.096V يصبح full-scale التفاضلي8.192Vpp وLSB النظري125µV؛ لا يساوي ذلك الدقة الفعلية بعد ضوضاء السلسلة.
 - خرج البيانات two's-complement؛ لا تحول الأكواد إلى جهد داخل Firmware دون تطبيق معايرة ADC الفعلية.
 - خرج raw يظل 16-bit little-endian في بروتوكول القياس؛ يجب إرسال ADC_MODEL_ID وSAMPLE_FORMAT_ID في GET_INFO.
 
