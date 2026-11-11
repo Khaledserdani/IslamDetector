@@ -149,6 +149,77 @@ def decode_measurement(frame: bytes) -> dict[str, Any]:
     }
 
 
+class MeasurementStreamDecoder:
+    """Incremental UART stream parser with sync recovery and CRC validation."""
+
+    MIN_BODY_LENGTH = _HEADER_SIZE + 2
+    MAX_BODY_LENGTH = _HEADER_SIZE + 2 * MAX_SAMPLES
+
+    def __init__(self) -> None:
+        self._buffer = bytearray()
+        self.discarded_bytes = 0
+        self.rejected_frames = 0
+
+    def feed(self, data: bytes | bytearray | memoryview) -> list[dict[str, Any]]:
+        self._buffer.extend(data)
+        decoded: list[dict[str, Any]] = []
+
+        while True:
+            sync_at = self._buffer.find(SYNC)
+            if sync_at < 0:
+                # Preserve a possible first sync byte split across UART reads.
+                keep = 1 if self._buffer.endswith(SYNC[:1]) else 0
+                drop = len(self._buffer) - keep
+                if drop:
+                    del self._buffer[:drop]
+                    self.discarded_bytes += drop
+                break
+
+            if sync_at:
+                del self._buffer[:sync_at]
+                self.discarded_bytes += sync_at
+
+            # SYNC + VERSION + TYPE + LENGTH
+            if len(self._buffer) < 6:
+                break
+
+            if self._buffer[2] != VERSION or self._buffer[3] != TYPE_MEASUREMENT:
+                del self._buffer[0]
+                self.discarded_bytes += 1
+                self.rejected_frames += 1
+                continue
+
+            body_length = int.from_bytes(self._buffer[4:6], "little")
+            if not self.MIN_BODY_LENGTH <= body_length <= self.MAX_BODY_LENGTH:
+                del self._buffer[0]
+                self.discarded_bytes += 1
+                self.rejected_frames += 1
+                continue
+
+            frame_length = 2 + body_length + 2
+            if len(self._buffer) < frame_length:
+                break
+
+            candidate = bytes(self._buffer[:frame_length])
+            try:
+                item = decode_measurement(candidate)
+            except ProtocolError:
+                # Advance one byte, not a whole claimed frame: a valid SYNC
+                # may occur later in the buffered stream after corruption.
+                del self._buffer[0]
+                self.discarded_bytes += 1
+                self.rejected_frames += 1
+                continue
+
+            decoded.append(item)
+            del self._buffer[:frame_length]
+
+    def reset(self) -> None:
+        self._buffer.clear()
+        self.discarded_bytes = 0
+        self.rejected_frames = 0
+
+
 def _bounded(value: int, minimum: int, maximum: int, field: str) -> int:
     if not isinstance(value, int) or not minimum <= value <= maximum:
         raise ProtocolError(f"{field} must be an integer in {minimum}..{maximum}")
