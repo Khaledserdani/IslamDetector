@@ -36,7 +36,6 @@ static volatile bool running = false;
 static uint ads8861_sm;
 static bool ads8861_ready = false;
 static uint16_t ads8861_sweep[ADS8861_SWEEP_SAMPLES];
-static uint8_t ads8861_sample_count = 0u;
 #endif
 
 static uint16_t us_to_pwm_ticks(uint32_t microseconds) {
@@ -66,7 +65,6 @@ static void timing_outputs_stop(void) {
         // Stop PIO before forcing GP4 low, so STOP cannot look like a TX edge.
         ads8861_capture_stop(pio0, ads8861_sm);
     }
-    ads8861_sample_count = 0u;
 #endif
 
     pwm_set_irq_enabled(slice_num, false);
@@ -213,19 +211,13 @@ int main(void) {
             print_help();
         }
 #if ENABLE_ADS8861_CAPTURE
-        uint16_t raw_sample;
-        while (ads8861_ready &&
-               ads8861_sample_count < ADS8861_SWEEP_SAMPLES &&
-               ads8861_capture_try_read(pio0, ads8861_sm, &raw_sample)) {
-            ads8861_sweep[ads8861_sample_count++] = raw_sample;
-        }
-        if (ads8861_sample_count == ADS8861_SWEEP_SAMPLES) {
+        if (ads8861_ready &&
+            ads8861_capture_try_read_sweep(pio0, ads8861_sm, ads8861_sweep)) {
             printf("ADS8861_SWEEP_RAW16=");
             for (uint8_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
                 printf("%s%04X", (i == 0u) ? "" : ",", ads8861_sweep[i]);
             }
             printf("\n");
-            ads8861_sample_count = 0u;
         }
 #endif
         tight_loop_contents();
