@@ -1,4 +1,4 @@
-name: Validate Islam Detector Android app
+name: Validate Islam Detector app and Rev A firmware
 on:
   pull_request:
     branches: [ main ]
@@ -18,6 +18,22 @@ jobs:
           gradle-version: '8.9'
       - name: Test Rev A telemetry protocol
         run: python3 -m unittest discover -s tools -p 'test_*.py' -v
+      - name: Checkout Raspberry Pi Pico SDK
+        uses: actions/checkout@v4
+        with:
+          repository: raspberrypi/pico-sdk
+          path: pico-sdk
+          submodules: recursive
+      - name: Build RP2040 logic timing firmware
+        run: |
+          cmake -S firmware/rp2040_timing_test -B build/rp2040 \
+            -DPICO_SDK_PATH="$GITHUB_WORKSPACE/pico-sdk" \
+            -DPICO_BOARD=pico
+          cmake --build build/rp2040 --parallel 2
+      - name: Verify RP2040 UF2
+        run: |
+          test -f build/rp2040/islam_rev_a_timing_test.uf2
+          test "$(stat -c%s build/rp2040/islam_rev_a_timing_test.uf2)" -gt 1000
       - name: Build original Android app
         run: gradle --no-daemon clean :app:assembleDebug
       - name: Verify APK
@@ -29,6 +45,12 @@ jobs:
           test "$(stat -c%s "$APK")" -gt 20000
           unzip -t "$APK"
           sha256sum "$APK"
+      - name: Upload RP2040 timing firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslamDetector-RevA-RP2040-Timing-Test-UF2
+          path: build/rp2040/islam_rev_a_timing_test.uf2
+          retention-days: 30
       - name: Upload original app
         uses: actions/upload-artifact@v4
         with:
