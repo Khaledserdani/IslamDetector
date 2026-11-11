@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
         page.addView(section("إعداد تجربة الإشارة"));
         amplitudeInput = field("سعة البداية (mV)", "1000");
         tauInput = field("زمن الاضمحلال τ (µs)", "24");
-        noiseInput = field("ضوضاء الاختبار (mV RMS)", "2");
+        noiseInput = field("سعة ضوضاء الاختبار الاسمية (mV)", "2");
         page.addView(amplitudeInput);
         page.addView(tauInput);
         page.addView(noiseInput);
@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
             }
             resultText.setText(b.toString());
             waveView.invalidate();
-            statusText.setText(String.format(Locale.US, "تم توليد %d عينات • τ = %.2f µs • ضوضاء اسمية %.2f mV RMS", windowsUs.length, tau, noise));
+            statusText.setText(String.format(Locale.US, "تم توليد %d عينات • τ = %.2f µs • ضوضاء اسمية %.2f mV", windowsUs.length, tau, noise));
         } catch (Exception ex) {
             Toast.makeText(this, "أدخل قيماً رقمية موجبة وصحيحة", Toast.LENGTH_LONG).show();
         }
