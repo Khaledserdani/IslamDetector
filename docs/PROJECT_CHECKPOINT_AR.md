@@ -15,8 +15,7 @@
 
 - PR #7 مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
-- آخر رأس موثق: `be3d6aa27b36a0baa24ac5b32b440eeafdc41014` (تحديث مذكرة واجهة المرجع بعد اختبار PWM marker).
-- آخر تشغيل مكتمل ومؤكد: GitHub Actions run #211 على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1` — completed / success.
+- رأس الفرع الحالي: راجع PR #7 مباشرة للحصول على SHA الحالي؛ يتغير مع كل commit توثيق أو اختبار.ns run #211 على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1` — completed / success.
 - نجحت وظائف Android APK build وverify/upload، وRP2040 firmware build وUF2 verification/upload، وprotocol-tests.
 - Artifacts الخاصة بتشغيل #211 لم تُسترجع أسماؤها وأحجامها في هذا التحديث؛ لا تعتمد أحجام تشغيل #208 القديمة على أنها تخص #211.
 - تحديثات التوثيق اللاحقة لم تطلق CI جديداً لأن مسارات Workflow الحالية لا تشمل ملفات docs وISLAM.md.
