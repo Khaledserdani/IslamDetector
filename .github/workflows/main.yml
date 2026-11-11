@@ -1,5 +1,8 @@
 name: Validate Islam Detector and ISLAM LAB Android apps
 on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
     paths:
