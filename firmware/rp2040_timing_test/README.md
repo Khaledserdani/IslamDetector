@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the first executable timing prototype for the Rev A acquisition controller. It validates phase-locked TX and sample-marker edges and verifies that a PIO state machine can respond to the sample marker. It is **not** a metal detector firmware and does not read an ADC.
+This is an executable timing prototype for the Rev A acquisition controller. The default build validates phase-locked TX and sample-marker edges. An optional, disabled-by-default PIO capture engine is designed to read eight ADS8861 decay windows from one TX pulse. This is **not** metal-detector firmware and has not been verified on physical ADC hardware.
 
 ## Pin map for the Waveshare RP2040-Zero
 
@@ -10,10 +10,10 @@ This is the first executable timing prototype for the Rev A acquisition controll
 |---|---|---|
 | GP4 | TX_TEST | 20 µs logic pulse at 100 Hz; logic-only output |
 | GP5 | SAMPLE_MARKER | Edge occurs at TX pulse width + one delay from the 8-point profile |
-| GP6 | PIO_ECHO | 128 ns PIO response pulse after SAMPLE_MARKER falling edge |
+| GP6 | PIO_ECHO | 128 ns PIO response pulse after GP5 test-marker falling edge |
 | USB-C | USB CDC console | Send R, S, I, or ? |
 
-GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both use the same counter. GP5's compare value changes at PWM wrap to step through the eight delay points. The PIO program watches GP5 and emits the response pulse on GP6.
+GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both use the same counter. GP5's compare value changes at PWM wrap to step through the eight delay points. The test PIO program watches GP5 and emits the response pulse on GP6. The separate ADS8861 capture PIO watches GP4 TX falling edge and captures the eight windows within that same pulse.
 
 ## Safe use
 
@@ -22,7 +22,7 @@ GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both
 - Send S to stop; GP4 is forced low.
 - Send I to read status.
 - **Do not connect GP4 to a MOSFET gate driver, MOSFET, coil, or 12 V circuit.** It is only a 3.3 V logic test output.
-- GP6 is only a marker echo, not an ADC conversion trigger for a selected ADC yet.
+- GP6 is only a marker echo. The optional ADC capture path uses GP4 falling edge and remains disabled by default.
 
 ## Build
 
@@ -41,10 +41,13 @@ Measured timing and jitter must be recorded from the actual RP2040-Zero board. N
 
 ## ADS8861 PIO capture driver (compiled, disabled by default)
 
-A separate PIO program and C helper compile with the timing test:
-- GP5 falling edge triggers one conversion at the selected decay delay.
-- GP8=CONVST, GP9=SCLK, GP10=DOUT; ADS8861 DIN must be strapped HIGH for 3-wire CS mode.
-- CONVST is held HIGH for96 PIO cycles at125MHz (768ns), exceeding the710ns maximum conversion time. After CONVST falls, the PIO waits16ns before the first SCLK edge so the ADS8861 MSB has time to become valid (t_d-CNV-DO=12.3ns max).
-- DOUT is read MSB-first with a5MHz SCLK (12 cycles HIGH +13 cycles LOW); 16 bits are pushed into the RX FIFO as a raw right-justified word.
-- Output remains disabled by `ENABLE_ADS8861_CAPTURE=0` until the real ADC, analog protection, supplies and wiring are installed and reviewed. Do not enable it against floating pins or without the physical ADC.
-- This is a firmware compile milestone only; it is not a hardware-loopback or ADC accuracy test.
+One falling edge on GP4 starts a complete eight-window decay capture within the same TX pulse:
+- GP4=TX_TEST; GP8=CONVST; GP9=SCLK; GP10=DOUT. ADS8861 DIN must be strapped HIGH for 3-wire CS mode.
+- Delay points from TX falling are nominally 8/12/16/24/36/52/72/100 µs. The first delay count assumes the RP2040's two-cycle GPIO input synchronizer; the actual offset must be measured and trimmed on hardware.
+- Four preloaded TX FIFO words contain the eight 12-bit delay counts. PIO autopull threshold is 24 bits; RX FIFO is joined to eight words so one full sweep can be buffered.
+- CONVST HIGH is 96 PIO cycles at125MHz =768ns, exceeding tconv-max=710ns. The PIO waits24ns after CONVST falls before the first SCLK sample, exceeding t_d-CNV-DO=12.3ns max.
+- SCLK is 6 cycles HIGH +7 cycles LOW =104ns period, about9.615MHz. Sixteen bits take208 cycles=1.664µs. The minimum 4µs spacing between sample points leaves time for conversion and readout; tACQ=290ns is also exceeded. These are instruction-budget calculations, not measured timings.
+- The eight raw16 samples are drained by the main loop and printed as one ADS8861_SWEEP_RAW16 line per TX pulse.
+- ENABLE_ADS8861_CAPTURE=0 until the physical ADC, analog protection, supplies and wiring are installed and reviewed. Do not enable against floating pins or without the physical ADC.
+- PIO capture is stopped before GP4 is forced low, preventing a STOP command from being mistaken for a new TX falling edge.
+- This is a firmware compile milestone only; no hardware loopback, analog accuracy, timing jitter or ADC performance has yet been measured.
