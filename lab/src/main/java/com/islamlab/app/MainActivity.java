@@ -113,6 +113,16 @@ public class MainActivity extends Activity {
         page.addView(history);
         page.addView(section("مركز التحديثات والملفات"));
         page.addView(label("يفحص قناة التحديثات، ويتحقق من بصمة APK قبل فتح مثبت أندرويد.", 13, 0xffd5e2ef, false));
+        Button cleanUpdates = button("حذف ملفات التحديثات المنزّلة");
+        cleanUpdates.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setTitle("تنظيف ملفات التحديث")
+                .setMessage("سيتم حذف ملفات APK المؤقتة التي نزّلها مركز التحديثات فقط. لن تُحذف التجارب أو ملفاتك الشخصية.")
+                .setPositiveButton("حذف", (dialog, which) -> {
+                    int count = UpdateCenter.clearDownloadedUpdates(this);
+                    Toast.makeText(this, "تم حذف " + count + " ملف تحديث", Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("إلغاء", null).show());
+        page.addView(cleanUpdates);
         Button updates = button("فحص التحديثات وتنزيلها وتثبيتها");
         updates.setOnClickListener(v -> checkForUpdates());
         page.addView(updates);
