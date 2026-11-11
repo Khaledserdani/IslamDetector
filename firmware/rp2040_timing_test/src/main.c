@@ -42,8 +42,8 @@ static void pwm_wrap_isr(void) {
     }
 
     profile_index = (uint8_t)((profile_index + 1u) & 0x07u);
-    const uint16_t delay_ticks = us_to_pwm_ticks(sample_delays_us[profile_index]);
-    const uint32_t sample_compare = (uint32_t)pulse_ticks + (uint32_t)delay_ticks;
+    const uint32_t sample_compare =
+        us_to_pwm_ticks(START_PULSE_US + sample_delays_us[profile_index]);
 
     if (sample_compare < PWM_WRAP_VALUE) {
         // RP2040 PWM compare values are double-buffered and take effect at wrap.
@@ -92,9 +92,8 @@ static void timing_outputs_start(void) {
 
     pwm_init(slice_num, &config, false);
 
-    const uint16_t first_delay_ticks = us_to_pwm_ticks(sample_delays_us[0]);
     const uint32_t first_sample_compare =
-        (uint32_t)pulse_ticks + (uint32_t)first_delay_ticks;
+        us_to_pwm_ticks(START_PULSE_US + sample_delays_us[0]);
 
     pwm_set_chan_level(slice_num, PWM_CHAN_A, pulse_ticks);
     pwm_set_chan_level(slice_num, PWM_CHAN_B, (uint16_t)first_sample_compare);
