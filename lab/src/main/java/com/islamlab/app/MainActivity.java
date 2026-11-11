@@ -111,6 +111,11 @@ public class MainActivity extends Activity {
         Button history = button("سجل التجارب المحفوظة");
         history.setOnClickListener(v -> showExperimentHistory());
         page.addView(history);
+        page.addView(section("مركز التحديثات والملفات"));
+        page.addView(label("يفحص قناة التحديثات، ويتحقق من بصمة APK قبل فتح مثبت أندرويد.", 13, 0xffd5e2ef, false));
+        Button updates = button("فحص التحديثات وتنزيلها وتثبيتها");
+        updates.setOnClickListener(v -> checkForUpdates());
+        page.addView(updates);
         Button diagnostics = button("إنشاء تقرير تشخيصي آمن ومشاركته");
         diagnostics.setOnClickListener(v -> shareDiagnostics());
         page.addView(diagnostics);
@@ -235,7 +240,7 @@ public class MainActivity extends Activity {
         }).setNegativeButton("إغلاق", null).show();
     }
 
-    private void shareDiagnostics() {
+    private void checkForUpdates() {\n        statusText.setText("جارٍ الاتصال بقناة التحديثات…");\n        UpdateCenter.check(this, new UpdateCenter.Listener() {\n            @Override public void onMessage(String message) {\n                statusText.setText(message);\n                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();\n            }\n            @Override public void onReady(java.io.File apk) {\n                statusText.setText("تم تنزيل التحديث والتحقق من SHA-256. بانتظار موافقتك في مثبت أندرويد.");\n                new android.app.AlertDialog.Builder(MainActivity.this)\n                        .setTitle("تحديث جاهز للتثبيت")\n                        .setMessage("تم التحقق من سلامة الملف. هل تريد فتح مثبت أندرويد الآن؟")\n                        .setPositiveButton("تثبيت", (dialog, which) -> UpdateCenter.install(MainActivity.this, apk))\n                        .setNegativeButton("لاحقاً", null).show();\n            }\n        });\n    }\n\n    private void shareDiagnostics() {
         int saved = 0;
         for (String key : experimentPrefs.getAll().keySet()) if (key.startsWith("experiment_")) saved++;
         String version = "غير معروف";
