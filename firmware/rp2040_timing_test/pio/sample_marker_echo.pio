@@ -5,6 +5,6 @@
 .wrap_target
     wait 1 gpio 5
     wait 0 gpio 5
-    set pins, 1 [2]
+    set pins, 1 [15]
     set pins, 0
 .wrap
