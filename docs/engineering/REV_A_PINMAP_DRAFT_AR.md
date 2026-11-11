@@ -105,6 +105,15 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 | VREF_4V096 | مرجع ADC وVOCM source | من ADR4540B؛ لا يمر قرب Drain/TX |
 | AGND/DGND | مرجع الإشارة والرقمي | نقطة أرضي مشتركة/مستمرة، مع مسارات رجوع TX منفصلة؛ لا تقطع plane تحت ADC |
 
+### تنبيه عند استبدال ADC بـADS7054
+
+لا تستبدل ADS8861 بـADS7054 على نفس التوصيلات أو Firmware:
+- ADS7054 لا يستخدم REF منفصلاً؛ AVDD=3.3V هو المرجع، فلا يربط ADR4540B=4.096V إليه.
+- يحتاج CS falling لبدء العينة، و18 SCLK falling edges في كل frame، و24 clock offset calibration عند بدء التشغيل.
+- واجهته ليست CONVST/SCLK/DOUT الخاصة بـADS8861، لذلك يحتاج PIO driver مستقل.
+- يحتاج VCM≈AVDD/2±0.1V، ومدخل تفاضلي ضمن مجال ±AVDD.
+المصدر: https://www.ti.com/lit/ds/symlink/ads7054.pdf
+
 ## 8. ما لا يزال مفتوحاً قبل KiCad النهائي
 
 1. قياس DCR وL وطور RX/TX الفعلي، وتوثيق اتجاه اللفات والقطبية.
