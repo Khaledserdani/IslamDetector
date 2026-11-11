@@ -571,3 +571,8 @@ Figure 73 في ورقة ADS8861 يثبت استخدام THS4521 مع ADS8861 ف�
 - ملف UF2 ناتج Firmware توقيت/التقاط اختباري، وليس Firmware قيادة ملف بحث أو جهازاً نهائياً. ENABLE_ADS8861_CAPTURE=0 في النسخة الحالية.
 - لا يوجد اختبار فعلي على لوحة RP2040-Zero أو ADS8861، ولا قياس راسم/محلل منطقي أو اختبار coil/analog front-end. نجاح CI يثبت البناء والتحقق البنيوي فقط.
 - رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43066431469
+
+
+### 15.21 مذكرة واجهة RX التناظرية التفاضلية
+
+أضيفت `docs/engineering/REV_A_ANALOG_FRONT_END_AR.md`. المسار الأول للدراسة هو THS4521 في وضع differential-input/differential-output كما يشرحه قسم8.4.2 من ورقة TI، وهو أنسب لملف DD من مخطط Figure73 ذي المصدر single-ended. في التوصيل المتوازن Zin≈2RG والكسب≈RF/RG؛ لم تثبت قيم RF/RG. OPA2836 dual buffer احتياطي فقط إذا أثبت قياس التحميل الحاجة إليه. الحماية وR/C وgain ما زالت غير معتمدة إلى حين قياس ملف RX والـtransient وclip-release والضوضاء والاستقرار.
