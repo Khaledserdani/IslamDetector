@@ -229,25 +229,61 @@ public class MainActivity extends Activity {
     private void showExperimentHistory() {
         java.util.Map<String, ?> all = experimentPrefs.getAll();
         java.util.ArrayList<String> keys = new java.util.ArrayList<>();
-        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
         for (String key : all.keySet()) {
-            if (key.startsWith("experiment_")) {
-                keys.add(key);
-                labels.add("تجربة " + key.substring("experiment_".length()));
-            }
+            if (key.startsWith("experiment_")) keys.add(key);
         }
         java.util.Collections.sort(keys, java.util.Collections.reverseOrder());
-        labels.clear();
-        for (String key : keys) labels.add("تجربة " + key.substring("experiment_".length()));
         if (keys.isEmpty()) {
-            new android.app.AlertDialog.Builder(this).setTitle("سجل التجارب").setMessage("لا توجد تجارب محفوظة بعد.").setPositiveButton("حسناً", null).show();
+            new android.app.AlertDialog.Builder(this).setTitle("سجل التجارب")
+                    .setMessage("لا توجد تجارب محفوظة بعد.")
+                    .setPositiveButton("حسناً", null).show();
             return;
         }
-        new android.app.AlertDialog.Builder(this).setTitle("التجارب المحفوظة").setItems(labels.toArray(new String[0]), (dialog, which) -> {
-            report = experimentPrefs.getString(keys.get(which), "");
-            resultText.setText(report);
-            statusText.setText("وضع العمل: عرض تجربة محفوظة");
-        }).setNegativeButton("إغلاق", null).show();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        for (String key : keys) {
+            String fallback = "تجربة " + key.substring("experiment_".length());
+            labels.add(experimentPrefs.getString("name_" + key, fallback));
+        }
+        new android.app.AlertDialog.Builder(this).setTitle("التجارب المحفوظة")
+                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
+                    String key = keys.get(which);
+                    String fallback = "تجربة " + key.substring("experiment_".length());
+                    String name = experimentPrefs.getString("name_" + key, fallback);
+                    new android.app.AlertDialog.Builder(this).setTitle(name)
+                            .setItems(new String[]{"فتح التجربة", "إعادة تسمية", "تصدير CSV", "حذف التجربة"},
+                                    (actionDialog, action) -> {
+                                        if (action == 0) {
+                                            report = experimentPrefs.getString(key, "");
+                                            resultText.setText(report);
+                                            statusText.setText("وضع العمل: عرض تجربة محفوظة");
+                                        } else if (action == 1) {
+                                            EditText nameInput = field("اسم التجربة", name);
+                                            new android.app.AlertDialog.Builder(this).setTitle("إعادة تسمية التجربة")
+                                                    .setView(nameInput)
+                                                    .setPositiveButton("حفظ", (d, w) -> {
+                                                        String updated = nameInput.getText().toString().trim();
+                                                        if (updated.isEmpty()) {
+                                                            Toast.makeText(this, "اكتب اسماً للتجربة", Toast.LENGTH_SHORT).show();
+                                                        } else {
+                                                            experimentPrefs.edit().putString("name_" + key, updated).apply();
+                                                            Toast.makeText(this, "تم تحديث اسم التجربة", Toast.LENGTH_SHORT).show();
+                                                            showExperimentHistory();
+                                                        }
+                                                    }).setNegativeButton("إلغاء", null).show();
+                                        } else if (action == 2) {
+                                            String saved = experimentPrefs.getString(key, "");
+                                            if (!saved.isEmpty()) shareText(saved, name);
+                                        } else if (action == 3) {
+                                            new android.app.AlertDialog.Builder(this).setTitle("حذف التجربة")
+                                                    .setMessage("سيتم حذف هذه التجربة المحفوظة فقط. لا يمكن التراجع عن الحذف.")
+                                                    .setPositiveButton("حذف", (d, w) -> {
+                                                        experimentPrefs.edit().remove(key).remove("name_" + key).apply();
+                                                        Toast.makeText(this, "تم حذف التجربة", Toast.LENGTH_SHORT).show();
+                                                        showExperimentHistory();
+                                                    }).setNegativeButton("إلغاء", null).show();
+                                        }
+                                    }).setNegativeButton("إغلاق", null).show();
+                }).setNegativeButton("إغلاق", null).show();
     }
 
     private void checkForUpdates() {
