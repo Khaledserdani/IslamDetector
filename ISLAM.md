@@ -576,3 +576,8 @@ Figure 73 في ورقة ADS8861 يثبت استخدام THS4521 مع ADS8861 ف�
 ### 15.21 مذكرة واجهة RX التناظرية التفاضلية
 
 أضيفت `docs/engineering/REV_A_ANALOG_FRONT_END_AR.md`. المسار الأول للدراسة هو THS4521 في وضع differential-input/differential-output كما يشرحه قسم8.4.2 من ورقة TI، وهو أنسب لملف DD من مخطط Figure73 ذي المصدر single-ended. في التوصيل المتوازن Zin≈2RG والكسب≈RF/RG؛ لم تثبت قيم RF/RG. OPA2836 dual buffer احتياطي فقط إذا أثبت قياس التحميل الحاجة إليه. الحماية وR/C وgain ما زالت غير معتمدة إلى حين قياس ملف RX والـtransient وclip-release والضوضاء والاستقرار.
+
+
+### 15.22 خطة اختبار الطاولة
+
+أضيفت `docs/engineering/REV_A_BENCH_TEST_PLAN_AR.md`، وتشمل قياس DCR/L/Q، اختبار RX دون TX، اختبار ADC/VREF، تحقق GP4→CONVST والنوافذ الثماني وSCLK وDMA، ثم اختبار TX تدريجي بحمل وهمي قبل توصيل الملف. جميع هذه الاختبارات الفيزيائية ما زالت مطلوبة ولم تُنفذ بعد.
