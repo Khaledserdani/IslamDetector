@@ -369,7 +369,7 @@
 ### 15.3 مقارنة ADC والتوفر المحلي
 
 **التوجه الهندسي المفضل بعد مراجعة ملف DD:** مسار تفاضلي حقيقي:
-- ADS8861: 16-bit/1MSPS، true-differential، full-scale ±VREF عند common-mode=VREF/2، ويسمح common-mode من0 إلىVREF. SNR نموذجي96.1dB عند VREF=5V؛ عند VREF=4.096V نأخذ القيمة من منحنى TI ونثبتها بالقياس. خرج ADC two's-complement.
+- ADS8861: 16-bit/1MSPS، true-differential، full-scale ±VREF عند common-mode=VREF/2، ويسمح common-mode من0 إلىVREF. SNR نموذجي96.5dB عند VREF=5V؛ عند VREF=4.096V نأخذ القيمة من منحنى TI ونثبتها بالقياس. خرج ADC two's-complement.
 - THS4521: FDA مرشح مباشر بين RX وADS8861؛ 145MHz، 490V/µs، 4.6nV/√Hz، دخل common-mode يشمل السكة السالبة وخرج rail-to-rail، وتحكم VOCM. TI لديها تطبيق مرجعي مباشر THS4521+ADS8861 للدخل التفاضلي.
 - ADR4540B: مرجع4.096V، دقة ابتدائية±0.02%، 2ppm/°C، دخل4.2–15V، خرج حتى10mA، ضوضاء2.7µVpp (0.1–10Hz) و83.5nV/√Hz عند1kHz. يضبط VOCM مبدئياً إلى VREF/2=2.048V. يلزم فصل ضوضاء TX و10µF أو أكبر عند REF وفق ورقة ADS8861.
 - ADS8860: fallback إذا انتهى RX إلى single-ended؛ ADS7054: خيار اقتصادي14-bit/1MSPS لكنه أقل SNR.
