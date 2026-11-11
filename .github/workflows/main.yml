@@ -13,7 +13,7 @@ on:
       - 'build.gradle'
       - 'gradle/**'
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: islam-lab-validation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -54,3 +54,11 @@ jobs:
           name: ISLAM-LAB-Android-APK
           path: lab/build/outputs/apk/debug/lab-debug.apk
           retention-days: 30
+      - name: Publish installable ISLAM LAB APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: islam-lab-v0.1.0-preview
+          name: ISLAM LAB v0.1.0 preview
+          prerelease: true
+          generate_release_notes: true
+          files: lab/build/outputs/apk/debug/lab-debug.apk
