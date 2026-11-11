@@ -35,6 +35,7 @@ target_link_libraries(islam_rev_a_timing_test
     hardware_irq
     hardware_pio
     hardware_clocks
+    hardware_dma
 )
 
 pico_enable_stdio_usb(islam_rev_a_timing_test 1)
