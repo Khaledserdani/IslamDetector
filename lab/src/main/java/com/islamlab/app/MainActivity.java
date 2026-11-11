@@ -176,7 +176,10 @@ public class MainActivity extends Activity {
             float prevX=left, prevY=bottom;
             for(int i=0;i<=160;i++) {
                 double t=windowsUs[windowsUs.length-1]*i/160.0;
-                double amp=Double.parseDouble(amplitudeInput.getText().toString().trim());\n                double tau=Double.parseDouble(tauInput.getText().toString().trim());\n                double rms=Double.parseDouble(noiseInput.getText().toString().trim());\n                double val=amp*Math.exp(-t/tau)+noiseAt(t,rms);
+                double amp=Double.parseDouble(amplitudeInput.getText().toString().trim());
+                double tau=Double.parseDouble(tauInput.getText().toString().trim());
+                double rms=Double.parseDouble(noiseInput.getText().toString().trim());
+                double val=amp*Math.exp(-t/tau)+noiseAt(t,rms);
                 float x=left+(right-left)*i/160f;
                 float y=bottom-(float)(val/max)*(bottom-top);
                 if(i>0)c.drawLine(prevX,prevY,x,y,paint);
