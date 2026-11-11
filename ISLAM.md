@@ -598,7 +598,7 @@ Figure 73 في ورقة ADS8861 يثبت استخدام THS4521 مع ADS8861 ف�
 ### الحالة الفعلية لفرع Rev A
 - Pull Request رقم 7: [استكمال مراجعة Rev A — توقيت ADS8861 وواجهة القياس](https://github.com/Khaledserdani/IslamDetector/pull/7)، مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
-- آخر commit كود خضع لـCI: `06c4a49a7be7274265523aa09b561a3436581971` (run #190 ناجح). بعده أضيفت تحديثات توثيق فقط، وآخر رأس فرع توثيق معروف بعد هذه التعديلات هو `c56514c612a84e3b94d893933c87191688bdf622`.
+- آخر commit كود خضع لـCI: `06c4a49a7be7274265523aa09b561a3436581971` (run #190 ناجح). بعده أضيفت تحديثات توثيق فقط؛ عند الاستئناف يجب قراءة رأس الفرع الحي من GitHub بدلاً من الاعتماد على SHA محفوظ في هذا السجل.
 - GitHub Actions run #190 على كود commit `06c4a49`: completed / success؛ نجحت وظائف Android APK build، وRP2040 firmware build/UF2 verification، وprotocol tests. تغييرات التوثيق اللاحقة لا تدخل في مسارات تشغيل Workflow المحددة، لذلك لم تطلق CI جديداً.
 - نجاح CI لا يثبت التوقيت على لوحة RP2040-Zero، ولا عمل ADS8861 أو THS4521 أو المرجع أو الحماية أو ملف البحث.
 - ملف PIO الاختياري لالتقاط ADS8861 معطل افتراضياً في `main.c` عبر `ENABLE_ADS8861_CAPTURE=0`.
