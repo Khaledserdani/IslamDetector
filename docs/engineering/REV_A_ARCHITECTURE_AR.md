@@ -310,6 +310,7 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - AD7703 بسعر 4,500 دج (450 ألف سنتيم): رغم تسويقه كـ20-bit، هو Sigma-Delta بحد أقصى 4 kSPS مع مرشح رقمي بطيء؛ لا يستطيع التقاط نافذة اضمحلال مبكرة عند 8–100 µs. غير مناسب كـPI RX ADC.
 - AD7705/TM7705 بسعر نحو 750 دج (75 ألف سنتيم): 16-bit Sigma-Delta، ومعدل تحديث حتى 500 SPS مع settling time للمرشح بالميلي ثانية؛ غير مناسب لمسار الاستقبال السريع.
 - ADC2311 بسعر 2,500 دج (250 ألف سنتيم): صفحة البائع تسميه Audio A/D Converter وتدعي 16-bit/5 MSPS، لكن لم نعثر على ورقة بيانات موثوقة تثبت هذا الادعاء أو أزمنة الاكتساب والتحويل. لا يُشترى قبل الحصول على رقم مصنع/ورقة بيانات أصلية والتحقق من الحزمة والوظائف.
+- AD346JD: ظهر في قائمة Power Lab كمضخم Sample-and-Hold وبكمية محدودة، وليس ADC. ورقة ADI القديمة تذكر اكتساباً 2 µs إلى 0.01%، droop نحو 0.5 mV/ms، aperture jitter 400 ps، والقطعة obsolete. كما تحتاج تغذية ثنائية؛ لذلك لا نستخدمها بديلاً عن ADC سريع، ولا نضيفها إلى Rev A إلا إذا فشل حل ADC المباشر وأثبت اختبار hold error فائدتها.
 
 روابط عروض البائع:
 - AD7703: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
@@ -320,6 +321,7 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - AD7703: https://www.analog.com/en/products/ad7703.html — 4 kSPS.
 - AD7705: https://www.analog.com/en/products/ad7705.html — Sigma-Delta ومرشح رقمي بطيء؛ تحديث حتى 500 SPS.
 - ADC2311: لم نعثر على ورقة بيانات أصلية موثوقة؛ لذلك يبقى غير معتمد.
+- AD346: https://www.analog.com/media/en/technical-documentation/obsolete-data-sheets/220277438AD346.pdf — Sample-and-Hold قديم، ليس ADC، وله droop وزمن اكتساب وتغذية يجب احتسابها.
 
 ## 14. بروتوكول قياس ملف DD32 قبل أي تشغيل قدرة
 
