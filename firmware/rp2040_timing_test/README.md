@@ -31,8 +31,8 @@ The GitHub Actions workflow builds the UF2 with the Raspberry Pi Pico SDK and pu
 ## Acceptance test on hardware
 
 Use a logic analyzer or oscilloscope to verify:
-1. GP4 pulse width is 20 µs and repetition is 100 Hz.
-2. GP5 falling edge occurs at 20 µs + the active delay.
+1. GP4 pulse width is 20 µs and repetition is 100 Hz (at the required 125 MHz system clock). PWM tick resolution is 160 ns.
+2. GP5 falling edge occurs at 20 µs + the active delay, quantized to the 160 ns PWM tick.
 3. Delay sequence cycles through 8, 12, 16, 24, 36, 52, 72, 100 µs.
 4. GP6 responds consistently to GP5 with fixed PIO latency.
 5. No pulses occur before command R; command S forces GP4 low.
