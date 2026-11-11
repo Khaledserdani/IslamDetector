@@ -537,7 +537,7 @@
 
 ### 15.17 برنامج PIO لقراءة ADS8861 — وصف تاريخي تم تحديث تفاصيله لاحقاً
 
-أضيف `firmware/rp2040_timing_test/pio/ads8861_capture.pio` وملفا `src/ads8861_capture.c/.h`. ينتظر البرنامج GP4 falling (هبوط TX_TEST)، ويطلق النوافذ الثماني داخل النبضة نفسها، ويرفع GP8/CONVST لمدة96 دورة عند125MHz=768ns، ثم يقرأ16-bit MSB-first عبر GP9/SCLK≈9.615MHz من GP10/DOUT. DIN مربوط HIGH خارجياً لاختيار3-Wire CS. السائق مدمج في البناء لكنه معطل افتراضياً حتى توصيل ADC والحماية؛ لا توجد نتيجة Hardware أو loopback. تأخير PIO input synchronizer/WAIT بين marker وCONVST يجب قياسه بمحلل منطقي ومعايرته.
+أضيف `firmware/rp2040_timing_test/pio/ads8861_capture.pio` وملفا `src/ads8861_capture.c/.h`. ينتظر البرنامج GP4 falling (هبوط TX_TEST)، ويطلق النوافذ الثماني داخل النبضة نفسها، ويرفع GP8/CONVST لمدة96 دورة عند125MHz=768ns، ثم يقرأ16-bit MSB-first عبر GP9/SCLK≈8.929MHz (50% duty) من GP10/DOUT. DIN مربوط HIGH خارجياً لاختيار3-Wire CS. السائق مدمج في البناء لكنه معطل افتراضياً حتى توصيل ADC والحماية؛ لا توجد نتيجة Hardware أو loopback. تأخير PIO input synchronizer/WAIT بين marker وCONVST يجب قياسه بمحلل منطقي ومعايرته.
 
 
 ### 15.15 تدقيق قراءة ADS8861 وتحديث PR (2026-11-11)
