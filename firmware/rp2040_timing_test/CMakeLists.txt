@@ -25,6 +25,10 @@ pico_generate_pio_header(islam_rev_a_timing_test
     ${CMAKE_CURRENT_LIST_DIR}/pio/sample_marker_echo.pio
 )
 
+pico_generate_pio_header(islam_rev_a_timing_test
+    ${CMAKE_CURRENT_LIST_DIR}/pio/ads8861_capture.pio
+)
+
 target_link_libraries(islam_rev_a_timing_test
     pico_stdlib
     hardware_pwm
