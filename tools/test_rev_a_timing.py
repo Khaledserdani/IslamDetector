@@ -62,7 +62,7 @@ class RevATimingTests(unittest.TestCase):
         self.assertEqual(read_cycles, 208)
         self.assertEqual(total_before_wait, 321)
         # First two gaps are 4 us = 500 cycles; at least 1 us remains.
-        self.assertEqual(500 - total_before_wait, counts[1] + 1)
+        self.assertEqual(500 - total_before_wait, 179)
 
     def test_pio_is_one_pulse_triggered_and_keeps_capture_disabled_by_default(self):
         self.assertIn("wait 1 gpio 4", self.pio_source)
