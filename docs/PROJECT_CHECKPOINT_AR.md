@@ -111,7 +111,8 @@
 - `docs/engineering/REV_A_DATA_PROTOCOL_AR.md`: UART والبيانات وCRC.
 - `docs/engineering/REV_A_BENCH_TEST_PLAN_AR.md`: خطة الاختبار الآمن على الطاولة.
 - `docs/engineering/REV_A_PINMAP_DRAFT_AR.md`: خريطة أرجل أولية غير نهائية.
-- `docs/engineering/COIL_TOPOLOGY_STUDY_AR.md`: مقارنة هندسات ملف البحث.
+- `docs/engineering/COIL_TOPOLOGY_STUDY_AR.md`: مقارنة هندسات ملف البحث، مخاطر إلغاء الهدف في RX التفاضلي، وتعويض Time-Domain Bucking.
+- `docs/engineering/COIL_TOPOLOGY_COMPARISON_TEMPLATE.csv`: قالب تسجيل التجارب المقارنة بين هندسات الملفات.
 - `docs/engineering/REV_A_MEASUREMENT_LOG_TEMPLATE.csv`: قالب تسجيل القياسات.
 - `firmware/rp2040_timing_test/`: برنامج اختبار التوقيت وPIO.
 
