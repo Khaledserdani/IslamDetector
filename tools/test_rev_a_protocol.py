@@ -150,6 +150,19 @@ class ProtocolTests(unittest.TestCase):
         decoded = parser.feed(info + measurement)
         self.assertEqual([item["type"] for item in decoded], [TYPE_DEVICE_INFO, 0x10])
 
+    def test_device_info_rejects_inconsistent_adc_metadata(self):
+        with self.assertRaises(ProtocolError):
+            encode_device_info(
+                hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+                adc_model_id=ADC_MODEL_ADS8861,
+                sample_format_id=SAMPLE_FORMAT_UNSIGNED,
+                adc_resolution_bits=16,
+                adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+                adc_vref_uv=4096000,
+                active_profile_id=2,
+                profile_crc32=0x1234ABCD,
+            )
+
     def test_device_info_rejects_bad_crc(self):
         frame = bytearray(encode_device_info(
             hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
