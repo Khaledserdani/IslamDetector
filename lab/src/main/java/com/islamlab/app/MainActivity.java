@@ -108,14 +108,16 @@ public class MainActivity extends Activity {
             double tau = Double.parseDouble(tauInput.getText().toString().trim());
             double noise = Double.parseDouble(noiseInput.getText().toString().trim());
             if (a <= 0 || tau <= 0 || noise < 0 || a > 1_000_000 || tau > 1_000_000 || noise > 1_000_000) throw new IllegalArgumentException();
-            StringBuilder b = new StringBuilder("النافذة µs     الإشارة mV\n");
-            b.append("--------------------------\n");
-            report = "ISLAM LAB - Synthetic waveform test\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_RMS_mV," + noise + "\nwindow_us,signal_mV\n";
+            StringBuilder b = new StringBuilder("النافذة µs   الإشارة   الضوضاء   الإجمالي mV\n");
+            b.append("------------------------------------------\n");
+            report = "ISLAM LAB - Synthetic waveform test\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_RMS_mV," + noise + "\nwindow_us,signal_mV,noise_mV,total_mV\n";
             for (int i = 0; i < windowsUs.length; i++) {
                 double t = windowsUs[i];
-                samplesMv[i] = a * Math.exp(-t / tau);
-                b.append(String.format(Locale.US, "%-13.1f %10.3f\n", t, samplesMv[i]));
-                report += String.format(Locale.US, "%.1f,%.6f\n", t, samplesMv[i]);
+                double signal = a * Math.exp(-t / tau);
+                double noiseValue = noiseAt(t, noise);
+                samplesMv[i] = signal + noiseValue;
+                b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\\n", t, signal, noiseValue, samplesMv[i]));
+                report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\\n", t, signal, noiseValue, samplesMv[i]);
             }
             resultText.setText(b.toString());
             waveView.invalidate();
@@ -125,7 +127,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void shareReport() {
+    private double noiseAt(double t, double rms) {\n        return rms * (Math.sin(0.73 * t) + Math.sin(1.17 * t) + Math.sin(1.91 * t)) / Math.sqrt(1.5);\n    }\n\n    private void shareReport() {
         if (report.isEmpty()) runSimulation();
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/csv");
@@ -170,7 +172,7 @@ public class MainActivity extends Activity {
             float prevX=left, prevY=bottom;
             for(int i=0;i<=160;i++) {
                 double t=windowsUs[windowsUs.length-1]*i/160.0;
-                double val=Double.parseDouble(amplitudeInput.getText().toString().trim())*Math.exp(-t/Double.parseDouble(tauInput.getText().toString().trim()));
+                double amp=Double.parseDouble(amplitudeInput.getText().toString().trim());\n                double tau=Double.parseDouble(tauInput.getText().toString().trim());\n                double rms=Double.parseDouble(noiseInput.getText().toString().trim());\n                double val=amp*Math.exp(-t/tau)+noiseAt(t,rms);
                 float x=left+(right-left)*i/160f;
                 float y=bottom-(float)(val/max)*(bottom-top);
                 if(i>0)c.drawLine(prevX,prevY,x,y,paint);
