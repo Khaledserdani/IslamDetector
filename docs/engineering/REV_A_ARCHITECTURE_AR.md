@@ -145,6 +145,7 @@ E_L(t) = 0.5 × L × I(t)^2
 | ADC الداخلي لـESP32-S3 | أقل كلفة وقطع | ضوضاء/ENOB، وقيود ADC2 مع Wi-Fi، ومدى/سرعة يجب إثباتها | لا يستخدم كمسار دقة رئيسي |
 
 مراجع هذه النقطة:
+- Raspberry Pi Pico SDK PWM API: قنوات A/B في PWM slice واحد، ومقارنات CC مزدوجة التخزين تُطبّق عند wrap؛ وهذا يسمح بتحديث تأخير العينة بين النبضات دون تغيير الحافة أثناء الدورة. https://www.raspberrypi.com/documentation/pico-sdk/hardware.html
 - Espressif MCPWM ETM for ESP32-S3: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/mcpwm_etm.html
 - Espressif MCPWM: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/index.html
 - Espressif RMT FAQ: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/rmt.html
