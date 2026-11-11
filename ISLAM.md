@@ -663,4 +663,4 @@ Commit اختبار PWM marker: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. أط
 - run #211 (ID `43076181689`) مكتمل وناجح في الوظائف الثلاث على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1`.
 - أضيف اختبار حسابي لعلاقة GP5 marker بهبوط GP4 في `tools/test_rev_a_timing.py`، commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`.
 - run #212 (ID `43076666839`) على commit الاختبار: protocol-tests وandroid-app نجحا؛ rp2040-firmware كان لا يزال في مرحلة تثبيت ARM toolchain عند آخر تحقق. لا تسجل run #212 نجاحاً كاملاً حتى ينتهي.
-- PR #7 ما زال Draft وغير مدمج؛ آخر رأس موثق عند كتابة هذا السطر كان `b5672d5d0fca6efbf5a8bfc6879f713c97d8ddb9`.
+- PR #7 ما زال Draft وغير مدمج؛ راجع صفحة PR للحصول على رأس الفرع الحالي بدلاً من الاعتماد على SHA ثابت داخل هذا السجل.
