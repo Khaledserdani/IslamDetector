@@ -10,7 +10,7 @@ This is the first executable timing prototype for the Rev A acquisition controll
 |---|---|---|
 | GP4 | TX_TEST | 20 µs logic pulse at 100 Hz; logic-only output |
 | GP5 | SAMPLE_MARKER | Edge occurs at TX pulse width + one delay from the 8-point profile |
-| GP6 | PIO_ECHO | Short PIO pulse after SAMPLE_MARKER falling edge |
+| GP6 | PIO_ECHO | 128 ns PIO response pulse after SAMPLE_MARKER falling edge |
 | USB-C | USB CDC console | Send R, S, I, or ? |
 
 GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both use the same counter. GP5's compare value changes at PWM wrap to step through the eight delay points. The PIO program watches GP5 and emits the response pulse on GP6.
