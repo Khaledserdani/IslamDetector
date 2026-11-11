@@ -50,6 +50,16 @@ class RevATimingTests(unittest.TestCase):
         self.assertEqual([cycles / 125 for cycles in cumulative],
                          [8, 12, 16, 24, 36, 52, 72, 100])
 
+    def test_first_dout_sample_waits_for_msb_valid(self):
+        # CONVST-low instruction [11] = 12 cycles, SET X = 1,
+        # NOP [1] = 2 cycles; first SCLK edge follows after 15 cycles.
+        first_sclk_delay_cycles = 12 + 1 + 2
+        self.assertEqual(first_sclk_delay_cycles, 15)
+        self.assertEqual(first_sclk_delay_cycles * 8, 120)  # ns at 125 MHz
+        self.assertGreater(120, 12.3)  # ADS8861 t_d-CNV-DO max, ns
+        self.assertIn("set pins, 0 side 0 [11]", self.pio_source)
+        self.assertIn("nop side 0 [1]", self.pio_source)
+
     def test_adc_conversion_and_serial_readout_fit_minimum_window_gap(self):
         # CONVST high: SET [31] + NOP [31] + NOP [31] = 96 cycles.
         conversion_cycles = 3 * 32
