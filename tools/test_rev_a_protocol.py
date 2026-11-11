@@ -4,6 +4,7 @@ from rev_a_protocol import (
     FLAG_SWEEP_COMPLETE,
     INVALID_CURRENT_MA,
     INVALID_TEMPERATURE_CENTI_C,
+    MeasurementStreamDecoder,
     ProtocolError,
     crc16_ccitt_false,
     decode_measurement,
@@ -73,6 +74,39 @@ class ProtocolTests(unittest.TestCase):
                 temp_centi_c=2000, valid_mask=0x7F,
                 samples=[1, 2, 3, 4, 5, 6, 7],
             )
+
+    def test_stream_decoder_handles_fragmented_frame(self):
+        frame = self.sample_frame()
+        parser = MeasurementStreamDecoder()
+        self.assertEqual(parser.feed(frame[:5]), [])
+        self.assertEqual(parser.feed(frame[5:24]), [])
+        decoded = parser.feed(frame[24:])
+        self.assertEqual(len(decoded), 1)
+        self.assertEqual(decoded[0]["samples"], [1200, 1100, 900, 700, 500, 300, 200, 100])
+
+    def test_stream_decoder_handles_noise_and_concatenated_frames(self):
+        frame = self.sample_frame()
+        parser = MeasurementStreamDecoder()
+        decoded = parser.feed(b"noise" + frame + frame)
+        self.assertEqual(len(decoded), 2)
+        self.assertGreaterEqual(parser.discarded_bytes, 5)
+
+    def test_stream_decoder_recovers_after_corrupt_frame(self):
+        good = self.sample_frame()
+        corrupt = bytearray(good)
+        corrupt[-3] ^= 0x80
+        parser = MeasurementStreamDecoder()
+        decoded = parser.feed(bytes(corrupt) + good)
+        self.assertEqual(len(decoded), 1)
+        self.assertEqual(decoded[0]["sequence"], 0x12345678)
+        self.assertGreater(parser.rejected_frames, 0)
+
+    def test_stream_decoder_preserves_split_sync_byte(self):
+        frame = self.sample_frame()
+        parser = MeasurementStreamDecoder()
+        self.assertEqual(parser.feed(b"junkI"), [])
+        decoded = parser.feed(frame[1:])
+        self.assertEqual(len(decoded), 1)
 
     def test_invalid_mask_is_rejected(self):
         with self.assertRaises(ProtocolError):
