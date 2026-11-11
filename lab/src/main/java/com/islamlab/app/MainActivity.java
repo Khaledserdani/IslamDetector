@@ -23,6 +23,8 @@ public class MainActivity extends Activity {
     private EditText amplitudeInput, tauInput, noiseInput, measuredInput;
     private SharedPreferences experimentPrefs;
     private static final int REQUEST_CSV = 701;
+    private static final int REQUEST_EXPORT = 702;
+    private String pendingExportContent = "";
     private TextView resultText, statusText;
     private WaveView waveView;
     private double[] windowsUs = {8, 12, 16, 24, 36, 52, 72, 100};
@@ -91,8 +93,8 @@ public class MainActivity extends Activity {
         resultText.setBackgroundColor(0xff111e30);
         page.addView(resultText);
 
-        Button share = button("تصدير تقرير التجربة");
-        share.setOnClickListener(v -> shareReport());
+        Button share = button("حفظ تقرير التجربة كملف CSV");
+        share.setOnClickListener(v -> exportCsvFile(report, "islam-lab-report.csv"));
         page.addView(share);
 
         page.addView(section("القياسات الحقيقية"));
@@ -209,6 +211,20 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_EXPORT) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                try (java.io.OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+                    if (out == null) throw new IllegalStateException("تعذر فتح ملف الحفظ");
+                    out.write(pendingExportContent.getBytes(StandardCharsets.UTF_8));
+                    out.flush();
+                    Toast.makeText(this, "تم حفظ ملف CSV بنجاح", Toast.LENGTH_LONG).show();
+                } catch (Exception ex) {
+                    Toast.makeText(this, "تعذر حفظ الملف: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
+            pendingExportContent = "";
+            return;
+        }
         if (requestCode != REQUEST_CSV || resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         try (InputStream in = getContentResolver().openInputStream(uri);
@@ -272,7 +288,7 @@ public class MainActivity extends Activity {
                                                     }).setNegativeButton("إلغاء", null).show();
                                         } else if (action == 2) {
                                             String saved = experimentPrefs.getString(key, "");
-                                            if (!saved.isEmpty()) shareText(saved, name);
+                                            if (!saved.isEmpty()) exportCsvFile(saved, safeFileName(name) + ".csv");
                                         } else if (action == 3) {
                                             new android.app.AlertDialog.Builder(this).setTitle("حذف التجربة")
                                                     .setMessage("سيتم حذف هذه التجربة المحفوظة فقط. لا يمكن التراجع عن الحذف.")
@@ -327,7 +343,26 @@ public class MainActivity extends Activity {
     }
     private void shareReport() {
         if (report.isEmpty()) runSimulation();
-        shareText(report, "ISLAM LAB experiment");
+        exportCsvFile(report, "islam-lab-report.csv");
+    }
+
+    private void exportCsvFile(String content, String fileName) {
+        if (content == null || content.trim().isEmpty()) {
+            Toast.makeText(this, "لا توجد بيانات للتصدير", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pendingExportContent = content;
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/csv");
+        intent.putExtra(Intent.EXTRA_TITLE, fileName.endsWith(".csv") ? fileName : fileName + ".csv");
+        startActivityForResult(intent, REQUEST_EXPORT);
+    }
+
+    private String safeFileName(String value) {
+        String cleaned = value == null ? "experiment" : value.replaceAll("[^\\p{L}\\p{N}._-]", "_");
+        if (cleaned.trim().isEmpty()) cleaned = "experiment";
+        return cleaned.length() > 60 ? cleaned.substring(0, 60) : cleaned;
     }
 
     private TextView section(String s) {
