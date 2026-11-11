@@ -108,6 +108,16 @@ class ProtocolTests(unittest.TestCase):
         decoded = parser.feed(frame[1:])
         self.assertEqual(len(decoded), 1)
 
+    def test_stream_decoder_reset_clears_buffer_and_counters(self):
+        frame = self.sample_frame()
+        parser = MeasurementStreamDecoder()
+        self.assertEqual(parser.feed(b"noiseI"), [])
+        self.assertGreater(parser.discarded_bytes, 0)
+        parser.reset()
+        self.assertEqual(parser.discarded_bytes, 0)
+        self.assertEqual(parser.rejected_frames, 0)
+        self.assertEqual(parser.feed(frame), [decode_measurement(frame)])
+
     def test_invalid_mask_is_rejected(self):
         with self.assertRaises(ProtocolError):
             encode_measurement(
