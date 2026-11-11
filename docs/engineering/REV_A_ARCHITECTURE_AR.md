@@ -131,12 +131,17 @@ E_L(t) = 0.5 × L × I(t)^2
 | AD7980 | 16-bit / 1MSPS، SNR 91.5 dB | pseudo-differential 0..VREF | 32.88 USD للقطعة الواحدة على DigiKey | أقل جاذبية من ADS8860 من ناحية السعر |
 | RP2040 الداخلي | 12-bit / 500kSPS، ENOB نموذجي 8.7 | أحادي | مدمج | لاختبار التوقيت/الإشارة الكبيرة فقط، لا للحساسية النهائية |
 
-**قرار Rev A الحالي:** نحتفظ بمسارين واضحين بدل تثبيت ADC مبكراً:
-- ADS7054 هو خيار البداية الاقتصادي: 14-bit/1MSPS، SNR نحو 79.6 dB، استهلاك 1.5 mW، لا يحتاج مرجعاً خارجياً، لكنه X2QFN-8 ودخله تفاضلي.
-- ADS8860 هو خيار الأداء الأعلى إذا استقر مسار RX على خرج أحادي الطرف: 16-bit/1MSPS، SNR نحو 93 dB، دخل 0..VREF وحزمة VSSOP-10 أسهل في PCBA، لكنه يحتاج مرجعاً خارجياً وتكلفته أعلى.
-- AD7980 يبقى احتياطياً، لكن سعره المرجعي أعلى من ADS8860.
+**قرار Rev A الهندسي المفضل:** نجعل ADS8860 هو مسار الأداء الأساسي، وADS7054 بديلاً اقتصادياً:
+- ADS8860: 16-bit/1MSPS، SNR نحو 93 dB، دخل 0..VREF، 290 ns acquisition، حزمة VSSOP-10. مناسب لمسار RX أحادي الطرف biased إلى منتصف 0–5V، ويعطي هامش دقة أعلى.
+- AD586JR مرجع 5V محلي مرشح لتغذية VREF: دخل 10.8–36V، خرج 5V، حتى 10mA، دقة ابتدائية ±0.4% وحرارة 25ppm/°C، ضوضاء 4µVpp من 0.1 إلى 10Hz. نعاير القيمة الفعلية، ونفصل تغذيته عن ضوضاء TX بمرشح ومسار أرضي مستقل.
+- ADS7054: خيار اقتصادي 14-bit/1MSPS، SNR نحو 79.6 dB، 1.5mW، لا يحتاج مرجعاً خارجياً لكنه X2QFN-8 ودخله تفاضلي؛ يبقى fallback إذا تعذر ADS8860 أو كان فرق الأداء غير ضروري.
+- AD7980 يبقى احتياطياً، لكنه أعلى تكلفة من ADS8860.
 
-لا نطلب أي ADC قبل تثبيت شكل خرج المضخم (single-ended أم differential)، common-mode، مجال الجهد، مرجع ADC، وميزانية الضوضاء.
+**قرار Rev A لواجهة RX المبدئي:** نبدأ بدائرة AD8032 مزدوجة على 5V أحادي التغذية: القناة الأولى Buffer/كسب أولي عالي الممانعة بعد حماية وتخميد RX، والثانية مرشح anti-alias + level shift/driver إلى مجال 0–5V للـADS8860. AD8032 سريع 80MHz وsettling نحو125ns إلى 0.1%، وضوضاء دخله نحو15nV/√Hz؛ تقدير الضوضاء الأبيض 6.7µV RMS عند 200kHz مثالية. هذا أقل من ضوضاء ADC المتوقعة، لكن يجب اختبار استعادة التشبع والضوضاء الفعلية قبل تثبيت قيم الكسب والمرشح.
+
+AD603 يبقى ترقية اختيارية لاحقة لكسب متغير، لا يدخل في Rev A الأول لأنه يحتاج ±5V ودخله 100Ω ويستلزم Buffer إضافياً. AD845 بديل Buffer فقط إذا فشل AD8032 في اختبار الاستعادة أو القيادة.
+
+هذا اختيار معماري مبدئي وليس مخططاً نهائياً؛ لا نحدد قيم R/C أو الحماية قبل قياس موجة RX والارتداد الفعلي.
 
 ### اختلاف تسلسل PIO بين مرشحي ADC
 
@@ -343,6 +348,11 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - ADS7054: https://www.ti.com/product/ADS7054 — 14-bit, 1 MSPS, 79.6 dB SNR.
 - ADS8860: https://www.ti.com/product/ADS8860 — 16-bit, 1 MSPS, 93 dB SNR, 290 ns acquisition; price reference: https://www.mouser.com/ProductDetail/Texas-Instruments/ADS8860IDGSR?qs=7MVldsJ5Uay4E9prX9lV9Q%3D%3D — 22.04 USD at the observed single-unit listing.
 - AD7980: https://www.analog.com/en/products/ad7980.html — 16-bit / 1 MSPS; price reference: https://www.digikey.com/en/products/detail/analog-devices-inc/AD7980BRMZRL7/1679878 — 32.88 USD at the observed single-unit listing.
+
+### مرجع VREF المحلي المرشح
+
+ظهر AD586JR لدى Power Lab بسعر 1,450 دج (145 ألف سنتيم) و15 قطعة حسب القائمة. هو مرجع 5V يغذى من 10.8–36V ويستطيع sourcing/sinking حتى 10mA. نسخة J لها دقة ابتدائية ±20mV (±0.4%) ودرجة حرارة 25ppm/°C؛ لذلك لا نعاملها كمرجع 16-bit مطلق دون معايرة، ويجب فحص الضوضاء واستقرار الحمل ومكثف VREF. إذا توفرت درجة L/B/M أصلية، تكون أفضل من J للدقة/الحرارة.
+المراجع: https://www.analog.com/en/products/ad586.html ؛ https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
 
 ### مراجعة ADCs الموجودة محلياً — ما لا نشتريه
 
