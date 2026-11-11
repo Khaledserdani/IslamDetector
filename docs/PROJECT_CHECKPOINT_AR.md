@@ -15,7 +15,7 @@
 
 - PR #7 مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
-- رأس الفرع الحالي: راجع PR #7 مباشرة للحصول على SHA الحالي؛ يتغير مع كل commit توثيق أو اختبار.ns run #211 على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1` — completed / success.
+- رأس الفرع الحالي: راجع PR #7 مباشرة للحصول على SHA الحالي؛ يتغير مع كل commit توثيق أو اختبار. run #211 على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1` — completed / success.
 - نجحت وظائف Android APK build وverify/upload، وRP2040 firmware build وUF2 verification/upload، وprotocol-tests.
 - Artifacts الخاصة بتشغيل #211 لم تُسترجع أسماؤها وأحجامها في هذا التحديث؛ لا تعتمد أحجام تشغيل #208 القديمة على أنها تخص #211.
 - تحديثات التوثيق اللاحقة لم تطلق CI جديداً لأن مسارات Workflow الحالية لا تشمل ملفات docs وISLAM.md.
@@ -180,4 +180,20 @@
 
 ## 14. تدقيق PWM marker بعد CI #212
 
-وجدت مراجعة RP2040 PWM أن CC مزدوج التخزين، وأن الكتابة أثناء التشغيل تُفعّل عند الالتفاف التالي. لذلك كان تسلسل ISR السابق يكرر نافذة profile 0 دورة إضافية عند بدء التشغيل. عولج ذلك في `firmware/rp2040_timing_test/src/main.c` بفصل active/queued profile وحجز profile 1 بعد تمكين PWM وقبل أول التفاف. أضيف اختبار `test_pwm_compare_pipeline_is_primed_without_startup_duplicate` في `tools/test_rev_a_timing.py` لمحاكاة تسلسل 0..7 دون التكرار البدئي. commit الإصلاح والاختبار: `2a5231d3c637d8e5e623afac47669b341ac72223` و`5cea3844f7a77c6b47087b0f6d2778e765cd4ed7`. تشغيل CI #218 جارٍ؛ لا تسجل نجاحه حتى يكتمل RP2040 firmware.
+وجدت مراجعة RP2040 PWM أن CC مزدوج التخزين، وأن الكتابة أثناء التشغيل تُفعّل عند الالتفاف التالي. لذلك كان تسلسل ISR السابق يكرر نافذة profile 0 دورة إضافية عند بدء التشغيل. عولج ذلك في `firmware/rp2040_timing_test/src/main.c` بفصل active/queued profile وحجز profile 1 بعد تمكين PWM وقبل أول التفاف. أضيف اختبار `test_pwm_compare_pipeline_is_primed_without_startup_duplicate` في `tools/test_rev_a_timing.py` لمحاكاة تسلسل 0..7 دون التكرار البدئي. commit الإصلاح والاختبار: `2a5231d3c637d8e5e623afac47669b341ac72223` و`5cea3844f7a77c6b47087b0f6d2778e765cd4ed7`. اكتمل CI #218 بنجاح في الوظائف الثلاث؛ راجع القسم 15 أدناه.
+
+
+## 15. إغلاق CI #218 — 2026-11-11
+
+تم التحقق من GitHub Actions run #218 (ID: `43077128517`) على commit `6d6e2bf7af9d7a99d944c56d850574de5eb3db16`، وجميع الوظائف مكتملة وناجحة:
+- `protocol-tests`: completed / success.
+- `rp2040-firmware`: completed / success؛ نجح تثبيت ARM toolchain، وبناء Firmware، والتحقق من UF2 ورفعه.
+- `android-app`: completed / success؛ نجح بناء APK والتحقق منه ورفعه.
+
+Artifacts المنشورة وغير منتهية الصلاحية وقت التحقق:
+- `IslamDetector-Original-APK` — ID `13881397828`، الحجم 18,729 bytes.
+- `IslamDetector-RevA-RP2040-Timing-Test-UF2` — ID `13881663503`، الحجم 27,606 bytes.
+
+رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43077128517
+
+هذا نجاح بناء واختبارات CI فقط؛ لا يثبت تثبيت APK على هاتف أو تفليش UF2 على لوحة فعلية أو صحة التوقيت الكهربائي. لا تزال قياسات GP4/GP5 وCONVST/SCLK/DOUT وjitter وHardware Loopback مطلوبة. تبقى `ENABLE_ADS8861_CAPTURE=0`، وPR #7 مفتوحاً كمسودة Draft وغير مدمج.
