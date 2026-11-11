@@ -143,6 +143,8 @@ E_L(t) = 0.5 × L × I(t)^2
 - مدى دخل OPA2836 على تغذية 5V محدود تقريباً من −0.2 إلى +3.9V؛ لذلك يجب وضع common-mode وإشارة RX ضمن هذا المجال، وعدم افتراض أن rail-to-rail output يعني rail-to-rail input.
 - ترتيب الدراسة: RX coil → حماية/تخميد/كتم → Buffer عالي الممانعة (AD8032 أو OPA2836 بعد تقييم common-mode) → مرشح/level shift → OPA2836 كسائق نهائي → ADS8860. قد نختصر المراحل إذا أثبتت المحاكاة أن OPA2836 وحده يحقق الضوضاء والاستعادة والمدى المطلوب.
 - لا نعتمد AD8032 أو OPA2836 نهائياً قبل محاكاة charge-kickback لمدخل ADS8860، والتحقق من settling إلى 16-bit خلال acquisition=290ns، والضوضاء المتكاملة، والاستقرار مع شبكة RC، واستعادة التشبع بعد نبضة TX. لا توجد قيم R/C معتمدة حتى الآن.
+- **التوفر المحلي:** قائمة Power Lab تعرض AD8032BR بسعر 480 دج وبمخزون معلن 30 قطعة، وAD845JN/KN بسعر 1,200 دج وبمخزون معلن 18 قطعة وقت الفحص. لم يظهر OPA2836 في نتائج الكتالوجات الجزائرية التي فُحصت؛ TI/Mouser يعرضانه كقطعة نشطة مع توفر خارجي، وسعر Mouser المرجعي نحو 5.45 USD للقطعة. لا يعني غياب نتيجة البحث أنه غير موجود لدى كل بائع محلي. يجب تأكيد رقم الحزمة والأصالة قبل أي طلب.
+
 
 AD603 يبقى ترقية اختيارية لاحقة لكسب متغير، لا يدخل في Rev A الأول لأنه يحتاج ±5V ودخله 100Ω ويستلزم Buffer إضافياً. AD845 بديل Buffer فقط إذا فشل AD8032 في اختبار الاستعادة أو القيادة.
 
@@ -346,7 +348,8 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - AD845: https://www.analog.com/en/products/ad845.html
 - AD743: https://www.analog.com/media/en/technical-documentation/data-sheets/ad743.pdf
 - AD8032: https://www.analog.com/en/products/ad8032.html
-- OPA2836/OPA836: https://www.ti.com/product/OPA836 — 205MHz، 560V/µs، 22ns إلى 0.1%، overdrive recovery 60ns؛ ومرجع تقدير 14-bit: https://www.ti.com.cn/lit/ug/tidud58/tidud58.pdf
+- OPA2836: https://www.ti.com/product/OPA2836 — 205MHz، 560V/µs، 22ns إلى 0.1%، overdrive recovery 60ns؛ package SOIC-8/VSSOP-10؛ سعر مرجعي خارجي: https://www.mouser.com/en/ProductDetail/Texas-Instruments/OPA2836IDGSR?qs=RqytGdBYyUGqgkd64C%252BPLQ%3D%3D
+- OPA836/OPA2836 مرجع تقدير 14-bit: https://www.ti.com.cn/lit/ug/tidud58/tidud58.pdf
 - ADS8860 input driver design note: https://www.ti.com/lit/ds/symlink/ads8860.pdf — راجع قسم القيادة وcharge-kickback؛ settling المضخم يجب التحقق منه بالنسبة لدقة ADC ونافذة acquisition.
 - AD8015: https://www.analog.com/en/products/ad8015.html
 - قائمة Power Lab المحلية: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
