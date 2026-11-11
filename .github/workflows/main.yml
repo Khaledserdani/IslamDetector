@@ -1,4 +1,4 @@
-name: Validate Islam Detector and ISLAM LAB Android apps
+name: Build and test ISLAM LAB Android app
 on:
   push:
     branches: [ feature/islam-lab-foundation ]
@@ -31,23 +31,16 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build Android applications
-        run: gradle --no-daemon clean :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug
+        run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleDebug
       - name: Verify APK packages
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk lab/build/outputs/apk/debug/lab-debug.apk; do
-            test -f "$APK"
-            test "$(stat -c%s "$APK")" -gt 1000
-            unzip -t "$APK"
-            sha256sum "$APK"
-          done
-      - name: Upload Islam Detector APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: IslamDetector-Android-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          APK=lab/build/outputs/apk/debug/lab-debug.apk
+          test -f "$APK"
+          test "$(stat -c%s "$APK")" -gt 1000
+          unzip -t "$APK"
+          sha256sum "$APK"
       - name: Upload ISLAM LAB APK
         uses: actions/upload-artifact@v4
         with:
