@@ -124,6 +124,11 @@ public class MainActivity extends Activity {
                 b.append(String.format(Locale.US, "%-10.1f %8.3f %8.3f %8.3f\n", sample.timeUs, sample.signalMv, sample.noiseMv, sample.totalMv));
                 report += String.format(Locale.US, "%.1f,%.6f,%.6f,%.6f\n", sample.timeUs, sample.signalMv, sample.noiseMv, sample.totalMv);
             }
+            double[] stats = LabMath.summarize(samplesMv);
+            b.append("\nملخص العينات الكلي\n");
+            b.append(String.format(Locale.US, "min %.3f | max %.3f | mean %.3f mV\n", stats[0], stats[1], stats[2]));
+            b.append(String.format(Locale.US, "peak-to-peak %.3f | std.dev %.3f mV\n", stats[3], stats[4]));
+            report += String.format(Locale.US, "summary_min_mV,%.6f\nsummary_max_mV,%.6f\nsummary_mean_mV,%.6f\nsummary_peak_to_peak_mV,%.6f\nsummary_stddev_mV,%.6f\n", stats[0], stats[1], stats[2], stats[3], stats[4]);
             resultText.setText(b.toString());
             waveView.invalidate();
             statusText.setText(String.format(Locale.US, "تم توليد %d عينات • τ = %.2f µs • ضوضاء اسمية %.2f mV", windowsUs.length, tau, noise));
