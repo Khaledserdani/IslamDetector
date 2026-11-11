@@ -13,7 +13,8 @@ public final class ExperimentData {
         List<Double> values = new ArrayList<>();
         String[] lines = raw.trim().split("\\r?\\n");
         boolean csvTable = raw.contains("\\n") || raw.contains("\\r");
-        boolean inData = !csvTable;
+        boolean hasTableHeader = raw.toLowerCase(Locale.ROOT).contains("index,value") || raw.toLowerCase(Locale.ROOT).contains("index;value");
+        boolean inData = !hasTableHeader;
         for (String line : lines) {
             String row = line.trim();
             if (row.isEmpty()) {
@@ -24,9 +25,9 @@ public final class ExperimentData {
                 inData = true;
                 continue;
             }
-            if (csvTable && !inData) continue;
+            if (hasTableHeader && !inData) continue;
             String[] cells = row.split("[,;\\t]");
-            if (csvTable && cells.length >= 2) {
+            if (hasTableHeader && cells.length >= 2) {
                 addIfNumeric(cells[cells.length - 1].trim(), values);
             } else {
                 String[] tokens = row.split("[,;\\t ]+");
