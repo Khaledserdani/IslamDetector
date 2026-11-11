@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
     private double[] windowsUs = {8, 12, 16, 24, 36, 52, 72, 100};
     private double[] samplesMv = new double[8];
     private String report = "";
+    private String simulationReport = "";
     private SyntheticDecayModel.Result currentResult;
 
     @Override public void onCreate(Bundle state) {
@@ -80,6 +81,9 @@ public class MainActivity extends Activity {
         Button run = button("تشغيل المحاكاة");
         run.setOnClickListener(v -> runSimulation());
         page.addView(run);
+        Button saveSimulation = button("حفظ التجربة الحالية في السجل");
+        saveSimulation.setOnClickListener(v -> saveCurrentSimulation());
+        page.addView(saveSimulation);
 
         page.addView(section("الموجة الناتجة"));
         waveView = new WaveView();
@@ -184,12 +188,45 @@ public class MainActivity extends Activity {
             b.append(String.format(Locale.US, "min %.3f | max %.3f | mean %.3f mV\n", stats[0], stats[1], stats[2]));
             b.append(String.format(Locale.US, "peak-to-peak %.3f | std.dev %.3f mV\n", stats[3], stats[4]));
             report += String.format(Locale.US, "summary_min_mV,%.6f\nsummary_max_mV,%.6f\nsummary_mean_mV,%.6f\nsummary_peak_to_peak_mV,%.6f\nsummary_stddev_mV,%.6f\n", stats[0], stats[1], stats[2], stats[3], stats[4]);
+            simulationReport = report;
             resultText.setText(b.toString());
             waveView.invalidate();
             statusText.setText(String.format(Locale.US, "تم توليد %d عينات • τ = %.2f µs • ضوضاء اسمية %.2f mV", windowsUs.length, tau, noise));
         } catch (Exception ex) {
             Toast.makeText(this, "أدخل قيماً رقمية موجبة وصحيحة", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void saveCurrentSimulation() {
+        if (simulationReport == null || simulationReport.isEmpty() || currentResult == null) {
+            Toast.makeText(this, "شغّل المحاكاة أولاً قبل الحفظ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        EditText nameInput = field("اسم التجربة", "محاكاة τ " + currentResult.tauUs + " µs");
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("حفظ تجربة المحاكاة")
+                .setMessage("سيتم حفظ المدخلات والقراءات والملخص مع توضيح أن مصدرها اصطناعي.")
+                .setView(nameInput)
+                .setPositiveButton("حفظ", (dialog, which) -> {
+                    String name = nameInput.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "اكتب اسماً للتجربة", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String key = "experiment_" + System.currentTimeMillis();
+                    while (experimentPrefs.contains(key)) key += "_1";
+                    boolean saved = experimentPrefs.edit()
+                            .putString(key, simulationReport)
+                            .putString("name_" + key, name)
+                            .commit();
+                    if (saved) {
+                        Toast.makeText(this, "تم حفظ تجربة المحاكاة في السجل", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "تعذر حفظ التجربة؛ تحقق من مساحة التخزين", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
     }
 
     private void analyzeMeasurements() {
