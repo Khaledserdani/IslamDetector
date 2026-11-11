@@ -44,7 +44,7 @@ Measured timing and jitter must be recorded from the actual RP2040-Zero board. N
 One falling edge on GP4 starts a complete eight-window decay capture within the same TX pulse:
 - GP4=TX_TEST; GP8=CONVST; GP9=SCLK; GP10=DOUT. ADS8861 DIN must be strapped HIGH for 3-wire CS mode.
 - Delay points from TX falling are nominally 8/12/16/24/36/52/72/100 µs. The first delay count assumes the RP2040's two-cycle GPIO input synchronizer; the actual offset must be measured and trimmed on hardware.
-- Four preloaded TX FIFO words contain the eight 12-bit delay counts. PIO autopull threshold is 24 bits; RX FIFO is joined to eight words so one full sweep can be buffered.
+- Four preloaded TX FIFO words contain the eight 12-bit delay counts. PIO autopull threshold is 24 bits; RX DMA drains the normal four-word FIFO into an eight-word RAM buffer; the TX FIFO remains available for the delay schedule.
 - CONVST HIGH is 96 PIO cycles at125MHz =768ns, exceeding tconv-max=710ns. The PIO waits24ns after CONVST falls before the first SCLK sample, exceeding t_d-CNV-DO=12.3ns max.
 - SCLK is 6 cycles HIGH +7 cycles LOW =104ns period, about9.615MHz. Sixteen bits take208 cycles=1.664µs. The minimum 4µs spacing between sample points leaves time for conversion and readout; tACQ=290ns is also exceeded. These are instruction-budget calculations, not measured timings.
 - The eight raw16 samples are drained by the main loop and printed as one ADS8861_SWEEP_RAW16 line per TX pulse.
