@@ -39,7 +39,7 @@
 | 25 | 2 | TX_CURRENT_MA | أعلى تيار TX مسجل خلال Sweep بالملي أمبير؛ 0xFFFF = غير متاح |
 | 27 | 2 | TEMP_CENTI_C | حرارة اللوحة × 100؛ 0x7FFF = غير متاح |
 | 29 | 1 | VALID_MASK | bit i = 1 إذا كانت العينة i صالحة |
-| 30 | 1 | SAMPLE_COUNT | عدد العينات في الإطار، 1..8 في Rev A |
+| 30 | 1 | SAMPLE_COUNT | عدد العينات المرفقة، 1..8؛ Sweep الكامل يحتوي 8 |
 | 31 | 2×N | SAMPLES | أكواد ADC الخام 16-bit؛ تحفظ قيمة ADC دون تحويل مزيف إلى µV |
 | آخر 2 | 2 | CRC16 | CRC-16/CCITT-FALSE، polynomial 0x1021، init 0xFFFF، xorout 0 |
 
@@ -55,6 +55,7 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - bit 5: CALIBRATION_VALID — معايرة المسار المرجعي صالحة.
 - bit 6: PROFILE_VALID — معرف النوافذ يطابق الجدول النشط.
 - bit 7: ADC_FAULT — فشل قراءة أو تزامن ADC.
+- bit 8: SWEEP_COMPLETE — اكتملت نبضات جدول الملف لهذا الإطار.
 - بقية البتات محجوزة وتبقى صفراً في الإصدار 1.
 
 ## 4. جدول النوافذ
