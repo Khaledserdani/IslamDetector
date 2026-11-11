@@ -197,3 +197,14 @@ Artifacts المنشورة وغير منتهية الصلاحية وقت الت�
 رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43077128517
 
 هذا نجاح بناء واختبارات CI فقط؛ لا يثبت تثبيت APK على هاتف أو تفليش UF2 على لوحة فعلية أو صحة التوقيت الكهربائي. لا تزال قياسات GP4/GP5 وCONVST/SCLK/DOUT وjitter وHardware Loopback مطلوبة. تبقى `ENABLE_ADS8861_CAPTURE=0`، وPR #7 مفتوحاً كمسودة Draft وغير مدمج.
+
+
+## 16. ميزانية استعادة RX بعد TX
+
+أضيفت `docs/engineering/RX_RECOVERY_BUDGET_AR.md` لتفصل زمن استعادة السلسلة كاملة: اضمحلال TX، الحماية/clamp، أي blanking switch، recovery المضخم، شبكة R/C وVOCM، ثم مدخل ADC وVREF. النتيجة الأساسية: نافذة 8µs اسمية وليست معتمدة حتى يثبت القياس أن جميع العقد عادت إلى المجال الخطي قبل العينة.
+
+تدقيق الداتا شيت: THS4521 يذكر 80ns typical عند overdrive=±0.5V فقط؛ لا يجوز تعميمه على transient ملف PI. ADS8861 يذكر overvoltage recovery إلى16-bit بقيمة290ns، لكن ذلك لا يحمي المدخل من تجاوز operating/absolute maximum ولا يصف استعادة AFE السابقة. مجال التشغيل لكل AIN هو −0.1V إلى VREF+0.1V، والحد المطلق −0.3V إلى VREF+0.3V.
+
+تم توثيق خيارات blanking (series/shunt/after-amplifier/PD) ومخاطرها، وخطة اختبار تدريجية من دون TX إلى محاكاة transient ثم حمل وهمي، دون اعتماد أي TVS أو switch أو قيم R/C قبل القياس. لا تزال `ENABLE_ADS8861_CAPTURE=0`.
+
+مراجع المصنع: https://www.ti.com/lit/ds/symlink/ths4521.pdf وhttps://www.ti.com/lit/ds/symlink/ads8861.pdf.
