@@ -35,6 +35,8 @@ static volatile bool running = false;
 #if ENABLE_ADS8861_CAPTURE
 static uint ads8861_sm;
 static bool ads8861_ready = false;
+static uint16_t ads8861_sweep[ADS8861_SWEEP_SAMPLES];
+static uint8_t ads8861_sample_count = 0u;
 #endif
 
 static uint16_t us_to_pwm_ticks(uint32_t microseconds) {
@@ -59,6 +61,13 @@ static void pwm_wrap_isr(void) {
 
 static void timing_outputs_stop(void) {
     running = false;
+#if ENABLE_ADS8861_CAPTURE
+    if (ads8861_ready) {
+        // Stop PIO before forcing GP4 low, so STOP cannot look like a TX edge.
+        ads8861_capture_stop(pio0, ads8861_sm);
+    }
+    ads8861_sample_count = 0u;
+#endif
 
     pwm_set_irq_enabled(slice_num, false);
     pwm_set_enabled(slice_num, false);
@@ -87,6 +96,14 @@ static void timing_outputs_start(void) {
                clock_get_hz(clk_sys));
         return;
     }
+
+#if ENABLE_ADS8861_CAPTURE
+    if (ads8861_ready && !ads8861_capture_start(pio0, ads8861_sm)) {
+        printf("ERROR: ADS8861 capture engine could not be armed.\n");
+        return;
+    }
+    ads8861_sample_count = 0u;
+#endif
 
     gpio_set_function(TX_TEST_PIN, GPIO_FUNC_PWM);
     gpio_set_function(SAMPLE_MARKER_PIN, GPIO_FUNC_PWM);
@@ -169,10 +186,10 @@ int main(void) {
 #if ENABLE_ADS8861_CAPTURE
     ads8861_sm = pio_claim_unused_sm(pio0, true);
     ads8861_ready = ads8861_capture_init(pio0, ads8861_sm);
-    printf("ADS8861 PIO capture: %s (DIN must be strapped HIGH).\n",
-           ads8861_ready ? "enabled" : "init failed");
+    printf("ADS8861 PIO capture: %s; arm with R (DIN must be strapped HIGH).\n",
+           ads8861_ready ? "configured" : "init failed");
 #else
-    printf("ADS8861 PIO driver compiled but disabled; no ADC hardware assumed.\n");
+    printf("ADS8861 eight-window PIO capture compiled but disabled; no ADC hardware assumed.\n");
 #endif
 
     slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
@@ -197,9 +214,18 @@ int main(void) {
         }
 #if ENABLE_ADS8861_CAPTURE
         uint16_t raw_sample;
-        if (ads8861_ready &&
-            ads8861_capture_try_read(pio0, ads8861_sm, &raw_sample)) {
-            printf("ADS8861_RAW16=%04X (two's-complement raw)\n", raw_sample);
+        while (ads8861_ready &&
+               ads8861_sample_count < ADS8861_SWEEP_SAMPLES &&
+               ads8861_capture_try_read(pio0, ads8861_sm, &raw_sample)) {
+            ads8861_sweep[ads8861_sample_count++] = raw_sample;
+        }
+        if (ads8861_sample_count == ADS8861_SWEEP_SAMPLES) {
+            printf("ADS8861_SWEEP_RAW16=");
+            for (uint8_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
+                printf("%s%04X", (i == 0u) ? "" : ",", ads8861_sweep[i]);
+            }
+            printf("\n");
+            ads8861_sample_count = 0u;
         }
 #endif
         tight_loop_contents();
