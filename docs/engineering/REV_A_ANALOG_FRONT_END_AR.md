@@ -28,6 +28,22 @@ RX+ / RX− → حماية وتخميد متماثلان → اقتران/تحي
 - مرجع REF يجب أن يدعم شحنة التحويل الديناميكية؛ ADR4540B وحده مرجع خام وليس سائق REF نهائياً.
 - يجب إثبات استقرار دخل ADC إلى دقة 16-bit ضمن نافذة الاكتساب، وليس الاكتفاء بعرض نطاق المضخم أو زمن 0.1%.
 
+### THS4551 — بديل حديث يجب أن يدخل المقارنة
+
+THS4551 من TI مضخم تفاضلي كامل ويدعم differential-input to differential-output، وهو pin-compatible مع THS4521 في حزمة VSSOP-8، لكنه ليس بديلاً plug-and-play قبل مراجعة شبكة التغذية والـfeedback والـVOCM والـsettling.
+
+| الخاصية | THS4521 | THS4551 |
+|---|---:|---:|
+| Bandwidth عند G=1 | 145MHz | 150MHz |
+| Slew rate | 490V/µs | 220V/µs |
+| ضوضاء الدخل | 4.6nV/√Hz | 3.3nV/√Hz |
+| Offset أقصى عند25°C | 2mV | 0.175mV |
+| تيار التغذية النموذجي | 1.14mA | 1.35mA |
+| مجال التغذية الأحادية | 2.5–5.5V | 2.7–5.4V |
+| Overdrive recovery المنشور | 80ns عند ±0.5V | 50ns عند G=2 و2× output overdrive في شرط 5V؛ وتختلف النتيجة مع جهد التغذية |
+
+**قراءة هندسية:** THS4551 أقل ضوضاء وانحرافاً وأفضل في overdrive recovery ضمن شروط ورقته، بينما THS4521 أسرع slew وأقل استهلاكاً قليلاً، كما أن مجال تغذيته أوسع. لا يكفي رقم الضوضاء وحده لاختيار THS4551؛ يجب أن نقارن recovery بعد transient RX الحقيقي، وsettling إلى16-bit، واستقرار شبكة Cdiff، وتوفر القطعة محلياً. Figure72 في ورقة ADS8861 مرسوم باستخدام THS4521؛ لا تنقل قيمه إلى THS4551 دون محاكاة مستقلة.
+
 ### OPA2836 — احتياطي لا المسار الأول
 - Dual op amp، تغذية 2.5–5.5V، bandwidth=205MHz، slew=560V/µs، settling=22ns إلى0.1%، overdrive recovery=60ns، noise=4.6nV/√Hz.
 - على تغذية5V مجال الدخل الموثق تقريباً−0.2 إلى+3.9V.
@@ -107,11 +123,12 @@ f−3dB≈1/[2π×(10Ω+10Ω)×10nF]≈796kHz.
 - أعلى transient على RX أثناء TX، ومدة التشبع/clip-release.
 - الضوضاء RMS مع الملف مفصولاً وموصولاً.
 - settling إلى16-bit بعد كل نبضة ضمن أول نافذة8µs.
-- مقارنة قياس THS4521 direct differential مع OPA2836 dual-buffer fallback.
+- مقارنة THS4521 وTHS4551 في نفس شبكة differential-in/differential-out، ثم OPA2836 dual-buffer fallback إذا أثبت قياس الملف أن التحميل يحتاج Buffer.
 - استقرار reference driver وADC input network.
 
 ## 8. مراجع المصنع
 - THS4521 datasheet، خاصة 8.4.2 differential-input to differential-output: https://www.ti.com/lit/ds/symlink/ths4521.pdf
+- THS4551 datasheet، خاصة 9.4.2 differential-input to differential-output: https://www.ti.com/lit/ds/symlink/ths4551.pdf
 - ADS8861 datasheet، reference driver وinput driver: https://www.ti.com/lit/ds/symlink/ads8861.pdf
 - OPA2836 datasheet: https://www.ti.com/lit/ds/symlink/opa2836.pdf
 - ADR4540 datasheet: https://www.analog.com/media/en/technical-documentation/data-sheets/ADR4520_4525_4530_4533_4540_4550.pdf
