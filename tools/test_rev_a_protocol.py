@@ -5,6 +5,9 @@ from rev_a_protocol import (
     INVALID_CURRENT_MA,
     INVALID_TEMPERATURE_CENTI_C,
     MeasurementStreamDecoder,
+    SAMPLE_FORMAT_TWOS_COMPLEMENT,
+    SAMPLE_FORMAT_UNSIGNED,
+    interpret_sample,
     ProtocolError,
     crc16_ccitt_false,
     decode_measurement,
@@ -107,6 +110,17 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(parser.feed(b"junkI"), [])
         decoded = parser.feed(frame[1:])
         self.assertEqual(len(decoded), 1)
+
+    def test_adc_sample_format_metadata_interpretation(self):
+        self.assertEqual(interpret_sample(0x0001, SAMPLE_FORMAT_TWOS_COMPLEMENT), 1)
+        self.assertEqual(interpret_sample(0x7FFF, SAMPLE_FORMAT_TWOS_COMPLEMENT), 32767)
+        self.assertEqual(interpret_sample(0x8000, SAMPLE_FORMAT_TWOS_COMPLEMENT), -32768)
+        self.assertEqual(interpret_sample(0xFFFF, SAMPLE_FORMAT_TWOS_COMPLEMENT), -1)
+        self.assertEqual(interpret_sample(0xFFFF, SAMPLE_FORMAT_UNSIGNED), 65535)
+        with self.assertRaises(ProtocolError):
+            interpret_sample(0x10000, SAMPLE_FORMAT_UNSIGNED)
+        with self.assertRaises(ProtocolError):
+            interpret_sample(0x1234, 0x7F)
 
     def test_stream_decoder_reset_clears_buffer_and_counters(self):
         frame = self.sample_frame()
