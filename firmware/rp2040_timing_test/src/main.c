@@ -77,8 +77,11 @@ static void timing_outputs_start(void) {
     gpio_set_function(SAMPLE_MARKER_PIN, GPIO_FUNC_PWM);
 
     slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
-    pwm_divider = (float)clock_get_hz(clk_sys) /
-                  ((float)START_RATE_HZ * (float)(PWM_WRAP_VALUE + 1u));
+    const float ideal_divider = (float)clock_get_hz(clk_sys) /
+                                ((float)START_RATE_HZ * (float)(PWM_WRAP_VALUE + 1u));
+    // RP2040 PWM divider has 4 fractional bits; use the quantized value
+    // for both configuration and delay-to-tick conversion.
+    pwm_divider = (float)((uint32_t)(ideal_divider * 16.0f + 0.5f)) / 16.0f;
 
     pulse_ticks = us_to_pwm_ticks(START_PULSE_US);
     profile_index = 0u;
