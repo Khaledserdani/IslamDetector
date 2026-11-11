@@ -2,6 +2,10 @@ name: Validate Islam Detector app and Rev A firmware
 on:
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '*.csv'
 permissions:
   contents: read
 concurrency:
