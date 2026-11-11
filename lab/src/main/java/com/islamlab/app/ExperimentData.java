@@ -12,7 +12,7 @@ public final class ExperimentData {
         if (raw == null || raw.trim().isEmpty()) throw new IllegalArgumentException("لا توجد بيانات");
         List<Double> values = new ArrayList<>();
         String[] lines = raw.trim().split("\\r?\\n");
-        boolean csvTable = raw.contains("\\n") || raw.contains("\\r");
+        boolean csvTable = raw.contains("\n") || raw.contains("\r");
         boolean hasTableHeader = raw.toLowerCase(Locale.ROOT).contains("index,value") || raw.toLowerCase(Locale.ROOT).contains("index;value");
         boolean inData = !hasTableHeader;
         for (String line : lines) {
