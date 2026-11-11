@@ -10,7 +10,7 @@ endif()
 
 include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-project(islam_detector_rev_a_timing_test C CXX ASM)
+project(islam_detector_rev_a_timing_test C ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
