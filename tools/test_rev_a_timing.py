@@ -111,6 +111,25 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("pio_get_dreq(pio, sm, false)", self.c_source)
         self.assertNotIn("sm_config_set_fifo_join(", self.c_source)
 
+    def test_pwm_sample_marker_offsets_match_tx_falling_edge(self):
+        # GP4 carries the 20 us logic-only TX pulse; GP5 falls at
+        # (20 us + requested delay), so its falling edge is delay-relative
+        # to the GP4 falling edge. At 125 MHz / 20, one PWM tick is 160 ns.
+        delays = [8, 12, 16, 24, 36, 52, 72, 100]
+        pulse_us = 20
+        pwm_tick_hz = 125_000_000 / 20
+        ticks_per_us = pwm_tick_hz / 1_000_000
+        marker_ticks = [round((pulse_us + delay) * ticks_per_us) for delay in delays]
+        self.assertEqual(marker_ticks, [175, 200, 225, 275, 350, 450, 575, 750])
+        self.assertTrue(all(tick < 62499 for tick in marker_ticks))
+        self.assertIn("#define TX_TEST_PIN       4u", self.main_source)
+        self.assertIn("#define SAMPLE_MARKER_PIN 5u", self.main_source)
+        self.assertIn("#define PWM_WRAP_VALUE    62499u", self.main_source)
+        self.assertIn("pwm_config_set_clkdiv(&config, pwm_divider)", self.main_source)
+        self.assertIn("pwm_set_chan_level(slice_num, PWM_CHAN_A, pulse_ticks)", self.main_source)
+        self.assertIn("pwm_set_chan_level(slice_num, PWM_CHAN_B, sample_compare_ticks[0])", self.main_source)
+        self.assertIn("START_PULSE_US + sample_delays_us[i]", self.main_source)
+
 
 if __name__ == "__main__":
     unittest.main()
