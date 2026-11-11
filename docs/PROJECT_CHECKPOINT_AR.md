@@ -16,8 +16,9 @@
 - PR #7 مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
 - آخر رأس موثق بعد تحديثات التوثيق: `a56ab85a6ec2b70034d0d1bbfe3dc1ab671e8908`.
-- آخر commit كود خضع إلى GitHub Actions: `06c4a49a7be7274265523aa09b561a3436581971`.
-- GitHub Actions run #190: completed / success؛ نجحت وظائف Android APK build، وRP2040 firmware build/UF2 verification، وprotocol tests.
+- آخر commit كود خضع إلى GitHub Actions ضمن هذه السلسلة: `04c42b1f1fbebb49361a437b5f2d0ced66bb0f42`.
+- GitHub Actions run #196: completed / success؛ نجحت وظائف Android APK build، وRP2040 firmware build/UF2 verification، وprotocol tests.
+- Artifact الناتج: `IslamDetector-Original-APK` و`IslamDetector-RevA-RP2040-Timing-Test-UF2`؛ كلاهما ملفات اختبار بناء وليس إثباتاً لتشغيل العتاد أو تثبيت التطبيق.
 - تحديثات التوثيق اللاحقة لم تطلق CI جديداً لأن مسارات Workflow الحالية لا تشمل ملفات docs وISLAM.md.
 - لا تدمج PR #7 قبل القياس الفيزيائي ومراجعة واجهة RX والحماية.
 
