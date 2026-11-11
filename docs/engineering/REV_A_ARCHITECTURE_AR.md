@@ -312,7 +312,7 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - ADC2311 بسعر 2,500 دج (250 ألف سنتيم): صفحة البائع تسميه Audio A/D Converter وتدعي 16-bit/5 MSPS، لكن لم نعثر على ورقة بيانات موثوقة تثبت هذا الادعاء أو أزمنة الاكتساب والتحويل. لا يُشترى قبل الحصول على رقم مصنع/ورقة بيانات أصلية والتحقق من الحزمة والوظائف.
 
 روابط عروض البائع:
-- AD7703: https://powerlab.dz/product/ad7703bn-convertisseur-a-d-20-bit/
+- AD7703: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
 - AD7705/TM7705: https://powerlab.dz/product/tm7705-ad7705-convertisseur-analogique-numerique-16-bit-spi/
 - ADC2311: https://powerlab.dz/product/adc2311-audio-a-d-converter/
 
