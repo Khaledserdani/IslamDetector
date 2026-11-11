@@ -662,5 +662,11 @@ Commit اختبار PWM marker: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. أط
 
 - run #211 (ID `43076181689`) مكتمل وناجح في الوظائف الثلاث على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1`.
 - أضيف اختبار حسابي لعلاقة GP5 marker بهبوط GP4 في `tools/test_rev_a_timing.py`، commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`.
-- run #212 (ID `43076666839`) على commit الاختبار: protocol-tests وandroid-app نجحا؛ rp2040-firmware كان لا يزال في مرحلة تثبيت ARM toolchain عند آخر تحقق. لا تسجل run #212 نجاحاً كاملاً حتى ينتهي.
+- run #212 (ID `43076666839`) على commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`: اكتملت الوظائف الثلاث `protocol-tests` و`android-app` و`rp2040-firmware` بنجاح. هذا تحقق بناء واختبارات CI وليس اختباراً على العتاد.
 - PR #7 ما زال Draft وغير مدمج؛ راجع صفحة PR للحصول على رأس الفرع الحالي بدلاً من الاعتماد على SHA ثابت داخل هذا السجل.
+
+
+## 21) اكتمال CI #212
+
+تم التحقق من الوظائف الثلاث في GitHub Actions run #212 (ID `43076666839`) على commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`: protocol-tests وandroid-app وrp2040-firmware كلها completed/success. شمل ذلك بناء APK والتحقق منه، وبناء UF2 والتحقق منه. لم يتم تثبيت APK على الهاتف أو تفليش UF2 على لوحة فعلية.
+الرابط: https://github.com/Khaledserdani/IslamDetector/actions/runs/43076666839
