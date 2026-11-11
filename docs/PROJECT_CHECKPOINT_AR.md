@@ -15,7 +15,7 @@
 
 - PR #7 مفتوح كمسودة Draft وغير مدمج.
 - الفرع: `hardware/rev-a-measurement-design`.
-- آخر رأس قبل تحديث هذا السجل: `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1`؛ أضيف بعده اختبار PWM marker جديد في commit `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`..
+- آخر رأس موثق: `be3d6aa27b36a0baa24ac5b32b440eeafdc41014` (تحديث مذكرة واجهة المرجع بعد اختبار PWM marker).
 - آخر تشغيل مكتمل ومؤكد: GitHub Actions run #211 على commit `7fe4f2d86a4a24c2cc360522a847f70048d0d9a1` — completed / success.
 - نجحت وظائف Android APK build وverify/upload، وRP2040 firmware build وUF2 verification/upload، وprotocol-tests.
 - Artifacts الخاصة بتشغيل #211 لم تُسترجع أسماؤها وأحجامها في هذا التحديث؛ لا تعتمد أحجام تشغيل #208 القديمة على أنها تخص #211.
@@ -161,3 +161,9 @@
 - قيم PWM المحسوبة عند125MHz ومقسم20 هي175/200/225/275/350/450/575/750 tick؛ فترة PWM=62500 tick. هذه حسابات من الكود وليست قياسات على الأرجل.
 - commit الاختبار الجديد: `4a8418e3356ebfe623d7d6bbb9622b3ad94940d1`. سيطلق هذا التعديل CI جديداً؛ يجب التحقق من نتيجته قبل تسجيل نجاحه.
 - لا تزال `ENABLE_ADS8861_CAPTURE=0`، ولا يوجد قياس jitter أو settling أو Hardware Loopback على لوحة فعلية.
+
+
+## 12. متابعة هندسية إضافية — دقة سائق مرجع ADC
+
+أضيف إلى `docs/engineering/REV_A_ANALOG_FRONT_END_AR.md` تنبيه حسابي: THS4281 منشور له settling إلى0.01% خلال150ns لخطوة2V؛ هذا يعادل200µV، بينما نصف LSB النظري لـADS8861 عند VREF=4.096V يساوي31.25µV. لا يثبت الرقم المنشور وحده أن سائق المرجع المركب يستقر إلى نصف LSB. يجب محاكاة OPA333+THS4281 مع شبكة REF الفعلية وقياس droop/settling عند التحويل. قيم0.2Ω و10µF ما زالت baseline من TI وليست BOM معتمدة مع ADR4540B.
+المصدر: TI THS4281 وADS8861: https://www.ti.com/product/THS4281 وhttps://www.ti.com/product/ADS8861
