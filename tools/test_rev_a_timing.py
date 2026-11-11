@@ -50,6 +50,28 @@ class RevATimingTests(unittest.TestCase):
         self.assertEqual([cycles / 125 for cycles in cumulative],
                          [8, 12, 16, 24, 36, 52, 72, 100])
 
+    def test_convst_width_and_sclk_budget(self):
+        # CONVST HIGH: SET [15] plus five NOP [15] = 96 cycles.
+        convst_high_cycles = 6 * 16
+        self.assertEqual(convst_high_cycles, 96)
+        self.assertEqual(convst_high_cycles * 8, 768)  # ns at 125 MHz
+        self.assertGreater(768, 710)  # ADS8861 t_conv max, ns
+
+        # One SCLK period: IN [5] = 6 cycles high; JMP [6] = 7 low.
+        sclk_period_cycles = 6 + 7
+        self.assertEqual(sclk_period_cycles, 13)
+        self.assertAlmostEqual(125_000_000 / sclk_period_cycles, 9_615_384.615, places=2)
+        self.assertGreaterEqual(6 / 13, 0.45)
+        self.assertGreaterEqual(7 / 13, 0.45)
+        self.assertIn("set pins, 1 side 0 [15]", self.pio_source)
+        self.assertEqual(self.pio_source.count("nop side 0 [15]"), 5)
+
+    def test_capture_shift_width_matches_one_adc_word(self):
+        self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
+        self.assertIn("in pins, 1 side 1 [5]", self.pio_source)
+        self.assertIn("uint32_t capture_buffer[ADS8861_SWEEP_SAMPLES]", self.c_source)
+        self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
+
     def test_first_dout_sample_waits_for_msb_valid(self):
         # CONVST-low instruction [11] = 12 cycles, SET X = 1,
         # NOP [1] = 2 cycles; first SCLK edge follows after 15 cycles.
