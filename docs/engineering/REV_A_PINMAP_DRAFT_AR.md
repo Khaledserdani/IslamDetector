@@ -6,7 +6,7 @@
 
 ## 1. سبب اختيار هذا المسار
 
-ملف RX في بنية DD له طرفان، ولذلك نحتفظ بالإشارة تفاضلية حتى ADC بدلاً من تأريض أحد الطرفين مبكراً. ADS8861 هو 16-bit SAR true-differential، وTHS4521 هو fully-differential amplifier. Figure 73 في ورقة ADS8861 يثبت استخدامهما مع مصدر single-ended وتحويله إلى خرج differential؛ لا يثبت أن مدخل ملف DD التفاضلي يمكن وصله مباشرة إلى VIN± بهذه الشبكة. شبكة input/feedback لملف RX التفاضلي تحتاج تحليلاً منفصلاً وتحديد كسبها وممانعاتها بعد قياس الملف.
+ملف RX في بنية DD له طرفان، ولذلك نحتفظ بالإشارة تفاضلية حتى ADC بدلاً من تأريض أحد الطرفين مبكراً. ADS8861 هو16-bit SAR true-differential، وTHS4521 هو fully-differential amplifier. Figure72 في ورقة ADS8861 يعرض مسار differential input باستخدام THS4521 إلى ADS8861 (أربع مقاومات1kΩ، ومقاومتان10Ω، ومكثف10nF تفاضلي)؛ أما Figure73 فهو مثال single-ended. نعتمد Figure72 baseline للمحاكاة، لكن حماية/اقتران ملف DD وممانعته الفعلية لا تزال تحتاج قياساً وتصميماً منفصلاً.
 
 ## 2. ADS8861 — VSSOP-10 (DGS)
 
@@ -74,9 +74,11 @@
 1. DIN مربوط إلى DVDD=HIGH.
 2. CONVST rising يلتقط الإشارة ويبدأ التحويل.
 3. يبقى CONVST HIGH حتى tconv-max=710ns.
-4. CONVST falling يفتح DOUT ويظهر MSB.
-5. اقرأ16-bit MSB-first على SCLK falling؛ يمكن التقاط DOUT على الحافة الصاعدة بعد مراعاة أزمنة الصلاحية.
-6. tACQ=290ns حد أدنى قبل التحويل التالي، وليس مهلة قصوى لإنهاء القراءة. عند PRF≈1kHz يمكن استخدام SCLK أبطأ لتقليل EMI.
+4. CONVST falling يفتح DOUT ويظهر MSB؛ في Firmware الحالي يبدأ أول SCLK بعد120ns من الهبوط.
+5. اقرأ16-bit MSB-first؛ PIO يلتقط DOUT على SCLK rising بعد مهلة صلاحية، مع SCLK≈9.615MHz (104ns period).
+6. CONVST high=768ns (96 دورة PIO) ويتجاوز tconv-max=710ns. جدول النوافذ8/12/16/24/36/52/72/100µs من GP4 falling، ثماني عينات في نبضة واحدة.
+7. أقصر فاصل بين CONVST rising هو4µs؛ بعد768ns تحويل يبقى نحو3.232µs اكتساب، أعلى من tACQ(min)=290ns.
+8. DMA يفرغ RX FIFO ذي الأربعة عناصر إلى RAM؛ كلمة delay أولى محملة في OSR وثلاث كلمات تبقى في TX FIFO. لا يستخدم PIO FIFO join الذي يعطل TX.
 
 **GPIO مبدئي غير نهائي على RP2040-Zero:**
 
