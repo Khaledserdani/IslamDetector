@@ -173,7 +173,7 @@ public class MainActivity extends Activity {
             double[] stats = LabMath.summarize(values);
             report = ExperimentData.toCsv(values);
             resultText.setText(String.format(Locale.US,
-                    "مصدر البيانات: قياسات أدخلها المستخدم\\nعدد القراءات: %d\\nأقل قيمة: %.4f mV\\nأعلى قيمة: %.4f mV\\nالمتوسط: %.4f mV\\nالمدى: %.4f mV\\nالانحراف المعياري: %.4f mV",
+                    "مصدر البيانات: قياسات أدخلها المستخدم\nعدد القراءات: %d\nأقل قيمة: %.4f mV\nأعلى قيمة: %.4f mV\nالمتوسط: %.4f mV\nالمدى: %.4f mV\nالانحراف المعياري: %.4f mV",
                     (int)stats[5], stats[0], stats[1], stats[2], stats[3], stats[4]));
             statusText.setText("وضع العمل: تحليل قياسات فعلية أدخلها المستخدم");
             String key = "experiment_" + System.currentTimeMillis();
@@ -202,7 +202,7 @@ public class MainActivity extends Activity {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (text.length() + line.length() > 2_000_000) throw new IllegalArgumentException("الملف أكبر من الحد المسموح");
-                text.append(line).append('\\n');
+                text.append(line).append('\n');
             }
             measuredInput.setText(text.toString());
             Toast.makeText(this, "تم تحميل الملف. اضغط تحليل وحفظ القياسات.", Toast.LENGTH_LONG).show();
@@ -241,12 +241,12 @@ public class MainActivity extends Activity {
         String version = "غير معروف";
         try { version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
         catch (Exception ignored) { }
-        String diagnostic = "ISLAM LAB - Safe diagnostic report\\n"
-                + "App version: " + version + "\\n"
-                + "Android version: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")\\n"
-                + "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\n"
-                + "Saved experiment count: " + saved + "\\n"
-                + "Network/location access: not requested by this app\\n"
+        String diagnostic = "ISLAM LAB - Safe diagnostic report\n"
+                + "App version: " + version + "\n"
+                + "Android version: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")\n"
+                + "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\n"
+                + "Saved experiment count: " + saved + "\n"
+                + "Network/location access: not requested by this app\n"
                 + "Note: this report excludes personal files, location, and raw experiment values."; 
         shareText(diagnostic, "ISLAM LAB safe diagnostic report");
     }
