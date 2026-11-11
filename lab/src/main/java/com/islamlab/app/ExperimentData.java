@@ -67,7 +67,7 @@ public final class ExperimentData {
         for (int i = 0; i < values.length; i++) {
             out.append(i + 1).append(',').append(String.format(Locale.US, "%.8f", values[i])).append('\n');
         }
-        out.append('\\n').append(String.format(Locale.US,
+        out.append((char) 10).append(String.format(Locale.US,
                 "count,%d\nmin,%.8f\nmax,%.8f\nmean,%.8f\nrange,%.8f\nstddev,%.8f\n",
                 (int) stats[5], stats[0], stats[1], stats[2], stats[3], stats[4]));
         return out.toString();
