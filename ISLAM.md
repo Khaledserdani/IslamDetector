@@ -354,3 +354,13 @@
 - https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/mcpwm/mcpwm_etm.html
 - https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/rmt.html
 - https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html
+
+
+### 15.2 بروتوكول القياس بين RP2040 وESP32-S3
+
+أُضيفت الوثيقة:
+- `docs/engineering/REV_A_DATA_PROTOCOL_AR.md`
+
+وتحدد إطار UART ثنائياً بإصدار وعداد تسلسلي وطابع زمني ومعرف ملف القياس وأعلام صلاحية وعينات ADC خام وCRC16، مع أوامر HELLO/START/STOP/SET_PROFILE/SELF_TEST، وقواعد إيقاف آمن عند فقد الاتصال أو خلل القياس.
+
+هذا عقد برمجي مقترح v0.1 وليس Firmware منفذاً أو اختبار نقل ناجحاً. لا تعتمد النوافذ أو حدود الإثارة النهائية قبل القياس على العتاد.
