@@ -160,6 +160,21 @@ E_L(t) = 0.5 × L × I(t)^2
 - Espressif RMT FAQ: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/rmt.html
 - RP2040 PIO/ADC official docs: https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html
 
+### حجز أرجل RP2040-Zero — تخطيط مبدئي للاختبار
+
+| GPIO | وظيفة Rev A المقترحة | الحالة |
+|---|---|---|
+| GP0 | UART0 TX إلى ESP32-S3 RX | مقترح |
+| GP1 | UART0 RX من ESP32-S3 TX | مقترح |
+| GP4 / PWM2A | TX timing output | منفذ في Firmware الاختبار كإشارة منطقية فقط |
+| GP5 / PWM2B | SAMPLE_MARKER متزامن | منفذ في Firmware الاختبار |
+| GP6 | PIO_ECHO للاختبار | منفذ في Firmware الاختبار |
+| GP7–GP10 | واجهة PIO/ADC (CS أو CNV، SCLK، SDO، BUSY عند الحاجة) | محجوزة، لم تثبت قبل اختيار ADC |
+| GP12 | FAULT input من comparator/حماية | مقترح |
+| GP26 | ADC داخلي لمراقبة تيار/جهد بطيء إن لزم | اختياري، لا يستبدل ADC الدقيق |
+
+تخطيط الأرجل يعتمد pinout لوحدة RP2040-Zero؛ لا يُعتمد نهائياً قبل فحص نسخة الوحدة المشتراة ومراجعة تخطيط موصل PCBA.
+
 ## 5. واجهة ESP32-S3 مع متحكم القياس
 
 القرار المبدئي هو UART مؤطر بسرعة اختبار 921600 baud بين متحكم القياس وESP32-S3؛ كمية البيانات المتوقعة من 8 نوافذ × 2 بايت × 1000 إطار/ثانية تقارب 16 kB/s قبل الترويسات، وهي ضمن قدرة UART بهامش مناسب. إذا أظهرت الاختبارات حاجة لقنوات أو معدلات أعلى، ننتقل إلى SPI.
