@@ -169,10 +169,10 @@ int main(void) {
 #if ENABLE_ADS8861_CAPTURE
     ads8861_sm = pio_claim_unused_sm(pio0, true);
     ads8861_ready = ads8861_capture_init(pio0, ads8861_sm);
-    printf("ADS8861 PIO capture: %s (DIN must be strapped HIGH).\\n",
+    printf("ADS8861 PIO capture: %s (DIN must be strapped HIGH).\n",
            ads8861_ready ? "enabled" : "init failed");
 #else
-    printf("ADS8861 PIO driver compiled but disabled; no ADC hardware assumed.\\n");
+    printf("ADS8861 PIO driver compiled but disabled; no ADC hardware assumed.\n");
 #endif
 
     slice_num = pwm_gpio_to_slice_num(TX_TEST_PIN);
@@ -199,7 +199,7 @@ int main(void) {
         uint16_t raw_sample;
         if (ads8861_ready &&
             ads8861_capture_try_read(pio0, ads8861_sm, &raw_sample)) {
-            printf("ADS8861_RAW16=%04X (two's-complement raw)\\n", raw_sample);
+            printf("ADS8861_RAW16=%04X (two's-complement raw)\n", raw_sample);
         }
 #endif
         tight_loop_contents();
