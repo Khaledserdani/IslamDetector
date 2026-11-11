@@ -126,11 +126,17 @@ E_L(t) = 0.5 × L × I(t)^2
 
 | ADC | الدقة/السرعة | نوع الدخل | السعر المرجعي الظاهر | الحكم |
 |---|---|---|---:|---|
-| ADS7054 | 14-bit / 1MSPS | تفاضلي | 5.21 USD للقطعة الواحدة على DigiKey | الخيار الأول لـRev A |
-| AD7980 | 16-bit / 1MSPS | pseudo-differential 0..VREF | 32.88 USD للقطعة الواحدة على DigiKey | احتياطي إذا أثبتت قياسات الضوضاء أن 14-bit غير كافٍ |
+| ADS7054 | 14-bit / 1MSPS | تفاضلي | 5.21 USD للقطعة الواحدة على DigiKey | خيار Rev A الاقتصادي |
+| ADS8860 | 16-bit / 1MSPS، SNR نحو 93 dB، acquisition نحو 290 ns | أحادي 0..VREF | 22.04 USD للقطعة الواحدة على Mouser | خيار أداء أعلى وأسهل مع خرج RX أحادي الطرف، لكنه يحتاج مرجعاً خارجياً |
+| AD7980 | 16-bit / 1MSPS، SNR 91.5 dB | pseudo-differential 0..VREF | 32.88 USD للقطعة الواحدة على DigiKey | أقل جاذبية من ADS8860 من ناحية السعر |
 | RP2040 الداخلي | 12-bit / 500kSPS، ENOB نموذجي 8.7 | أحادي | مدمج | لاختبار التوقيت/الإشارة الكبيرة فقط، لا للحساسية النهائية |
 
-**قرار Rev A الحالي:** نبدأ بـADS7054؛ مواصفاته 14-bit/1MSPS وSNR نحو 79.6 dB واستهلاك 1.5 mW عند 1MSPS، وهي نقطة بداية متوازنة لتجربة PI، كما أن تكلفته أقل كثيراً من AD7980. يتطلب X2QFN-8 تجميع PCBA دقيقاً، وهذا ينسجم مع خطة اللوحة المجمعة. نحتفظ بـAD7980 كخيار ترقية فقط إذا أثبتت اختبارات الضوضاء أن ADS7054 هو الحد الفاصل للأداء.
+**قرار Rev A الحالي:** نحتفظ بمسارين واضحين بدل تثبيت ADC مبكراً:
+- ADS7054 هو خيار البداية الاقتصادي: 14-bit/1MSPS، SNR نحو 79.6 dB، استهلاك 1.5 mW، لا يحتاج مرجعاً خارجياً، لكنه X2QFN-8 ودخله تفاضلي.
+- ADS8860 هو خيار الأداء الأعلى إذا استقر مسار RX على خرج أحادي الطرف: 16-bit/1MSPS، SNR نحو 93 dB، دخل 0..VREF وحزمة VSSOP-10 أسهل في PCBA، لكنه يحتاج مرجعاً خارجياً وتكلفته أعلى.
+- AD7980 يبقى احتياطياً، لكن سعره المرجعي أعلى من ADS8860.
+
+لا نطلب أي ADC قبل تثبيت شكل خرج المضخم (single-ended أم differential)، common-mode، مجال الجهد، مرجع ADC، وميزانية الضوضاء.
 
 إذا تعذر توفير ADC خارجي فوراً، يمكن استخدام ADC الداخلي لـRP2040 لاختبار التوقيت وإثبات عمل TX/RX على إشارات كبيرة فقط؛ لا نسجل نتائجه على أنها أداء حساسية نهائي. لا نعتمد ADS1115 أو TM7705 كمسار PI سريع رئيسي.
 
@@ -325,6 +331,11 @@ ESP32-S3 لا يتحكم بتوقيت النبضة الحرجة عبر Wi-Fi. إ
 - AD8032: https://www.analog.com/en/products/ad8032.html
 - AD8015: https://www.analog.com/en/products/ad8015.html
 - قائمة Power Lab المحلية: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/?product_per_page=-1
+
+### مصادر الأسعار والمواصفات
+- ADS7054: https://www.ti.com/product/ADS7054 — 14-bit, 1 MSPS, 79.6 dB SNR.
+- ADS8860: https://www.ti.com/product/ADS8860 — 16-bit, 1 MSPS, 93 dB SNR, 290 ns acquisition; price reference: https://www.mouser.com/ProductDetail/Texas-Instruments/ADS8860IDGSR?qs=7MVldsJ5Uay4E9prX9lV9Q%3D%3D — 22.04 USD at the observed single-unit listing.
+- AD7980: https://www.analog.com/en/products/ad7980.html — 16-bit / 1 MSPS; price reference: https://www.digikey.com/en/products/detail/analog-devices-inc/AD7980BRMZRL7/1679878 — 32.88 USD at the observed single-unit listing.
 
 ### مراجعة ADCs الموجودة محلياً — ما لا نشتريه
 
