@@ -39,8 +39,8 @@ class RevATimingTests(unittest.TestCase):
 
         # First point: 2 input-sync + SET Y + OUT + (X+1) loop cycles.
         first_cycles = counts[0] + 5
-        # Later points: 320 cycles conversion/readout/loop control,
-        # OUT=1 cycle, and the delay loop (X+1).
+        # Later points: 319 cycles through conversion/readout, then JMP Y and OUT
+        # add 2 cycles; the delay loop adds (X+1) cycles.
         intervals = [322 + value for value in counts[1:]]
         cumulative = [first_cycles]
         for interval in intervals:
