@@ -16,6 +16,8 @@
 
     set pins, 0 side 0 [11]
     set x, 15 side 0
+    ; Wait at least 16 ns for t_d-CNV-DO (12.3 ns max) before sampling D15.
+    nop side 0 [1]
 
 bitloop:
     in pins, 1 side 1 [11]
