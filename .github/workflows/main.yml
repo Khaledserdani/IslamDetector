@@ -25,7 +25,7 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build Android applications
-        run: gradle --no-daemon clean :app:assembleDebug :lab:assembleDebug
+        run: gradle --no-daemon clean :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug
       - name: Verify APK packages
         shell: bash
         run: |
