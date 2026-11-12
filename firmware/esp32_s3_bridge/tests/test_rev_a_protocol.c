@@ -49,7 +49,7 @@ static size_t make_measurement(uint8_t frame[REV_A_MAX_FRAME_SIZE]) {
     write_le16(&frame[21], 100u);
     write_le16(&frame[23], 12000u);
     write_le16(&frame[25], 1250u);
-    write_le16(&frame[27], 2534u);
+    write_le16(&frame[27], (uint16_t)(int16_t)-123);
     frame[29] = 0xFFu;
     frame[30] = 8u;
     const uint16_t samples[8] = {
@@ -106,6 +106,7 @@ int main(void) {
     CHECK(measurement.sample_count == 8u);
     CHECK(measurement.samples[2] == 0x8000u);
     CHECK(measurement.tx_current_ma == 1250u);
+    CHECK(measurement.temp_centi_c == -123);
 
     uint8_t info_bytes[25];
     const size_t info_length = make_device_info(info_bytes, REV_A_SAMPLE_TWOS_COMPLEMENT);
@@ -147,6 +148,12 @@ int main(void) {
     memset(&sink, 0, sizeof(sink));
     const uint8_t noise[] = {0x00u, 0x49u, 0x00u, 0xFFu};
     CHECK(rev_a_parser_feed(&parser, noise, sizeof(noise), collect_frame, &sink) == 0u);
+    const uint8_t split_sync_prefix[] = {0x49u};
+    CHECK(rev_a_parser_feed(&parser, split_sync_prefix, sizeof(split_sync_prefix), collect_frame, &sink) == 0u);
+    CHECK(rev_a_parser_feed(&parser, &measurement_bytes[1], measurement_length - 1u, collect_frame, &sink) == 1u);
+    CHECK(sink.count == 1u);
+    rev_a_parser_init(&parser);
+    memset(&sink, 0, sizeof(sink));
     uint8_t combined[25u + REV_A_MAX_FRAME_SIZE];
     memcpy(combined, info_bytes, info_length);
     memcpy(&combined[info_length], measurement_bytes, measurement_length);
