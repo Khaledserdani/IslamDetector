@@ -511,3 +511,8 @@
 - التطبيق الرئيسي `com.islamdetector.app`: Artifact ID `13932812908`، APK المستخرج 22,079 بايت، SHA-256 `6c7d5f6b41079cef6d89ac35f6f4eded03c0ded15943b9c1832c9ee64ba6aeb4`.
 - المختبر `com.islamlab.app`: Artifact ID `13932992725`، APK المستخرج 2,005,824 بايت، SHA-256 `49551604df3896f428980b38e2b8f6433f61100011ac81d7912d2dddfd6e94f7`.
 - الأثران صالحان حتى 2026-12-12، وكلاهما Debug-signed وليس إصدار Release موقّعاً بمفتاح ثابت.
+
+
+### اشتقاق متطلبات قدرة TX لملف DD32 — 2026-11-12
+- أُنشئت `docs/engineering/DD32_TX_POWER_STAGE_DERIVATION_AR.md` لتوثيق معادلات تيار RL والطاقة المختزنة ومتطلبات اختيار MOSFET/Driver/TVS.
+- جدول الطاقة عند 1/2/5/10 A أمثلة حسابية فقط وليست قيم تيار معتمدة. تبقى قيم القطع والجهد والنبضة معلقة حتى قياس DCR وL وتحديد Ipeak وTon ومسار clamp الفعلي.
