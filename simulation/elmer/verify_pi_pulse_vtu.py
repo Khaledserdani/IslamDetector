@@ -39,8 +39,54 @@ files = sorted(root.glob("islam-pi-pulse*.vtu"))
 if len(files) < 2:
     raise SystemExit("FAIL: fewer than two transient VTU snapshots")
 
+def axisymmetric_cell_volumes(vtu_tree, expected_cells):
+    points_node = next(vtu_tree.iter("Points"), None)
+    cells_node = next(vtu_tree.iter("Cells"), None)
+    if points_node is None or cells_node is None:
+        raise ValueError("VTU Points/Cells missing")
+    point_array = points_node.find("DataArray")
+    if point_array is None:
+        raise ValueError("VTU point coordinates missing")
+    coords = [float(x) for x in (point_array.text or "").split()]
+    ncomp = int(point_array.attrib.get("NumberOfComponents", "3"))
+    if ncomp < 2 or len(coords) % ncomp:
+        raise ValueError("malformed VTU point coordinates")
+    points = [(coords[i], coords[i+1]) for i in range(0, len(coords), ncomp)]
+    cell_arrays = {(a.attrib.get("Name") or "").lower(): a for a in cells_node.findall("DataArray")}
+    if not {"connectivity", "offsets"}.issubset(cell_arrays):
+        raise ValueError("VTU connectivity/offsets missing")
+    connectivity = [int(x) for x in (cell_arrays["connectivity"].text or "").split()]
+    offsets = [int(x) for x in (cell_arrays["offsets"].text or "").split()]
+    if len(offsets) != expected_cells:
+        raise ValueError("VTU cell count does not match GeometryIds")
+    volumes, start = [], 0
+    for end in offsets:
+        ids = connectivity[start:end]
+        start = end
+        if len(ids) < 3 or any(i < 0 or i >= len(points) for i in ids):
+            raise ValueError("invalid cell connectivity")
+        # Polygon area and centroid in the axisymmetric (r,z) plane.
+        twice_area = cx = cy = 0.0
+        for k, idx in enumerate(ids):
+            x1, y1 = points[idx]
+            x2, y2 = points[ids[(k+1) % len(ids)]]
+            cross = x1*y2 - x2*y1
+            twice_area += cross
+            cx += (x1+x2)*cross
+            cy += (y1+y2)*cross
+        if abs(twice_area) < 1e-24:
+            raise ValueError("zero-area mesh cell")
+        area = abs(twice_area) / 2.0
+        centroid_r = (cx / (3.0*twice_area))
+        # Revolve the 2-D cell around the symmetry axis: V = 2*pi*r_centroid*A.
+        volumes.append(2.0*math.pi*max(centroid_r, 0.0)*area)
+    return volumes
+
+
 by_step = defaultdict(list)
 target_current_by_step = {}
+target_integral_by_step = {}
+target_rms_by_step = {}
 for path in files:
     match = re.search(r"_t(\d+)\.vtu$", path.name)
     if not match:
@@ -109,6 +155,21 @@ for path in files:
     if not target_magnitudes:
         raise SystemExit(f"FAIL: no Aluminium_Target cells (GeometryIds=3) in {path.name}")
     target_current_by_step[step] = max(target_magnitudes)
+    try:
+        cell_volumes = axisymmetric_cell_volumes(tree, len(geometry_ids))
+    except ValueError as exc:
+        raise SystemExit(f"FAIL: cannot integrate axisymmetric target volume in {path.name}: {exc}")
+    target_integral = sum(
+        math.sqrt(sum(current_values[3*i+j]**2 for j in range(3))) * cell_volumes[i]
+        for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3
+    )
+    target_rms = math.sqrt(
+        sum((math.sqrt(sum(current_values[3*i+j]**2 for j in range(3)))**2) * cell_volumes[i]
+            for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3)
+        / sum(cell_volumes[i] for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3)
+    )
+    target_integral_by_step[step] = target_integral
+    target_rms_by_step[step] = target_rms
 
 steps = sorted(by_step)
 if len(steps) < 2:
@@ -178,4 +239,7 @@ if target_final >= target_peak * 0.10:
     )
 print(f"Target induced-current peak = {target_peak:.9g} A/m^2 at step {target_peak_step}")
 print(f"Target induced-current final = {target_final:.9g} A/m^2 at step {target_final_step}")
+print(f"Peak volume-integrated |J| dV = {max(target_integral_by_step.values()):.9g} A")
+print(f"Peak volume-weighted RMS |J| = {max(target_rms_by_step.values()):.9g} A/m^2")
+print("NOTE: integral |J| dV is a scalar response proxy, not net loop current or receiver voltage.")
 print("PASS: nonzero induced current in the separate aluminium target with post-pulse decay")
