@@ -7,7 +7,7 @@ public class ExperimentCsvValidatorTest {
     private static String strict(String source, String status, String samples) {
         return "schema_version,1.0.0\nexperiment_id,exp-001\ntitle,Test\ncreated_at_utc,2026-11-12T10:00:00Z\n"
                 + "source.type," + source + "\nsource.origin,test_fixture\n"
-                + "verification.status," + status + "\nmeasurement.unit,mV\n"
+                + "verification.status," + status + "\nmeasurement.quantity,voltage\nmeasurement.unit,mV\nmeasurement.sample_origin,test_fixture\n"
                 + "sample_index,time_us,value\n" + samples;
     }
 
@@ -58,4 +58,16 @@ public class ExperimentCsvValidatorTest {
         assertFalse(ExperimentCsvValidator.validate("").valid);
         assertFalse(ExperimentCsvValidator.validate(new String(new char[2_000_001]).replace('\0','x')).valid);
     }
+
+    @Test public void acceptsLegacySummaryAfterBlankSeparator() {
+        String csv = "schema_version,1.1\nsource_type,synthetic\nmeasurement_status,not_a_hardware_measurement\n"
+                + "index,value\n1,10\n2,8\n\ncount,2\nmean,9\n";
+        assertTrue(ExperimentCsvValidator.validate(csv).valid);
+    }
+
+    @Test public void rejectsRepeatedSampleIndex() {
+        assertFalse(ExperimentCsvValidator.validate(
+                strict("instrument", "unverified", "0,8,1\n0,12,2\n")).valid);
+    }
+
 }
