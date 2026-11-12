@@ -762,3 +762,41 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 
 ## حالة العمل بعد هذه النقطة
 **توقف العمل الهندسي والتنفيذي مؤقتاً بطلب المستخدم.** لا تغييرات إضافية، ولا قرارات شراء، ولا اختيار ملف أو قيم مقاومات، ولا دمج PR إلى أن ينتهي النقاش ويطلب المستخدم استئناف العمل. عند الاستئناف: افحص أولاً حالة CI #243 ورأس PR، ثم تابع من هذه النقطة دون إعادة الخطوات المنجزة.
+
+
+## 17) استئناف Rev A — 2026-11-12
+
+### حالة الفرع وطلبات المراجعة
+- المستودع: `Khaledserdani/IslamDetector`.
+- الفرع الفعلي `hardware/rev-a-measurement-design`، رأسه قبل هذا التحديث: `990b28bf497dbf3318af3d97fa26396a360f3856`.
+- تحقق GitHub من أن PR #6 **مغلق وغير مدمج** منذ 2026-11-11 16:54:39Z، وليس مفتوحاً كما ورد في طلب الاستئناف.
+- PR #7 هو الطلب الحالي المفتوح Draft وغير المدمج على الفرع نفسه، ورأسه كان `990b28bf497dbf3318af3d97fa26396a360f3856`. لم ندمج أو نغلق أو نعدّل حالة أي PR في هذا التشغيل؛ يجب معالجة اختلاف رقم PR صراحة قبل أي إجراء إداري لاحق.
+- تشغيل CI رقم648، ID `43225625730`، على الرأس `990b28bf497dbf3318af3d97fa26396a360f3856`، اكتمل بنجاح في الوظائف الثلاث: `android-app` و`protocol-tests` و`rp2040-firmware`. التشغيل مرتبط بـPR #7.
+- رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43225625730
+
+### إثبات UF2
+- Artifact: `IslamDetector-RevA-RP2040-Timing-Test-UF2`، ID `13947258753`، الحجم المضغوط 27,689 بايت، وانتهاء الصلاحية 2026-12-12 13:18:54Z.
+- تم تنزيله وفحص ZIP؛ لا أخطاء CRC/ضغط. يحتوي `islam_rev_a_timing_test.uf2` بحجم69,632 بايت.
+- فحص بنية UF2: 136 كتلة، 512 بايت لكل كتلة، تسلسل أرقام الكتل صحيح، علامات البداية والنهاية صحيحة، Family ID=`0xE48BFF56` (RP2040)، وعناوين التحميل تبدأ من `0x10000000`. SHA-256 للملف: `b12504f61803e48a5b69fe656ae12d5694046b56e55f7f73f2f49d1236ec31bd`.
+- هذا يثبت أن ملف UF2 صالح بنيوياً لعائلة RP2040 وأن CI بنى Firmware الاختبار. لا يثبت تفليشه أو عمله على RP2040-Zero فعلياً، ولا يثبت التقاط ADS8861؛ الخيار `ENABLE_ADS8861_CAPTURE=0` ما زال معطلاً افتراضياً.
+- Artifact التطبيق Android `IslamDetector-Original-APK` موجود في التشغيل نفسه؛ نجاح البناء لا يثبت التثبيت على هاتف.
+
+### تدقيق ADS8861 — حافة أخذ العينة
+- مراجعة ورقة TI الأصلية Rev.A، Table 1 وFigure 1: `t_d-CNV-DO` حتى12.3ns بعد CONVST falling، و`t_d-CK-DO` حتى13.4ns بعد SCLK falling، مع `t_h-CK-DO` لا يقل عن3ns.
+- لذلك يتغير DOUT بعد الحافة الهابطة، لكن يجب أخذ العينة على الحافة الصاعدة التالية بعد استقرار البيانات؛ لا تؤخذ العينة على الحافة الهابطة نفسها.
+- كود PIO الحالي يحقق ذلك: `in pins, 1 side 1 [6]` يأخذ العينة أثناء SCLK HIGH، ثم `jmp x-- bitloop side 0 [6]` يخفض SCLK. أضيف توضيح واختبار يمنعان التباس حافة التحديث بحافة أخذ العينة.
+- مرجع المصنع: https://www.ti.com/lit/ds/symlink/ads8861.pdf
+
+### تدقيق Android وإصلاح آمن
+- تمت مراجعة Manifest وGradle وMainActivity: صلاحيات INTERNET وACCESS_NETWORK_STATE موجودة؛ cleartext HTTP مفعّل لاتصال ESP32 المحلي؛ واجهة RTL؛ Java17/compileSdk35/minSdk23/targetSdk35؛ الاتصال عبر Executor منفصل، مع timeout وdisconnect داخل finally.
+- عُثر على أن SQLite insert/history/export كانت تعمل على خيط الواجهة. نُقلت عمليات قاعدة البيانات إلى منفّذ تسلسلي مستقل، وأصبحت تحديثات الواجهة تعود عبر main thread. إغلاق قاعدة البيانات يوضع في نهاية طابور التخزين لتجنب إغلاقها أثناء عملية جارية.
+- الملفات المعدلة في هذا الاستئناف: `app/src/main/java/com/islamdetector/app/MainActivity.java`، `docs/engineering/REV_A_ARCHITECTURE_AR.md`، `docs/engineering/REV_A_PINMAP_DRAFT_AR.md`، `firmware/rp2040_timing_test/pio/ads8861_capture.pio`، `tools/test_rev_a_timing.py`، وهذا الملف.
+- commits هذا التشغيل: `127a17f251b2a43dd5a757ec509f47329aa15ada` (SQLite خارج UI)، `960994e261fba4bddba3bdc2523bcfbb3167d65d` (حماية تحديث سجل القياسات أثناء الإغلاق). commits التوثيق واختبار الحافة سيُسجلان بعد إنشائهما.
+
+### ما لم يثبت وما يلي
+1. ننتظر CI جديداً بعد إصلاح SQLite وتحديث اختبار PIO؛ لا ننسب نجاح CI #648 إلى commits اللاحقة.
+2. ESP32-S3 ما زال يملك portable C parser مجرباً على Linux فقط؛ لم ينفذ بعد ESP-IDF UART task أو ring buffer أو HELLO/GET_INFO أو Wi-Fi/WebServer أو ربط Android.
+3. ADS8861 PIO driver مدمج في بناء RP2040 لكنه غير مفعل افتراضياً؛ لا يوجد ADC فعلي أو loopback أو قياس jitter أو settling.
+4. يلزم اختبار GP4/GP5/GP6 أولاً دون أي مرحلة قدرة، ثم GP8/GP9/GP10 مع ADS8861 مركب وحماية وتغذية مراجعة.
+5. يلزم قياس L/DCR/القطبية وtransient RX وclip-release، ثم محاكاة AFE وحساب الحماية والطاقة قبل KiCad/BOM/PCB/PCBA.
+6. لا توجد حتى الآن حزمة تصنيع Rev A مكتملة أو جهاز مادي مثبت. لا توصيل MOSFET أو ملف بحث أو مرحلة TX عالية الطاقة قبل حسابات الارتداد والحماية واختبار حمل وهمي محدود التيار.
