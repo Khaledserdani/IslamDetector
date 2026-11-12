@@ -2,6 +2,7 @@ package com.islamdetector.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.graphics.Color;
@@ -13,6 +14,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsetsController;
 import android.widget.*;
 import org.json.JSONObject;
 import java.io.*;
@@ -58,6 +60,16 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(Color.rgb(8, 16, 29));
         getWindow().setNavigationBarColor(Color.rgb(8, 16, 29));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.setSystemBarsAppearance(0,
+                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
         db = new DetectorDb(this);
         buildScreen();
         loadSettings();
@@ -69,6 +81,15 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(Color.rgb(8, 16, 29));
+        // targetSdk 35 is edge-to-edge on Android 15; keep controls clear of system bars.
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(
+                    insets.getSystemWindowInsetLeft(),
+                    insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(),
+                    insets.getSystemWindowInsetBottom());
+            return insets;
+        });
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(18), dp(18), dp(18), dp(26));

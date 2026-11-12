@@ -790,13 +790,21 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 ### تدقيق Android وإصلاح آمن
 - تمت مراجعة Manifest وGradle وMainActivity: صلاحيات INTERNET وACCESS_NETWORK_STATE موجودة؛ cleartext HTTP مفعّل لاتصال ESP32 المحلي؛ واجهة RTL؛ Java17/compileSdk35/minSdk23/targetSdk35؛ الاتصال عبر Executor منفصل، مع timeout وdisconnect داخل finally.
 - عُثر على أن SQLite insert/history/export كانت تعمل على خيط الواجهة. نُقلت عمليات قاعدة البيانات إلى منفّذ تسلسلي مستقل، وأصبحت تحديثات الواجهة تعود عبر main thread. إغلاق قاعدة البيانات يوضع في نهاية طابور التخزين لتجنب إغلاقها أثناء عملية جارية.
-- الملفات المعدلة في هذا الاستئناف: `app/src/main/java/com/islamdetector/app/MainActivity.java`، `docs/engineering/REV_A_ARCHITECTURE_AR.md`، `docs/engineering/REV_A_PINMAP_DRAFT_AR.md`، `firmware/rp2040_timing_test/pio/ads8861_capture.pio`، `tools/test_rev_a_timing.py`، وهذا الملف.
-- commits هذا التشغيل: `127a17f251b2a43dd5a757ec509f47329aa15ada` (SQLite خارج UI)، `960994e261fba4bddba3bdc2523bcfbb3167d65d` (حماية تحديث سجل القياسات أثناء الإغلاق). commits التوثيق واختبار الحافة سيُسجلان بعد إنشائهما.
+- targetSdk=35 يعني أن Android 15 يفرض edge-to-edge؛ أضيفت معالجة WindowInsets على ScrollView حتى لا تُغطى عناصر الواجهة بشريط الحالة/التنقل، مع تثبيت أيقونات النظام الفاتحة على الخلفية الداكنة.
+- الملفات المعدلة في هذا الاستئناف: `app/src/main/java/com/islamdetector/app/MainActivity.java`، `docs/engineering/REV_A_ARCHITECTURE_AR.md`، `docs/engineering/REV_A_PINMAP_DRAFT_AR.md`، `docs/engineering/REV_A_BENCH_TEST_PLAN_AR.md`، `firmware/rp2040_timing_test/pio/ads8861_capture.pio`، `tools/test_rev_a_timing.py`، وهذا الملف.
+- commits هذا التشغيل حتى رأس `c35bdfc0998d5c9c2810f19436a811a99703e2ba`: `127a17f251b2a43dd5a757ec509f47329aa15ada` و`960994e261fba4bddba3bdc2523bcfbb3167d65d` لإخراج SQLite من UI؛ `f5d3a48f1b18eaa4f398a9c27f060250a3ee210e` و`bb7877bccf97d9cc1d859a1bf4c5a0adaff840b6` و`075c1642ec4a654aecf474f872a86f285494d0c5` و`2a812e98cfc0b839f41d11943afe2fc03093022f` و`c35bdfc0998d5c9c2810f19436a811a99703e2ba` لتحديث السجل والوثائق وتوضيح حافة ADS8861 واختبارها.
 
 ### ما لم يثبت وما يلي
-1. ننتظر CI جديداً بعد إصلاح SQLite وتحديث اختبار PIO؛ لا ننسب نجاح CI #648 إلى commits اللاحقة.
+1. CI #704 على الرأس `c35bdfc0998d5c9c2810f19436a811a99703e2ba`: نجح protocol-tests وandroid-app وظهر Artifact APK؛ كان rp2040-firmware لا يزال في خطوة تثبيت ARM toolchain عند آخر قراءة. لا ننسب نجاح CI #648 إلى commits اللاحقة، وننتظر تشغيل تحقق مكتمل على الرأس الجديد.
 2. ESP32-S3 ما زال يملك portable C parser مجرباً على Linux فقط؛ لم ينفذ بعد ESP-IDF UART task أو ring buffer أو HELLO/GET_INFO أو Wi-Fi/WebServer أو ربط Android.
 3. ADS8861 PIO driver مدمج في بناء RP2040 لكنه غير مفعل افتراضياً؛ لا يوجد ADC فعلي أو loopback أو قياس jitter أو settling.
 4. يلزم اختبار GP4/GP5/GP6 أولاً دون أي مرحلة قدرة، ثم GP8/GP9/GP10 مع ADS8861 مركب وحماية وتغذية مراجعة.
 5. يلزم قياس L/DCR/القطبية وtransient RX وclip-release، ثم محاكاة AFE وحساب الحماية والطاقة قبل KiCad/BOM/PCB/PCBA.
 6. لا توجد حتى الآن حزمة تصنيع Rev A مكتملة أو جهاز مادي مثبت. لا توصيل MOSFET أو ملف بحث أو مرحلة TX عالية الطاقة قبل حسابات الارتداد والحماية واختبار حمل وهمي محدود التيار.
+
+## 18) توافق Android 15 واختبار UF2 المنطقي — 2026-11-12
+
+- تطبيق Android يستهدف API35؛ توثيق Android الرسمي يؤكد أن التطبيقات المستهدفة SDK35 تعمل edge-to-edge على Android15، وقد تغطي أشرطة النظام أجزاء الواجهة ما لم تُطبّق WindowInsets. أضيفت معالجة system-window insets إلى ScrollView، وضبط مظهر أيقونات الحالة والتنقل لتبقى واضحة فوق الخلفية الداكنة. لم يثبت العرض على هاتف Android15 فعلياً بعد.
+- أضيف إلى خطة الطاولة إجراء منفصل وآمن لاختبار UF2 الحالي على RP2040-Zero باستخدام USB-C فقط وGP4/GP5/GP6. يمنع توصيل MOSFET أو ملف أو12V أو ADC في هذا الاختبار. يوصى بمحلل منطق≥100MS/s لقياس نبضة GP6=128ns؛ 24MS/s لا يكفي لدقة عرضها أو jitter.
+- لا يغير هذا الإجراء حالة البرنامج: GP4/GP5/GP6 اختبار منطق فقط، ومسار ADS8861 الاختياري على GP8/GP9/GP10 معطل افتراضياً.
+- مرجع Android: https://developer.android.com/develop/ui/views/layout/edge-to-edge ؛ https://developer.android.com/about/versions/15/behavior-changes-15
