@@ -13,6 +13,7 @@ git -C "$WORK_DIR/elmerfem" checkout --quiet "$ELMER_REVISION"
 
 CASE_DIR="$WORK_DIR/elmerfem/fem/tests/circuits2D_transient_foil"
 cp "$GITHUB_WORKSPACE/simulation/elmer/pi_pulse_foil.sif" "$CASE_DIR/islam-pi-pulse.sif"
+cp "$GITHUB_WORKSPACE/simulation/elmer/pi_pulse_current_source.definitions" "$CASE_DIR/sif/islam-pi-current-source.definitions"
 printf 'islam-pi-pulse.sif\n' > "$CASE_DIR/ELMERSOLVER_STARTINFO"
 cd "$CASE_DIR"
 
