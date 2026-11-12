@@ -28,6 +28,15 @@
 
 **تنبيه محدد:** توجد مناقشة مفتوحة في مستودع Elmer حول حساب Flux Linkage في حالة تيار ملف غير 1 A، مع ملاحظة احتمال غياب القسمة على التيار في الناتج. لذلك لا نعتمد قيمة Flux Linkage أو المحاثة المستخرجة من هذا الخيار مباشرة قبل اختبار مستقل وتصحيح/تأكيد طريقة الحساب. مرجع الحالة: https://github.com/ElmerCSC/elmerfem/issues/716
 
+## 3 مكرر. مراجع Elmer الرسمية الأقرب للمسألة
+
+قبل كتابة ملف إعداد جديد من الصفر، نستخدم حالات الاختبار الموجودة في مستودع Elmer الرسمي كنقطة انطلاق ونراجع توافقها مع إصدار المحرك المستخدم:
+- `mgdyn_steady_coils`: مثال ملفيْن مع `CoilSolver` و`WhitneyAVSolver`، مفيد لفهم تعريف الملفات واتجاه التيار والاقتران المغناطيسي في حالة مستقرة: https://github.com/ElmerCSC/elmerfem/blob/devel/fem/tests/mgdyn_steady_coils/case.sif
+- `circuits_transient_stranded_full_coil`: مثال عابر يربط حل الملف بالدائرة و`WhitneyAVSolver`، وهو أقرب مرجع بنيوي لدراسة إثارة زمنية، لكنه ليس نموذج DD32 جاهزاً: https://github.com/ElmerCSC/elmerfem/tree/devel/fem/tests/circuits_transient_stranded_full_coil
+- `mgdyn_faraday_disc_transient`: حالة عابرة تستخدم BDF وWhitneyAVSolver، مفيدة لفهم إعدادات الزمن والحل العابر: https://github.com/ElmerCSC/elmerfem/tree/devel/fem/tests/mgdyn_faraday_disc_transient
+
+يجب نسخ ملفات الحالة وملفات الشبكة اللازمة إلى مجلد اختبار خاص بالمشروع مع تسجيل commit Elmer المستخدم، وعدم تعديل أمثلة المصدر بصمت. نبدأ بإعادة تشغيل حالة upstream كما هي، ثم نبني حالة مرجعية مصغرة، وبعد اجتيازها نضيف موصلاً ممثلاً لهدف معدني.
+
 ## 4. بوابة اعتماد ngspice
 
 - بناء نسخة command-line أولاً على Linux وتشغيل netlist مرجعي بسيط RLC ومصدر نبضة.
