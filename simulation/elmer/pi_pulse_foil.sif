@@ -69,19 +69,16 @@ Solver 3
    Steady State Convergence Tolerance = 1e-10
 End
 
-Solver 4
-   Equation = CompB
-   Variable = -nooutput temp
-   Exported Variable 1 = B[B:2]
-   Target Variable = "A"
-   Procedure = "MagnetoDynamics2D" "bSolver"
-   Discontinuous Galerkin = Logical True
-   Linear System Solver = Iterative
-   Linear System Iterative Method = BicgstabL
-   Linear System Symmetric = True
-   Linear System Max Iterations = 100
-   Linear System Preconditioning = None
-   Linear System Convergence Tolerance = 1e-10
+Solver 4  ! Modern post-processing of magnetic fields
+   Exec Solver = After Timestep
+   Equation = "MGDynamicsCalc"
+   Procedure = "MagnetoDynamics" "MagnetoDynamicsCalcFields"
+   Potential Variable = String "A"
+   Calculate Magnetic Flux Density = Logical True
+   Calculate Current Density = Logical True
+   Skip Compute Steady State Change = Logical True
+   Linear System Solver = "Direct"
+   Linear System Direct Method = UMFPACK
 End
 Solver 5
    Exec Solver = Always
