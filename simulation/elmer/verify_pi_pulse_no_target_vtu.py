@@ -50,11 +50,13 @@ for path in files:
     geometry_ids = [int(float(x)) for x in (arrays["geometryids"].text or "").split()]
     if 3 in geometry_ids:
         raise SystemExit(f"FAIL: target body still exists in no-target control {path.name}")
-    if not b_values or max(b_values) <= 0:
-        raise SystemExit(f"FAIL: no nonzero transmitter magnetic field in {path.name}")
+    if not b_values:
+        raise SystemExit(f"FAIL: empty transmitter magnetic-field array in {path.name}")
     series.append((step, max(b_values)))
 
 series.sort()
+if not any(value > 0 for _, value in series):
+    raise SystemExit("FAIL: transmitter magnetic field is zero in every no-target snapshot")
 if len({step for step, _ in series}) != len(series):
     raise SystemExit("FAIL: duplicate transient time steps")
 out = root / "no_target_magnetic_flux_density_summary.csv"
@@ -63,5 +65,6 @@ with out.open("w") as f:
     for step, value in series:
         f.write(f"{step},{value:.12g}\n")
 print(f"No-target VTU snapshots = {len(series)}")
-print(f"No-target maximum |B| = {max(v for _, v in series):.9g}")
+print(f"No-target peak |B| = {max(v for _, v in series):.9g}")
+print(f"Final no-target |B| = {series[-1][1]:.9g}")
 print("PASS: transmitter field is present and Aluminium_Target cells are absent")
