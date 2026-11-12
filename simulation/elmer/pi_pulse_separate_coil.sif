@@ -1,0 +1,122 @@
+! ISLAM LAB: independent PI transmitter coil above a separate aluminium target.
+! Axisymmetric geometry generated from pi_pulse_separate_coil.geo.
+! Normalized 1 A-equivalent current-density pulse; not a measured DD32 waveform.
+
+Check Keywords "Warn"
+
+Header
+  Mesh DB "." "pi-pulse-mesh"
+End
+
+$ J0 = 1.0e6
+$ nsteps = 40
+$ stepsize = 25.0e-6
+
+Simulation
+  Max Output Level = 5
+  Coordinate System = "Axi Symmetric"
+  Simulation Type = Transient
+  Timestepping Method = BDF
+  BDF Order = 1
+  Timestep Sizes(1) = Real $stepsize
+  Timestep Intervals(1) = $nsteps
+  Output Intervals(1) = 1
+  Steady State Max Iterations = 1
+End
+
+Constants
+  Permeability Of Vacuum = 1.25663706212e-6
+  Permittivity Of Vacuum = 8.8541878128e-12
+End
+
+Body 1
+  Name = "Air"
+  Equation = 1
+  Material = 1
+End
+
+Body 2
+  Name = "TX_Coil"
+  Equation = 1
+  Material = 2
+  Body Force = 1
+End
+
+Body 3
+  Name = "Aluminium_Target"
+  Equation = 1
+  Material = 3
+End
+
+Material 1
+  Name = "Air"
+  Electric Conductivity = 0.0
+  Relative Permeability = 1.0
+End
+
+Material 2
+  Name = "Copper_TX"
+  Electric Conductivity = 0.0
+  Relative Permeability = 1.0
+End
+
+Material 3
+  Name = "Aluminium"
+  Electric Conductivity = 3.5e7
+  Relative Permeability = 1.0
+End
+
+Equation 1
+  Active Solvers(3) = 1 2 3
+End
+
+Solver 1
+  Equation = "MGDyn2D"
+  Variable = "A"
+  Procedure = "MagnetoDynamics2D" "MagnetoDynamics2D"
+  Linear System Solver = Direct
+  Linear System Direct Method = UMFPACK
+  Linear System Convergence Tolerance = 1.0e-10
+  Linear System Abort Not Converged = Logical True
+End
+
+Solver 2
+  Exec Solver = After Timestep
+  Equation = "CalcFields"
+  Procedure = "MagnetoDynamics" "MagnetoDynamicsCalcFields"
+  Potential Variable = String "A"
+  Calculate Magnetic Flux Density = Logical True
+  Calculate Current Density = Logical True
+  Calculate Electric Field = Logical True
+  Calculate Joule Heating = Logical True
+  Linear System Solver = Direct
+  Linear System Direct Method = UMFPACK
+End
+
+Solver 3
+  Exec Solver = After Timestep
+  Equation = "ResultOutput"
+  Procedure = "ResultOutputSolve" "ResultOutputSolver"
+  Output File Name = "islam-pi-pulse"
+  Vtu Format = Logical True
+  Binary Output = Logical False
+  Save Geometry Ids = Logical True
+End
+
+Body Force 1
+  Name = "TX_Pulse"
+  Current Density = Variable "time"
+    Real MATC "J0*exp(-((tx-200e-6)/50e-6)^2)"
+End
+
+Boundary Condition 1
+  Name = "Axis"
+  Target Boundaries(1) = 11
+  A = Real 0.0
+End
+
+Boundary Condition 2
+  Name = "Outer_Infinity"
+  Target Boundaries(1) = 12
+  Infinity BC = Logical True
+End
