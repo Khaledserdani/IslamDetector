@@ -7,9 +7,13 @@
 - `schema_version`: إصدار مخطط البيانات.
 - `experiment_id`: معرف فريد للتجربة.
 - `created_utc`: وقت الإنشاء UTC.
-- `source_type`: synthetic / simulated / measured / validated.
+- `source_type`: `synthetic` / `simulated` / `user_provided` / `measured` / `validated`. لا تستخدم `measured` إلا لبيانات التقطها جهاز قياس فعلي موثق.
 - `model_name` و`model_version`: اسم وإصدار المحرك عند وجود محاكاة.
 - `hardware`: جهاز القياس، القناة، مجال الدخل، ومعدل العينة عند القياس.
+- `acquisition_origin`: طريقة وصول البيانات مثل `generated_by_lab_model` أو `user_entry_or_file_import` أو `device_capture`.
+- `measurement_status`: حالة الإثبات، مثل `not_a_hardware_measurement` أو `not_verified_as_device_measurement` أو `device_capture_verified`.
+- `measurement_device`: تعريف جهاز الالتقاط عند القياس الحقيقي؛ لا يملأ ببيانات افتراضية.
+- `created_epoch_ms` أو `created_utc`: وقت إنشاء التجربة.
 - `conditions`: شروط البيئة والمواد والهندسة.
 - `signals`: قنوات زمنية، وكل قناة لها وحدة ومعدل عينات وطوابع زمنية أو محور زمن واضح.
 - `calibration`: معلومات المعايرة وعدم اليقين.
@@ -42,4 +46,4 @@
 }
 ```
 
-المثال تعليمي، والقيم توضيحية. القياس الحقيقي يجب أن يتضمن تعريف الجهاز والمعايرة وحالة التشبع ومعدل أخذ العينات.
+المثال تعليمي، والقيم توضيحية. بيانات المستخدم التي أُدخلت يدوياً أو استوردت من ملف تُوسم `user_provided` ولا تتحول تلقائياً إلى `measured`. القياس الحقيقي يجب أن يتضمن تعريف الجهاز والقناة والمعايرة وحالة التشبع ومعدل أخذ العينات، مع حفظ البيانات الخام.
