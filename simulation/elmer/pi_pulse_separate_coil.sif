@@ -106,7 +106,7 @@ End
 Body Force 1
   Name = "TX_Pulse"
   Current Density = Variable time
-    Real LUA "J0*math.exp(-((tx[0]-200e-6)/50e-6)^2)"
+    Real LUA "1.0e6*math.exp(-((tx[0]-200e-6)/50e-6)^2)"
 End
 
 Boundary Condition 1
