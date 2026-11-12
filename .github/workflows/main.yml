@@ -1,4 +1,4 @@
-name: Build and test ISLAM LAB Android app
+name: Build and test ISLAM DETECTOR and ISLAM LAB Android apps
 on:
   push:
     branches: [ feature/islam-lab-foundation ]
@@ -38,16 +38,31 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build Android applications
-        run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleDebug
+        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug
       - name: Verify APK packages
         shell: bash
         run: |
           set -euo pipefail
-          APK=lab/build/outputs/apk/debug/lab-debug.apk
-          test -f "$APK"
-          test "$(stat -c%s "$APK")" -gt 1000
-          unzip -t "$APK"
-          sha256sum "$APK"
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          LAB_APK=lab/build/outputs/apk/debug/lab-debug.apk
+          test -s "$APP_APK"
+          test -s "$LAB_APK"
+          test "$(stat -c%s "$APP_APK")" -gt 1000
+          test "$(stat -c%s "$LAB_APK")" -gt 1000
+          unzip -t "$APP_APK"
+          unzip -t "$LAB_APK"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APP_APK" | grep -F "package: name='com.islamdetector.app'"
+          "$AAPT" dump badging "$LAB_APK" | grep -F "package: name='com.islamlab.app'"
+          sha256sum "$APP_APK" "$LAB_APK"
+      - name: Upload ISLAM DETECTOR APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-DETECTOR-Android-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
       - name: Upload ISLAM LAB APK
         uses: actions/upload-artifact@v4
         with:
