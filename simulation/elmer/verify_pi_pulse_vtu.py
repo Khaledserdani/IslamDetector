@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
-PULSE_CENTER_STEP = 20  # 200 us / 10 us
+PULSE_CENTER_STEP = 8  # 200 us / 25 us
 RUNAWAY_FACTOR = 10.0
 
 if len(sys.argv) != 2:
