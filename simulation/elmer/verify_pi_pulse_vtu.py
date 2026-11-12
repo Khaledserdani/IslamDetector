@@ -102,9 +102,9 @@ with summary.open("w") as f:
 
 target_summary = root / "target_induced_current_summary.csv"
 with target_summary.open("w") as f:
-    f.write("time_step,max_target_current_density_A_per_m2\\n")
+    f.write("time_step,max_target_current_density_A_per_m2\n")
     for step in steps:
-        f.write(f"{step},{target_current_by_step[step]:.12g}\\n")
+        f.write(f"{step},{target_current_by_step[step]:.12g}\n")
 
 if max(value for _, value in series) <= 0:
     raise SystemExit("FAIL: magnetic flux density is identically zero")
