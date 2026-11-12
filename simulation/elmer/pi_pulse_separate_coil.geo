@@ -35,21 +35,14 @@ Physical Surface("Air", 1) = {air[]};
 Physical Surface("TX_Coil", 2) = {tx[]};
 Physical Surface("Aluminium_Target", 3) = {target[]};
 
-// Classify only the exterior boundary curves. Axis is separate from infinity.
-axis[] = {};
-outer[] = {};
-allcurves[] = Boundary{ Surface{out[]}; };
-For i In {0:#allcurves[]-1}
-  c = allcurves[i];
-  b[] = BoundingBox Curve{c};
-  If (Abs(b[0]) < 1e-7 && Abs(b[3]) < 1e-7)
-    axis[] += {c};
-  ElseIf (Abs(b[0]) < 1e-7 || Abs(b[3]-0.50) < 1e-7 || Abs(b[1]+0.35) < 1e-7 || Abs(b[4]-0.35) < 1e-7)
-    outer[] += {c};
-  EndIf
-EndFor
-Physical Curve("Axis", 11) = {axis[]};
-Physical Curve("Outer_Infinity", 12) = {outer[]};
+// Explicitly select the axis and far-field exterior curves.
+// Bounding-box selectors avoid fragile per-curve bounding-box array calls.
+Physical Curve("Axis", 11) = Curve In BoundingBox{-1e-8, -0.350001, -1e-8, 1e-8, 0.350001, 1e-8};
+Physical Curve("Outer_Infinity", 12) = {
+  Curve In BoundingBox{-1e-8, -0.350001, -1e-8, 0.500001, -0.349999, 1e-8},
+  Curve In BoundingBox{0.499999, -0.350001, -1e-8, 0.500001, 0.350001, 1e-8},
+  Curve In BoundingBox{-1e-8, 0.349999, -1e-8, 0.500001, 0.350001, 1e-8}
+};
 
 // Refine the coil and target while keeping the surrounding air economical.
 Field[1] = Distance;
