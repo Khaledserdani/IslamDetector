@@ -22,6 +22,7 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private EditText amplitudeInput, tauInput, noiseInput, measuredInput;
     private SharedPreferences experimentPrefs;
+    private ExperimentStore experimentStore;
     private static final int REQUEST_CSV = 701;
     private static final int REQUEST_EXPORT = 702;
     private static final int REQUEST_MODULE = 703;
@@ -39,6 +40,9 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(8, 16, 29));
         getWindow().setNavigationBarColor(Color.rgb(8, 16, 29));
         experimentPrefs = getSharedPreferences("experiments", MODE_PRIVATE);
+        experimentStore = new ExperimentStore(this);
+        int migrated = experimentStore.migrateLegacy(experimentPrefs.getAll());
+        if (migrated > 0) Toast.makeText(this, "تم نقل " + migrated + " تجربة إلى قاعدة البيانات الدائمة", Toast.LENGTH_LONG).show();
         buildUi();
         runSimulation();
     }
@@ -213,12 +217,8 @@ public class MainActivity extends Activity {
                         Toast.makeText(this, "اكتب اسماً للتجربة", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    String key = "experiment_" + System.currentTimeMillis();
-                    while (experimentPrefs.contains(key)) key += "_1";
-                    boolean saved = experimentPrefs.edit()
-                            .putString(key, simulationReport)
-                            .putString("name_" + key, name)
-                            .commit();
+                    String key = "experiment_" + System.currentTimeMillis() + "_" + java.util.UUID.randomUUID().toString();
+                    boolean saved = experimentStore.save(key, name, simulationReport, System.currentTimeMillis());
                     if (saved) {
                         Toast.makeText(this, "تم حفظ تجربة المحاكاة في السجل", Toast.LENGTH_LONG).show();
                     } else {
@@ -238,8 +238,8 @@ public class MainActivity extends Activity {
                     "مصدر البيانات: إدخال أو استيراد من المستخدم، غير ملتقطة مباشرة من الجهاز\nعدد القراءات: %d\nأقل قيمة: %.4f mV\nأعلى قيمة: %.4f mV\nالمتوسط: %.4f mV\nالمدى: %.4f mV\nالانحراف المعياري: %.4f mV",
                     (int)stats[5], stats[0], stats[1], stats[2], stats[3], stats[4]));
             statusText.setText("وضع العمل: تحليل بيانات أدخلها المستخدم أو استوردها — ليست قراءة مباشرة من الجهاز");
-            String key = "experiment_" + System.currentTimeMillis();
-            experimentPrefs.edit().putString(key, report).putString("name_" + key, "بيانات مستخدم " + key.substring("experiment_".length())).putString("last_key", key).apply();
+            String key = "experiment_" + System.currentTimeMillis() + "_" + java.util.UUID.randomUUID().toString();
+            experimentStore.save(key, "بيانات مستخدم " + key.substring("experiment_".length()), report, System.currentTimeMillis());
             Toast.makeText(this, "تم تحليل القياسات وحفظها محلياً", Toast.LENGTH_SHORT).show();
         } catch (Exception ex) {
             Toast.makeText(this, ex.getMessage() == null ? "تحقق من القراءات" : ex.getMessage(), Toast.LENGTH_LONG).show();
@@ -301,12 +301,9 @@ public class MainActivity extends Activity {
     }
 
     private void showExperimentHistory() {
-        java.util.Map<String, ?> all = experimentPrefs.getAll();
+        java.util.List<ExperimentStore.Record> records = experimentStore.list();
         java.util.ArrayList<String> keys = new java.util.ArrayList<>();
-        for (String key : all.keySet()) {
-            if (key.startsWith("experiment_")) keys.add(key);
-        }
-        java.util.Collections.sort(keys, java.util.Collections.reverseOrder());
+        for (ExperimentStore.Record record : records) keys.add(record.id);
         if (keys.isEmpty()) {
             new android.app.AlertDialog.Builder(this).setTitle("سجل التجارب")
                     .setMessage("لا توجد تجارب محفوظة بعد.")
@@ -314,20 +311,18 @@ public class MainActivity extends Activity {
             return;
         }
         java.util.ArrayList<String> labels = new java.util.ArrayList<>();
-        for (String key : keys) {
-            String fallback = "تجربة " + key.substring("experiment_".length());
-            labels.add(experimentPrefs.getString("name_" + key, fallback));
-        }
+        for (ExperimentStore.Record record : records) labels.add(record.name);
         new android.app.AlertDialog.Builder(this).setTitle("التجارب المحفوظة")
                 .setItems(labels.toArray(new String[0]), (dialog, which) -> {
                     String key = keys.get(which);
-                    String fallback = "تجربة " + key.substring("experiment_".length());
-                    String name = experimentPrefs.getString("name_" + key, fallback);
+                    ExperimentStore.Record record = experimentStore.get(key);
+                    if (record == null) return;
+                    String name = record.name;
                     new android.app.AlertDialog.Builder(this).setTitle(name)
                             .setItems(new String[]{"فتح التجربة", "إعادة تسمية", "تصدير CSV", "حذف التجربة"},
                                     (actionDialog, action) -> {
                                         if (action == 0) {
-                                            report = experimentPrefs.getString(key, "");
+                                            report = record.csv;
                                             resultText.setText(report);
                                             statusText.setText("وضع العمل: عرض تجربة محفوظة");
                                         } else if (action == 1) {
@@ -339,19 +334,19 @@ public class MainActivity extends Activity {
                                                         if (updated.isEmpty()) {
                                                             Toast.makeText(this, "اكتب اسماً للتجربة", Toast.LENGTH_SHORT).show();
                                                         } else {
-                                                            experimentPrefs.edit().putString("name_" + key, updated).apply();
+                                                            experimentStore.rename(key, updated);
                                                             Toast.makeText(this, "تم تحديث اسم التجربة", Toast.LENGTH_SHORT).show();
                                                             showExperimentHistory();
                                                         }
                                                     }).setNegativeButton("إلغاء", null).show();
                                         } else if (action == 2) {
-                                            String saved = experimentPrefs.getString(key, "");
+                                            String saved = record.csv;
                                             if (!saved.isEmpty()) exportCsvFile(saved, safeFileName(name) + ".csv");
                                         } else if (action == 3) {
                                             new android.app.AlertDialog.Builder(this).setTitle("حذف التجربة")
                                                     .setMessage("سيتم حذف هذه التجربة المحفوظة فقط. لا يمكن التراجع عن الحذف.")
                                                     .setPositiveButton("حذف", (d, w) -> {
-                                                        experimentPrefs.edit().remove(key).remove("name_" + key).apply();
+                                                        experimentStore.delete(key);
                                                         Toast.makeText(this, "تم حذف التجربة", Toast.LENGTH_SHORT).show();
                                                         showExperimentHistory();
                                                     }).setNegativeButton("إلغاء", null).show();
@@ -411,7 +406,7 @@ public class MainActivity extends Activity {
     }
     private void shareDiagnostics() {
         int saved = 0;
-        for (String key : experimentPrefs.getAll().keySet()) if (key.startsWith("experiment_")) saved++;
+        saved = experimentStore.count();
         String version = "غير معروف";
         try { version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
         catch (Exception ignored) { }
