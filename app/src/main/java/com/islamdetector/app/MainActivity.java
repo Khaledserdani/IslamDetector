@@ -38,13 +38,17 @@ public class MainActivity extends Activity {
     private Button connectButton, detectButton, calibrateButton;
     private boolean connected = false;
     private boolean detecting = false;
+    private boolean activityVisible = false;
+    private volatile boolean destroyed = false;
+    private volatile String activeHost = DEFAULT_HOST;
     private long lastSavedAt = 0;
     private DetectorDb db;
 
     private final Runnable pollTask = new Runnable() {
         @Override public void run() {
-            if (connected) fetchStatus();
-            handler.postDelayed(this, 2000);
+            if (!activityVisible || !connected) return;
+            fetchStatus();
+            if (activityVisible && connected) handler.postDelayed(this, 2000);
         }
     };
 
@@ -55,6 +59,7 @@ public class MainActivity extends Activity {
         db = new DetectorDb(this);
         buildScreen();
         loadSettings();
+        activeHost = baseUrl();
         refreshHistory();
     }
 
@@ -223,21 +228,26 @@ public class MainActivity extends Activity {
     }
     private void connectToDevice() {
         final String host = baseUrl();
+        activeHost = host;
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("host", host).apply();
         connectButton.setEnabled(false); connectionText.setText("● جارٍ الاتصال...");
         network.execute(() -> {
             try {
                 JSONObject data = requestJson(host + "/status", "GET", null);
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     connected = true; connectButton.setEnabled(true); connectButton.setText("تحديث");
                     connectionText.setText("● متصل بالجهاز");
                     connectionText.setTextColor(Color.rgb(91, 220, 167));
                     detectButton.setEnabled(true); calibrateButton.setEnabled(true);
-                    applyStatus(data); handler.removeCallbacks(pollTask); handler.post(pollTask);
+                    applyStatus(data);
+                    handler.removeCallbacks(pollTask);
+                    if (activityVisible) handler.post(pollTask);
                     toast("تم الاتصال بالجهاز");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     connected = false; connectButton.setEnabled(true);
                     connectionText.setText("● تعذّر الاتصال — تحقق من Wi‑Fi والعنوان");
                     connectionText.setTextColor(Color.rgb(255, 170, 110));
@@ -250,16 +260,19 @@ public class MainActivity extends Activity {
 
     private void fetchStatus() {
         if (!requestRunning.compareAndSet(false, true)) return;
+        final String host = activeHost;
         network.execute(() -> {
             try {
-                JSONObject data = requestJson(baseUrl() + "/status", "GET", null);
+                JSONObject data = requestJson(host + "/status", "GET", null);
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     connected = true; connectionText.setText("● متصل بالجهاز");
                     connectionText.setTextColor(Color.rgb(91,220,167));
                     applyStatus(data);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     connected = false; connectionText.setText("● انقطع الاتصال بالجهاز");
                     connectionText.setTextColor(Color.rgb(255,170,110));
                     detectButton.setEnabled(false); calibrateButton.setEnabled(false);
@@ -270,25 +283,34 @@ public class MainActivity extends Activity {
 
     private JSONObject requestJson(String address, String method, JSONObject body) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setRequestMethod(method); c.setConnectTimeout(2500); c.setReadTimeout(2500);
-        c.setRequestProperty("Accept", "application/json");
-        if (body != null) {
-            c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            try (OutputStream out = c.getOutputStream()) { out.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
+        try {
+            c.setRequestMethod(method); c.setConnectTimeout(2500); c.setReadTimeout(2500);
+            c.setRequestProperty("Accept", "application/json");
+            if (body != null) {
+                c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                try (OutputStream out = c.getOutputStream()) {
+                    out.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            int code = c.getResponseCode();
+            InputStream stream = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
+            String response;
+            if (stream == null) {
+                response = "{}";
+            } else {
+                try (InputStream in = stream) { response = readAll(in); }
+            }
+            if (code < 200 || code >= 300) throw new IOException("HTTP " + code + ": " + response);
+            return new JSONObject(response);
+        } finally {
+            c.disconnect();
         }
-        int code = c.getResponseCode();
-        InputStream stream = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
-        String response = readAll(stream);
-        c.disconnect();
-        if (code < 200 || code >= 300) throw new IOException("HTTP " + code + ": " + response);
-        return new JSONObject(response);
     }
     private String readAll(InputStream in) throws Exception {
-        if (in == null) return "{}";
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[2048]; int n;
         while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-        in.close(); return out.toString("UTF-8");
+        return out.toString("UTF-8");
     }
 
     private void applyStatus(JSONObject root) {
@@ -297,9 +319,9 @@ public class MainActivity extends Activity {
         double signal = number(data, "signal", "raw", "amplitude");
         double confidence = number(data, "confidence", "confidence_percent");
         double depth = number(data, "depth_cm", "depth");
-        if (!Double.isNaN(signal)) signalText.setText(format(signal));
-        if (!Double.isNaN(confidence)) confidenceText.setText(format(confidence) + "%");
-        if (!Double.isNaN(depth)) depthText.setText(format(depth) + " سم");
+        signalText.setText(Double.isNaN(signal) ? "--" : format(signal));
+        confidenceText.setText(Double.isNaN(confidence) ? "--" : format(confidence) + "%");
+        depthText.setText(Double.isNaN(depth) ? "--" : format(depth) + " سم");
         boolean calibrated = data.optBoolean("calibrated", false);
         double calibration = number(data, "calibration_percent", "calibration");
         if (!Double.isNaN(calibration)) calibrationText.setText("معايرة التربة: " + format(calibration) + "%");
@@ -332,12 +354,14 @@ public class MainActivity extends Activity {
 
     private void sendControl(String command) {
         if (!connected) { toast("اتصل بالجهاز أولاً"); return; }
+        final String host = activeHost;
         detectButton.setEnabled(false); calibrateButton.setEnabled(false);
         network.execute(() -> {
             try {
                 JSONObject body = new JSONObject(); body.put("command", command);
-                requestJson(baseUrl() + "/control", "POST", body);
+                requestJson(host + "/control", "POST", body);
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     if ("start".equals(command)) { detecting = true; detectButton.setText("إيقاف الكشف"); }
                     if ("stop".equals(command)) { detecting = false; detectButton.setText("بدء الكشف"); }
                     toast("تم إرسال الأمر: " + command);
@@ -345,6 +369,7 @@ public class MainActivity extends Activity {
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
+                    if (destroyed) return;
                     detectButton.setEnabled(true); calibrateButton.setEnabled(true);
                     toast("الجهاز لم يقبل الأمر. تحقق من إصدار ESP32");
                 });
@@ -375,9 +400,28 @@ public class MainActivity extends Activity {
         share.putExtra(Intent.EXTRA_TEXT, csv);
         startActivity(Intent.createChooser(share, "تصدير سجل القياسات"));
     }
-    private void toast(String message) { Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); }
+    private void toast(String message) {
+        if (!destroyed) Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        activityVisible = true;
+        if (connected) {
+            handler.removeCallbacks(pollTask);
+            handler.post(pollTask);
+        }
+    }
+
+    @Override protected void onPause() {
+        activityVisible = false;
+        handler.removeCallbacks(pollTask);
+        super.onPause();
+    }
 
     @Override protected void onDestroy() {
+        destroyed = true;
+        activityVisible = false;
         handler.removeCallbacksAndMessages(null);
         network.shutdownNow();
         if (db != null) db.close();
