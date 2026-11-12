@@ -10,7 +10,7 @@ public final class ExperimentData {
 
     public static double[] parse(String raw) {
         if (raw == null || raw.trim().isEmpty()) throw new IllegalArgumentException("لا توجد بيانات");
-        String[] lines = raw.trim().split("\\r?\\n");
+        String[] lines = raw.trim().split("\\r?\n");
         int header = -1;
         for (int i = 0; i < lines.length; i++) {
             String row = lines[i].trim();
@@ -68,14 +68,14 @@ public final class ExperimentData {
         if (values == null || values.length < 2) throw new IllegalArgumentException("يلزم إدخال قراءتين على الأقل");
         double[] stats = LabMath.summarize(values);
         StringBuilder out = new StringBuilder();
-        out.append("schema_version,1.1\\n");
-        out.append("source_type,user_provided\\n");
-        out.append("acquisition_origin,user_entry_or_file_import\\n");
-        out.append("measurement_status,not_verified_as_device_measurement\\n");
-        out.append("measurement_device,not_recorded\\n");
-        out.append("unit,mV\\n");
-        out.append("created_epoch_ms,").append(createdEpochMs).append("\\n");
-        out.append("index,value\\n");
+        out.append("schema_version,1.1\n");
+        out.append("source_type,user_provided\n");
+        out.append("acquisition_origin,user_entry_or_file_import\n");
+        out.append("measurement_status,not_verified_as_device_measurement\n");
+        out.append("measurement_device,not_recorded\n");
+        out.append("unit,mV\n");
+        out.append("created_epoch_ms,").append(createdEpochMs).append("\n");
+        out.append("index,value\n");
         for (int i = 0; i < values.length; i++) {
             out.append(i + 1).append(',').append(String.format(Locale.US, "%.8f", values[i])).append('\n');
         }
