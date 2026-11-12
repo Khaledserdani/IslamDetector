@@ -15,13 +15,23 @@ If (!Exists(TargetGap))
   TargetGap = 0.045;
 EndIf
 TargetTop = 0.030 - TargetGap;
-TargetBottom = TargetTop - 0.005;
-
 // Outer air domain: r=0..0.50 m, z=-0.35..0.35 m.
 Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
-// Aluminium plate: 250 mm radius, 5 mm thick.
+// Parametric axisymmetric target cross-section.
+// Default remains the legacy 250 mm-radius, 5 mm-thick aluminium foil surrogate.
+// A coin is a solid disk (inner radius 0); a ring is an annular rectangle.
+If (!Exists(TargetInnerRadiusM))
+  TargetInnerRadiusM = 0.0;
+EndIf
+If (!Exists(TargetRadialWidthM))
+  TargetRadialWidthM = 0.250;
+EndIf
+If (!Exists(TargetThicknessM))
+  TargetThicknessM = 0.005;
+EndIf
+TargetBottom = TargetTop - TargetThicknessM;
 If (IncludeTarget)
-  Rectangle(2) = {0.0, TargetBottom, 0, 0.25, 0.005};
+  Rectangle(2) = {TargetInnerRadiusM, TargetBottom, 0, TargetRadialWidthM, TargetThicknessM};
 EndIf
 // Parameterized axisymmetric TX winding pack. Sweep changes radius only;
 // radial width, height, turn count and current density remain fixed.
@@ -48,7 +58,7 @@ For i In {0:#out[]-1}
   c[] = CenterOfMass Surface{s};
   If (c[0] > (CoilInnerRadiusM - 0.001) && c[0] < (CoilInnerRadiusM + CoilRadialWidthM + 0.001) && c[1] > 0.029 && c[1] < 0.041)
     tx[] += {s};
-  ElseIf (c[0] >= -0.0001 && c[0] < 0.251 && c[1] > (TargetBottom - 0.001) && c[1] < (TargetTop + 0.001))
+  ElseIf (c[0] >= (TargetInnerRadiusM - 0.001) && c[0] < (TargetInnerRadiusM + TargetRadialWidthM + 0.001) && c[1] > (TargetBottom - 0.001) && c[1] < (TargetTop + 0.001))
     target[] += {s};
   Else
     air[] += {s};
