@@ -325,6 +325,12 @@ public class MainActivity extends Activity {
                     if (record == null) return;
                     String name = record.name;
                     new android.app.AlertDialog.Builder(this).setTitle(name)
+                            .setMessage("مصدر البيانات: " + record.sourceType
+                                    + "\nحالة التحقق: " + record.verificationStatus
+                                    + "\nعدد العينات: " + record.sampleCount
+                                    + "\nوحدة القياس: " + record.measurementUnit
+                                    + "\nإصدار المخطط: " + record.schemaVersion
+                                    + "\n\nهذه البيانات وصف للسجل ولا تثبت وحدها صحة القياس الفيزيائي.")
                             .setItems(new String[]{"فتح التجربة", "إعادة تسمية", "تصدير CSV", "حذف التجربة"},
                                     (actionDialog, action) -> {
                                         if (action == 0) {
