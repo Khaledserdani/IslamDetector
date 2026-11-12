@@ -468,6 +468,11 @@ public class MainActivity extends Activity {
     }
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
 
+    @Override protected void onDestroy() {
+        if (experimentStore != null) experimentStore.close();
+        super.onDestroy();
+    }
+
     private class WaveView extends View {
         private final Paint paint = new Paint(3);
         WaveView() { super(MainActivity.this); setBackgroundColor(0xff111e30); }
