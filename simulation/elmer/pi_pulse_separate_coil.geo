@@ -46,7 +46,7 @@ target[] = {};
 For i In {0:#out[]-1}
   s = out[i];
   c[] = CenterOfMass Surface{s};
-  If (c[0] > 0.129 && c[0] < 0.161 && c[1] > 0.029 && c[1] < 0.041)
+  If (c[0] > (CoilInnerRadiusM - 0.001) && c[0] < (CoilInnerRadiusM + CoilRadialWidthM + 0.001) && c[1] > 0.029 && c[1] < 0.041)
     tx[] += {s};
   ElseIf (c[0] >= -0.0001 && c[0] < 0.251 && c[1] > (TargetBottom - 0.001) && c[1] < (TargetTop + 0.001))
     target[] += {s};
