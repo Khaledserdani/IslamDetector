@@ -47,7 +47,7 @@ public final class ExperimentData {
     }
 
     private static boolean isSampleHeader(String row) {
-        String[] cells = row.split("[,;\\\\t]", -1);
+        String[] cells = row.split("[,;\\t]", -1);
         return valueColumn(row) >= 0 && (row.toLowerCase(Locale.ROOT).contains("index")
                 || row.toLowerCase(Locale.ROOT).contains("sample_index"));
     }
