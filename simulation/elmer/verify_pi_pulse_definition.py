@@ -81,18 +81,14 @@ for dt, count in zip(sizes, intervals):
 if time_cursor < 1.0e-3 - 1e-12:
     fail(f"simulation horizon too short: {time_cursor:g} s; require at least 1 ms")
 
-coil_match = re.search(
-    r'Rectangle\s*\(\s*3\s*\)\s*=\s*\{([^}]+)\}',
-    geo,
-)
-if not coil_match:
-    fail("TX winding rectangle (Rectangle 3) not found in Gmsh geometry")
-try:
-    x0, z0, _zcoord, width, height = [
-        float(part.strip()) for part in coil_match.group(1).split(",")
-    ]
-except (ValueError, TypeError):
-    fail("could not parse TX winding rectangle coordinates")
+# The TX radial position and width are controlled Gmsh parameters.
+inner_match = re.search(r'CoilInnerRadiusM\s*=\s*([0-9.eE+-]+)', geo)
+width_match = re.search(r'CoilRadialWidthM\s*=\s*([0-9.eE+-]+)', geo)
+if not inner_match or not width_match:
+    fail("parameterized TX winding dimensions are missing")
+x0 = float(inner_match.group(1))
+width = float(width_match.group(1))
+height = 0.010
 
 if not (width > 0 and height > 0 and x0 >= 0):
     fail("TX winding cross-section dimensions are invalid")
