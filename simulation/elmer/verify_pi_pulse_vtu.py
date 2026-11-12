@@ -24,7 +24,14 @@ for path in files:
     try:
         tree = ET.parse(path)
     except ET.ParseError as exc:
-        raise SystemExit(f"FAIL: could not parse VTU {path.name}: {exc}")
+        lines = path.read_bytes().splitlines()
+        bad_line = exc.position[0] - 1 if exc.position else -1
+        context = lines[bad_line][:240] if 0 <= bad_line < len(lines) else b"<line unavailable>"
+        prefix = path.read_bytes()[:240]
+        raise SystemExit(
+            f"FAIL: could not parse VTU {path.name}: {exc}; "
+            f"offending_line={context!r}; file_prefix={prefix!r}"
+        )
     found = False
     available_names = []
     for array in tree.iter("DataArray"):
