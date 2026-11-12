@@ -38,4 +38,13 @@ public class ExperimentDataTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsNonFiniteMeasurements() { ExperimentData.parse("1,NaN,3"); }
+
+    @Test public void parsesTimestampedSchemaSampleTableValueColumn() {
+        String csv = "schema_version,1.0.0\nexperiment_id,e1\ntitle,T\n"
+                + "created_at_utc,2026-11-12T10:00:00Z\nsource.type,instrument\n"
+                + "source.origin,test\nverification.status,unverified\nmeasurement.unit,mV\n"
+                + "sample_index,time_us,value\n0,8,12.5\n1,12,11.0\n";
+        assertArrayEquals(new double[]{12.5, 11.0}, ExperimentData.parse(csv), 1e-9);
+    }
+
 }
