@@ -22,6 +22,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Generate DD32 TX ideal RL design sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 simulation/ngspice/generate_tx_rl_design_sweep.py
+      - name: Archive DD32 TX analytic sweep
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-DD32-TX-analytic-sweep
+          path: artifacts/dd32-tx-analytic-sweep/
+          if-no-files-found: error
+          retention-days: 30
       - name: Install scientific simulation engines
         shell: bash
         run: |
