@@ -26,7 +26,6 @@ def verify_uf2(data: bytes, expected_family_id: int = RP2040_FAMILY_ID) -> dict[
     block_count = len(data) // UF2_BLOCK_SIZE
     seen_numbers: set[int] = set()
     address_ranges: list[tuple[int, int]] = []
-    family_ids: set[int] = set()
     payload_bytes = 0
 
     for index in range(block_count):
@@ -54,7 +53,6 @@ def verify_uf2(data: bytes, expected_family_id: int = RP2040_FAMILY_ID) -> dict[
 
         seen_numbers.add(block_no)
         address_ranges.append((target, target + payload_size))
-        family_ids.add(family_id)
         payload_bytes += payload_size
 
     if seen_numbers != set(range(block_count)):

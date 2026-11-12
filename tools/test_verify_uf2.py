@@ -12,7 +12,7 @@ from verify_uf2 import (
 )
 
 
-def make_block(number=0, total=1, target=0x10000000, payload=b"\\x00" * 256,
+def make_block(number=0, total=1, target=0x10000000, payload=b"\x00" * 256,
                family=RP2040_FAMILY_ID, flags=UF2_FLAG_FAMILY_ID_PRESENT):
     block = bytearray(512)
     struct.pack_into(
@@ -36,7 +36,7 @@ class VerifyUF2Tests(unittest.TestCase):
 
     def test_rejects_truncated_file(self):
         with self.assertRaises(UF2Error):
-            verify_uf2(b"\\x00" * 511)
+            verify_uf2(b"\x00" * 511)
 
     def test_rejects_bad_magic(self):
         block = bytearray(make_block())
@@ -66,9 +66,16 @@ class VerifyUF2Tests(unittest.TestCase):
         with self.assertRaises(UF2Error):
             verify_uf2(make_block(total=2))
 
+    def test_rejects_unaligned_target_address(self):
+        with self.assertRaises(UF2Error):
+            verify_uf2(make_block(target=0x10000001))
+
+    def test_rejects_address_overflow(self):
+        with self.assertRaises(UF2Error):
+            verify_uf2(make_block(target=0xFFFFFFFC))
     def test_rejects_oversized_payload(self):
         with self.assertRaises(UF2Error):
-            verify_uf2(make_block(payload=b"\\x00" * 480))
+            verify_uf2(make_block(payload=b"\x00" * 480))
 
 
 if __name__ == "__main__":
