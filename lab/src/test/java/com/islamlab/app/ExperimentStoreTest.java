@@ -152,4 +152,23 @@ public class ExperimentStoreTest {
         assertEquals(0, store.count());
     }
 
+
+    @Test public void storesStructuredFieldsForValidStrictRecord() {
+        String csv = "schema_version,1.0.0\nexperiment_id,strict-1\ntitle,قياس تجريبي\n"
+                + "created_at_utc,2026-11-12T10:00:00Z\nsource.type,instrument\n"
+                + "source.origin,bench_meter\nverification.status,reviewed\n"
+                + "measurement.quantity,voltage\nmeasurement.unit,mV\n"
+                + "measurement.sample_origin,instrument_capture\n"
+                + "sample_index,time_us,value\n0,8,12.5\n1,12,11.0\n";
+        assertTrue(store.save("strict-1", "قياس تجريبي", csv, 123L));
+        ExperimentStore.Record record = store.get("strict-1");
+        assertNotNull(record);
+        assertEquals("1.0.0", record.schemaVersion);
+        assertEquals("instrument", record.sourceType);
+        assertEquals("reviewed", record.verificationStatus);
+        assertEquals("voltage", record.measurementQuantity);
+        assertEquals("mV", record.measurementUnit);
+        assertEquals(2, record.sampleCount);
+    }
+
 }
