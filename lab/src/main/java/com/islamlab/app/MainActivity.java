@@ -102,8 +102,8 @@ public class MainActivity extends Activity {
         share.setOnClickListener(v -> exportCsvFile(report, "islam-lab-report.csv"));
         page.addView(share);
 
-        page.addView(section("القياسات الحقيقية"));
-        page.addView(label("أدخل قراءات mV أو استورد ملف CSV من الهاتف", 13, 0xffd5e2ef, false));
+        page.addView(section("إدخال واستيراد بيانات القياس"));
+        page.addView(label("أدخل بيانات mV أو استورد ملف CSV. ستُسجل كبيانات مقدمة من المستخدم حتى يلتقطها جهاز قياس موثق.", 13, 0xffd5e2ef, false));
         measuredInput = field("مثال: 12.5, 11.8, 10.2", "");
         measuredInput.setSingleLine(false);
         measuredInput.setMinLines(3);
