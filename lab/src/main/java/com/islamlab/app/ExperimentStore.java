@@ -71,7 +71,8 @@ public final class ExperimentStore extends SQLiteOpenHelper {
     }
 
     public boolean rename(String id, String name) {
-        ContentValues v = new ContentValues(); v.put("name", name); v.put("updated_epoch_ms", System.currentTimeMillis());
+        if (id == null || id.trim().isEmpty() || name == null || name.trim().isEmpty()) return false;
+        ContentValues v = new ContentValues(); v.put("name", name.trim()); v.put("updated_epoch_ms", System.currentTimeMillis());
         return getWritableDatabase().update(TABLE,v,"id=?",new String[]{id}) == 1;
     }
 
@@ -87,6 +88,7 @@ public final class ExperimentStore extends SQLiteOpenHelper {
 
     /** One-time, idempotent migration from the previous SharedPreferences history. */
     public int migrateLegacy(java.util.Map<String, ?> legacy) {
+        if (legacy == null || legacy.isEmpty()) return 0;
         int migrated = 0;
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
