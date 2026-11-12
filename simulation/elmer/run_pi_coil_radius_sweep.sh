@@ -7,7 +7,7 @@ mkdir -p "$BASE"
 # The winding pack cross-section and excitation remain unchanged.
 for radius in 0.080 0.130 0.160; do
   tag="$(printf '%s' "$radius" | tr '.' 'p')"
-  echo "=== TX inner radius ${radius} m (mean diameter $((0)) placeholder) ==="
+  echo "=== TX inner radius ${radius} m ==="
   OUTPUT_DIR="$BASE/coil-inner-${tag}" \
   COIL_INNER_RADIUS_M="$radius" \
   COIL_RADIAL_WIDTH_M="0.030" \
@@ -19,8 +19,7 @@ import csv, pathlib, sys
 root=pathlib.Path(sys.argv[1])
 rows=[]
 for d in sorted(root.glob("coil-inner-*")):
-    ref=(d/"reference.txt").read_text()
-    radius=float(next(x.split()[4] for x in ref.splitlines() if x.startswith("Geometry:")))
+    radius=float(d.name.removeprefix("coil-inner-").replace("p","."))
     # Numerical field extraction is deliberately not inferred from screenshots/log text.
     vtu=list(d.glob("islam-pi-pulse_t*.vtu"))
     if len(vtu) != 240:
