@@ -26,10 +26,11 @@ public final class ExperimentData {
                 String row = lines[i].trim();
                 if (row.isEmpty()) break;
                 String[] cells = row.split("[,;\\t]", -1);
-                if (cells.length < 2 || cells[cells.length - 1].trim().isEmpty()) {
+                int valueIndex = valueColumn(lines[header]);
+                if (valueIndex < 0 || cells.length <= valueIndex || cells[valueIndex].trim().isEmpty()) {
                     throw new IllegalArgumentException("صف CSV غير مكتمل عند السطر " + (i + 1));
                 }
-                addRequiredNumeric(cells[cells.length - 1].trim(), values, i + 1);
+                addRequiredNumeric(cells[valueIndex].trim(), values, i + 1);
                 enforceLimit(values);
             }
         } else {
