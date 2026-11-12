@@ -1,0 +1,21 @@
+! ISLAM LAB: ideal current-source circuit definition for the transient foil coil.
+! Adapted from ElmerCSC/elmer-elmag CircuitBuilder 2D current_source transient example.
+$ Circuits = 1
+$ Is = 1
+$ C.1.variables = 5
+$ C.1.perm = zeros(C.1.variables)
+$ C.1.A = zeros(C.1.variables,C.1.variables)
+$ C.1.B = zeros(C.1.variables,C.1.variables)
+$ C.1.name.1 = "i_Is"
+$ C.1.name.2 = "i_component(1)"
+$ C.1.name.3 = "v_Is"
+$ C.1.name.4 = "v_component(1)"
+$ C.1.name.5 = "u_2_circuit_1"
+$ C.1.source.5 = "Is_Source"
+$ C.1.B(0,0) = -1
+$ C.1.B(0,1) = 1
+$ C.1.B(1,2) = 1
+$ C.1.B(1,4) = -1
+$ C.1.B(2,3) = -1
+$ C.1.B(2,4) = 1
+$ C.1.B(4,0) = 1
