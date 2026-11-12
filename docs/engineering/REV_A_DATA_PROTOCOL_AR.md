@@ -1,6 +1,6 @@
 # بروتوكول القياس بين RP2040 وESP32-S3 — Rev A
 
-**الحالة:** عقد بيانات مقترح v0.1، جاهز للمراجعة البرمجية، وليس Firmware منفذاً بعد.  
+**الحالة:** عقد بيانات v0.1؛ مرجع Python ومحلل C محمول منفذان ومختبران على CI، لكن ESP-IDF UART task والربط الفيزيائي لم ينفذا بعد.  
 **التاريخ:** 2026-11-11
 
 ## 1. الهدف
@@ -144,6 +144,17 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - عند تلف إطار يتقدم بايتاً واحداً ويبحث عن SYNC صالح لاحقاً بدلاً من إسقاط كامل buffer.
 - يسجل عدد البايتات المهملة والإطارات المرفوضة للتشخيص.
 
-اختبارات الوحدة تغطي fragmentation وconcatenation والضجيج وفساد CRC واستعادة الإطار السليم التالي. هذا مرجع Python واختبار برمجي فقط؛ لم يكتمل بعد UART parser في Firmware ESP32-S3 أو اختبار Hardware-Loopback.
+اختبارات الوحدة تغطي fragmentation وconcatenation والضجيج وفساد CRC واستعادة الإطار السليم التالي. يبقى هذا مرجع Python الذهبي للمقارنة؛ لا يمثل UART driver على ESP32.
 
-**الحالة:** مواصفة بروتوكول مقترحة؛ لا يوجد تنفيذ أو اختبار Hardware-Loopback مثبت بعد.
+### 8.2 محلل C محمول لجهة ESP32-S3
+
+أضيف المكوّن `firmware/esp32_s3_bridge/components/rev_a_protocol/`، وهو C11 مستقل عن ESP-IDF ويمكن إدراجه كمكوّن ESP-IDF. واجهته `rev_a_parser_feed()` تستقبل أي أجزاء من UART وتصدر الإطارات الصحيحة عبر callback، مع:
+- تحقق SYNC/VERSION/TYPE/LENGTH وCRC-16/CCITT-FALSE.
+- تحليل MEASUREMENT المتغير من عينة إلى8 عينات مع فحص SAMPLE_COUNT وVALID_MASK وSWEEP_COMPLETE ومعدل النبض.
+- تحليل DEVICE_INFO بطول ثابت25 بايت، والتحقق من توافق ADC_MODEL_ID وSAMPLE_FORMAT_ID وADC_RESOLUTION_BITS وADC_INPUT_MODE_ID.
+- الاحتفاظ بكل عينة raw16، وتوفير `rev_a_interpret_sample()` لتفسيرها فقط عند تمرير metadata؛ ويعالج ADS7054 كـ14-bit right-justified مع sign extension.
+- استعادة SYNC بعد الضجيج أو CRC تالف، ودعم fragmented وconcatenated frames دون تخصيص ذاكرة ديناميكي.
+
+أضيف اختبار C مستقل `firmware/esp32_s3_bridge/tests/test_rev_a_protocol.c` يغطي متجه CRC المعروف، MEASUREMENT، DEVICE_INFO، رفض metadata غير المتسقة، signed16/signed14، fragmentation، الضجيج، تعدد الإطارات، واستعادة الإطار السليم بعد إطار تالف. يترجم CI هذا المكوّن مع `-Wall -Wextra -Werror -pedantic` ويشغل الاختبار.
+
+**حدود الإثبات:** نجاح اختبار C على Linux لا يثبت تشغيل UART peripheral أو FreeRTOS على ESP32-S3. ما زال يلزم تنفيذ UART task مع RX ring buffer/overflow handling، إرسال GET_INFO/HELLO من ESP32، تخزين DEVICE_INFO قبل تفسير العينات، ثم Hardware UART loopback بين اللوحتين. لا توجد نتائج عتاد فعلية حتى الآن.
