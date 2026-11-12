@@ -176,7 +176,7 @@ public class MainActivity extends Activity {
             SyntheticDecayModel.Sample[] samples = currentResult.samples;
             StringBuilder b = new StringBuilder("النافذة µs   الإشارة   الضوضاء   الإجمالي mV\n");
             b.append("------------------------------------------\n");
-            report = "ISLAM LAB - Synthetic waveform test\nModel," + currentResult.modelName + "\nModel_version," + currentResult.modelVersion + "\nSource_type,synthetic\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_nominal_mV," + noise + "\nwindow_us,signal_mV,noise_mV,total_mV\n";
+            report = "ISLAM LAB - Synthetic waveform test\nschema_version,1.1\ncreated_epoch_ms," + System.currentTimeMillis() + "\nsource_type,synthetic\nacquisition_origin,generated_by_lab_model\nmeasurement_status,not_a_hardware_measurement\nmodel_name," + currentResult.modelName + "\nmodel_version," + currentResult.modelVersion + "\nunit,mV\nAmplitude_mV," + a + "\nTau_us," + tau + "\nNoise_nominal_mV," + noise + "\nwindow_us,signal_mV,noise_mV,total_mV\n";
             for (int i = 0; i < samples.length; i++) {
                 SyntheticDecayModel.Sample sample = samples[i];
                 samplesMv[i] = sample.totalMv;
@@ -235,11 +235,11 @@ public class MainActivity extends Activity {
             double[] stats = LabMath.summarize(values);
             report = ExperimentData.toCsv(values);
             resultText.setText(String.format(Locale.US,
-                    "مصدر البيانات: قياسات أدخلها المستخدم\nعدد القراءات: %d\nأقل قيمة: %.4f mV\nأعلى قيمة: %.4f mV\nالمتوسط: %.4f mV\nالمدى: %.4f mV\nالانحراف المعياري: %.4f mV",
+                    "مصدر البيانات: إدخال أو استيراد من المستخدم، غير ملتقطة مباشرة من الجهاز\nعدد القراءات: %d\nأقل قيمة: %.4f mV\nأعلى قيمة: %.4f mV\nالمتوسط: %.4f mV\nالمدى: %.4f mV\nالانحراف المعياري: %.4f mV",
                     (int)stats[5], stats[0], stats[1], stats[2], stats[3], stats[4]));
-            statusText.setText("وضع العمل: تحليل قياسات فعلية أدخلها المستخدم");
+            statusText.setText("وضع العمل: تحليل بيانات أدخلها المستخدم أو استوردها — ليست قراءة مباشرة من الجهاز");
             String key = "experiment_" + System.currentTimeMillis();
-            experimentPrefs.edit().putString(key, report).putString("last_key", key).apply();
+            experimentPrefs.edit().putString(key, report).putString("name_" + key, "بيانات مستخدم " + key.substring("experiment_".length())).putString("last_key", key).apply();
             Toast.makeText(this, "تم تحليل القياسات وحفظها محلياً", Toast.LENGTH_SHORT).show();
         } catch (Exception ex) {
             Toast.makeText(this, ex.getMessage() == null ? "تحقق من القراءات" : ex.getMessage(), Toast.LENGTH_LONG).show();
