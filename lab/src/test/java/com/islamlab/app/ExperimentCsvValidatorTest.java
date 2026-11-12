@@ -70,4 +70,19 @@ public class ExperimentCsvValidatorTest {
                 strict("instrument", "unverified", "0,8,1\n0,12,2\n")).valid);
     }
 
+
+    @Test public void validatesExistingSyntheticDecayReportAndCountsEightWindows() {
+        String csv = "ISLAM LAB - Synthetic waveform test\nschema_version,1.1\ncreated_epoch_ms,1\n"
+                + "source_type,synthetic\nacquisition_origin,generated_by_lab_model\n"
+                + "measurement_status,not_a_hardware_measurement\nunit,mV\n"
+                + "window_us,signal_mV,noise_mV,total_mV\n"
+                + "8,10,0,10\n12,8,0,8\n16,6,0,6\n24,4,0,4\n"
+                + "36,3,0,3\n52,2,0,2\n72,1,0,1\n100,0.5,0,0.5\n"
+                + "summary_min_mV,0.5\nsummary_max_mV,10\nsummary_mean_mV,4.3\n";
+        ExperimentCsvValidator.Report report = ExperimentCsvValidator.validate(csv);
+        assertTrue(report.message, report.valid);
+        assertEquals(8, report.sampleCount);
+        assertEquals("synthetic", report.sourceType);
+    }
+
 }
