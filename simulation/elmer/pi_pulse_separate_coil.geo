@@ -23,8 +23,15 @@ Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
 If (IncludeTarget)
   Rectangle(2) = {0.0, TargetBottom, 0, 0.25, 0.005};
 EndIf
-// DD32-equivalent TX winding cross-section, near 145 mm radius.
-Rectangle(3) = {0.130, 0.030, 0, 0.030, 0.010};
+// Parameterized axisymmetric TX winding pack. Sweep changes radius only;
+// radial width, height, turn count and current density remain fixed.
+If (!Exists(CoilInnerRadiusM))
+  CoilInnerRadiusM = 0.130;
+EndIf
+If (!Exists(CoilRadialWidthM))
+  CoilRadialWidthM = 0.030;
+EndIf
+Rectangle(3) = {CoilInnerRadiusM, 0.030, 0, CoilRadialWidthM, 0.010};
 
 // Fragment the air domain with two independent internal regions.
 fragmentTools[] = {3};
