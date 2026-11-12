@@ -80,12 +80,14 @@ public final class ExperimentCsvValidator {
                 throw new IllegalArgumentException("لم يتم العثور على رأس جدول العينات");
 
             int valueColumn = indexOf(columns, "value");
+            if (valueColumn < 0) valueColumn = indexOf(columns, "total_mV");
             int timeColumn = indexOf(columns, "time_us");
+            if (timeColumn < 0) timeColumn = indexOf(columns, "window_us");
             int indexColumn = indexOf(columns, "sample_index");
             if (indexColumn < 0) indexColumn = indexOf(columns, "index");
-            if (valueColumn < 0) throw new IllegalArgumentException("عمود value مفقود");
-            if (timeColumn >= 0 && indexColumn < 0)
-                throw new IllegalArgumentException("عمود sample_index مطلوب مع time_us");
+            if (valueColumn < 0) throw new IllegalArgumentException("عمود القيمة مفقود");
+            if (strict && timeColumn >= 0 && indexColumn < 0)
+                throw new IllegalArgumentException("عمود sample_index مطلوب في المخطط الجديد");
 
             int count = 0;
             double firstIndex = Double.NaN;
@@ -96,6 +98,7 @@ public final class ExperimentCsvValidator {
                     if (count > 0) break;
                     continue;
                 }
+                if (!strict && count > 0 && isLegacySummaryRow(row)) break;
                 String[] cells = row.split(",", -1);
                 int needed = Math.max(valueColumn, Math.max(timeColumn, indexColumn));
                 if (cells.length <= needed)
@@ -136,8 +139,18 @@ public final class ExperimentCsvValidator {
     }
 
     private static boolean isSampleHeader(String[] cells) {
-        return indexOf(cells, "value") >= 0
+        boolean indexedValues = indexOf(cells, "value") >= 0
                 && (indexOf(cells, "index") >= 0 || indexOf(cells, "sample_index") >= 0);
+        boolean timedValues = (indexOf(cells, "time_us") >= 0 || indexOf(cells, "window_us") >= 0)
+                && (indexOf(cells, "value") >= 0 || indexOf(cells, "total_mV") >= 0);
+        return indexedValues || timedValues;
+    }
+
+    private static boolean isLegacySummaryRow(String row) {
+        String key = row.split(",", -1)[0].trim().toLowerCase(java.util.Locale.ROOT);
+        return key.startsWith("summary_") || key.equals("count") || key.equals("min")
+                || key.equals("max") || key.equals("mean") || key.equals("range")
+                || key.equals("stddev");
     }
 
     private static int indexOf(String[] cells, String wanted) {
