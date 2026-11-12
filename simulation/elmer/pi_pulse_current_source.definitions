@@ -1,21 +1,29 @@
-! ISLAM LAB: ideal current-source circuit definition for the transient foil coil.
-! Adapted from ElmerCSC/elmer-elmag CircuitBuilder 2D current_source transient example.
+! ISLAM LAB pulse source adapted from the exact upstream ElmerCSC transient-foil circuit topology.
+! Upstream reference: ElmerCSC/elmerfem fem/tests/circuits2D_transient_foil/sif/1383-circuits-components.definitions
+! The source variable name "testsource" must match the Body Force variable in pi_pulse_foil.sif.
 $ Circuits = 1
 $ Is = 1
-$ C.1.variables = 5
-$ C.1.perm = zeros(C.1.variables)
-$ C.1.A = zeros(C.1.variables,C.1.variables)
-$ C.1.B = zeros(C.1.variables,C.1.variables)
-$ C.1.name.1 = "i_Is"
-$ C.1.name.2 = "i_component(1)"
-$ C.1.name.3 = "v_Is"
+
+! Preserve the verified four-variable circuit topology from the upstream fixture.
+$ C.1.perm = zeros(4)
+$ C.1.perm(0) = 0
+$ C.1.perm(2) = 1
+$ C.1.perm(3) = 2
+$ C.1.perm(1) = 3
+
+$ C.1.variables = 4
+$ C.1.A = zeros(4,4)
+$ C.1.B = zeros(4,4)
+
+$ C.1.name.1 = "i_testsource"
+$ C.1.name.2 = "v_testsource"
+$ C.1.name.3 = "i_component(1)"
 $ C.1.name.4 = "v_component(1)"
-$ C.1.name.5 = "u_2_circuit_1"
-$ C.1.source.5 = "Is_Source"
-$ C.1.B(0,0) = -1
-$ C.1.B(0,1) = 1
-$ C.1.B(1,2) = 1
-$ C.1.B(1,4) = -1
-$ C.1.B(2,3) = -1
-$ C.1.B(2,4) = 1
-$ C.1.B(4,0) = 1
+
+! Source and network relations copied from the pinned official fixture.
+$ C.1.B(0,0) = 1
+$ C.1.source.1 = "testsource"
+$ C.1.B(1,1) = 1
+$ C.1.B(1,3) = 1
+$ C.1.B(2,0) = 1
+$ C.1.B(2,2) = -1
