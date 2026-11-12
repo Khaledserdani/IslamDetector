@@ -1,13 +1,13 @@
 ! ISLAM LAB pulse-response surrogate derived from ElmerCSC circuits2D_transient_foil.
 ! Upstream: ElmerCSC/elmerfem commit 16093051a4d21061692885eb9df9cb98688d2da2
-! Changes: normalized 1 A Gaussian pulse, 10 us time step, transient field output enabled.
+! Changes: ideal 1 A Gaussian current source, 10 us time step, transient field output enabled.
 ! This is a solver test fixture, not a measured DD32/device waveform.
 ! Author: Eelis Takala, Trafotek Oy
 ! Original date: October 2015
 ! eelis.takala@trafotek.fi
 
 Check Keywords "Warn"
-INCLUDE sif/1383-circuits-components.definitions
+INCLUDE sif/islam-pi-current-source.definitions
 INCLUDE 1383/mesh.names
 
 Header 1
@@ -164,8 +164,8 @@ End
 
 Body Force 1
    Name = "Circuit"
-   testsource = Variable time
-     Real MATC "exp(-((tx-200e-6)/50e-6)^2)"
+   Is_Source = Variable time
+     Real MATC "Is*exp(-((tx-200e-6)/50e-6)^2)"
 End
 
 Boundary Condition 1
