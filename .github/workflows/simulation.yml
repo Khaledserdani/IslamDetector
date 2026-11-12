@@ -149,3 +149,17 @@ jobs:
           path: artifacts/elmer-coil-radius-sweep/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Run coin ring and large-target geometry sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash simulation/elmer/run_pi_target_geometry_sweep.sh
+      - name: Archive target geometry comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-PI-target-geometry-sweep
+          path: artifacts/elmer-target-geometry-sweep/
+          if-no-files-found: error
+          retention-days: 30
