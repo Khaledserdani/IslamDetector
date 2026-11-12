@@ -218,3 +218,6 @@
 - اكتمل تشغيل CI رقم `43189336750` بنجاح: خطوة Gradle (وتشمل `:lab:testDebugUnitTest` و`:lab:assembleDebug`) نجحت، ثم نجح فحص وجود APK وسلامة ZIP ورفع Artifact. الملف `ISLAM-LAB-Android-APK` حجمه 1,932,719 بايت ومعرّف Artifact `13929044800`. هذا يثبت نجاح بناء المختبر واختباراته على كود SQLite الحالي؛ لم يثبت تثبيته على هاتف فعلي بعد.
 
 - تحسين دورة حياة المختبر: أضيف إغلاق `ExperimentStore` داخل `MainActivity.onDestroy()` حتى لا تبقى قاعدة SQLite مفتوحة بعد إنهاء الشاشة. التعديل في commit `df0e3a8`، ويعاد تشغيل CI عليه.
+
+
+- **نجاح CI بعد إغلاق SQLite — 2026-11-12:** اكتمل التشغيلان على commit `82d681b5ad2f7ca0badb0959098dbf055eddf183`: push run `43189740897` وPR run `43189749637`، وكلاهما `success`. نجحت خطوة Gradle التي تنفذ `:lab:testDebugUnitTest` و`:lab:assembleDebug`، وفحص APK وسلامة الحزمة ورفع Artifact. أصبح تعديل `MainActivity.onDestroy()` ضمن بناء اجتاز CI. Artifact `ISLAM-LAB-Android-APK` ID `13930565727`، حجمه 1,932,787 بايت، وبصمة SHA-256: `9c279eeff649be93a9ee0bd75f03ceece31f49f67b1cd48cf93b4d33c4840237`، صالح حتى 2026-12-12. يبقى تثبيت APK وتشغيله على هاتف Android الفعلي مفتوحاً.
