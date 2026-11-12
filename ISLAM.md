@@ -504,3 +504,10 @@
 - المحاولة الأولى شغّلت Elmer، لكن مدقق VTU تعثر عند قراءة XML لأن إخراج ResultOutputSolver كان Binary افتراضياً.
 - ضُبط `Binary Output = Logical False` في `pi_pulse_foil.sif` حتى تصبح ملفات VTU قابلة للتحليل النصي، وأضيفت رسالة توضح اسم الملف عند أي ParseError.
 - إعادة CI للنموذج النبضي بعد التصحيح تنتظر.
+
+
+### نجاح بناء ISLAM DETECTOR وISLAM LAB معاً — 2026-11-12
+- CI run `43196356339` نجح بالكامل: `:app:testDebugUnitTest` و`:app:assembleDebug` و`:lab:testDebugUnitTest` و`:lab:assembleDebug`، ثم تحقق AAPT من معرفي الحزمة.
+- التطبيق الرئيسي `com.islamdetector.app`: Artifact ID `13932812908`، APK المستخرج 22,079 بايت، SHA-256 `6c7d5f6b41079cef6d89ac35f6f4eded03c0ded15943b9c1832c9ee64ba6aeb4`.
+- المختبر `com.islamlab.app`: Artifact ID `13932992725`، APK المستخرج 2,005,824 بايت، SHA-256 `49551604df3896f428980b38e2b8f6433f61100011ac81d7912d2dddfd6e94f7`.
+- الأثران صالحان حتى 2026-12-12، وكلاهما Debug-signed وليس إصدار Release موقّعاً بمفتاح ثابت.
