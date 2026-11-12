@@ -236,3 +236,6 @@
 
 - **محاكاة الدوائر:** اجتازت خطوة ngspice في CI رقم `43192034630` اختبار RLC التحليلي. لم يكتمل بناء Android في ذلك التشغيل عند آخر متابعة.
 - **مرجع Elmer:** أُضيف مشغل `simulation/elmer/run_upstream_two_coil_reference.sh` لتشغيل حالة الملفين الرسمية من Elmer عند commit ثابت `16093051a4d21061692885eb9df9cb98688d2da2`، وأُدرج تثبيت Elmer وتشغيل الحالة في CI. نتيجة المحلل تنتظر التشغيل. الوثيقة: `docs/engineering/ELMER_TWO_COIL_REFERENCE_AR.md`.
+
+
+- **نجاح متكامل لاختبار RLC وبناء المختبر — CI run `43192149710`:** اجتازت خطوة ngspice مقارنة RLC التحليلية، ونجحت بعدها اختبارات Android وبناء APK وفحصه ورفعه. Artifact `ISLAM-LAB-Android-APK` ID `13931012718`، الحجم 1,932,782 بايت، SHA-256 `62967f9c51c9802445dd80bcb2ecacd2c499ea0193a7d02d1112f1cd5cb9a017`، صالح حتى 2026-12-12. هذا البناء يسبق إضافة تشغيل Elmer في CI؛ لا يشمل اختبار Elmer الجديد.
