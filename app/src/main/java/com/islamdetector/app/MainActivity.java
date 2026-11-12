@@ -30,6 +30,8 @@ public class MainActivity extends Activity {
     private static final String DEFAULT_HOST = "192.168.4.1";
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService network = Executors.newSingleThreadExecutor();
+    // Keep SQLite reads/writes off the UI thread and serialize database access.
+    private final ExecutorService storage = Executors.newSingleThreadExecutor();
     private final AtomicBoolean requestRunning = new AtomicBoolean(false);
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
@@ -335,8 +337,21 @@ public class MainActivity extends Activity {
         lastUpdateText.setText("آخر تحديث: " + timeFormat.format(new Date()) +
                 (data.has("device") ? " • " + data.optString("device") : ""));
         if (!Double.isNaN(signal) && System.currentTimeMillis() - lastSavedAt > 5000) {
-            db.add(signal, confidence, depth, calibrated ? 1 : 0);
-            lastSavedAt = System.currentTimeMillis(); refreshHistory();
+            lastSavedAt = System.currentTimeMillis();
+            final double savedSignal = signal;
+            final double savedConfidence = confidence;
+            final double savedDepth = depth;
+            final int savedCalibrated = calibrated ? 1 : 0;
+            storage.execute(() -> {
+                try {
+                    db.add(savedSignal, savedConfidence, savedDepth, savedCalibrated);
+                    refreshHistory();
+                } catch (RuntimeException e) {
+                    runOnUiThread(() -> {
+                        if (!destroyed) toast("تعذر حفظ القياس في قاعدة البيانات");
+                    });
+                }
+            });
         }
     }
     private double number(JSONObject o, String... keys) {
@@ -378,27 +393,50 @@ public class MainActivity extends Activity {
     }
 
     private void refreshHistory() {
-        if (historyText == null) return;
-        StringBuilder b = new StringBuilder();
-        try (Cursor c = db.latest(8)) {
-            if (!c.moveToFirst()) { historyText.setText("لا توجد قياسات محفوظة بعد"); return; }
-            do {
-                String date = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(new Date(c.getLong(1)));
-                b.append(date).append("  |  إشارة ").append(format(c.getDouble(2)));
-                if (!c.isNull(3)) b.append("  |  ثقة ").append(format(c.getDouble(3))).append("%");
-                if (!c.isNull(4)) b.append("  |  عمق ").append(format(c.getDouble(4))).append(" سم");
-                b.append("\n");
-            } while (c.moveToNext());
-        }
-        historyText.setText(b.toString().trim());
+        if (historyText == null || destroyed) return;
+        storage.execute(() -> {
+            StringBuilder b = new StringBuilder();
+            try (Cursor c = db.latest(8)) {
+                if (c.moveToFirst()) {
+                    do {
+                        String date = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+                                .format(new Date(c.getLong(1)));
+                        b.append(date).append("  |  إشارة ").append(format(c.getDouble(2)));
+                        if (!c.isNull(3)) b.append("  |  ثقة ").append(format(c.getDouble(3))).append("%");
+                        if (!c.isNull(4)) b.append("  |  عمق ").append(format(c.getDouble(4))).append(" سم");
+                        b.append("\\n");
+                    } while (c.moveToNext());
+                }
+            } catch (RuntimeException e) {
+                b.setLength(0);
+            }
+            final String rendered = b.length() == 0
+                    ? "لا توجد قياسات محفوظة بعد" : b.toString().trim();
+            runOnUiThread(() -> {
+                if (!destroyed && historyText != null) historyText.setText(rendered);
+            });
+        });
     }
     private void exportHistory() {
-        String csv = db.exportCsv();
-        if (csv.isEmpty()) { toast("السجل فارغ حالياً"); return; }
-        Intent share = new Intent(Intent.ACTION_SEND); share.setType("text/csv");
-        share.putExtra(Intent.EXTRA_SUBJECT, "سجل قياسات Islam Detector");
-        share.putExtra(Intent.EXTRA_TEXT, csv);
-        startActivity(Intent.createChooser(share, "تصدير سجل القياسات"));
+        storage.execute(() -> {
+            final String csv;
+            try {
+                csv = db.exportCsv();
+            } catch (RuntimeException e) {
+                runOnUiThread(() -> {
+                    if (!destroyed) toast("تعذر قراءة سجل القياسات");
+                });
+                return;
+            }
+            runOnUiThread(() -> {
+                if (destroyed) return;
+                if (csv.isEmpty()) { toast("السجل فارغ حالياً"); return; }
+                Intent share = new Intent(Intent.ACTION_SEND); share.setType("text/csv");
+                share.putExtra(Intent.EXTRA_SUBJECT, "سجل قياسات Islam Detector");
+                share.putExtra(Intent.EXTRA_TEXT, csv);
+                startActivity(Intent.createChooser(share, "تصدير سجل القياسات"));
+            });
+        });
     }
     private void toast(String message) {
         if (!destroyed) Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -424,7 +462,11 @@ public class MainActivity extends Activity {
         activityVisible = false;
         handler.removeCallbacksAndMessages(null);
         network.shutdownNow();
-        if (db != null) db.close();
+        if (db != null) {
+            final DetectorDb database = db;
+            storage.execute(() -> database.close());
+            storage.shutdown();
+        }
         super.onDestroy();
     }
 
