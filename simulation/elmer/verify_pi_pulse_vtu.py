@@ -44,7 +44,7 @@ for path in files:
         if components not in (2, 3):
             continue
         values = [float(x) for x in (array.text or "").split()]
-        if not values or len(values) % 3:
+        if not values or len(values) % components:
             raise SystemExit(f"FAIL: malformed magnetic-flux-density vector in {path.name}")
         if not all(math.isfinite(x) for x in values):
             raise SystemExit(f"FAIL: non-finite magnetic-flux-density value in {path.name}")
