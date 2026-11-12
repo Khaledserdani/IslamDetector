@@ -48,3 +48,15 @@ jobs:
           path: artifacts/elmer-two-coil/
           if-no-files-found: error
           retention-days: 30
+      - name: Run pinned Elmer transient conductive-foil reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash simulation/elmer/run_upstream_transient_foil_reference.sh
+      - name: Archive Elmer transient foil inputs and logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-transient-foil-reference
+          path: artifacts/elmer-transient-foil/
+          if-no-files-found: error
+          retention-days: 30
