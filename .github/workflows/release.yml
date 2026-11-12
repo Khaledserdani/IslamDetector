@@ -1,26 +1,17 @@
-name: Build ISLAM LAB release APK
+name: Validate ISLAM LAB release candidate
 
 on:
-  push:
-    branches:
-      - feature/islam-lab-foundation
-    paths:
-      - '.github/workflows/release.yml'
-      - 'lab/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'gradle/**'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: islam-lab-release
+  group: islam-lab-release-candidate
   cancel-in-progress: false
 
 jobs:
-  release:
+  build-candidate:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -35,10 +26,10 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Run tests and build installable release APK
+      - name: Run tests and build release candidate APK
         run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleRelease
 
-      - name: Verify APK and signing certificate
+      - name: Verify candidate APK and signing certificate
         shell: bash
         run: |
           set -euo pipefail
@@ -49,11 +40,9 @@ jobs:
           "$SDK/apksigner" verify --verbose --print-certs "$APK"
           sha256sum "$APK"
 
-      - name: Publish installable APK
-        uses: softprops/action-gh-release@v2
+      - name: Upload release candidate for internal validation
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: islam-lab-v1.0.0
-          name: ISLAM LAB v1.0.0
-          prerelease: false
-          generate_release_notes: true
-          files: lab/build/outputs/apk/release/lab-release.apk
+          name: ISLAM-LAB-Release-Candidate
+          path: lab/build/outputs/apk/release/lab-release.apk
+          retention-days: 14
