@@ -9,6 +9,7 @@ on:
       - '.github/workflows/main.yml'
       - 'app/**'
       - 'lab/**'
+      - 'simulation/**'
       - 'settings.gradle'
       - 'build.gradle'
       - 'gradle/**'
@@ -30,6 +31,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Run analytical ngspice RLC reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ngspice
+          ngspice -b -o /tmp/islam-rlc.log simulation/ngspice/series_rlc_step.cir
+          python3 simulation/ngspice/verify_series_rlc.py /tmp/islam-rlc.log
       - name: Build Android applications
         run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleDebug
       - name: Verify APK packages
