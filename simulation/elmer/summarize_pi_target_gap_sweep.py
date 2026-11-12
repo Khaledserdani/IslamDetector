@@ -31,7 +31,7 @@ for gap in gaps:
         raise SystemExit(f"FAIL: missing SIF time-step definition: {sif_path}")
     sif_text = sif_path.read_text(encoding="utf-8")
     intervals_match = re.search(
-        r"Timestep\\s+Intervals\\s*\\(\\s*(\\d+)\\s*\\)\\s*=\\s*([^\\n!]+)",
+        r"Timestep\s+Intervals\s*\(\s*(\d+)\s*\)\s*=\s*([^\n!]+)",
         sif_text,
         flags=re.IGNORECASE,
     )
