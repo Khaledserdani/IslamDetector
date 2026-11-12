@@ -111,6 +111,26 @@ if 'Physical Surface("Aluminium_Target", 3)' not in geo:
 if "Current Density = Variable time" not in sif:
     fail("time-varying current density declaration is missing")
 
+tx_body = re.search(
+    r'Body\\s+2\\s+Name\\s*=\\s*"TX_Coil"(.*?)\\nEnd',
+    sif,
+    flags=re.IGNORECASE | re.DOTALL,
+)
+if not tx_body or not re.search(r"Body\\s+Force\\s*=\\s*1", tx_body.group(1), re.IGNORECASE):
+    fail("TX_Coil body is not explicitly linked to Body Force 1")
+if not re.search(
+    r'Body\\s+Force\\s+1\\s+Name\\s*=\\s*"TX_Pulse".*?Current\\s+Density\\s*=\\s*Variable\\s+time',
+    sif,
+    flags=re.IGNORECASE | re.DOTALL,
+):
+    fail("TX_Pulse body force does not define the time-dependent current source")
+if not re.search(
+    r'Material\\s+3\\s+Name\\s*=\\s*"Aluminium".*?Electric\\s+Conductivity\\s*=\\s*3\\.5e7',
+    sif,
+    flags=re.IGNORECASE | re.DOTALL,
+):
+    fail("Aluminium target conductivity is missing or changed")
+
 # The present homogenized model encodes 20 A-turn total in the winding pack.
 expected_ampere_turns = 20.0
 if not math.isclose(equivalent_total_current, expected_ampere_turns, rel_tol=2e-3):
