@@ -9,8 +9,6 @@ Header
   Mesh DB "." "."
 End
 
-$ nsteps = 40
-$ stepsize = 25.0e-6
 
 Simulation
   Max Output Level = 5
@@ -18,9 +16,10 @@ Simulation
   Simulation Type = Transient
   Timestepping Method = BDF
   BDF Order = 1
-  Timestep Sizes(1) = Real $stepsize
-  Timestep Intervals(1) = $nsteps
-  Output Intervals(1) = 1
+  ! Resolve the 5 us pulse edges with 1 us steps; relax only after 200 us.
+  Timestep Sizes(2) = Real 1.0e-6 20.0e-6
+  Timestep Intervals(2) = 200 40
+  Output Intervals(2) = 1 1
   Steady State Max Iterations = 1
 End
 
