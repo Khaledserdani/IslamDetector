@@ -66,6 +66,13 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("set pins, 1 side 0 [15]", self.pio_source)
         self.assertEqual(self.pio_source.count("nop side 0 [15]"), 5)
 
+    def test_ads8861_dout_is_sampled_on_rising_edge_after_falling_update(self):
+        # TI ADS8861 changes DOUT after SCLK falling; PIO samples on next rising.
+        self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
+        self.assertIn("jmp x-- bitloop side 0 [6]", self.pio_source)
+        self.assertIn("DOUT after each SCLK falling edge", self.pio_source)
+        self.assertIn("following rising edge", self.pio_source)
+
     def test_capture_shift_width_matches_one_adc_word(self):
         self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
         self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
