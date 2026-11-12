@@ -74,7 +74,7 @@ public class ExperimentStoreTest {
 
 
     @Test public void dataSurvivesClosingAndReopeningTheDatabaseHelper() {
-        String csv = "source_type,user_provided\\nacquisition_origin,user_entry_or_file_import\\nmeasurement_status,not_verified_as_device_measurement\\nindex,value\\n1,4.0\\n2,5.0\\n";
+        String csv = "source_type,user_provided\nacquisition_origin,user_entry_or_file_import\nmeasurement_status,not_verified_as_device_measurement\nindex,value\n1,4.0\n2,5.0\n";
         assertTrue(store.save("persist-1", "قياس محفوظ", csv, 9876L));
         store.close();
         store = new ExperimentStore(context);
