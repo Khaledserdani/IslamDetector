@@ -345,7 +345,9 @@ public class MainActivity extends Activity {
             storage.execute(() -> {
                 try {
                     db.add(savedSignal, savedConfidence, savedDepth, savedCalibrated);
-                    refreshHistory();
+                    runOnUiThread(() -> {
+                        if (!destroyed) refreshHistory();
+                    });
                 } catch (RuntimeException e) {
                     runOnUiThread(() -> {
                         if (!destroyed) toast("تعذر حفظ القياس في قاعدة البيانات");
