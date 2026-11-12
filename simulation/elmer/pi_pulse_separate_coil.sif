@@ -1,6 +1,7 @@
 ! ISLAM LAB: independent PI transmitter coil above a separate aluminium target.
 ! Axisymmetric geometry generated from pi_pulse_separate_coil.geo.
-! Normalized 1 A-equivalent current-density pulse; not a measured DD32 waveform.
+! Homogenized 20-turn TX winding pack, 1 A peak per turn (20 A-turn total).
+! Smooth trapezoidal PI-style pulse: 50 us turn-on, 150 us turn-off.
 
 Check Keywords "Warn"
 
@@ -8,7 +9,6 @@ Header
   Mesh DB "." "."
 End
 
-$ J0 = 1.0e6
 $ nsteps = 40
 $ stepsize = 25.0e-6
 
@@ -106,7 +106,7 @@ End
 Body Force 1
   Name = "TX_Pulse"
   Current Density = Variable time
-    Real LUA "1.0e6*math.exp(-((tx[0]-200e-6)/50e-6)^2)"
+    Real LUA "3.333333333e4*(math.tanh((tx[0]-50e-6)/5e-6)-math.tanh((tx[0]-150e-6)/5e-6))"
 End
 
 Boundary Condition 1
