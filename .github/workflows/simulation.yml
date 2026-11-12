@@ -103,3 +103,16 @@ jobs:
           path: artifacts/elmer-pi-pulse-surrogate/
           if-no-files-found: error
           retention-days: 30
+      - name: Run matched Elmer PI no-target control
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash simulation/elmer/run_pi_pulse_no_target_control.sh
+      - name: Archive Elmer PI no-target control fields
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-PI-no-target-control
+          path: artifacts/elmer-pi-no-target-control/
+          if-no-files-found: error
+          retention-days: 30
