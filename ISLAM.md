@@ -371,3 +371,11 @@
 ### تحسين دورة حياة قاعدة بيانات المختبر — 2026-11-12
 - أضيف `MainActivity.onDestroy()` لإغلاق `ExperimentStore` عند إنهاء الشاشة، حتى تُحرر موارد SQLite بصورة صحيحة.
 - التعديل في commit `df0e3a8`، ويُعاد تشغيل CI عليه قبل اعتماد هذا التغيير ضمن البناء الناجح.
+
+
+### نجاح CI بعد تحسين دورة حياة SQLite — 2026-11-12
+- اكتمل التشغيلان على commit `82d681b5ad2f7ca0badb0959098dbf055eddf183`: push run `43189740897` وPR run `43189749637`، وكلاهما `success`.
+- نجحت خطوة Gradle التي تنفذ `:lab:testDebugUnitTest` و`:lab:assembleDebug`، ثم فحص APK وسلامة الحزمة ورفع Artifact.
+- أصبح تعديل `MainActivity.onDestroy()` لإغلاق `ExperimentStore` ضمن بناء اجتاز CI.
+- Artifact `ISLAM-LAB-Android-APK`، ID `13930565727`، الحجم 1,932,787 بايت، SHA-256: `9c279eeff649be93a9ee0bd75f03ceece31f49f67b1cd48cf93b4d33c4840237`، صالح حتى 2026-12-12.
+- اختبار التثبيت والتشغيل على هاتف Android فعلي ما زال مفتوحاً. PR #8 باقٍ Draft وغير مدمج.
