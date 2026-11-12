@@ -85,4 +85,10 @@ public class ExperimentCsvValidatorTest {
         assertEquals("synthetic", report.sourceType);
     }
 
+
+    @Test public void rejectsNegativeSampleTime() {
+        assertFalse(ExperimentCsvValidator.validate(
+                strict("instrument", "unverified", "0,-1,1\n1,12,2\n")).valid);
+    }
+
 }
