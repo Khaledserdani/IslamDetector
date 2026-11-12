@@ -7,14 +7,34 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
-PULSE_START_STEP = 2  # 50 us / 25 us
-POST_PULSE_START_STEP = 7  # 175 us, after 150 us transmitter turn-off
+PULSE_START_TIME = 50e-6
+POST_PULSE_START_TIME = 175e-6  # 25 us after transmitter turn-off
 RUNAWAY_FACTOR = 10.0
 
 if len(sys.argv) != 2:
     raise SystemExit("usage: verify_pi_pulse_vtu.py OUTPUT_DIRECTORY")
 
 root = Path(sys.argv[1])
+sif_path = root / "islam-pi-pulse.sif"
+if not sif_path.is_file():
+    raise SystemExit("FAIL: copied SIF is required to map VTU steps to physical time")
+sif_text = sif_path.read_text(encoding="utf-8")
+sizes_match = re.search(r"Timestep\s+Sizes\s*\(\s*(\d+)\s*\)\s*=\s*Real\s+([^\n!]+)", sif_text, re.I)
+intervals_match = re.search(r"Timestep\s+Intervals\s*\(\s*(\d+)\s*\)\s*=\s*([^\n!]+)", sif_text, re.I)
+if not sizes_match or not intervals_match:
+    raise SystemExit("FAIL: could not read segmented time-step schedule from SIF")
+time_sizes = [float(x) for x in sizes_match.group(2).split()]
+time_intervals = [int(x) for x in intervals_match.group(2).split()]
+if len(time_sizes) != len(time_intervals) or len(time_sizes) != int(sizes_match.group(1)) or len(time_intervals) != int(intervals_match.group(1)):
+    raise SystemExit("FAIL: inconsistent SIF time-step vectors")
+time_by_step = {}
+step_cursor = 0
+elapsed = 0.0
+for dt, count in zip(time_sizes, time_intervals):
+    for _ in range(count):
+        elapsed += dt
+        step_cursor += 1
+        time_by_step[step_cursor] = elapsed
 files = sorted(root.glob("islam-pi-pulse*.vtu"))
 if len(files) < 2:
     raise SystemExit("FAIL: fewer than two transient VTU snapshots")
@@ -109,7 +129,7 @@ with target_summary.open("w") as f:
 if max(value for _, value in series) <= 0:
     raise SystemExit("FAIL: magnetic flux density is identically zero")
 
-post_pulse = [(step, value) for step, value in series if step >= POST_PULSE_START_STEP]
+post_pulse = [(step, value) for step, value in series if time_by_step.get(step, -1.0) >= POST_PULSE_START_TIME]
 if len(post_pulse) < 6:
     raise SystemExit("FAIL: insufficient post-pulse snapshots to assess decay")
 minimum_step, minimum_value = min(post_pulse, key=lambda item: item[1])
@@ -145,7 +165,7 @@ target_peak_step, target_peak = max(target_series, key=lambda item: item[1])
 target_final_step, target_final = target_series[-1]
 if target_peak <= 0:
     raise SystemExit("FAIL: no induced current detected in Aluminium_Target")
-if target_peak_step < PULSE_START_STEP:
+if time_by_step.get(target_peak_step, 0.0) < PULSE_START_TIME:
     raise SystemExit(
         f"FAIL: target-current peak precedes the transmitter pulse; "
         f"peak={target_peak:.9g} at step {target_peak_step}"
