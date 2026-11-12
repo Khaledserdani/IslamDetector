@@ -6,7 +6,9 @@
 ; clk_sys/PIO clock must be 125 MHz.
 ; CONVST high = six 16-cycle instructions = 96 cycles = 768 ns (> 710 ns tconv-max).
 ; SCLK = 7 cycles high + 7 cycles low = 8.929 MHz (50% duty).
-; DOUT MSB is sampled 120 ns after CONVST falls (12-cycle CONVST-low instruction + SET X + NOP) (t_d-CNV-DO max 12.3 ns).
+; DOUT MSB is sampled 120 ns after CONVST falls (t_d-CNV-DO max 12.3 ns).
+; ADS8861 updates DOUT after each SCLK falling edge (t_d-CK-DO max 13.4 ns),
+; so IN samples on the following rising edge (side-set HIGH), not on falling.
 ;
 ; One 32-bit word is explicitly pulled into OSR; the remaining three words are preloaded in TX FIFO. Each word carries two
 ; 12-bit delay-loop counts. OUT shift-right/autopull threshold is 24 bits.
