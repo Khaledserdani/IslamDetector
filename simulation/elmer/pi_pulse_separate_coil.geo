@@ -1,0 +1,64 @@
+// Axisymmetric PI detector surrogate: independent TX coil, air gap, conductive target.
+// Coordinates are (r,z) in metres. TX coil and target are separate physical bodies.
+SetFactory("OpenCASCADE");
+Mesh.MshFileVersion = 2.2;
+Mesh.ElementOrder = 1;
+Mesh.CharacteristicLengthMin = 0.0025;
+Mesh.CharacteristicLengthMax = 0.020;
+
+// Outer air domain: r=0..0.50 m, z=-0.35..0.35 m.
+Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
+// Aluminium plate: 250 mm radius, 5 mm thick.
+Rectangle(2) = {0.0, -0.020, 0, 0.25, 0.005};
+// DD32-equivalent TX winding cross-section, near 145 mm radius.
+Rectangle(3) = {0.130, 0.030, 0, 0.030, 0.010};
+
+// Fragment the air domain with two independent internal regions.
+out[] = BooleanFragments{ Surface{1}; Delete; }{ Surface{2,3}; Delete; };
+
+air[] = {};
+tx[] = {};
+target[] = {};
+For i In {0:#out[]-1}
+  s = out[i];
+  c[] = CenterOfMass Surface{s};
+  If (c[0] > 0.129 && c[0] < 0.161 && c[1] > 0.029 && c[1] < 0.041)
+    tx[] += {s};
+  ElseIf (c[0] >= -0.0001 && c[0] < 0.251 && c[1] > -0.021 && c[1] < -0.014)
+    target[] += {s};
+  Else
+    air[] += {s};
+  EndIf
+EndFor
+
+Physical Surface("Air", 1) = {air[]};
+Physical Surface("TX_Coil", 2) = {tx[]};
+Physical Surface("Aluminium_Target", 3) = {target[]};
+
+// Classify only the exterior boundary curves. Axis is separate from infinity.
+axis[] = {};
+outer[] = {};
+allcurves[] = Boundary{ Surface{out[]}; };
+For i In {0:#allcurves[]-1}
+  c = allcurves[i];
+  b[] = BoundingBox Curve{c};
+  If (Abs(b[0]) < 1e-7 && Abs(b[3]) < 1e-7)
+    axis[] += {c};
+  ElseIf (Abs(b[0]) < 1e-7 || Abs(b[3]-0.50) < 1e-7 || Abs(b[1]+0.35) < 1e-7 || Abs(b[4]-0.35) < 1e-7)
+    outer[] += {c};
+  EndIf
+EndFor
+Physical Curve("Axis", 11) = {axis[]};
+Physical Curve("Outer_Infinity", 12) = {outer[]};
+
+// Refine the coil and target while keeping the surrounding air economical.
+Field[1] = Distance;
+Field[1].SurfacesList = {tx[], target[]};
+Field[2] = Threshold;
+Field[2].InField = 1;
+Field[2].SizeMin = 0.0025;
+Field[2].SizeMax = 0.020;
+Field[2].DistMin = 0.005;
+Field[2].DistMax = 0.060;
+Background Field = 2;
+Mesh 2;
