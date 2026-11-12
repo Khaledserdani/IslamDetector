@@ -72,6 +72,7 @@ jobs:
           set -euo pipefail
           bash simulation/elmer/run_pi_pulse_foil_surrogate.sh
       - name: Archive Elmer PI pulse surrogate fields
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ISLAM-LAB-Elmer-PI-pulse-surrogate
