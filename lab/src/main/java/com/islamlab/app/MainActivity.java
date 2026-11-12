@@ -231,7 +231,12 @@ public class MainActivity extends Activity {
 
     private void analyzeMeasurements() {
         try {
-            double[] values = ExperimentData.parse(measuredInput.getText().toString());
+            String inputCsv = measuredInput.getText().toString();
+            if (inputCsv.contains("schema_version,1.0.0")) {
+                ExperimentCsvValidator.Report validation = ExperimentCsvValidator.validate(inputCsv);
+                if (!validation.valid) throw new IllegalArgumentException("رفض سجل التجربة: " + validation.message);
+            }
+            double[] values = ExperimentData.parse(inputCsv);
             double[] stats = LabMath.summarize(values);
             report = ExperimentData.toCsv(values);
             resultText.setText(String.format(Locale.US,
