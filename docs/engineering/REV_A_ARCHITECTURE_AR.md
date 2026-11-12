@@ -263,3 +263,10 @@ E_L(t) = 0.5 × L × I(t)^2
 
 سجل RP2040/Pico SDK يؤكد أن سجل المقارنة CC مزدوج التخزين: الكتابة أثناء تشغيل PWM لا تصبح فعالة إلا عند الالتفاف التالي. كان ذلك يسبب تكرار profile 0 في بداية التشغيل دورة إضافية لأن أول تحديث من ISR لا يُفعّل إلا في الالتفاف اللاحق. عولج ذلك بتهيئة profile 0 قبل التشغيل ثم حجز profile 1 مباشرة بعد تمكين PWM وقبل أول التفاف (فترة 10ms)، مع فصل مؤشري `active_profile_index` و`queued_profile_index`. أصبح تسلسل الملف الفعّال عند البدء: 0،1،2،3،4،5،6،7،0... دون تكرار بدءي. أضيف اختبار Python يحاكي خط أنابيب CC ويتحقق من ترتيب الفهارس ومن ترتيب التهيئة في المصدر. هذا إصلاح برمجي/حسابي؛ لا يغني عن فحص GP4/GP5 بمحلل منطقي فعلي.
 مرجع RP2040 الرسمي: https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#hardware_pwm
+
+
+## 16. نواة استقبال البروتوكول على ESP32-S3 — 2026-11-12
+
+أضيف مكوّن C11 محمول في `firmware/esp32_s3_bridge/components/rev_a_protocol/` ليكون نواة parser التي يستدعيها UART task لاحقاً. لا يعتمد على ESP-IDF headers، لذلك يمكن اختبار قواعد الإطار وCRC وDEVICE_INFO على Linux قبل ربطه بمحيط ESP32-S3. المكوّن يقرأ MEASUREMENT وDEVICE_INFO، يتحقق من صيغة ADC، ويحافظ على raw16. أضيف له `CMakeLists.txt` بصيغة ESP-IDF component واختبار host مستقل في `firmware/esp32_s3_bridge/tests/`.
+
+**لم يكتمل بعد:** ESP-IDF application، تهيئة UART 921600 8N1، RX ring buffer وevent task، طلب DEVICE_INFO عند الاتصال/إعادة الاتصال، ACK/HELLO، heartbeat وSTOP، Wi-Fi/WebServer، أو Hardware UART loopback. لا تسجل هذه النواة على أنها Firmware ESP32-S3 مكتمل أو اتصال بين اللوحتين مثبت.
