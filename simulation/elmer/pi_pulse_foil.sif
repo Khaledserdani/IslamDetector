@@ -163,8 +163,7 @@ Component 1
 End
 
 Body Force 1
-   Name = "Circuit"
-   Is_Source = Variable time
+   testsource = Variable time
      Real MATC "Is*exp(-((tx-200e-6)/50e-6)^2)"
 End
 
