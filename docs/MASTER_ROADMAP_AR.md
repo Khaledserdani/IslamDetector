@@ -232,3 +232,7 @@
 
 
 - جرى تحديد حالات اختبار Elmer الرسمية الأقرب لمسألة الملفات والنبضة العابرة: `mgdyn_steady_coils` لملفين، و`circuits_transient_stranded_full_coil` لملف مرتبط بدائرة في الحالة العابرة، و`mgdyn_faraday_disc_transient` لإعدادات الزمن. أضيفت روابطها وخطة إعادة تشغيلها كما هي قبل بناء نموذج DD32، دون نسخ إعدادات غير مختبرة أو الادعاء أن المحاكاة نُفذت.
+
+
+- **محاكاة الدوائر:** اجتازت خطوة ngspice في CI رقم `43192034630` اختبار RLC التحليلي. لم يكتمل بناء Android في ذلك التشغيل عند آخر متابعة.
+- **مرجع Elmer:** أُضيف مشغل `simulation/elmer/run_upstream_two_coil_reference.sh` لتشغيل حالة الملفين الرسمية من Elmer عند commit ثابت `16093051a4d21061692885eb9df9cb98688d2da2`، وأُدرج تثبيت Elmer وتشغيل الحالة في CI. نتيجة المحلل تنتظر التشغيل. الوثيقة: `docs/engineering/ELMER_TWO_COIL_REFERENCE_AR.md`.
