@@ -36,6 +36,12 @@ jobs:
           set -euo pipefail
           ngspice -b -o /tmp/islam-rlc.log simulation/ngspice/series_rlc_step.cir
           python3 simulation/ngspice/verify_series_rlc.py /tmp/islam-rlc.log
+      - name: Run nominal DD32 TX coil RL decay reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          ngspice -b -o /tmp/islam-txrl.log simulation/ngspice/tx_coil_rl_decay.cir
+          python3 simulation/ngspice/verify_tx_rl_decay.py /tmp/islam-txrl.log
       - name: Run pinned Elmer two-coil MagnetoDynamics reference
         shell: bash
         run: |
