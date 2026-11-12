@@ -90,6 +90,7 @@ Solver 5
    Procedure = "ResultOutputSolve" "ResultOutputSolver"
    Output File Name = islam-pi-pulse
    Vtu format = Logical True
+   Binary Output = Logical False
    Save Geometry Ids = Logical True
 End
 
