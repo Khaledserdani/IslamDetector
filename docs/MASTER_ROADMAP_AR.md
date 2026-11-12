@@ -285,3 +285,6 @@
 
 
 - **نجاح بناء التطبيقين معاً — CI run `43196356339`:** نجحت مهام `:app:testDebugUnitTest` و`:app:assembleDebug` و`:lab:testDebugUnitTest` و`:lab:assembleDebug` خلال 56 ثانية، ثم تحقق AAPT من معرفي الحزمة `com.islamdetector.app` و`com.islamlab.app`. APK الرئيسي ID `13932812908`، حجم الملف المستخرج 22,079 بايت، SHA-256 `6c7d5f6b41079cef6d89ac35f6f4eded03c0ded15943b9c1832c9ee64ba6aeb4`. APK المختبر ID `13932992725`، حجم الملف المستخرج 2,005,824 بايت، SHA-256 `49551604df3896f428980b38e2b8f6433f61100011ac81d7912d2dddfd6e94f7`. كلاهما صالح حتى 2026-12-12.
+
+
+- أُضيف اشتقاق متطلبات مرحلة قدرة TX لملف DD32 في `docs/engineering/DD32_TX_POWER_STAGE_DERIVATION_AR.md`: معادلات تيار RL والطاقة المخزنة وجدول توضيحي عند 1/2/5/10 A، مع إبقاء هذه التيارات أمثلة حسابية لا قيم تشغيل معتمدة. يحدد المستند البيانات المطلوبة قبل اختيار MOSFET/Driver/TVS.
