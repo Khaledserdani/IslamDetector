@@ -12,7 +12,7 @@ log = Path(sys.argv[1]).read_text(errors="replace")
 
 def measured(name):
     match = re.search(
-        rf"^{name}\\s*=\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)",
+        rf"^{name}\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)",
         log, re.I | re.M
     )
     if not match:
