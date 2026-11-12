@@ -221,3 +221,6 @@
 
 
 - **نجاح CI بعد إغلاق SQLite — 2026-11-12:** اكتمل التشغيلان على commit `82d681b5ad2f7ca0badb0959098dbf055eddf183`: push run `43189740897` وPR run `43189749637`، وكلاهما `success`. نجحت خطوة Gradle التي تنفذ `:lab:testDebugUnitTest` و`:lab:assembleDebug`، وفحص APK وسلامة الحزمة ورفع Artifact. أصبح تعديل `MainActivity.onDestroy()` ضمن بناء اجتاز CI. Artifact `ISLAM-LAB-Android-APK` ID `13930565727`، حجمه 1,932,787 بايت، وبصمة SHA-256: `9c279eeff649be93a9ee0bd75f03ceece31f49f67b1cd48cf93b4d33c4840237`، صالح حتى 2026-12-12. يبقى تثبيت APK وتشغيله على هاتف Android الفعلي مفتوحاً.
+
+
+- أُنشئت وثيقة تقييم محركات المحاكاة العلمية `docs/engineering/SIMULATION_ENGINE_SELECTION_AR.md`: تقسيم أولي للمسؤوليات بين ngspice لمحاكاة الدوائر، وElmer FEM للمغناطوديناميكا والتيارات الدوامية، وopenEMS كخيار FDTD تكميلي. سُجلت بوابات الاختبار المرجعي وتقارب الشبكة والزمن، ومخاطر تضمين المحركات داخل APK. هذا اعتماد للمرشحين للتقييم فقط؛ لم يُدمج أي محرك إنتاجي ولم تُنتج بعد محاكاة فيزيائية للجهاز.
