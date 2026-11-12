@@ -22,6 +22,11 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Check PI pulse source and winding dimensional consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 simulation/elmer/verify_pi_pulse_definition.py
       - name: Generate DD32 TX ideal RL design sweep
         shell: bash
         run: |
