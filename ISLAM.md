@@ -651,10 +651,21 @@
 
 - Android workflow #700 على commit `e09b216` اكتمل بنجاح: اختبارات التطبيقين، بناء APK، فحص الحزم ورفعها.
 - Artifacts للنسخة المرشحة من ذلك التشغيل:
-  - `ISLAM-DETECTOR-Android-APK` — SHA-256 `bbd1cf0bc6a47401e4764ea5fcd83e82587a2f94176e12d9c401916a53f1d42e`.
-  - `ISLAM-LAB-Android-APK` — SHA-256 `e9bbc19afdb52c0b0e8e2b88104b91ecd7ee717d57c45db97dab425748c547d4`.
+  - `ISLAM-DETECTOR-Android-APK` — SHA-256 `212c7144dc1dbe4eb59292f4ed12b3f7c46c244e82e5a5c6e3d8c231af561569` (artifact ZIP).
+  - `ISLAM-LAB-Android-APK` — SHA-256 `f8c6ed9f93ee403c67262c53a272c116b1e814500bcd976d6e0d86c41fad77a3` (artifact ZIP).
 - هذه APKs مرشحة Debug من CI وليست إصداراً نهائياً أو موقّعاً بمفتاح مالك ثابت. تشغيل Android الأحدث #705 ينتظر التحقق بعد تحديث فرع المحاكاة.
 - اختبار Elmer المرجعي #164 أثبت نجاح مسار الملفين المرجعيين ذي الملفين، لكنه كشف أن محاكاة PI pulse تتضخم عددياً بعد الخطوة 12؛ وصل الحد الأقصى لـ |B| إلى نحو `2.64e110` عند 1 ms، لذلك رُفضت النتيجة ولم تُعتمد كاستجابة فيزيائية.
 - التحليل الأولي أظهر تحذير Elmer بأن `MagnetoDynamics2D bSolver` قديم. استُبدل في SIF بمُعالج الحقول الرسمي `MagnetoDynamicsCalcFields`، مع استخراج المجال المغناطيسي وكثافة التيار بعد كل خطوة زمنية، وأصبح إخراج VTU بعد الحساب.
 - إصلاح SIF: commit `7c013ffa4009b71eed39736289bff23d54d8e0d4`. تشغيل المحاكاة #165 قيد التنفيذ للتحقق من الإصلاح؛ لا يوجد نجاح علمي جديد حتى الآن.
 - لا تُستخدم بيانات المحاكاة المتضخمة لتدريب أو معايرة خوارزمية الجهاز. المرجع الفيزيائي المقبول هو فقط ناتج محدود ومستقر ومراجعته موثقة.
+
+
+### بصمات APK الفعلية — تصحيح توثيق
+
+- تشغيل #700 (#43227031953) على commit `e09b21606be697d3b57c573b296f2f11b92bdcd6` نجح بالكامل بعد تنفيذ `clean :app:testDebugUnitTest :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug`.
+- فُحصت الحزمتان بـ unzip وAAPT؛ معرفا الحزمة صحيحان:
+  - `com.islamdetector.app`, versionName `0.2.0`, versionCode `2`.
+  - `com.islamlab.app`, versionName `0.2.0`, versionCode `3`.
+- بصمة ملف APK نفسه، لا ZIP:
+  - التطبيق: `d5f5b5bcef5bff4ceb63fb304f566cd4423df20ac32c6713e33121ebfc3d6549`.
+  - المختبر: `ee0cc60806890847f3332985cbe4f22d6ce88ce342fe0c51ad490df6133e7763`.
