@@ -31,7 +31,7 @@ for gap in gaps:
         raise SystemExit(f"FAIL: expected 40 VTU snapshots for {gap*1000:.0f} mm, found {len(files)}")
 
     for path in files:
-        match = re.search(r"_t(\\d+)\\.vtu$", path.name)
+        match = re.search(r"_t(\d+)\.vtu$", path.name)
         if not match:
             raise SystemExit(f"FAIL: invalid VTU timestep filename: {path.name}")
         step = int(match.group(1))
