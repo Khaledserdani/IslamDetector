@@ -6,16 +6,22 @@ Mesh.ElementOrder = 1;
 Mesh.CharacteristicLengthMin = 0.0025;
 Mesh.CharacteristicLengthMax = 0.020;
 
-// Set IncludeTarget=0 with gmsh -setnumber for the no-target control case.
+// Set IncludeTarget=0 for the no-target control. TargetGap is measured from
+// the lower face of the TX winding (z=30 mm) to the target upper face.
 If (!Exists(IncludeTarget))
   IncludeTarget = 1;
 EndIf
+If (!Exists(TargetGap))
+  TargetGap = 0.045;
+EndIf
+TargetTop = 0.030 - TargetGap;
+TargetBottom = TargetTop - 0.005
 
 // Outer air domain: r=0..0.50 m, z=-0.35..0.35 m.
 Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
 // Aluminium plate: 250 mm radius, 5 mm thick.
 If (IncludeTarget)
-  Rectangle(2) = {0.0, -0.020, 0, 0.25, 0.005};
+  Rectangle(2) = {0.0, TargetBottom, 0, 0.25, 0.005};
 EndIf
 // DD32-equivalent TX winding cross-section, near 145 mm radius.
 Rectangle(3) = {0.130, 0.030, 0, 0.030, 0.010};
@@ -35,7 +41,7 @@ For i In {0:#out[]-1}
   c[] = CenterOfMass Surface{s};
   If (c[0] > 0.129 && c[0] < 0.161 && c[1] > 0.029 && c[1] < 0.041)
     tx[] += {s};
-  ElseIf (c[0] >= -0.0001 && c[0] < 0.251 && c[1] > -0.021 && c[1] < -0.014)
+  ElseIf (c[0] >= -0.0001 && c[0] < 0.251 && c[1] > (TargetBottom - 0.001) && c[1] < (TargetTop + 0.001))
     target[] += {s};
   Else
     air[] += {s};
