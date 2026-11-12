@@ -183,9 +183,9 @@ with summary.open("w") as f:
 
 target_summary = root / "target_induced_current_summary.csv"
 with target_summary.open("w") as f:
-    f.write("time_step,max_target_current_density_A_per_m2\n")
+    f.write("time_step,max_target_current_density_A_per_m2,integral_abs_J_dV_A,volume_weighted_rms_J_A_per_m2\n")
     for step in steps:
-        f.write(f"{step},{target_current_by_step[step]:.12g}\n")
+        f.write(f"{step},{target_current_by_step[step]:.12g},{target_integral_by_step[step]:.12g},{target_rms_by_step[step]:.12g}\n")
 
 if max(value for _, value in series) <= 0:
     raise SystemExit("FAIL: magnetic flux density is identically zero")
@@ -239,6 +239,9 @@ if target_final >= target_peak * 0.10:
     )
 print(f"Target induced-current peak = {target_peak:.9g} A/m^2 at step {target_peak_step}")
 print(f"Target induced-current final = {target_final:.9g} A/m^2 at step {target_final_step}")
+print(f"Peak volume-integrated |J| dV = {max(target_integral_by_step.values()):.9g} A")
+print(f"Peak volume-weighted RMS |J| = {max(target_rms_by_step.values()):.9g} A/m^2")
+print("NOTE: integral |J| dV is a scalar response proxy, not net loop current or receiver voltage.")
 print(f"Peak volume-integrated |J| dV = {max(target_integral_by_step.values()):.9g} A")
 print(f"Peak volume-weighted RMS |J| = {max(target_rms_by_step.values()):.9g} A/m^2")
 print("NOTE: integral |J| dV is a scalar response proxy, not net loop current or receiver voltage.")
