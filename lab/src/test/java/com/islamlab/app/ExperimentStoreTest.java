@@ -1,6 +1,6 @@
 package com.islamlab.app;
 
-import android.content.Context;
+import android.content.Context;\nimport android.content.ContentValues;\nimport android.database.sqlite.SQLiteDatabase;
 
 import org.junit.After;
 import org.junit.Before;
@@ -103,4 +103,40 @@ public class ExperimentStoreTest {
         assertNull(store.get("missing"));
         assertEquals(0, store.count());
     }
+
+    @Test public void upgradesVersionOneDatabaseWithoutLosingRawRecords() {
+        java.io.File dbFile = context.getDatabasePath("islam_lab_experiments.db");
+        SQLiteDatabase oldDb = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
+        oldDb.execSQL("CREATE TABLE experiments (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, csv TEXT NOT NULL, source_type TEXT NOT NULL, acquisition_origin TEXT NOT NULL, measurement_status TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL, updated_epoch_ms INTEGER NOT NULL)");
+        String csv = "schema_version,1.1\nsource_type,synthetic\nacquisition_origin,generated_by_lab_model\nmeasurement_status,not_a_hardware_measurement\nunit,mV\nindex,value\n1,10\n2,8\n";
+        ContentValues row = new ContentValues();
+        row.put("id", "old-row"); row.put("name", "سجل قديم"); row.put("csv", csv);
+        row.put("source_type", "synthetic"); row.put("acquisition_origin", "generated_by_lab_model");
+        row.put("measurement_status", "not_a_hardware_measurement");
+        row.put("created_epoch_ms", 111L); row.put("updated_epoch_ms", 222L);
+        oldDb.insertOrThrow("experiments", null, row);
+        oldDb.setVersion(1);
+        oldDb.close();
+
+        ExperimentStore upgraded = new ExperimentStore(context);
+        ExperimentStore.Record restored = upgraded.get("old-row");
+        assertNotNull(restored);
+        assertEquals(csv, restored.csv);
+        assertEquals("سجل قديم", restored.name);
+        assertEquals("1.1", restored.schemaVersion);
+        assertEquals("mV", restored.measurementUnit);
+        assertEquals(2, restored.sampleCount);
+        assertEquals(1, upgraded.count());
+        upgraded.close();
+    }
+
+    @Test public void filtersRecordsBySourceAndVerification() {
+        String synthetic = "schema_version,1.1\nsource_type,synthetic\nmeasurement_status,not_a_hardware_measurement\nindex,value\n1,3\n2,2\n";
+        String provided = "schema_version,1.1\nsource_type,user_provided\nmeasurement_status,reviewed\nindex,value\n1,5\n2,4\n";
+        assertTrue(store.save("syn", "اصطناعي", synthetic, 1L));
+        assertTrue(store.save("usr", "مستخدم", provided, 2L));
+        assertEquals(1, store.listBySource("synthetic").size());
+        assertEquals(1, store.listByVerification("reviewed").size());
+    }
+
 }
