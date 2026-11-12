@@ -163,10 +163,15 @@ for path in files:
         math.sqrt(sum(current_values[3*i+j]**2 for j in range(3))) * cell_volumes[i]
         for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3
     )
+    target_volume = sum(
+        cell_volumes[i] for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3
+    )
+    if not math.isfinite(target_volume) or target_volume <= 0:
+        raise SystemExit(f"FAIL: Aluminium_Target has invalid axisymmetric volume in {path.name}")
     target_rms = math.sqrt(
         sum((math.sqrt(sum(current_values[3*i+j]**2 for j in range(3)))**2) * cell_volumes[i]
             for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3)
-        / sum(cell_volumes[i] for i, geometry_id in enumerate(geometry_ids) if geometry_id == 3)
+        / target_volume
     )
     target_integral_by_step[step] = target_integral
     target_rms_by_step[step] = target_rms
@@ -239,9 +244,6 @@ if target_final >= target_peak * 0.10:
     )
 print(f"Target induced-current peak = {target_peak:.9g} A/m^2 at step {target_peak_step}")
 print(f"Target induced-current final = {target_final:.9g} A/m^2 at step {target_final_step}")
-print(f"Peak volume-integrated |J| dV = {max(target_integral_by_step.values()):.9g} A")
-print(f"Peak volume-weighted RMS |J| = {max(target_rms_by_step.values()):.9g} A/m^2")
-print("NOTE: integral |J| dV is a scalar response proxy, not net loop current or receiver voltage.")
 print(f"Peak volume-integrated |J| dV = {max(target_integral_by_step.values()):.9g} A")
 print(f"Peak volume-weighted RMS |J| = {max(target_rms_by_step.values()):.9g} A/m^2")
 print("NOTE: integral |J| dV is a scalar response proxy, not net loop current or receiver voltage.")
