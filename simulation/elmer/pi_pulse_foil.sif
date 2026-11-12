@@ -149,6 +149,7 @@ Body 3
    Target Bodies = 8
    Equation = 2
    Material = 3
+   Body Force = 1
 End
 
 Component 1
