@@ -26,11 +26,7 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_*.py' -v
       - name: Build and test portable ESP32-S3 protocol decoder
         run: |
-          cc -std=c11 -Wall -Wextra -Werror -pedantic \\
-            -Ifirmware/esp32_s3_bridge/components/rev_a_protocol/include \\
-            firmware/esp32_s3_bridge/components/rev_a_protocol/rev_a_protocol.c \\
-            firmware/esp32_s3_bridge/tests/test_rev_a_protocol.c \\
-            -o /tmp/rev_a_protocol_test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic -Ifirmware/esp32_s3_bridge/components/rev_a_protocol/include firmware/esp32_s3_bridge/components/rev_a_protocol/rev_a_protocol.c firmware/esp32_s3_bridge/tests/test_rev_a_protocol.c -o /tmp/rev_a_protocol_test
           /tmp/rev_a_protocol_test
 
   rp2040-firmware:
