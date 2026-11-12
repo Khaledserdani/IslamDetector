@@ -14,7 +14,7 @@ cd "$WORK_DIR"
 
 gmsh -2 -format msh2 -setnumber IncludeTarget 0 -o pi-pulse-no-target.msh pi_pulse_separate_coil.geo
 ElmerGrid 14 2 pi-pulse-no-target.msh -out pi-pulse-mesh -autoclean
-cp pi_pulse_separate_coil.sif pi-pulse-mesh/islam-pi-pulse.sif
+sed '/^Body 3$/,/^End$/d; /^Material 3$/,/^End$/d' pi_pulse_separate_coil.sif > pi-pulse-mesh/islam-pi-pulse.sif
 printf 'islam-pi-pulse.sif\n' > pi-pulse-mesh/ELMERSOLVER_STARTINFO
 
 cd pi-pulse-mesh
