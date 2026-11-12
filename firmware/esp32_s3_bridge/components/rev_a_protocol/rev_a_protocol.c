@@ -145,7 +145,10 @@ bool rev_a_decode_measurement(
     measurement->pulse_rate_hz = read_le16(&frame[21]);
     measurement->supply_mv = read_le16(&frame[23]);
     measurement->tx_current_ma = read_le16(&frame[25]);
-    measurement->temp_centi_c = (int16_t)read_le16(&frame[27]);
+    const uint16_t raw_temperature = read_le16(&frame[27]);
+    measurement->temp_centi_c = raw_temperature <= 0x7FFFu
+        ? (int16_t)raw_temperature
+        : (int16_t)((int32_t)raw_temperature - 65536);
     measurement->valid_mask = valid_mask;
     measurement->sample_count = sample_count;
     measurement->crc16 = received_crc;
