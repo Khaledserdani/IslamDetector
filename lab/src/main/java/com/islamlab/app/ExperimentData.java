@@ -48,15 +48,15 @@ public final class ExperimentData {
     }
 
     private static boolean isSampleHeader(String row) {
-        String[] cells = row.split("[,;\\t]", -1);
-        return valueColumn(row) >= 0 && (row.toLowerCase(Locale.ROOT).contains("index")
-                || row.toLowerCase(Locale.ROOT).contains("sample_index"));
+        String lower = row.toLowerCase(Locale.ROOT);
+        return valueColumn(row) >= 0 && lower.contains("index");
     }
 
     private static int valueColumn(String row) {
-        String[] cells = row.split("[,;\\\\t]", -1);
-        for (int i = 0; i < cells.length; i++)
+        String[] cells = row.split("[,;\\t]", -1);
+        for (int i = 0; i < cells.length; i++) {
             if ("value".equalsIgnoreCase(cells[i].trim())) return i;
+        }
         return -1;
     }
 
