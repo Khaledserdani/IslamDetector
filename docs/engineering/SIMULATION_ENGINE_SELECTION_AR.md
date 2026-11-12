@@ -70,3 +70,6 @@
 - `.github/workflows/main.yml`: بناء واختبار Android فقط، مع فحص APK ورفعه.
 - `.github/workflows/simulation.yml`: تثبيت ngspice وElmer وتشغيل النماذج المرجعية وحفظ نتائج Elmer.
 - لكل مسار مرشحات ملفات مستقلة؛ التعديلات الوثائقية وحدها لا تشغل البناء العلمي أو Android. هذا يحافظ على استقلال مسار التطبيق عن مسار المحاكاة ويقلل تشغيلات غير لازمة.
+
+
+- أُضيف مرجع Elmer عابر ثانٍ `circuits2D_transient_foil` بملف لف من نوع Foil Winding وهدف ألمنيوم ناقليته `1e7 S/m`، مع إثارة جيبية 50 Hz. المشغل `simulation/elmer/run_upstream_transient_foil_reference.sh` يشترط نجاح مرجعي Solver 1 وSolver 3 ويحفظ المدخلات والسجل. هذه خطوة أقرب لاختبار التيارات المستحثة في موصل، لكنها ليست نبضة PI؛ نتيجة CI تنتظر.
