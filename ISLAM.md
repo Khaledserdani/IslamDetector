@@ -471,3 +471,8 @@
 - أُدرج النموذج في `.github/workflows/simulation.yml`، ونتيجة CI تنتظر.
 - هذه دائرة RL مثالية فقط؛ لا تعتمد قيم Driver أو MOSFET أو TVS أو نافذة blanking من هذا النموذج وحده.
 - الوثيقة: `docs/engineering/DD32_TX_RL_DECAY_REFERENCE_AR.md`.
+
+
+### تأكيد اختبار دورة حياة MainActivity — 2026-11-12
+- CI run `43195114325` نجح بالكامل، بما في ذلك اختبار فتح MainActivity، ظهور حالة التشغيل، تدمير الشاشة، ثم إعادة فتح قاعدة SQLite وقراءة عدد السجلات.
+- Artifact APK ID `13931808386`، حجم الأرشيف 1,932,837 بايت، حجم APK المستخرج 2,005,826 بايت، SHA-256 `3cda04bbb88a673c7a8cfe292f6327b91a5ab1c174fef85ee26f14ba277ff912`، صالح حتى 2026-12-12.
