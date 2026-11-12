@@ -66,11 +66,11 @@ jobs:
             -DPICO_SDK_PATH="$GITHUB_WORKSPACE/pico-sdk" \
             -DPICO_BOARD=pico
           cmake --build build/rp2040 --parallel 2
-      - name: Verify RP2040 UF2
+      - name: Verify RP2040 UF2 structure and family ID
         run: |
           set -euo pipefail
-          test -f build/rp2040/islam_rev_a_timing_test.uf2
-          test "$(stat -c%s build/rp2040/islam_rev_a_timing_test.uf2)" -gt 1000
+          python3 tools/verify_uf2.py build/rp2040/islam_rev_a_timing_test.uf2 --family-id 0xE48BFF56
+          sha256sum build/rp2040/islam_rev_a_timing_test.uf2
       - name: Upload RP2040 timing firmware
         uses: actions/upload-artifact@v4
         with:

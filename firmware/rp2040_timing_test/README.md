@@ -26,7 +26,7 @@ GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both
 
 ## Build
 
-The GitHub Actions workflow builds the UF2 with the Raspberry Pi Pico SDK and publishes it as IslamDetector-RevA-RP2040-Timing-Test-UF2.
+The GitHub Actions workflow builds the UF2 with the Raspberry Pi Pico SDK and publishes it as IslamDetector-RevA-RP2040-Timing-Test-UF2. CI also validates the UF2 block magic, complete block numbering, payload bounds, non-overlapping target ranges, and RP2040 family ID `0xE48BFF56` with `tools/verify_uf2.py` before uploading it.
 
 ## Acceptance test on hardware
 
