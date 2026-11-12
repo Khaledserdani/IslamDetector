@@ -14,7 +14,7 @@ public final class ExperimentData {
         int header = -1;
         for (int i = 0; i < lines.length; i++) {
             String row = lines[i].trim();
-            if (row.equalsIgnoreCase("index,value") || row.equalsIgnoreCase("index;value")) {
+            if (isSampleHeader(row)) {
                 header = i;
                 break;
             }
@@ -44,6 +44,19 @@ public final class ExperimentData {
         double[] result = new double[values.size()];
         for (int i = 0; i < result.length; i++) result[i] = values.get(i);
         return result;
+    }
+
+    private static boolean isSampleHeader(String row) {
+        String[] cells = row.split("[,;\\\\t]", -1);
+        return valueColumn(row) >= 0 && (row.toLowerCase(Locale.ROOT).contains("index")
+                || row.toLowerCase(Locale.ROOT).contains("sample_index"));
+    }
+
+    private static int valueColumn(String row) {
+        String[] cells = row.split("[,;\\\\t]", -1);
+        for (int i = 0; i < cells.length; i++)
+            if ("value".equalsIgnoreCase(cells[i].trim())) return i;
+        return -1;
     }
 
     private static void addRequiredNumeric(String token, List<Double> values, int row) {
