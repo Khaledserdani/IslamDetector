@@ -50,6 +50,13 @@ jobs:
         run: |
           set -euo pipefail
           bash simulation/elmer/run_upstream_two_coil_reference.sh
+      - name: Archive Elmer reference fields and logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-two-coil-reference
+          path: artifacts/elmer-two-coil/
+          if-no-files-found: error
+          retention-days: 30
       - name: Build Android applications
         run: gradle --no-daemon clean :lab:testDebugUnitTest :lab:assembleDebug
       - name: Verify APK packages
