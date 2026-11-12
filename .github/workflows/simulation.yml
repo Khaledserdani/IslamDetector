@@ -78,6 +78,18 @@ jobs:
           path: artifacts/elmer-transient-foil/
           if-no-files-found: error
           retention-days: 30
+      - name: Run Elmer zero-current PI baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash simulation/elmer/run_pi_zero_baseline.sh
+      - name: Archive Elmer zero-current baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-PI-zero-baseline
+          path: artifacts/elmer-pi-zero-baseline/
+          if-no-files-found: error
+          retention-days: 30
       - name: Run Elmer normalized PI pulse surrogate
         shell: bash
         run: |
