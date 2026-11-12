@@ -15,7 +15,7 @@ If (!Exists(TargetGap))
   TargetGap = 0.045;
 EndIf
 TargetTop = 0.030 - TargetGap;
-TargetBottom = TargetTop - 0.005
+TargetBottom = TargetTop - 0.005;
 
 // Outer air domain: r=0..0.50 m, z=-0.35..0.35 m.
 Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
