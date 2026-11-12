@@ -316,7 +316,8 @@ public class MainActivity extends Activity {
             return;
         }
         java.util.ArrayList<String> labels = new java.util.ArrayList<>();
-        for (ExperimentStore.Record record : records) labels.add(record.name);
+        for (ExperimentStore.Record record : records)
+            labels.add(record.name + " • " + record.sourceType + " • " + record.sampleCount + " عينة");
         new android.app.AlertDialog.Builder(this).setTitle("التجارب المحفوظة")
                 .setItems(labels.toArray(new String[0]), (dialog, which) -> {
                     String key = keys.get(which);
