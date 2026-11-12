@@ -26,9 +26,24 @@ for gap in gaps:
 
     rms_by_step = {}
     mean_by_step = {}
+    sif_path = case_dir / "islam-pi-pulse.sif"
+    if not sif_path.is_file():
+        raise SystemExit(f"FAIL: missing SIF time-step definition: {sif_path}")
+    sif_text = sif_path.read_text(encoding="utf-8")
+    intervals_match = re.search(
+        r"Timestep\\s+Intervals\\s*\\(\\s*(\\d+)\\s*\\)\\s*=\\s*([^\\n!]+)",
+        sif_text,
+        flags=re.IGNORECASE,
+    )
+    if not intervals_match:
+        raise SystemExit(f"FAIL: could not read time-step intervals from {sif_path}")
+    intervals = [int(value) for value in intervals_match.group(2).split()]
+    if int(intervals_match.group(1)) != len(intervals) or any(value <= 0 for value in intervals):
+        raise SystemExit(f"FAIL: invalid time-step interval vector in {sif_path}")
+    expected_steps = sum(intervals)
     files = sorted(case_dir.glob("islam-pi-pulse_t*.vtu"))
-    if len(files) != 40:
-        raise SystemExit(f"FAIL: expected 40 VTU snapshots for {gap*1000:.0f} mm, found {len(files)}")
+    if len(files) != expected_steps:
+        raise SystemExit(f"FAIL: expected {expected_steps} VTU snapshots for {gap*1000:.0f} mm, found {len(files)}")
 
     for path in files:
         match = re.search(r"_t(\d+)\.vtu$", path.name)
@@ -46,7 +61,8 @@ for gap in gaps:
                        for a in cell_data.findall("DataArray")}
         cell_topology = {(a.attrib.get("Name") or "").strip().lower(): a
                          for a in cells_node.findall("DataArray")}
-        point_array = next(points_node.findall("DataArray"), None)
+        point_arrays = points_node.findall("DataArray")
+        point_array = point_arrays[0] if point_arrays else None
         required = ("geometryids", "current density e")
         if any(name not in cell_arrays for name in required) or point_array is None:
             raise SystemExit(f"FAIL: target current or points missing in {path.name}")
