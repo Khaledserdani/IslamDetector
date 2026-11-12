@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
     private EditText hostInput;
     private TextView connectionText, signalText, confidenceText, depthText, calibrationText, lastUpdateText, historyText;
     private Button connectButton, detectButton, calibrateButton;
+    private volatile String deviceBaseUrl = "http://" + DEFAULT_HOST;
     private boolean connected = false;
     private boolean detecting = false;
     private long lastSavedAt = 0;
@@ -223,6 +224,7 @@ public class MainActivity extends Activity {
     }
     private void connectToDevice() {
         final String host = baseUrl();
+        deviceBaseUrl = host;
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("host", host).apply();
         connectButton.setEnabled(false); connectionText.setText("● جارٍ الاتصال...");
         network.execute(() -> {
@@ -250,9 +252,10 @@ public class MainActivity extends Activity {
 
     private void fetchStatus() {
         if (!requestRunning.compareAndSet(false, true)) return;
+        final String host = deviceBaseUrl;
         network.execute(() -> {
             try {
-                JSONObject data = requestJson(baseUrl() + "/status", "GET", null);
+                JSONObject data = requestJson(host + "/status", "GET", null);
                 runOnUiThread(() -> {
                     connected = true; connectionText.setText("● متصل بالجهاز");
                     connectionText.setTextColor(Color.rgb(91,220,167));
@@ -270,18 +273,27 @@ public class MainActivity extends Activity {
 
     private JSONObject requestJson(String address, String method, JSONObject body) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setRequestMethod(method); c.setConnectTimeout(2500); c.setReadTimeout(2500);
-        c.setRequestProperty("Accept", "application/json");
-        if (body != null) {
-            c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            try (OutputStream out = c.getOutputStream()) { out.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
+        try {
+            c.setRequestMethod(method);
+            c.setConnectTimeout(2500);
+            c.setReadTimeout(2500);
+            c.setUseCaches(false);
+            c.setRequestProperty("Accept", "application/json");
+            if (body != null) {
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                try (OutputStream out = c.getOutputStream()) {
+                    out.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            int code = c.getResponseCode();
+            InputStream stream = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
+            String response = readAll(stream);
+            if (code < 200 || code >= 300) throw new IOException("HTTP " + code + ": " + response);
+            return new JSONObject(response);
+        } finally {
+            c.disconnect();
         }
-        int code = c.getResponseCode();
-        InputStream stream = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
-        String response = readAll(stream);
-        c.disconnect();
-        if (code < 200 || code >= 300) throw new IOException("HTTP " + code + ": " + response);
-        return new JSONObject(response);
     }
     private String readAll(InputStream in) throws Exception {
         if (in == null) return "{}";
@@ -332,11 +344,12 @@ public class MainActivity extends Activity {
 
     private void sendControl(String command) {
         if (!connected) { toast("اتصل بالجهاز أولاً"); return; }
+        final String host = deviceBaseUrl;
         detectButton.setEnabled(false); calibrateButton.setEnabled(false);
         network.execute(() -> {
             try {
                 JSONObject body = new JSONObject(); body.put("command", command);
-                requestJson(baseUrl() + "/control", "POST", body);
+                requestJson(host + "/control", "POST", body);
                 runOnUiThread(() -> {
                     if ("start".equals(command)) { detecting = true; detectButton.setText("إيقاف الكشف"); }
                     if ("stop".equals(command)) { detecting = false; detectButton.setText("بدء الكشف"); }
