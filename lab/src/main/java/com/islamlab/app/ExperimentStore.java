@@ -89,6 +89,8 @@ public final class ExperimentStore extends SQLiteOpenHelper {
         if (id == null || id.trim().isEmpty() || name == null || name.trim().isEmpty()
                 || csv == null || csv.trim().isEmpty()) return false;
         ExperimentCsvValidator.Report report = ExperimentCsvValidator.validate(csv);
+        String schema = metadata(csv, "schema_version", "legacy_unknown");
+        if ("1.0.0".equals(schema) && !report.valid) return false;
         String source = metadata(csv, "source.type", metadata(csv, "source_type", "unknown"));
         String origin = metadata(csv, "source.origin", metadata(csv, "acquisition_origin", "unknown"));
         String verification = metadata(csv, "verification.status",
