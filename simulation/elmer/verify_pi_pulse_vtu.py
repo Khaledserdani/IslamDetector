@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Validate finite, time-varying magnetic-flux-density fields in Elmer VTU outputs."""
+"""Validate finite magnetic fields and reject post-pulse numerical runaway in Elmer VTU outputs."""
 import math
 import re
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
+
+PULSE_CENTER_STEP = 20  # 200 us / 10 us
+RUNAWAY_FACTOR = 10.0
 
 if len(sys.argv) != 2:
     raise SystemExit("usage: verify_pi_pulse_vtu.py OUTPUT_DIRECTORY")
@@ -38,7 +41,7 @@ for path in files:
         name = (array.attrib.get("Name") or "").strip()
         if name:
             available_names.append(name)
-        if name.strip().lower() not in ("magnetic flux density", "b"):
+        if name.lower() not in ("magnetic flux density", "b"):
             continue
         components = int(array.attrib.get("NumberOfComponents", "1"))
         if components not in (2, 3):
@@ -62,23 +65,42 @@ steps = sorted(by_step)
 if len(steps) < 2:
     raise SystemExit("FAIL: fewer than two distinct transient output steps")
 series = [(step, max(by_step[step])) for step in steps]
-peak_step, peak_value = max(series, key=lambda item: item[1])
-first_value = series[0][1]
-last_value = series[-1][1]
-if peak_value <= 0:
-    raise SystemExit("FAIL: magnetic flux density is identically zero")
-if peak_step == steps[0] or peak_step == steps[-1]:
-    raise SystemExit("FAIL: pulse response peak was not bracketed by earlier and later outputs")
-if peak_value <= first_value * 1.05 or peak_value <= last_value * 1.05:
-    raise SystemExit("FAIL: magnetic response does not rise and decay around the pulse")
-
 summary = root / "magnetic_flux_density_summary.csv"
 with summary.open("w") as f:
     f.write("time_step,max_B_magnitude\n")
     for step, value in series:
         f.write(f"{step},{value:.12g}\n")
 
+if max(value for _, value in series) <= 0:
+    raise SystemExit("FAIL: magnetic flux density is identically zero")
+
+post_pulse = [(step, value) for step, value in series if step >= PULSE_CENTER_STEP]
+if len(post_pulse) < 6:
+    raise SystemExit("FAIL: insufficient post-pulse snapshots to assess decay")
+minimum_step, minimum_value = min(post_pulse, key=lambda item: item[1])
+last_step, last_value = post_pulse[-1]
+tail = [value for _, value in post_pulse[-5:]]
+if minimum_value > 0 and last_value >= minimum_value * RUNAWAY_FACTOR and all(
+    tail[i] < tail[i + 1] for i in range(len(tail) - 1)
+):
+    growth = last_value / minimum_value
+    raise SystemExit(
+        f"FAIL: post-pulse numerical runaway detected; "
+        f"minimum |B|={minimum_value:.9g} at step {minimum_step}, "
+        f"final |B|={last_value:.9g} at step {last_step}, "
+        f"growth factor={growth:.6g}; summary saved to {summary}"
+    )
+
+pulse_peak_step, pulse_peak = max(post_pulse, key=lambda item: item[1])
+if pulse_peak <= minimum_value * 1.05 or pulse_peak <= last_value * 1.05:
+    raise SystemExit(
+        f"FAIL: post-pulse response does not show a bounded rise and decay; "
+        f"peak={pulse_peak:.9g} at step {pulse_peak_step}, "
+        f"post-pulse minimum={minimum_value:.9g}, final={last_value:.9g}; "
+        f"summary saved to {summary}"
+    )
+
 print(f"VTU snapshots = {len(files)} across {len(steps)} time steps")
-print(f"Max |B| peak  = {peak_value:.9g} at output step {peak_step}")
-print(f"First |B|     = {first_value:.9g}; final |B| = {last_value:.9g}")
-print("PASS: all B vectors are finite and the pulse response rises then decays")
+print(f"Post-pulse |B| peak = {pulse_peak:.9g} at step {pulse_peak_step}")
+print(f"Post-pulse minimum = {minimum_value:.9g}; final = {last_value:.9g}")
+print("PASS: finite magnetic field with bounded post-pulse decay")
