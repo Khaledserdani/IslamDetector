@@ -28,15 +28,17 @@ for path in files:
         if name != "magnetic flux density":
             continue
         components = int(array.attrib.get("NumberOfComponents", "1"))
-        if components != 3:
+        if components not in (2, 3):
             continue
         values = [float(x) for x in (array.text or "").split()]
         if not values or len(values) % 3:
             raise SystemExit(f"FAIL: malformed magnetic-flux-density vector in {path.name}")
         if not all(math.isfinite(x) for x in values):
             raise SystemExit(f"FAIL: non-finite magnetic-flux-density value in {path.name}")
-        magnitudes = [math.sqrt(values[i]**2 + values[i+1]**2 + values[i+2]**2)
-                      for i in range(0, len(values), 3)]
+        magnitudes = [
+            math.sqrt(sum(values[i+j]**2 for j in range(components)))
+            for i in range(0, len(values), components)
+        ]
         by_step[step].append(max(magnitudes))
         found = True
     if not found:
