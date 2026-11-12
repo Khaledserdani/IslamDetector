@@ -21,7 +21,10 @@ for path in files:
     if not match:
         raise SystemExit(f"FAIL: VTU filename has no timestep suffix: {path.name}")
     step = int(match.group(1))
-    tree = ET.parse(path)
+    try:
+        tree = ET.parse(path)
+    except ET.ParseError as exc:
+        raise SystemExit(f"FAIL: could not parse VTU {path.name}: {exc}")
     found = False
     for array in tree.iter("DataArray"):
         name = (array.attrib.get("Name") or "").strip().lower()
