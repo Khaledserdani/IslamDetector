@@ -7,7 +7,8 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
-PULSE_CENTER_STEP = 8  # 200 us / 25 us
+PULSE_START_STEP = 2  # 50 us / 25 us
+POST_PULSE_START_STEP = 7  # 175 us, after 150 us transmitter turn-off
 RUNAWAY_FACTOR = 10.0
 
 if len(sys.argv) != 2:
@@ -108,7 +109,7 @@ with target_summary.open("w") as f:
 if max(value for _, value in series) <= 0:
     raise SystemExit("FAIL: magnetic flux density is identically zero")
 
-post_pulse = [(step, value) for step, value in series if step >= PULSE_CENTER_STEP]
+post_pulse = [(step, value) for step, value in series if step >= POST_PULSE_START_STEP]
 if len(post_pulse) < 6:
     raise SystemExit("FAIL: insufficient post-pulse snapshots to assess decay")
 minimum_step, minimum_value = min(post_pulse, key=lambda item: item[1])
@@ -144,7 +145,7 @@ target_peak_step, target_peak = max(target_series, key=lambda item: item[1])
 target_final_step, target_final = target_series[-1]
 if target_peak <= 0:
     raise SystemExit("FAIL: no induced current detected in Aluminium_Target")
-if target_peak_step < PULSE_CENTER_STEP:
+if target_peak_step < PULSE_START_STEP:
     raise SystemExit(
         f"FAIL: target-current peak precedes the transmitter pulse; "
         f"peak={target_peak:.9g} at step {target_peak_step}"
