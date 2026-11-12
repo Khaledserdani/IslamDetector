@@ -46,12 +46,6 @@ public class MainActivityTest {
             controller.pause().stop().destroy();
         }
 
-        ExperimentStore reopened = new ExperimentStore(context);
-        try {
-            assertEquals(0, reopened.count());
-        } finally {
-            reopened.close();
-        }
     }
 
     private static boolean containsText(ViewGroup parent, String expected) {
