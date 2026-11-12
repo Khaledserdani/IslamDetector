@@ -5,7 +5,7 @@
 Check Keywords "Warn"
 
 Header
-  Mesh DB "." "pi-pulse-mesh"
+  Mesh DB "." "."
 End
 
 $ J0 = 1.0e6
