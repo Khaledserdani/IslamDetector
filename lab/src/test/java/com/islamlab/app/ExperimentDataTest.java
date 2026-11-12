@@ -9,7 +9,7 @@ public class ExperimentDataTest {
     }
 
     @Test public void skipsMetadataAndReadsExplicitCsvValueColumn() {
-        String csv = "source_type,user_measurement\nunit,mV\nindex,value\n1,10.0\n2,8.5\n3,7.0\n";
+        String csv = "schema_version,1.1\nsource_type,user_provided\nacquisition_origin,user_entry_or_file_import\nmeasurement_status,not_verified_as_device_measurement\nunit,mV\nindex,value\n1,10.0\n2,8.5\n3,7.0\n";
         assertArrayEquals(new double[]{10.0, 8.5, 7.0}, ExperimentData.parse(csv), 1e-9);
     }
 
@@ -19,7 +19,10 @@ public class ExperimentDataTest {
     }
 
     @Test public void exportsUnitAndSummaryInCsv() {
-        String csv = ExperimentData.toCsv(new double[]{1, 2, 3});
+        String csv = ExperimentData.toCsv(new double[]{1, 2, 3}, 123456789L);
+        assertTrue(csv.contains("source_type,user_provided"));
+        assertTrue(csv.contains("measurement_status,not_verified_as_device_measurement"));
+        assertTrue(csv.contains("created_epoch_ms,123456789"));
         assertTrue(csv.contains("unit,mV"));
         assertTrue(csv.contains("mean,2.00000000"));
         assertTrue(csv.contains("index,value\n1,1.00000000"));
