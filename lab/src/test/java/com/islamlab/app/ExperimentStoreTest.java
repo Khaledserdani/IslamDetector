@@ -1,6 +1,8 @@
 package com.islamlab.app;
 
-import android.content.Context;\nimport android.content.ContentValues;\nimport android.database.sqlite.SQLiteDatabase;
+import android.content.Context;
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
 
 import org.junit.After;
 import org.junit.Before;
