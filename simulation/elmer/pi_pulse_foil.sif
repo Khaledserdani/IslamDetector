@@ -1,6 +1,6 @@
 ! ISLAM LAB pulse-response surrogate derived from ElmerCSC circuits2D_transient_foil.
 ! Upstream: ElmerCSC/elmerfem commit 16093051a4d21061692885eb9df9cb98688d2da2
-! Changes: ideal 1 A Gaussian current source, 10 us time step, transient field output enabled.
+! Changes: ideal 1 A Gaussian current source, 25 us diagnostic time step, transient field output enabled.
 ! This is a solver test fixture, not a measured DD32/device waveform.
 ! Author: Eelis Takala, Trafotek Oy
 ! Original date: October 2015
@@ -14,8 +14,8 @@ Header 1
    Mesh DB "." "1383"
 End
 
-$ ntimesteps = 100
-$ stepsize = 10e-6
+$ ntimesteps = 40
+$ stepsize = 25e-6
 Simulation 1
    Max Output Level = 3
    Coordinate System = Axi symmetric
@@ -24,7 +24,7 @@ Simulation 1
    BDF Order = 1
    Timestep Sizes(1) = $ stepsize
    Timestep Intervals(1) = $ ntimesteps
-   Output Intervals(1) = 10
+   Output Intervals(1) = 2
    Steady State Max Iterations = 1
 End
 
