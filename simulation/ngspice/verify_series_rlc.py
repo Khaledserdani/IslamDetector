@@ -9,7 +9,7 @@ if len(sys.argv) != 2:
     raise SystemExit("usage: verify_series_rlc.py NGSPICE_LOG")
 
 log = Path(sys.argv[1]).read_text(errors="replace")
-match = re.search(r"v_tau\\s*=\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)", log, re.I)
+match = re.search(r"v_tau\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)", log, re.I)
 if not match:
     raise SystemExit("FAIL: ngspice measurement v_tau was not found in its log")
 
