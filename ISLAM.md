@@ -448,3 +448,10 @@
 - نجح Simulation-only CI run `43194131611`: ngspice وElmer المرجعي، Artifact Elmer ID `13931204856`، الحجم 2,314,537 بايت.
 - أصبحت خطوط CI مستقلة: `.github/workflows/main.yml` لـ Android و`.github/workflows/simulation.yml` للمحاكاة العلمية، مع مرشحات مسارات منفصلة. كلاهما نجح بعد الفصل.
 - اختبار واجهة المختبر مع إغلاق قاعدة البيانات وإعادة فتحها اجتاز التشغيل الكامل `43193728728`. إعادة تشغيل الاختبار بعد آخر تنظيم للـ CI قيد الانتظار.
+
+
+### مرجع Elmer العابر للموصل — 2026-11-12
+- أُضيف مشغل لحالة Elmer الرسمية `circuits2D_transient_foil`، عند commit Elmer ثابت، وتحتوي على Foil Winding وجسم ألمنيوم ناقليته `1e7 S/m` وحل عابر BDF.
+- يشترط المشغل نجاح مرجعي Solver 1 وSolver 3 ويحفظ SIF وتعريفات الدائرة والشبكة والسجل في Artifact مستقل.
+- الإثارة الأصلية 50 Hz جيبية؛ هذه حالة اختبار للموصل المستحث وليست نبضة PI أو هندسة DD32. نتيجة CI تنتظر.
+- الوثيقة: `docs/engineering/ELMER_TRANSIENT_FOIL_REFERENCE_AR.md`.
