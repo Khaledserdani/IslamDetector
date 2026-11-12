@@ -6,15 +6,26 @@ Mesh.ElementOrder = 1;
 Mesh.CharacteristicLengthMin = 0.0025;
 Mesh.CharacteristicLengthMax = 0.020;
 
+// Set IncludeTarget=0 with gmsh -setnumber for the no-target control case.
+If (!Exists(IncludeTarget))
+  IncludeTarget = 1;
+EndIf
+
 // Outer air domain: r=0..0.50 m, z=-0.35..0.35 m.
 Rectangle(1) = {0.0, -0.35, 0, 0.50, 0.70};
 // Aluminium plate: 250 mm radius, 5 mm thick.
-Rectangle(2) = {0.0, -0.020, 0, 0.25, 0.005};
+If (IncludeTarget)
+  Rectangle(2) = {0.0, -0.020, 0, 0.25, 0.005};
+EndIf
 // DD32-equivalent TX winding cross-section, near 145 mm radius.
 Rectangle(3) = {0.130, 0.030, 0, 0.030, 0.010};
 
 // Fragment the air domain with two independent internal regions.
-out[] = BooleanFragments{ Surface{1}; Delete; }{ Surface{2,3}; Delete; };
+fragmentTools[] = {3};
+If (IncludeTarget)
+  fragmentTools[] += {2};
+EndIf
+out[] = BooleanFragments{ Surface{1}; Delete; }{ Surface{fragmentTools[]}; Delete; };
 
 air[] = {};
 tx[] = {};
@@ -33,7 +44,9 @@ EndFor
 
 Physical Surface("Air", 1) = {air[]};
 Physical Surface("TX_Coil", 2) = {tx[]};
-Physical Surface("Aluminium_Target", 3) = {target[]};
+If (IncludeTarget)
+  Physical Surface("Aluminium_Target", 3) = {target[]};
+EndIf
 
 // Explicitly select the axis and far-field exterior curves.
 // Bounding-box selectors avoid fragile per-curve bounding-box array calls.
@@ -46,7 +59,11 @@ Physical Curve("Outer_Infinity", 12) = {
 
 // Refine the coil and target while keeping the surrounding air economical.
 Field[1] = Distance;
-Field[1].SurfacesList = {tx[], target[]};
+If (IncludeTarget)
+  Field[1].SurfacesList = {tx[], target[]};
+Else
+  Field[1].SurfacesList = {tx[]};
+EndIf
 Field[2] = Threshold;
 Field[2].InField = 1;
 Field[2].SizeMin = 0.0025;
