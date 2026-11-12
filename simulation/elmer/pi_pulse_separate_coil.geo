@@ -3,7 +3,7 @@
 SetFactory("OpenCASCADE");
 Mesh.MshFileVersion = 2.2;
 Mesh.ElementOrder = 1;
-Mesh.CharacteristicLengthMin = 0.0025;
+Mesh.CharacteristicLengthMin = 0.00025;
 Mesh.CharacteristicLengthMax = 0.020;
 
 // Set IncludeTarget=0 for the no-target control. TargetGap is measured from
@@ -89,9 +89,9 @@ Else
 EndIf
 Field[2] = Threshold;
 Field[2].InField = 1;
-Field[2].SizeMin = 0.0025;
+Field[2].SizeMin = TargetThicknessM / 3.0;
 Field[2].SizeMax = 0.020;
-Field[2].DistMin = 0.005;
+Field[2].DistMin = 0.005; // resolve thin coin/ring sections with local target-scale elements
 Field[2].DistMax = 0.060;
 Background Field = 2;
 Mesh 2;
