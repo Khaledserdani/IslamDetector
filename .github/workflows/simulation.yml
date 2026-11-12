@@ -19,7 +19,7 @@ concurrency:
 jobs:
   scientific-references:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Check PI pulse source and winding dimensional consistency
@@ -133,5 +133,19 @@ jobs:
         with:
           name: ISLAM-LAB-Elmer-PI-target-gap-sweep
           path: artifacts/elmer-pi-depth-sweep/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run controlled TX coil-radius sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash simulation/elmer/run_pi_coil_radius_sweep.sh
+      - name: Archive controlled TX coil-radius sweep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-Elmer-PI-coil-radius-sweep
+          path: artifacts/elmer-coil-radius-sweep/
           if-no-files-found: error
           retention-days: 30
