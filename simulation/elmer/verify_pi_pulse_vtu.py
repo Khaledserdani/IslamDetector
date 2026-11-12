@@ -26,9 +26,12 @@ for path in files:
     except ET.ParseError as exc:
         raise SystemExit(f"FAIL: could not parse VTU {path.name}: {exc}")
     found = False
+    available_names = []
     for array in tree.iter("DataArray"):
-        name = (array.attrib.get("Name") or "").strip().lower()
-        if name != "magnetic flux density":
+        name = (array.attrib.get("Name") or "").strip()
+        if name:
+            available_names.append(name)
+        if name.strip().lower() not in ("magnetic flux density", "b"):
             continue
         components = int(array.attrib.get("NumberOfComponents", "1"))
         if components not in (2, 3):
@@ -45,7 +48,8 @@ for path in files:
         by_step[step].append(max(magnitudes))
         found = True
     if not found:
-        raise SystemExit(f"FAIL: magnetic flux density array missing from {path.name}")
+        names = ", ".join(sorted(set(available_names))) or "<none>"
+        raise SystemExit(f"FAIL: magnetic flux density array missing from {path.name}; available arrays: {names}")
 
 steps = sorted(by_step)
 if len(steps) < 2:
