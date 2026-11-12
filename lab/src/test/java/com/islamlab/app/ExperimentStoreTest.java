@@ -86,6 +86,16 @@ public class ExperimentStoreTest {
         assertEquals(9876L, restored.createdEpochMs);
     }
 
+
+    @Test public void rejectsBlankRenameAndNullLegacySource() {
+        assertFalse(store.rename("missing", ""));
+        assertFalse(store.rename("missing", "   "));
+        assertFalse(store.rename("", "اسم"));
+        assertEquals(0, store.migrateLegacy(null));
+        assertEquals(0, store.migrateLegacy(new HashMap<>()));
+        assertEquals(0, store.count());
+    }
+
     @Test public void rejectsInvalidRecords() {
         assertFalse(store.save("", "اسم", "csv", 1L));
         assertFalse(store.save("id", "", "csv", 1L));
