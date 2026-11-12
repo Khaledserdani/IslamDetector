@@ -139,4 +139,15 @@ public class ExperimentStoreTest {
         assertEquals(1, store.listByVerification("reviewed").size());
     }
 
+
+    @Test public void refusesToPersistInvalidVersionOnePointZeroRecords() {
+        String invalid = "schema_version,1.0.0\nexperiment_id,e1\ntitle,T\n"
+                + "created_at_utc,2026-11-12T10:00:00Z\nsource.type,synthetic\n"
+                + "source.origin,test\nverification.status,ground_truth_confirmed\n"
+                + "measurement.quantity,voltage\nmeasurement.unit,mV\nmeasurement.sample_origin,test\n"
+                + "sample_index,time_us,value\n0,8,1\n1,12,2\n";
+        assertFalse(store.save("bad", "غير صالح", invalid, 1L));
+        assertEquals(0, store.count());
+    }
+
 }
