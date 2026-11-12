@@ -41,7 +41,7 @@ public class MainActivityTest {
             assertNotNull(content);
             assertTrue(content instanceof ViewGroup);
             assertTrue(((ViewGroup) content).getChildCount() > 0);
-            assertTrue(containsText((ViewGroup) content, "مولّد إشارة اصطناعية"));
+            assertTrue(containsText((ViewGroup) content, "تم توليد 8 عينات"));
         } finally {
             controller.pause().stop().destroy();
         }
