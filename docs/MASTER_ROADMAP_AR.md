@@ -282,3 +282,6 @@
 
 
 - **تصحيح مخرجات نموذج نبضة Elmer:** المحاولة الأولى شغّلت المحلل، لكن مدقق VTU لم يستطع قراءة الملفات لأن إخراج Elmer كان Binary بينما المدقق يستخدم XML النصي. عُدّل SIF إلى `Binary Output = Logical False` وأضيف تحديد اسم الملف في رسالة الخطأ؛ إعادة CI تنتظر.
+
+
+- **نجاح بناء التطبيقين معاً — CI run `43196356339`:** نجحت مهام `:app:testDebugUnitTest` و`:app:assembleDebug` و`:lab:testDebugUnitTest` و`:lab:assembleDebug` خلال 56 ثانية، ثم تحقق AAPT من معرفي الحزمة `com.islamdetector.app` و`com.islamlab.app`. APK الرئيسي ID `13932812908`، حجم الملف المستخرج 22,079 بايت، SHA-256 `6c7d5f6b41079cef6d89ac35f6f4eded03c0ded15943b9c1832c9ee64ba6aeb4`. APK المختبر ID `13932992725`، حجم الملف المستخرج 2,005,824 بايت، SHA-256 `49551604df3896f428980b38e2b8f6433f61100011ac81d7912d2dddfd6e94f7`. كلاهما صالح حتى 2026-12-12.
