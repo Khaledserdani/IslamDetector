@@ -50,6 +50,37 @@ if not math.isclose(rise_width, 5e-6, rel_tol=0, abs_tol=1e-12):
 if not math.isclose(fall_width, 5e-6, rel_tol=0, abs_tol=1e-12):
     fail(f"unexpected fall smoothing: {fall_width:g} s")
 
+# Resolve the smoothed pulse edges rather than sampling them with a coarse step.
+sizes_match = re.search(
+    r"Timestep\s+Sizes\s*\(\s*(\d+)\s*\)\s*=\s*Real\s+([^\n!]+)",
+    sif,
+    flags=re.IGNORECASE,
+)
+intervals_match = re.search(
+    r"Timestep\s+Intervals\s*\(\s*(\d+)\s*\)\s*=\s*([^\n!]+)",
+    sif,
+    flags=re.IGNORECASE,
+)
+if not sizes_match or not intervals_match:
+    fail("segmented Timestep Sizes/Intervals definitions not found")
+sizes = [float(x) for x in sizes_match.group(2).split()]
+intervals = [int(x) for x in intervals_match.group(2).split()]
+if int(sizes_match.group(1)) != len(sizes) or int(intervals_match.group(1)) != len(intervals) or len(sizes) != len(intervals):
+    fail("Timestep Sizes/Intervals vector lengths do not match")
+if any(x <= 0 for x in sizes) or any(x <= 0 for x in intervals):
+    fail("time-step sizes and intervals must be positive")
+time_cursor = 0.0
+pulse_window_start = start - 3.0 * max(rise_width, fall_width)
+pulse_window_end = end + 3.0 * max(rise_width, fall_width)
+for dt, count in zip(sizes, intervals):
+    segment_end = time_cursor + dt * count
+    if segment_end > pulse_window_start and time_cursor < pulse_window_end:
+        if dt > min(rise_width, fall_width) / 5.0 * (1.0 + 1e-9):
+            fail(f"time step {dt:g} s is too coarse around pulse edges; require <= {min(rise_width, fall_width)/5.0:g} s")
+    time_cursor = segment_end
+if time_cursor < 1.0e-3 - 1e-12:
+    fail(f"simulation horizon too short: {time_cursor:g} s; require at least 1 ms")
+
 coil_match = re.search(
     r'Rectangle\s*\(\s*3\s*\)\s*=\s*\{([^}]+)\}',
     geo,
