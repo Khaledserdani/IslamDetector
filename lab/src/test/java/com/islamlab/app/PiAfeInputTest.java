@@ -19,7 +19,9 @@ public class PiAfeInputTest {
         assertEquals(390,p.dampingResistance,0.0);
         assertEquals(2.0,p.opampGain,0.0);
         assertEquals(50e6,p.gainBandwidth,0.0);
-        assertEquals(5,p.inputClampCurveVoltage.length);\n        assertEquals(0.0,p.inputClampLowRail,0.0);\n        assertEquals(3.3,p.inputClampHighRail,0.0);
+        assertEquals(5,p.inputClampCurveVoltage.length);
+        assertEquals(0.0,p.inputClampLowRail,0.0);
+        assertEquals(3.3,p.inputClampHighRail,0.0);
     }
     @Test(expected=IllegalArgumentException.class)
     public void rejectsSupplyOutsideOpa365OperatingRange() throws Exception {
