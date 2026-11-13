@@ -1,9 +1,3 @@
-def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
-def releaseStorePassword = System.getenv('ANDROID_STORE_PASSWORD')
-def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
-def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
-def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
-
 plugins {
     id 'com.android.application'
 }
@@ -13,6 +7,13 @@ android {
         release {
             if (releaseSigningReady) {
                 storeFile file(releaseStoreFile)
+
+def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
+def releaseStorePassword = System.getenv('ANDROID_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
+
                 storePassword releaseStorePassword
                 keyAlias releaseKeyAlias
                 keyPassword releaseKeyPassword
@@ -40,10 +41,6 @@ android {
             if (releaseSigningReady) {
                 signingConfig signingConfigs.release
             }
-            // Temporary candidate signing only. This runner-generated debug key is not
-            // a durable release identity. Final publication must use a stable
-            // owner-controlled keystore and must pass the release gates.
-            signingConfig signingConfigs.debug
             minifyEnabled false
         }
     }
