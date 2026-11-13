@@ -48,6 +48,16 @@
     "reference_v": 1.65,
     "gain_bandwidth_hz": 50000000,
     "slew_rate_v_per_s": 25000000,
-    "output_headroom_v": 0.01
+    "output_headroom_v": 0.01,
+    "input_voltage_noise_density_v_rt_hz": 4.5e-9,
+    "input_current_noise_density_a_rt_hz": 4e-15
+  },
+  "noise": {
+    "temperature_k": 300,
+    "frequency_min_hz": 10,
+    "frequency_max_hz": 100000,
+    "frequency_points": 4001,
+    "signal_window_start_s": 0.0001,
+    "signal_window_end_s": 0.0006
   }
 }
