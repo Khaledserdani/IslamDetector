@@ -10,7 +10,7 @@ def cfg():
       "afe":{"parallel_damping_ohm":390.0,"series_protection_ohm":1000.0,
              "input_capacitance_f":2e-9,"input_bias_ohm":1e6,
              "clamp_threshold_v":0.35,"clamp_dynamic_resistance_ohm":5.0},
-      "integration":{"max_step_s":0.1e-6}
+      "integration":{"max_step_s":2e-9}
     }
 def wave(amplitude=1.0):
     t=np.linspace(0,100e-6,1001)
@@ -27,7 +27,7 @@ class AfeEngineTests(unittest.TestCase):
 
     def test_bidirectional_clamp_limits_input_node_and_absorbs_energy(self):
         m,d=simulate_afe(wave(30.0),cfg())
-        self.assertGreater(m["clamp_absorbed_energy_j"],0.0)
+        self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
         self.assertLess(m["peak_abs_afe_input_voltage_v"],2.0)
         self.assertLess(m["energy_balance_relative_error"],2e-4)
 
