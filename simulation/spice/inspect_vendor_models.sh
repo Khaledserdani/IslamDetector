@@ -9,13 +9,13 @@ REPORT="$ROOT/vendor_model_audit.txt"
 fetch_zip() {
   local name="$1" url="$2" dest="$ROOT/$1.zip"
   echo "FETCH $name $url" | tee -a "$REPORT"
-  curl --http1.1 --fail --location --retry 6 --retry-all-errors --retry-delay 3 --retry-connrefused --silent --show-error "$url" -o "$dest"
+  curl --http1.1 --connect-timeout 15 --max-time 120 --fail --location --retry 3 --retry-all-errors --retry-delay 3 --retry-connrefused --silent --show-error "$url" -o "$dest"
   unzip -q "$dest" -d "$ROOT/$name"
   echo "ARCHIVE_SHA256 $(sha256sum "$dest" | awk '{print $1}')" | tee -a "$REPORT"
 }
 
 fetch_zip "ti-opa365" "https://www.ti.com/lit/zip/SBOC133"
-fetch_zip "st-smaj-series" "https://www.st.com/resource/en/spice_model/smaj-series-thermal-ltspice-pspice.zip"
+fetch_zip "st-smaj-series" "https://www.st.com/resource/en/spice_model/smaj-series-thermal-pspice.zip"
 curl --fail --location --retry 3 --retry-delay 2 --silent --show-error \
   "https://www.diodes.com/spice/download/431/BAT54S.spice.txt" -o "$ROOT/BAT54S.spice.txt"
 
