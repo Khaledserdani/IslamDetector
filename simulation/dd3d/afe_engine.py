@@ -214,7 +214,6 @@ def main():
     a.output_dir.mkdir(parents=True,exist_ok=True)
     with (a.output_dir/"afe_waveform.csv").open("w",newline="",encoding="utf-8") as f:
         w=csv.writer(f);w.writerow(arrays.keys());w.writerows(zip(*arrays.values()))
-    (a.output_dir/"afe_metrics.json").write_text(json.dumps(metrics,indent=2)+"
-",encoding="utf-8")
+    (a.output_dir/"afe_metrics.json").write_text(json.dumps(metrics,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(metrics,indent=2))
 if __name__=="__main__": main()
