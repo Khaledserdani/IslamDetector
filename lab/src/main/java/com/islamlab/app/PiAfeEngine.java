@@ -7,7 +7,8 @@ public final class PiAfeEngine {
         public final double[] time,inducedEmf,coilCurrent,coilTerminalVoltage,inputVoltage,seriesCurrent,coilTvsCurrent,inputClampCurrent,storedEnergy,opampOutput;
         public final double peakInducedEmf,peakCoilCurrent,peakCoilTerminal,peakInputVoltage,peakSeriesCurrent,peakClampCurrent;
         public final double sourceEnergy,coilLoss,dampingLoss,coilTvsEnergy,seriesLoss,biasLoss,inputClampEnergy,storedEnergyChange,energyResidual,energyRelativeError;
-        public final int clampSamples,slewLimitedSamples,outputSaturationSamples;\n        public final double peakOpampOutput,minOpampOutput;
+        public final int clampSamples,slewLimitedSamples,outputSaturationSamples;
+        public final double peakOpampOutput,minOpampOutput;
         Result(double[] t,double[] emf,double[] ic,double[] va,double[] vin,double[] is,double[] itvs,double[] iclamp,double[] stored,double[] opout,
                 double pe,double pc,double pv,double pi,double ps,double pk,double se,double cl,double dl,double te,double sl,double bl,double ie,double de,double er,double rel,int samples,int slewCount,int satCount,double opPeak,double opMin){
             time=t;inducedEmf=emf;coilCurrent=ic;coilTerminalVoltage=va;inputVoltage=vin;seriesCurrent=is;coilTvsCurrent=itvs;inputClampCurrent=iclamp;storedEnergy=stored;opampOutput=opout;
@@ -72,7 +73,8 @@ public final class PiAfeEngine {
         return new S(i+h*(k1.di+2*k2.di+2*k3.di+k4.di)/6.0,
                 v+h*(k1.dv+2*k2.dv+2*k3.dv+k4.dv)/6.0,e);
     }
-    private static double max(double[] a){double m=0;for(double x:a)m=Math.max(m,Math.abs(x));return m;}\n    private static double min(double[] a){double m=Double.POSITIVE_INFINITY;for(double x:a)m=Math.min(m,x);return m;}
+    private static double max(double[] a){double m=0;for(double x:a)m=Math.max(m,Math.abs(x));return m;}
+    private static double min(double[] a){double m=Double.POSITIVE_INFINITY;for(double x:a)m=Math.min(m,x);return m;}
     public static Result simulate(double[] times,double[] emf,PiAfeInput p){
         if(times==null||emf==null||times.length<3||times.length!=emf.length)throw new IllegalArgumentException("موجة RX غير صالحة");
         for(int i=0;i<times.length;i++){
