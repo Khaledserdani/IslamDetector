@@ -15,8 +15,9 @@ WORK_DIR="$(mktemp -d)"
 mkdir -p "$OUTPUT_DIR"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+SIF_TEMPLATE="${SIF_TEMPLATE:-$GITHUB_WORKSPACE/simulation/elmer/pi_pulse_separate_coil.sif}"
 cp "$GITHUB_WORKSPACE/simulation/elmer/pi_pulse_separate_coil.geo" "$WORK_DIR/"
-cp "$GITHUB_WORKSPACE/simulation/elmer/pi_pulse_separate_coil.sif" "$WORK_DIR/"
+cp "$SIF_TEMPLATE" "$WORK_DIR/pi_pulse_separate_coil.sif"
 cd "$WORK_DIR"
 
 gmsh -2 -format msh2 -setnumber TargetGap "$TARGET_GAP_M" -setnumber CoilInnerRadiusM "$COIL_INNER_RADIUS_M" -setnumber CoilRadialWidthM "$COIL_RADIAL_WIDTH_M" -setnumber TargetInnerRadiusM "$TARGET_INNER_RADIUS_M" -setnumber TargetRadialWidthM "$TARGET_RADIAL_WIDTH_M" -setnumber TargetThicknessM "$TARGET_THICKNESS_M" -setnumber MeshRefinementDivisions "$MESH_REFINEMENT_DIVISIONS" -o pi-pulse.msh pi_pulse_separate_coil.geo
