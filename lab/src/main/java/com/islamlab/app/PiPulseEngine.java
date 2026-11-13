@@ -6,18 +6,18 @@ public final class PiPulseEngine {
 
     public static final class Result {
         public final double[] time, txCurrent, targetCurrent, rxDirect, rxTarget, rxTotal, storedEnergy;
-        public final double mTxTarget, mTxRx, mRxTarget, minEigenvalue;
+        public final double mTxTarget, mTxRx, mRxTarget, normalizedInductanceDeterminant;
         public final double peakTxCurrent, txCurrentAtTurnoff, peakTargetCurrent;
         public final double peakRxVoltage, peakRxAfterTurnoff, peakRxDirect, peakRxTarget;
         public final double sourceEnergy, txLossEnergy, targetLossEnergy, clampEnergy, storedEnergyChange, energyResidual;
         public final double energyRelativeError;
 
         Result(double[] time,double[] itx,double[] it,double[] vd,double[] vt,double[] vr,double[] energy,
-               double mtt,double mtr,double mrt,double eigen,double ptx,double turnoff,double pt,
+               double mtt,double mtr,double mrt,double normalizedDet,double ptx,double turnoff,double pt,
                double prv,double post,double pd,double ptarget,double source,double txloss,
                double targetloss,double clamp,double delta,double residual,double relative) {
             this.time=time; txCurrent=itx; targetCurrent=it; rxDirect=vd; rxTarget=vt; rxTotal=vr; storedEnergy=energy;
-            mTxTarget=mtt; mTxRx=mtr; mRxTarget=mrt; minEigenvalue=eigen;
+            mTxTarget=mtt; mTxRx=mtr; mRxTarget=mrt; normalizedInductanceDeterminant=normalizedDet;
             peakTxCurrent=ptx; txCurrentAtTurnoff=turnoff; peakTargetCurrent=pt;
             peakRxVoltage=prv; peakRxAfterTurnoff=post; peakRxDirect=pd; peakRxTarget=ptarget;
             sourceEnergy=source; txLossEnergy=txloss; targetLossEnergy=targetloss; clampEnergy=clamp;
@@ -56,7 +56,7 @@ public final class PiPulseEngine {
         if(d2<=Math.max(ltx*lt*1e-12,1e-24)) throw new IllegalArgumentException("اقتران TX/الهدف يجعل مصفوفة المحاثة غير مستقرة");
         double det3=ltx*(lt*lrx-mrt*mrt)-mtt*(mtt*lrx-mrt*mtr)+mtr*(mtt*mrt-lt*mtr);
         if(det3<=Math.max(ltx*lt*lrx*1e-12,1e-36)) throw new IllegalArgumentException("مصفوفة محاثة TX/الهدف/RX غير موجبة التعريف؛ راجع الاقتران والهندسة");
-        double minEigen=det3/(ltx*lt*lrx); // positive normalized determinant indicator, not eigenvalue
+        double normalizedDet=det3/(ltx*lt*lrx); // normalized determinant indicator, not an eigenvalue
 
         int capacity=(int)Math.ceil(p.stopTime/p.timeStep)+4;
         if(capacity>2000000) throw new IllegalArgumentException("عدد خطوات المحاكاة يتجاوز الحد الآمن");
@@ -95,7 +95,7 @@ public final class PiPulseEngine {
         int turnoff=0; while(turnoff<n && ta[turnoff]<p.pulseWidth-1e-15)turnoff++;
         double peakTx=maxAbs(xa,0), peakTarget=maxAbs(ya,0), peakRx=maxAbs(va,0);
         double post=maxAbs(va,turnoff), peakDirect=maxAbs(da,0), peakTargetRx=maxAbs(tva,0);
-        return new Result(ta,xa,ya,da,tva,va,ea,mtt,mtr,mrt,minEigen,peakTx,
+        return new Result(ta,xa,ya,da,tva,va,ea,mtt,mtr,mrt,normalizedDet,peakTx,
                 xa[Math.min(turnoff,n-1)],peakTarget,peakRx,post,peakDirect,peakTargetRx,
                 source,txloss,targetloss,clampEnergy,delta,residual,
                 Math.abs(residual)/Math.max(Math.abs(source),1e-18));
