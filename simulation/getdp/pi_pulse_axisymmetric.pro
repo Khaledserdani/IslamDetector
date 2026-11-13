@@ -22,8 +22,8 @@ Function {
   // 20 turns x 1 A peak distributed over 30 mm x 10 mm.
   // Smooth PI-like current: rises near 50 us and falls near 150 us.
   js[Coil] = Vector[0, 0,
-    3.333333333e4 * (Tanh(($Time - 50.e-6)/5.e-6)
-                    - Tanh(($Time - 150.e-6)/5.e-6))];
+    3.333333333e4 * (Tanh[($Time - 50.e-6)/5.e-6]
+                    - Tanh[($Time - 150.e-6)/5.e-6])];
 }
 Constraint {
   { Name a_Mag;
