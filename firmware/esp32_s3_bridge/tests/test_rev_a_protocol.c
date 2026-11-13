@@ -22,6 +22,10 @@ static void write_le16(uint8_t *p, uint16_t value) {
     p[1] = (uint8_t)(value >> 8);
 }
 
+static uint16_t read_le16(const uint8_t *p) {
+    return (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
+}
+
 static void write_le32(uint8_t *p, uint32_t value) {
     p[0] = (uint8_t)value;
     p[1] = (uint8_t)(value >> 8);
