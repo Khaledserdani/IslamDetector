@@ -33,18 +33,17 @@ class NoiseEngineTests(unittest.TestCase):
         n2 = estimate_input_noise(c2)["integrated_input_noise_rms_v"]
         self.assertGreater(n2, n1)
 
-    def test_zero_all_noise_sources_gives_zero_noise(self):
+    def test_idealized_resistor_limits_remain_finite(self):
         c = cfg()
         c["opamp"]["input_voltage_noise_density_v_rt_hz"] = 0.0
         c["opamp"]["input_current_noise_density_a_rt_hz"] = 0.0
-        # Zero-temperature is not physical and is rejected; disable thermal terms
-        # by using a separate explicit test configuration with all resistors ideal.
+        # Extreme idealized limits must not overflow or create NaN values.
         c["rx_coil"]["resistance_ohm"] = 1e-30
         c["afe"]["parallel_damping_ohm"] = 1e30
         c["afe"]["series_protection_ohm"] = 1e-30
         c["afe"]["input_bias_ohm"] = 1e30
         m = estimate_input_noise(c)
-        self.assertGreaterEqual(m["integrated_input_noise_rms_v"], 0.0)
+        self.assertTrue(np.isfinite(m["integrated_input_noise_rms_v"]))
 
     def test_target_minus_baseline_signal_has_positive_snr(self):
         t = np.linspace(0.0, 100e-6, 1001)
