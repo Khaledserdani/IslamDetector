@@ -31,6 +31,8 @@ public final class PiAfeEngine {
         return 0;
     }
     private static double terminal(double i,double v,PiAfeInput p){
+        double linear=p.dampingResistance*(p.seriesResistance*i+v)/(p.dampingResistance+p.seriesResistance);
+        if(p.coilTvsThreshold<=0||Math.abs(linear)<=p.coilTvsThreshold)return linear;
         double extent=Math.abs(v)+Math.abs(i)*(p.dampingResistance+p.seriesResistance)+p.coilTvsThreshold+20;
         double lo=-extent,hi=extent;
         for(int n=0;n<64;n++){
