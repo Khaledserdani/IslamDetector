@@ -93,6 +93,23 @@ class AfeEngineTests(unittest.TestCase):
         self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
         self.assertLess(m["peak_abs_afe_input_voltage_v"],2.5)
 
+    def test_rail_steering_energy_is_split_into_diode_and_rail_terms(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.40,0.010],[0.50,0.030],[0.80,0.100]]
+        c["afe"]["input_clamp_low_rail_v"]=0.0
+        c["afe"]["input_clamp_high_rail_v"]=3.3
+        c["opamp"]={"closed_loop_gain":2.0,"supply_low_v":0.0,"supply_high_v":3.3,
+                    "reference_v":1.65,"gain_bandwidth_hz":50e6,
+                    "slew_rate_v_per_s":25e6,"output_headroom_v":0.01}
+        m,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["input_clamp_diode_loss_j"],0.0)
+        self.assertGreater(m["input_clamp_rail_energy_j"],0.0)
+        self.assertAlmostEqual(
+            m["input_clamp_absorbed_energy_j"],
+            m["input_clamp_diode_loss_j"]+m["input_clamp_rail_energy_j"],
+            delta=max(1e-18,m["input_clamp_absorbed_energy_j"]*1e-10))
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
     def test_rejects_non_monotonic_diode_iv_curve(self):
         c=cfg()
         c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.30,0.010]]
