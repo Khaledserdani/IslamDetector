@@ -4,20 +4,20 @@
 Group {
   Air = Region[1];
   Coil = Region[2];
-  Target = Region[3];
+  AluminiumTarget = Region[3];
   Axis = Region[11];
   Outer = Region[12];
 
-  Vol_Mag = Region[{Air, Coil, Target}];
+  Vol_Mag = Region[{Air, Coil, AluminiumTarget}];
   Vol_S_Mag = Region[Coil];
-  Vol_C_Mag = Region[Target];
+  Vol_C_Mag = Region[AluminiumTarget];
   Sur_Neu_Mag = Region[{}];
 }
 Function {
   mu0 = 4.e-7 * Pi;
   nu0 = 1 / mu0;
-  nu[Region[{Air, Coil, Target}]] = nu0;
-  sigma[Target] = 3.5e7;
+  nu[Region[{Air, Coil, AluminiumTarget}]] = nu0;
+  sigma[AluminiumTarget] = 3.5e7;
 
   // 20 turns x 1 A peak distributed over 30 mm x 10 mm.
   // Smooth PI-like current: rises near 50 us and falls near 150 us.
