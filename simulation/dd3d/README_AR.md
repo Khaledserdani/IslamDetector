@@ -52,3 +52,9 @@ python3 run_dd3d_reference.py dd32_geometry.json --output dd32_reference.json
 5. ربط خرج المضخم بنموذج ADC ونوافذ الاستحواذ.
 
 لا تُعتمد قيم الحماية أو الكسب أو عمق الكشف من هذه المصادر وحدها؛ يلزم تطابق طوبولوجيا الدارة الفعلية وظروفها وقياسها.
+
+
+## تصحيح رابط ST وتدقيق BAT54S الرسمي — 13 نوفمبر 2026
+- رابط ST الصحيح للأرشيف الحراري PSpice هو `https://www.st.com/resource/en/spice_model/smaj-series-thermal-pspice.zip`، كما يظهر مباشرة في صفحة موارد SMAJ5.0CA. رابط LTspice منفصل.
+- تم فتح ملف BAT54S SPICE الرسمي وقراءة تعريف النموذج `DI_BAT54S`: `IS=34.9u`, `RS=0.210`, `BV=30.0`, `CJO=13.3p`, `M=0.333`, `N=2.28`, `TT=7.20n`. يجب اختبار هذا النموذج في دائرة المشبك الثنائية كاملة؛ لا تستبدل جدول I-V الحالي قبل مطابقة الطوبولوجيا وظروف الانحياز.
+- TI OPA365 PSpice Model Rev.A متاح رسمياً باسم `SBOC133A.ZIP`. الخطوة المطلوبة فحص archive/subcircuit/pin order والتوافق، ثم feedback transient وloop stability.
