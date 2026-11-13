@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert GetDP global integral tables into a reproducible PI target-gap CSV."""
+"""Parse GetDP TimeTable output and summarize target eddy-current density."""
 from __future__ import annotations
 import csv
 import math
@@ -8,31 +8,32 @@ import sys
 from pathlib import Path
 
 ROOT = Path(sys.argv[1])
-# Axisymmetric volume of the modelled solid aluminium disk: radius 0.25 m,
-# thickness 0.005 m. This is the exact volume implied by the shared Gmsh geometry.
 TARGET_VOLUME_M3 = math.pi * 0.250**2 * 0.005
-NUMBER = re.compile(r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
+NUMBER = re.compile(r"[-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eEdD][-+]?[0-9]+)?")
+
+def numbers(line: str):
+    return [float(x.replace("D", "E").replace("d", "e")) for x in NUMBER.findall(line)]
 
 def read_table(path: Path):
     rows = []
     for line in path.read_text(errors="replace").splitlines():
-        vals = [float(x) for x in NUMBER.findall(line)]
-        if len(vals) < 2:
-            continue
-        # GetDP Format Table may include a step index, time, and one scalar.
-        # The last numeric field is the integrated J^2 value.
-        time_s = vals[1] if len(vals) >= 3 else vals[0]
-        j2 = vals[-1]
-        if math.isfinite(time_s) and math.isfinite(j2) and j2 >= 0:
-            rows.append((time_s, j2))
-    # Remove header/metadata-like rows and duplicate timestamps, retaining last.
+        vals = numbers(line)
+        if len(vals) >= 2:
+            # GetDP TimeTable convention: first numeric column is time, last is value.
+            t_candidates = [x for x in vals[:-1] if -1e-12 <= x <= 400.001e-6]
+            if t_candidates:
+                rows.append((t_candidates[0], vals[-1]))
+        elif len(vals) == 1:
+            # Some GetDP builds emit a scalar per line; infer the fixed 1 us step index.
+            rows.append((len(rows) * 1e-6, vals[0]))
     by_time = {}
     for t, q in rows:
-        if 0 <= t <= 400.000001e-6:
+        if math.isfinite(t) and math.isfinite(q) and 0 <= t <= 400.001e-6 and q >= 0:
             by_time[t] = q
     out = sorted(by_time.items())
     if len(out) < 20:
-        raise SystemExit(f"Insufficient GetDP J2 time samples in {path}: {len(out)}")
+        preview = path.read_text(errors="replace")[:2500]
+        raise SystemExit(f"Insufficient GetDP J2 time samples in {path}: {len(out)}. Preview:\\n{preview}")
     return out
 
 summary = []
@@ -41,8 +42,8 @@ for gap_mm in (45, 75, 100, 150):
     data = read_table(folder / "j2.txt")
     rms = [(t, math.sqrt(q / TARGET_VOLUME_M3)) for t, q in data]
     peak_t, peak = max(rms, key=lambda x: x[1])
-    final_t, final = rms[-1]
     at_150 = min(rms, key=lambda x: abs(x[0] - 150e-6))[1]
+    final_t, final = rms[-1]
     summary.append({
         "gap_mm": gap_mm,
         "samples": len(rms),
@@ -59,7 +60,6 @@ with out_csv.open("w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=list(summary[0]))
     w.writeheader()
     w.writerows(summary)
-
 print("GETDP_PI_TARGET_GAP_SWEEP")
 for row in summary:
     print(row)
