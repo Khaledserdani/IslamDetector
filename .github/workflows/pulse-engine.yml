@@ -47,6 +47,14 @@ jobs:
           python -m unittest -v test_afe_engine.py
           python afe_engine.py ../../artifacts/dd3d-pulse-reference/pulse_waveform.csv sample_afe_config.json --output-dir ../../artifacts/dd3d-pulse-reference/afe
           python verify_afe_output.py ../../artifacts/dd3d-pulse-reference/afe
+      - name: Install ngspice for independent linear cross-check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ngspice
+      - name: Cross-check linear RX and AFE against ngspice
+        working-directory: simulation/dd3d
+        run: |
+          python afe_spice_crosscheck.py ../../artifacts/dd3d-pulse-reference/pulse_waveform.csv sample_afe_config.json --output-dir ../../artifacts/dd3d-pulse-reference/spice
       - name: Archive pulse-engine reference waveform
         uses: actions/upload-artifact@v4
         with:
