@@ -32,3 +32,15 @@ jobs:
       - name: Verify coupled PI pulse engine
         working-directory: simulation/dd3d
         run: python -m unittest -v test_pulse_engine.py
+      - name: Run synthetic pulse-engine reference case
+        working-directory: simulation/dd3d
+        run: |
+          python pulse_engine.py sample_pulse_config.json --output-dir ../../artifacts/dd3d-pulse-reference
+          python verify_pulse_engine_output.py ../../artifacts/dd3d-pulse-reference
+      - name: Archive pulse-engine reference waveform
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-PI-pulse-engine-reference
+          path: artifacts/dd3d-pulse-reference/
+          if-no-files-found: error
+          retention-days: 30
