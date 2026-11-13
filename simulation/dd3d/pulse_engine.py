@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Reduced-order coupled TX/target PI pulse engine with open-circuit RX sensing.
 
-This is a circuit-domain transient kernel. It requires measured or independently
-computed L/R/M inputs and a target-loop equivalent. It is not a 3D conductor FEM.
+The target is represented by one equivalent eddy-current loop. A positive
+turn-off clamp is treated as a one-way energy-absorption path: once TX current
+reaches zero, reverse current is blocked and the target loop continues to decay.
 """
 from __future__ import annotations
 import argparse
@@ -13,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from filament_model import mutual_inductance
 
-MODEL = "coupled_tx_target_rl_with_clamped_turnoff_open_circuit_rx"
+MODEL = "coupled_tx_target_rl_with_one_way_clamped_turnoff_open_circuit_rx"
 
 def _positive(value, name):
     value = float(value)
@@ -28,14 +29,14 @@ def _finite(value, name):
     return value
 
 def validate_inductance_matrix(ltx, ltarget, lrx, mtx_target, mtx_rx, mrx_target):
-    """Require positive-definite 3-coil inductance matrix (strict passivity check)."""
+    """Require a positive-definite symmetric three-coil inductance matrix."""
     matrix = np.array([
         [ltx, mtx_target, mtx_rx],
         [mtx_target, ltarget, mrx_target],
         [mtx_rx, mrx_target, lrx],
     ], dtype=float)
-    if not np.isfinite(matrix).all() or not np.allclose(matrix, matrix.T, rtol=0, atol=1e-18):
-        raise ValueError("inductance matrix must be finite and symmetric")
+    if not np.isfinite(matrix).all():
+        raise ValueError("inductance matrix must be finite")
     eigenvalues = np.linalg.eigvalsh(matrix)
     if eigenvalues[0] <= max(eigenvalues[-1] * 1e-10, 1e-18):
         raise ValueError(
@@ -45,16 +46,13 @@ def validate_inductance_matrix(ltx, ltarget, lrx, mtx_target, mtx_rx, mrx_target
     return eigenvalues
 
 def simulate_pulse(config):
-    """Simulate TX and one equivalent target eddy-current loop; RX remains open-circuit."""
-    pulse = config["pulse"]
-    target = config["target"]
-    electrical = config["electrical"]
-
+    """Simulate TX and one equivalent target eddy-current loop; RX stays open-circuit."""
+    pulse, target, electrical = config["pulse"], config["target"], config["electrical"]
     ltx = _positive(electrical["tx_inductance_h"], "tx_inductance_h")
     rtx = _positive(electrical["tx_resistance_ohm"], "tx_resistance_ohm")
     lrx = _positive(electrical["rx_inductance_h"], "rx_inductance_h")
-    ltarget = _positive(target["inductance_h"], "target.inductance_h")
-    rtarget = _positive(target["resistance_ohm"], "target.resistance_ohm")
+    lt = _positive(target["inductance_h"], "target.inductance_h")
+    rt = _positive(target["resistance_ohm"], "target.resistance_ohm")
     vbus = _positive(pulse["bus_voltage_v"], "bus_voltage_v")
     width = _positive(pulse["pulse_width_s"], "pulse_width_s")
     clamp = _finite(pulse.get("clamp_voltage_v", 0.0), "clamp_voltage_v")
@@ -64,119 +62,131 @@ def simulate_pulse(config):
     stop = _positive(pulse["stop_time_s"], "stop_time_s")
     if stop <= width:
         raise ValueError("stop_time_s must be later than pulse_width_s")
+    if math.ceil(stop / dt_nominal) > 200000:
+        raise ValueError("requested simulation exceeds 200,000 time steps")
 
-    paths = config["paths_m"]
-    turns = config["turns"]
-    ntx, nrx = int(turns["TX"]), int(turns["RX"])
-    ntarget = int(turns.get("target_loop", 1))
-    if min(ntx, nrx, ntarget) < 1:
+    paths, turns = config["paths_m"], config["turns"]
+    ntx, nrx, nt = int(turns["TX"]), int(turns["RX"]), int(turns.get("target_loop", 1))
+    if min(ntx, nrx, nt) < 1:
         raise ValueError("turn counts must be positive integers")
     tx_path, rx_path, target_path = paths["TX"], paths["RX"], paths["target_loop"]
-    mtx_target = mutual_inductance(tx_path, target_path, ntx, ntarget)
-    mtx_rx = mutual_inductance(tx_path, rx_path, ntx, nrx)
-    mrx_target = mutual_inductance(rx_path, target_path, nrx, ntarget)
-    eigenvalues = validate_inductance_matrix(
-        ltx, ltarget, lrx, mtx_target, mtx_rx, mrx_target
-    )
-
-    det = ltx * ltarget - mtx_target * mtx_target
-    if det <= 0:
+    mtt = mutual_inductance(tx_path, target_path, ntx, nt)
+    mtr = mutual_inductance(tx_path, rx_path, ntx, nrx)
+    mrt = mutual_inductance(rx_path, target_path, nrx, nt)
+    eigenvalues = validate_inductance_matrix(ltx, lt, lrx, mtt, mtr, mrt)
+    det = ltx * lt - mtt * mtt
+    if det <= max(ltx * lt * 1e-12, 1e-24):
         raise ValueError("TX/target inductance submatrix is not positive definite")
 
-    def derivative(state, drive_on):
-        itx, itarget = state
-        v_clamp = 0.0 if drive_on else clamp * (1.0 if itx > 0 else -1.0 if itx < 0 else 0.0)
+    def derivative(state, drive_on, tx_blocked=False):
+        itx, itarget = map(float, state)
+        if tx_blocked:
+            # One-way turn-off path is open after the TX current reaches zero.
+            return np.array([0.0, -rt * itarget / lt], dtype=float)
+        v_clamp = 0.0 if drive_on else clamp
         applied = (vbus if drive_on else 0.0) - rtx * itx - v_clamp
-        dtx = (ltarget * applied + mtx_target * rtarget * itarget) / det
-        dtarget = (-mtx_target * applied - ltx * rtarget * itarget) / det
+        dtx = (lt * applied + mtt * rt * itarget) / det
+        dtarget = (-mtt * applied - ltx * rt * itarget) / det
         return np.array([dtx, dtarget], dtype=float)
 
     def energy(state):
-        itx, itarget = state
-        return 0.5 * ltx * itx * itx + mtx_target * itx * itarget + 0.5 * ltarget * itarget * itarget
+        itx, itarget = map(float, state)
+        return 0.5 * ltx * itx * itx + mtt * itx * itarget + 0.5 * lt * itarget * itarget
 
-    times = [0.0]
-    states = [np.array([0.0, 0.0], dtype=float)]
-    derivatives = [derivative(states[0], True)]
-    source_power = [0.0]
-    tx_loss_power = [0.0]
-    target_loss_power = [0.0]
-    clamp_power = [0.0]
-    source_energy = tx_copper_energy = target_copper_energy = clamp_energy = 0.0
-
-    t = 0.0
-    state = states[0].copy()
-    while t < stop - max(1e-15, stop * 1e-14):
-        # Split exactly at the switch transition so no RK4 step straddles it.
-        drive_on = t < width - max(1e-15, width * 1e-14)
-        boundary = width if drive_on else stop
-        h = min(dt_nominal, stop - t, boundary - t)
-        if h <= 0:
-            raise RuntimeError("non-positive integration step")
-        stage1 = state
-        k1 = derivative(stage1, drive_on)
-        stage2 = state + 0.5*h*k1
-        k2 = derivative(stage2, drive_on)
-        stage3 = state + 0.5*h*k2
-        k3 = derivative(stage3, drive_on)
-        stage4 = state + h*k3
-        k4 = derivative(stage4, drive_on)
+    def rk4_step(state, h, drive_on, tx_blocked=False):
+        s1 = state
+        k1 = derivative(s1, drive_on, tx_blocked)
+        s2 = state + 0.5 * h * k1
+        k2 = derivative(s2, drive_on, tx_blocked)
+        s3 = state + 0.5 * h * k2
+        k3 = derivative(s3, drive_on, tx_blocked)
+        s4 = state + h * k3
+        k4 = derivative(s4, drive_on, tx_blocked)
+        new_state = state + (h / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
 
         def powers(stage):
             si, ti = map(float, stage)
             return (
                 vbus * si if drive_on else 0.0,
-                rtx * si * si,
-                rtarget * ti * ti,
-                0.0 if drive_on else clamp * abs(si)
+                0.0 if tx_blocked else rtx * si * si,
+                rt * ti * ti,
+                0.0 if drive_on or tx_blocked else clamp * max(si, 0.0)
             )
-        p1, p2, p3, p4 = map(powers, (stage1, stage2, stage3, stage4))
-        source_energy += h * (p1[0] + 2*p2[0] + 2*p3[0] + p4[0]) / 6.0
-        tx_copper_energy += h * (p1[1] + 2*p2[1] + 2*p3[1] + p4[1]) / 6.0
-        target_copper_energy += h * (p1[2] + 2*p2[2] + 2*p3[2] + p4[2]) / 6.0
-        clamp_energy += h * (p1[3] + 2*p2[3] + 2*p3[3] + p4[3]) / 6.0
+        q1, q2, q3, q4 = map(powers, (s1, s2, s3, s4))
+        integrals = tuple(
+            h * (q1[k] + 2*q2[k] + 2*q3[k] + q4[k]) / 6.0
+            for k in range(4)
+        )
+        return new_state, integrals
 
-        state = state + (h/6.0)*(k1 + 2*k2 + 2*k3 + k4)
-        t = min(t+h, stop)
-        sample_drive_on = t < width - max(1e-15, width * 1e-14)
-        deriv = derivative(state, sample_drive_on)
-        itx, itarget = map(float, state)
+    times = [0.0]
+    states = [np.array([0.0, 0.0], dtype=float)]
+    derivatives = [derivative(states[0], True)]
+    tx_blocked = False
+    source_energy = tx_loss_energy = target_loss_energy = clamp_energy = 0.0
+    t, state = 0.0, states[0].copy()
+    while t < stop - max(1e-15, stop * 1e-14):
+        drive_on = t < width - max(1e-15, width * 1e-14)
+        boundary = width if drive_on else stop
+        h = min(dt_nominal, stop - t, boundary - t)
+        if h <= 0:
+            raise RuntimeError("non-positive integration step")
+
+        trial, _ = rk4_step(state, h, drive_on, tx_blocked)
+        # Locate the one-way clamp current-zero event instead of allowing
+        # an ideal constant-voltage clamp to chatter and create reverse current.
+        hit_zero = (not drive_on and clamp > 0 and not tx_blocked
+                    and state[0] > 0 and trial[0] <= 0)
+        if hit_zero:
+            lo, hi = 0.0, h
+            for _ in range(48):
+                mid = 0.5 * (lo + hi)
+                candidate, _ = rk4_step(state, mid, False, False)
+                if candidate[0] > 0:
+                    lo = mid
+                else:
+                    hi = mid
+            h = hi
+            new_state, integrals = rk4_step(state, h, False, False)
+            new_state[0] = 0.0
+            tx_blocked = True
+        else:
+            new_state, integrals = rk4_step(state, h, drive_on, tx_blocked)
+
+        source_energy += integrals[0]
+        tx_loss_energy += integrals[1]
+        target_loss_energy += integrals[2]
+        clamp_energy += integrals[3]
+        state = new_state
+        t = min(t + h, stop)
+        sample_on = t < width - max(1e-15, width * 1e-14)
+        deriv = derivative(state, sample_on, tx_blocked)
         times.append(t)
         states.append(state.copy())
         derivatives.append(deriv)
-        source_power.append(vbus * itx if drive_on else 0.0)
-        tx_loss_power.append(rtx * itx * itx)
-        target_loss_power.append(rtarget * itarget * itarget)
-        clamp_power.append(0.0 if drive_on else clamp * abs(itx))
 
     times_a = np.asarray(times)
     states_a = np.asarray(states)
     deriv_a = np.asarray(derivatives)
-    itx = states_a[:, 0]
-    itarget = states_a[:, 1]
-    ditx = deriv_a[:, 0]
-    ditarget = deriv_a[:, 1]
-    vrx_direct = -mtx_rx * ditx
-    vrx_target = -mrx_target * ditarget
+    itx, itarget = states_a[:, 0], states_a[:, 1]
+    ditx, ditarget = deriv_a[:, 0], deriv_a[:, 1]
+    vrx_direct = -mtr * ditx
+    vrx_target = -mrt * ditarget
     vrx_total = vrx_direct + vrx_target
-
-    def integrate(power):
-        return float(np.trapezoid(np.asarray(power, dtype=float), times_a))
-
-    stored_energy = np.asarray([energy(s) for s in states_a])
-    energy_delta = float(stored_energy[-1] - stored_energy[0])
-    energy_residual = source_energy - tx_copper_energy - target_copper_energy - clamp_energy - energy_delta
-
+    stored = np.asarray([energy(s) for s in states_a])
+    energy_delta = float(stored[-1] - stored[0])
+    energy_residual = source_energy - tx_loss_energy - target_loss_energy - clamp_energy - energy_delta
     post = times_a >= width
     metrics = {
         "model": MODEL,
         "model_status": "reduced_order_single_target_loop_surrogate_not_3d_conductor_fem",
+        "turnoff_clamp_mode": "one_way_current_clamp_then_open_circuit_at_zero" if clamp > 0 else "natural_RL_decay",
         "coupling_h": {
-            "M_TX_target_signed": mtx_target,
-            "M_TX_RX_signed": mtx_rx,
-            "M_RX_target_signed": mrx_target
+            "M_TX_target_signed": mtt,
+            "M_TX_RX_signed": mtr,
+            "M_RX_target_signed": mrt
         },
-        "inductance_matrix_min_eigenvalue_h": float(eigenvalues[0]),
+        "inductance_matrix_eigenvalues_h": eigenvalues.tolist(),
         "peak_abs_tx_current_a": float(np.max(np.abs(itx))),
         "tx_current_at_turnoff_a": float(np.interp(width, times_a, itx)),
         "peak_abs_target_loop_current_a": float(np.max(np.abs(itarget))),
@@ -185,8 +195,8 @@ def simulate_pulse(config):
         "peak_abs_rx_direct_component_v": float(np.max(np.abs(vrx_direct))),
         "peak_abs_rx_target_component_v": float(np.max(np.abs(vrx_target))),
         "source_energy_j": source_energy,
-        "tx_copper_loss_j": tx_copper_energy,
-        "target_copper_loss_j": target_copper_energy,
+        "tx_copper_loss_j": tx_loss_energy,
+        "target_copper_loss_j": target_loss_energy,
         "clamp_absorbed_energy_j": clamp_energy,
         "stored_magnetic_energy_change_j": energy_delta,
         "energy_balance_residual_j": energy_residual,
@@ -195,7 +205,7 @@ def simulate_pulse(config):
         "time_step_nominal_s": dt_nominal,
         "pulse_width_s": width,
         "stop_time_s": stop,
-        "turns": {"TX": ntx, "RX": nrx, "target_loop": ntarget}
+        "turns": {"TX": ntx, "RX": nrx, "target_loop": nt}
     }
     arrays = {
         "time_s": times_a,
@@ -206,7 +216,7 @@ def simulate_pulse(config):
         "v_rx_direct_v": vrx_direct,
         "v_rx_target_v": vrx_target,
         "v_rx_total_v": vrx_total,
-        "stored_magnetic_energy_j": stored_energy
+        "stored_magnetic_energy_j": stored
     }
     return metrics, arrays
 
