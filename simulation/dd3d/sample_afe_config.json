@@ -9,11 +9,11 @@
     "input_capacitance_f": 2e-9,
     "input_bias_ohm": 1000000,
     "clamp_threshold_v": 0.35,
-    "clamp_dynamic_resistance_ohm": 5,
+    "clamp_dynamic_resistance_ohm": 50,
     "coil_tvs_threshold_v": 6,
     "coil_tvs_dynamic_resistance_ohm": 2
   },
   "integration": {
-    "max_step_s": 2.5e-7
+    "max_step_s": 1e-8
   }
 }
