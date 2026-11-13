@@ -1,0 +1,4 @@
+geometry_id,outer_diameter_cm,inner_diameter_cm,turns_reference,reference_active_wire_m,turns_budget_candidate,candidate_active_wire_m,lead_allowance_m,total_budget_m,status
+surface_40_22,40,22,26,25.321,25,24.347,0.653,25,requires_exact_layout_check
+mid_44_26,44,26,23,25.290,22,24.190,0.810,25,requires_exact_layout_check
+balanced_50_34,50,34,19,25.070,18,23.750,1.250,25,requires_exact_layout_check
