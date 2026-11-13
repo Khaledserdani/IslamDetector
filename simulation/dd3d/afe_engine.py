@@ -60,16 +60,26 @@ def simulate_afe(waveform, config):
         if v>threshold: return (v-threshold)/dynamic_r
         if v< -threshold: return (v+threshold)/dynamic_r
         return 0.0
-    def input_clamp_current(v):
-        if clamp_curve is None:return clamp_current(v,vclamp,rclamp)
-        av=abs(v)
-        if av<clamp_curve[0,0]:return 0.0
-        current=float(np.interp(av,clamp_curve[:,0],clamp_curve[:,1]))
-        if av>clamp_curve[-1,0]:
+    clamp_low=float(afe.get("input_clamp_low_rail_v",vlow))
+    clamp_high=float(afe.get("input_clamp_high_rail_v",vhigh))
+    if not math.isfinite(clamp_low) or not math.isfinite(clamp_high) or clamp_high<=clamp_low:
+        raise ValueError("input clamp rails must be finite and ordered")
+    def diode_curve_current(forward_voltage):
+        if forward_voltage<clamp_curve[0,0]:return 0.0
+        current=float(np.interp(forward_voltage,clamp_curve[:,0],clamp_curve[:,1]))
+        if forward_voltage>clamp_curve[-1,0]:
             dv=clamp_curve[-1,0]-clamp_curve[-2,0]
             di=clamp_curve[-1,1]-clamp_curve[-2,1]
-            current+=((av-clamp_curve[-1,0])*di/dv)
-        return math.copysign(current,v)
+            current+=(forward_voltage-clamp_curve[-1,0])*di/dv
+        return current
+    def input_clamp_current(v):
+        if clamp_curve is None:return clamp_current(v,vclamp,rclamp)
+        absolute_voltage=vref+v
+        if absolute_voltage>clamp_high:
+            return diode_curve_current(absolute_voltage-clamp_high)
+        if absolute_voltage<clamp_low:
+            return -diode_curve_current(clamp_low-absolute_voltage)
+        return 0.0
     def terminal_voltage(icoil,vnode):
         # Closed-form passive solution when the coil TVS is not conducting.
         linear=rdamp*(rseries*icoil+vnode)/(rdamp+rseries)
@@ -191,6 +201,8 @@ def simulate_afe(waveform, config):
         "coil_tvs_dynamic_resistance_ohm":coil_rt,
         "input_clamp_threshold_v":vclamp,
         "input_clamp_dynamic_resistance_ohm":rclamp,
+        "input_clamp_low_rail_v":clamp_low,
+        "input_clamp_high_rail_v":clamp_high,
         "input_clamp_iv_curve_v_a":clamp_curve.tolist() if clamp_curve is not None else None
     }
     arrays={"time_s":ta,"induced_emf_v":np.interp(ta,t,emf),"rx_coil_current_a":ia,
