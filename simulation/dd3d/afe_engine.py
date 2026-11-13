@@ -34,6 +34,14 @@ def simulate_afe(waveform, config):
     rbias=_positive(afe["input_bias_ohm"],"afe.input_bias_ohm")
     vclamp=_nonnegative(afe["clamp_threshold_v"],"afe.clamp_threshold_v")
     rclamp=_positive(afe["clamp_dynamic_resistance_ohm"],"afe.clamp_dynamic_resistance_ohm")
+    raw_curve=afe.get("input_clamp_iv_curve_v_a")
+    clamp_curve=None
+    if raw_curve is not None:
+        clamp_curve=np.asarray(raw_curve,dtype=float)
+        if clamp_curve.ndim!=2 or clamp_curve.shape[1]!=2 or len(clamp_curve)<2 or not np.isfinite(clamp_curve).all():
+            raise ValueError("input_clamp_iv_curve_v_a must be a finite Nx2 voltage/current table")
+        if np.any(clamp_curve[:,0]<0) or np.any(clamp_curve[:,1]<0) or np.any(np.diff(clamp_curve[:,0])<=0) or np.any(np.diff(clamp_curve[:,1])<=0):
+            raise ValueError("input clamp I-V table must be strictly increasing and nonnegative")
     coil_vt=_nonnegative(afe.get("coil_tvs_threshold_v",0.0),"afe.coil_tvs_threshold_v")
     coil_rt=_positive(afe.get("coil_tvs_dynamic_resistance_ohm",1.0),"afe.coil_tvs_dynamic_resistance_ohm")
     op=config.get("opamp",{})
@@ -52,6 +60,16 @@ def simulate_afe(waveform, config):
         if v>threshold: return (v-threshold)/dynamic_r
         if v< -threshold: return (v+threshold)/dynamic_r
         return 0.0
+    def input_clamp_current(v):
+        if clamp_curve is None:return clamp_current(v,vclamp,rclamp)
+        av=abs(v)
+        if av<clamp_curve[0,0]:return 0.0
+        current=float(np.interp(av,clamp_curve[:,0],clamp_curve[:,1]))
+        if av>clamp_curve[-1,0]:
+            dv=clamp_curve[-1,0]-clamp_curve[-2,0]
+            di=clamp_curve[-1,1]-clamp_curve[-2,1]
+            current+=((av-clamp_curve[-1,0])*di/dv)
+        return math.copysign(current,v)
     def terminal_voltage(icoil,vnode):
         # Closed-form passive solution when the coil TVS is not conducting.
         linear=rdamp*(rseries*icoil+vnode)/(rdamp+rseries)
@@ -65,7 +83,7 @@ def simulate_afe(waveform, config):
         va=terminal_voltage(icoil,vnode)
         iseries=(va-vnode)/rseries
         itvs=clamp_current(va,coil_vt,coil_rt) if coil_vt>0 else 0.0
-        iclamp=clamp_current(vnode,vclamp,rclamp)
+        iclamp=input_clamp_current(vnode)
         di=(source-rcoil*icoil-va)/lcoil
         dv=(iseries-vnode/rbias-iclamp)/cin
         return np.array([di,dv]),(va,iseries,itvs,iclamp)
@@ -172,7 +190,7 @@ def simulate_afe(waveform, config):
         "coil_tvs_threshold_v":coil_vt,
         "coil_tvs_dynamic_resistance_ohm":coil_rt,
         "input_clamp_threshold_v":vclamp,
-        "input_clamp_dynamic_resistance_ohm":rclamp
+        "input_clamp_dynamic_resistance_ohm":rclamp,\n        "input_clamp_iv_curve_v_a":clamp_curve.tolist() if clamp_curve is not None else None
     }
     arrays={"time_s":ta,"induced_emf_v":np.interp(ta,t,emf),"rx_coil_current_a":ia,
             "rx_terminal_voltage_v":vaa,"afe_input_voltage_v":vb,
