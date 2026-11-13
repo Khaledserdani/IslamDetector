@@ -38,6 +38,11 @@ public final class PiAfeInput {
                 coilTvsThreshold,coilTvsDynamicResistance,inputClampThreshold,inputClampDynamicResistance,maxStep,
                 opampGain,supplyLow,supplyHigh,referenceVoltage,gainBandwidth,slewRate,outputHeadroom);
     }
+    PiAfeInput withSlewRate(double value){
+        return new PiAfeInput(rxResistance,rxInductance,dampingResistance,seriesResistance,inputCapacitance,biasResistance,
+                coilTvsThreshold,coilTvsDynamicResistance,inputClampThreshold,inputClampDynamicResistance,maxStep,
+                opampGain,supplyLow,supplyHigh,referenceVoltage,gainBandwidth,value,outputHeadroom);
+    }
     public static PiAfeInput parse(String json)throws JSONException{
         JSONObject root=new JSONObject(json);
         JSONObject rx=root.getJSONObject("rx_coil"),afe=root.getJSONObject("afe");
