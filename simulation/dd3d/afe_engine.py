@@ -135,7 +135,7 @@ def simulate_afe(waveform, config):
     residual=float(totals[0]-sum(totals[1:])-delta)
     metrics={
         "model":"rx_thevenin_rl_damping_series_protection_input_capacitance_bias_and_bidirectional_clamp",
-        "model_status":"reduced_order_lumped_afe_front_end_not_opamp_or_pcb_parasitic_model",
+        "model_status":"reduced_order_lumped_rx_protection_plus_first_order_opa365_behavioral_model_not_transistor_level",
         "sample_count":int(len(ta)),
         "peak_abs_induced_emf_v":float(np.max(np.abs(emf))),
         "peak_abs_rx_coil_current_a":float(np.max(np.abs(ia))),
