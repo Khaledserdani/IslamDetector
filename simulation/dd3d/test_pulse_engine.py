@@ -80,6 +80,31 @@ class PulseEngineTests(unittest.TestCase):
             m1["rx_flux_derivative_relative_rms_error_smooth"]
         )
 
+    def test_clamped_flux_derivative_metric_excludes_current_zero_event(self):
+        c = config()
+        c["pulse"]["clamp_voltage_v"] = 20.0
+        metrics, data = simulate_pulse(c)
+        event_time = metrics["tx_clamp_zero_event_time_s"]
+        self.assertIsNotNone(event_time)
+        self.assertGreater(event_time, metrics["pulse_width_s"])
+        self.assertLess(event_time, data["time_s"][-1])
+
+        times = data["time_s"]
+        dt = metrics["time_step_nominal_s"]
+        mask = ((times > times[0]) & (times < times[-1])
+                & (np.abs(times - metrics["pulse_width_s"]) > 2.5 * dt)
+                & (np.abs(times - event_time) > 2.5 * dt))
+        self.assertGreaterEqual(np.count_nonzero(mask), 3)
+        expected = (
+            np.sqrt(np.mean((data["v_rx_from_flux_derivative_v"][mask]
+                             - data["v_rx_total_v"][mask]) ** 2))
+            / max(np.sqrt(np.mean(data["v_rx_total_v"][mask] ** 2)), 1e-18)
+        )
+        self.assertAlmostEqual(
+            metrics["rx_flux_derivative_relative_rms_error_smooth"], expected,
+            delta=1e-12
+        )
+
     def test_energy_balance_closes_for_unclamped_case(self):
         c=config()
         c["pulse"]["clamp_voltage_v"]=0.0
