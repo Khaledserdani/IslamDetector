@@ -170,9 +170,23 @@ def simulate_pulse(config):
     deriv_a = np.asarray(derivatives)
     itx, itarget = states_a[:, 0], states_a[:, 1]
     ditx, ditarget = deriv_a[:, 0], deriv_a[:, 1]
+    # RX flux linkage from the same signed mutual-coupling matrix:
+    # lambda_RX = M_TX,RX * I_TX + M_target,RX * I_target.
+    # Faraday's law then gives V_RX = -d(lambda_RX)/dt.
+    rx_flux_linkage = mtr * itx + mrt * itarget
     vrx_direct = -mtr * ditx
     vrx_target = -mrt * ditarget
     vrx_total = vrx_direct + vrx_target
+    vrx_from_flux = -np.gradient(rx_flux_linkage, times_a, edge_order=2)
+    smooth_mask = ((times_a > times_a[0]) & (times_a < times_a[-1])
+                   & (np.abs(times_a - width) > 2.5 * dt_nominal))
+    if np.count_nonzero(smooth_mask) >= 3:
+        flux_derivative_error = float(
+            np.sqrt(np.mean((vrx_from_flux[smooth_mask] - vrx_total[smooth_mask]) ** 2))
+            / max(np.sqrt(np.mean(vrx_total[smooth_mask] ** 2)), 1e-18)
+        )
+    else:
+        flux_derivative_error = float("nan")
     stored = np.asarray([energy(s) for s in states_a])
     energy_delta = float(stored[-1] - stored[0])
     energy_residual = source_energy - tx_loss_energy - target_loss_energy - clamp_energy - energy_delta
@@ -194,6 +208,8 @@ def simulate_pulse(config):
         "tx_current_at_turnoff_a": float(np.interp(width, times_a, itx)),
         "peak_abs_target_loop_current_a": float(np.max(np.abs(itarget))),
         "peak_abs_rx_voltage_v": float(np.max(np.abs(vrx_total))),
+        "peak_abs_rx_voltage_from_flux_derivative_v": float(np.max(np.abs(vrx_from_flux))),
+        "rx_flux_derivative_relative_rms_error_smooth": flux_derivative_error,
         "peak_abs_rx_voltage_after_turnoff_v": float(np.max(np.abs(vrx_total[post]))),
         "peak_abs_rx_direct_component_v": float(np.max(np.abs(vrx_direct))),
         "peak_abs_rx_target_component_v": float(np.max(np.abs(vrx_target))),
@@ -230,6 +246,8 @@ def simulate_pulse(config):
         "v_rx_direct_v": vrx_direct,
         "v_rx_target_v": vrx_target,
         "v_rx_total_v": vrx_total,
+        "rx_flux_linkage_wb_turn": rx_flux_linkage,
+        "v_rx_from_flux_derivative_v": vrx_from_flux,
         "stored_magnetic_energy_j": stored
     }
     return metrics, arrays

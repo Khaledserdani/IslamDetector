@@ -46,6 +46,40 @@ class PulseEngineTests(unittest.TestCase):
         self.assertAlmostEqual(metrics["tx_current_at_turnoff_a"], expected_on, delta=0.003)
         self.assertAlmostEqual(float(data["i_tx_a"][-1]), expected_off, delta=0.003)
 
+
+    def test_rx_flux_linkage_derivative_matches_coupled_voltage(self):
+        c = config()
+        c["pulse"]["clamp_voltage_v"] = 0.0
+        metrics, data = simulate_pulse(c)
+        expected_linkage = (
+            metrics["coupling_h"]["M_TX_RX_signed"] * data["i_tx_a"]
+            + metrics["coupling_h"]["M_RX_target_signed"] * data["i_target_a"]
+        )
+        np.testing.assert_allclose(data["rx_flux_linkage_wb_turn"], expected_linkage,
+                                   rtol=1e-12, atol=1e-18)
+        mask = ((data["time_s"] > data["time_s"][0])
+                & (data["time_s"] < data["time_s"][-1])
+                & (np.abs(data["time_s"] - metrics["pulse_width_s"])
+                   > 2.5 * metrics["time_step_nominal_s"]))
+        self.assertLess(metrics["rx_flux_derivative_relative_rms_error_smooth"], 0.01)
+        np.testing.assert_allclose(
+            data["v_rx_total_v"][mask],
+            -metrics["coupling_h"]["M_TX_RX_signed"] * data["di_tx_dt_a_per_s"][mask]
+            -metrics["coupling_h"]["M_RX_target_signed"] * data["di_target_dt_a_per_s"][mask],
+            rtol=1e-12, atol=1e-12
+        )
+
+    def test_flux_derivative_error_reduces_when_time_step_is_halved(self):
+        c = config()
+        c["pulse"]["clamp_voltage_v"] = 0.0
+        m1, _ = simulate_pulse(c)
+        c["pulse"]["time_step_s"] *= 0.5
+        m2, _ = simulate_pulse(c)
+        self.assertLess(
+            m2["rx_flux_derivative_relative_rms_error_smooth"],
+            m1["rx_flux_derivative_relative_rms_error_smooth"]
+        )
+
     def test_energy_balance_closes_for_unclamped_case(self):
         c=config()
         c["pulse"]["clamp_voltage_v"]=0.0
