@@ -34,31 +34,45 @@ def simulate_afe(waveform, config):
     rbias=_positive(afe["input_bias_ohm"],"afe.input_bias_ohm")
     vclamp=_nonnegative(afe["clamp_threshold_v"],"afe.clamp_threshold_v")
     rclamp=_positive(afe["clamp_dynamic_resistance_ohm"],"afe.clamp_dynamic_resistance_ohm")
+    coil_vt=_nonnegative(afe.get("coil_tvs_threshold_v",0.0),"afe.coil_tvs_threshold_v")
+    coil_rt=_positive(afe.get("coil_tvs_dynamic_resistance_ohm",1.0),"afe.coil_tvs_dynamic_resistance_ohm")
     max_step=_positive(config.get("integration",{}).get("max_step_s",float(np.min(np.diff(t)))),"integration.max_step_s")
     if len(t)>200001: raise ValueError("input waveform exceeds 200,001 samples")
-    def clamp_current(v):
-        if v>vclamp: return (v-vclamp)/rclamp
-        if v< -vclamp: return (v+vclamp)/rclamp
+    def clamp_current(v,threshold,dynamic_r):
+        if v>threshold: return (v-threshold)/dynamic_r
+        if v< -threshold: return (v+threshold)/dynamic_r
         return 0.0
+    def terminal_voltage(icoil,vnode):
+        # Solve KCL at the RX coil terminal with a possible bidirectional TVS.
+        # f(Va)=Va/Rdamp + I_TVS(Va) + (Va-Vin)/Rseries - Icoil = 0.
+        lo=min(-100.0,(vnode-rseries*abs(icoil)-10.0))
+        hi=max(100.0,(vnode+rseries*abs(icoil)+10.0))
+        for _ in range(64):
+            mid=0.5*(lo+hi)
+            itvs=clamp_current(mid,coil_vt,coil_rt) if coil_vt>0 else 0.0
+            residual=mid/rdamp+itvs+(mid-vnode)/rseries-icoil
+            if residual>0: hi=mid
+            else: lo=mid
+        return 0.5*(lo+hi)
     def deriv(state, source):
         icoil,vnode=state
-        # KCL at RX terminal: coil current splits into damping and protected input.
-        # vA = Rdamp*(icoil-is), is=(vA-vnode)/Rseries.
-        va=(rdamp*(rseries*icoil+vnode))/(rdamp+rseries)
+        va=terminal_voltage(icoil,vnode)
         iseries=(va-vnode)/rseries
-        iclamp=clamp_current(vnode)
+        itvs=clamp_current(va,coil_vt,coil_rt) if coil_vt>0 else 0.0
+        iclamp=clamp_current(vnode,vclamp,rclamp)
         di=(source-rcoil*icoil-va)/lcoil
         dv=(iseries-vnode/rbias-iclamp)/cin
-        return np.array([di,dv]),(va,iseries,iclamp)
+        return np.array([di,dv]),(va,iseries,itvs,iclamp)
     def source_at(x):
         return float(np.interp(x,t,emf))
     def powers(state, source):
         icoil,vnode=state
-        _,(va,iseries,iclamp)=deriv(state,source)
+        _,(va,iseries,itvs,iclamp)=deriv(state,source)
         return np.array([
             source*icoil,
             rcoil*icoil*icoil,
             va*va/rdamp,
+            va*itvs,
             rseries*iseries*iseries,
             vnode*vnode/rbias,
             vnode*iclamp
@@ -74,7 +88,7 @@ def simulate_afe(waveform, config):
         p=[powers(s,src) for s,src in zip(stages,srcs)]
         integ=h*(p[0]+2*p[1]+2*p[2]+p[3])/6
         return state+h*(k1+2*k2+2*k3+k4)/6,integ
-    out_t=[float(t[0])]; out_i=[0.0]; out_v=[0.0]; out_va=[0.0]; out_is=[0.0]; out_ic=[0.0]
+    out_t=[float(t[0])]; out_i=[0.0]; out_v=[0.0]; out_va=[0.0]; out_is=[0.0]; out_itvs=[0.0]; out_ic=[0.0]
     state=np.array([0.0,0.0]); totals=np.zeros(6)
     for idx in range(len(t)-1):
         left=float(t[idx]); right=float(t[idx+1]); span=right-left
@@ -84,11 +98,11 @@ def simulate_afe(waveform, config):
             now=left+k*h
             state,energy=step(state,now,h)
             totals+=energy
-            va,iseries,iclamp=deriv(state,source_at(now+h))[1]
+            va,iseries,itvs,iclamp=deriv(state,source_at(now+h))[1]
             out_t.append(now+h);out_i.append(state[0]);out_v.append(state[1])
-            out_va.append(va);out_is.append(iseries);out_ic.append(iclamp)
+            out_va.append(va);out_is.append(iseries);out_itvs.append(itvs);out_ic.append(iclamp)
     ta=np.asarray(out_t); ia=np.asarray(out_i); vb=np.asarray(out_v)
-    vaa=np.asarray(out_va); isa=np.asarray(out_is); ica=np.asarray(out_ic)
+    vaa=np.asarray(out_va); isa=np.asarray(out_is); itvsa=np.asarray(out_itvs); ica=np.asarray(out_ic)
     stored=0.5*lcoil*ia**2+0.5*cin*vb**2
     delta=float(stored[-1]-stored[0])
     residual=float(totals[0]-sum(totals[1:])-delta)
@@ -109,7 +123,8 @@ def simulate_afe(waveform, config):
         "damping_loss_j":float(totals[2]),
         "series_resistor_loss_j":float(totals[3]),
         "bias_resistor_loss_j":float(totals[4]),
-        "clamp_absorbed_energy_j":float(totals[5]),
+        "coil_tvs_absorbed_energy_j":float(totals[3]),
+        "input_clamp_absorbed_energy_j":float(totals[6]),
         "stored_energy_change_j":delta,
         "energy_balance_residual_j":residual,
         "energy_balance_relative_error":abs(residual)/max(abs(totals[0]),1e-18),
@@ -119,12 +134,15 @@ def simulate_afe(waveform, config):
         "series_protection_ohm":rseries,
         "input_capacitance_f":cin,
         "input_bias_ohm":rbias,
-        "clamp_threshold_v":vclamp,
-        "clamp_dynamic_resistance_ohm":rclamp
+        "coil_tvs_threshold_v":coil_vt,
+        "coil_tvs_dynamic_resistance_ohm":coil_rt,
+        "input_clamp_threshold_v":vclamp,
+        "input_clamp_dynamic_resistance_ohm":rclamp
     }
     arrays={"time_s":ta,"induced_emf_v":np.interp(ta,t,emf),"rx_coil_current_a":ia,
             "rx_terminal_voltage_v":vaa,"afe_input_voltage_v":vb,
-            "protection_series_current_a":isa,"clamp_current_a":ica,"stored_energy_j":stored}
+            "protection_series_current_a":isa,"coil_tvs_current_a":itvsa,
+            "input_clamp_current_a":ica,"stored_energy_j":stored}
     return metrics,arrays
 
 def read_waveform(path):
