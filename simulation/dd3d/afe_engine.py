@@ -36,6 +36,15 @@ def simulate_afe(waveform, config):
     rclamp=_positive(afe["clamp_dynamic_resistance_ohm"],"afe.clamp_dynamic_resistance_ohm")
     coil_vt=_nonnegative(afe.get("coil_tvs_threshold_v",0.0),"afe.coil_tvs_threshold_v")
     coil_rt=_positive(afe.get("coil_tvs_dynamic_resistance_ohm",1.0),"afe.coil_tvs_dynamic_resistance_ohm")
+    op=config.get("opamp",{})
+    gain=_positive(op.get("closed_loop_gain",2.0),"opamp.closed_loop_gain")
+    vlow=_finite= float(op.get("supply_low_v",0.0)); vhigh=float(op.get("supply_high_v",3.3))
+    vref=float(op.get("reference_v",0.5*(vlow+vhigh)))
+    gbw=_positive(op.get("gain_bandwidth_hz",50e6),"opamp.gain_bandwidth_hz")
+    slew=_positive(op.get("slew_rate_v_per_s",25e6),"opamp.slew_rate_v_per_s")
+    headroom=_nonnegative(op.get("output_headroom_v",0.01),"opamp.output_headroom_v")
+    if not all(math.isfinite(x) for x in (vlow,vhigh,vref)) or vhigh<=vlow or vref<vlow or vref>vhigh or 2*headroom>=vhigh-vlow:
+        raise ValueError("invalid opamp rails, reference or output headroom")
     max_step=_positive(config.get("integration",{}).get("max_step_s",float(np.min(np.diff(t)))),"integration.max_step_s")
     if len(t)>200001: raise ValueError("input waveform exceeds 200,001 samples")
     def clamp_current(v,threshold,dynamic_r):
@@ -108,6 +117,22 @@ def simulate_afe(waveform, config):
     ta=np.asarray(out_t); ia=np.asarray(out_i); vb=np.asarray(out_v)
     vaa=np.asarray(out_va); isa=np.asarray(out_is); itvsa=np.asarray(out_itvs); ica=np.asarray(out_ic)
     stored=0.5*lcoil*ia**2+0.5*cin*vb**2
+    # First-order closed-loop OPA365 behavioral stage with finite GBW, slew and rail limits.
+    # This is not a transistor-level vendor macromodel.
+    opout=np.empty_like(vb);opout[0]=min(max(vref,vlow+headroom),vhigh-headroom)
+    slew_limited=0;saturated=0
+    bw=gbw/gain
+    for k in range(1,len(ta)):
+        h=ta[k]-ta[k-1]
+        target=min(max(vref+gain*vb[k],vlow+headroom),vhigh-headroom)
+        ideal=(target-opout[k-1])*(-math.expm1(-2.0*math.pi*bw*h))
+        limit=slew*h
+        delta_out=max(-limit,min(limit,ideal))
+        if abs(ideal)>limit:slew_limited+=1
+        raw=opout[k-1]+delta_out
+        clipped=min(max(raw,vlow+headroom),vhigh-headroom)
+        if clipped!=raw:saturated+=1
+        opout[k]=clipped
     delta=float(stored[-1]-stored[0])
     residual=float(totals[0]-sum(totals[1:])-delta)
     metrics={
@@ -118,6 +143,14 @@ def simulate_afe(waveform, config):
         "peak_abs_rx_coil_current_a":float(np.max(np.abs(ia))),
         "peak_abs_rx_terminal_voltage_v":float(np.max(np.abs(vaa))),
         "peak_abs_afe_input_voltage_v":float(np.max(np.abs(vb))),
+        "opamp_model":"OPA365_first_order_closed_loop_GBW_slew_and_rail_limited_behavioral_model",
+        "opamp_peak_output_v":float(np.max(opout)),
+        "opamp_min_output_v":float(np.min(opout)),
+        "opamp_slew_limited_sample_count":int(slew_limited),
+        "opamp_output_saturation_sample_count":int(saturated),
+        "opamp_closed_loop_gain":gain,
+        "opamp_gain_bandwidth_hz":gbw,
+        "opamp_slew_rate_v_per_s":slew,
         "afe_input_voltage_at_end_v":float(vb[-1]),
         "peak_abs_protection_series_current_a":float(np.max(np.abs(isa))),
         "peak_abs_clamp_current_a":float(np.max(np.abs(ica))),
@@ -146,7 +179,7 @@ def simulate_afe(waveform, config):
     arrays={"time_s":ta,"induced_emf_v":np.interp(ta,t,emf),"rx_coil_current_a":ia,
             "rx_terminal_voltage_v":vaa,"afe_input_voltage_v":vb,
             "protection_series_current_a":isa,"coil_tvs_current_a":itvsa,
-            "input_clamp_current_a":ica,"stored_energy_j":stored}
+            "input_clamp_current_a":ica,"opamp_output_v":opout,"stored_energy_j":stored}
     return metrics,arrays
 
 def read_waveform(path):
