@@ -8,10 +8,32 @@
     "series_protection_ohm": 1000,
     "input_capacitance_f": 2e-9,
     "input_bias_ohm": 1000000,
-    "clamp_threshold_v": 0.35,
-    "clamp_dynamic_resistance_ohm": 50,
-    "coil_tvs_threshold_v": 6,
-    "coil_tvs_dynamic_resistance_ohm": 2
+    "clamp_threshold_v": 0.24,
+    "clamp_dynamic_resistance_ohm": 88.9,
+    "coil_tvs_threshold_v": 6.4,
+    "coil_tvs_dynamic_resistance_ohm": 0.049,
+    "input_clamp_iv_curve_v_a": [
+      [
+        0.24,
+        0.0001
+      ],
+      [
+        0.32,
+        0.001
+      ],
+      [
+        0.4,
+        0.01
+      ],
+      [
+        0.5,
+        0.03
+      ],
+      [
+        0.8,
+        0.1
+      ]
+    ]
   },
   "integration": {
     "max_step_s": 1e-8
