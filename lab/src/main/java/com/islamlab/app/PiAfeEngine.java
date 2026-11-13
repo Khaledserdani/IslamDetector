@@ -106,7 +106,9 @@ public final class PiAfeEngine {
         double bw=p.gainBandwidth/p.opampGain;
         for(int k=1;k<n;k++){
             double h=tt[k]-tt[k-1];
-            double target=Math.min(Math.max(p.referenceVoltage+p.opampGain*vv[k],low),high);
+            double requested=p.referenceVoltage+p.opampGain*vv[k];
+            double target=Math.min(Math.max(requested,low),high);
+            if(requested<low||requested>high)satCount++;
             double ideal=(target-output)*(-Math.expm1(-2.0*Math.PI*bw*h));
             double limit=p.slewRate*h;
             if(Math.abs(ideal)>limit)slewCount++;
