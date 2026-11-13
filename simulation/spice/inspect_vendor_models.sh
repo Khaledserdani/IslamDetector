@@ -67,7 +67,7 @@ EOF
 import re,sys
 s=open(sys.argv[1],encoding="utf-8",errors="replace").read()
 def value(name):
-    m=re.search(rf"\\b{name}\\s*=\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)",s,re.I)
+    m=re.search(rf"\b{name}\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)",s,re.I)
     if not m: raise SystemExit(f"missing {name} in ngspice log")
     return float(m.group(1))
 lo=value("i_low"); hi=value("i_high")
