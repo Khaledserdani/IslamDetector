@@ -15,5 +15,15 @@
   },
   "integration": {
     "max_step_s": 1e-8
+  },
+  "opamp": {
+    "model": "OPA365_behavioral",
+    "closed_loop_gain": 2,
+    "supply_low_v": 0,
+    "supply_high_v": 3.3,
+    "reference_v": 1.65,
+    "gain_bandwidth_hz": 50000000,
+    "slew_rate_v_per_s": 25000000,
+    "output_headroom_v": 0.01
   }
 }
