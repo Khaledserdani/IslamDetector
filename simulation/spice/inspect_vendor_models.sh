@@ -172,9 +172,16 @@ def value(name):
     if not m: raise SystemExit(f"missing {name} in OPA365 transient log")
     return float(m.group(1))
 peak=value("vout_peak"); final=value("vout_final")
-if not 1.655 < peak < 1.69 or not 1.645 < final < 1.655:
-    raise SystemExit(f"OPA365 closed-loop response outside sanity bounds: peak={peak}, final={final}")
-print(f"OPA365 closed-loop transient PASS: peak={peak:.6f} V, final={final:.6f} V")
+# This is a non-inverting gain-of-two stage referenced to 1.65 V:
+# Vout,ideal = 2*Vin - Vref = 2*1.66 - 1.65 = 1.67 V.
+# The vendor macromodel may show transient overshoot; bound it separately
+# from the settled closed-loop gain rather than expecting a unity-gain output.
+expected_final = 2.0 * 1.66 - 1.65
+if not 1.66 < final < 1.68:
+    raise SystemExit(f"OPA365 closed-loop final value disagrees with gain-of-two expectation {expected_final:.6f} V: final={final}")
+if not 1.65 < peak < 1.72 or peak < final:
+    raise SystemExit(f"OPA365 transient peak outside broad sanity bounds: peak={peak}, final={final}")
+print(f"OPA365 closed-loop transient PASS: peak={peak:.6f} V, final={final:.6f} V, expected_final={expected_final:.6f} V")
 PY
   echo "OPA365_OFFICIAL_MODEL_CLOSED_LOOP_TRANSIENT PASS" | tee -a "$REPORT"
 else
