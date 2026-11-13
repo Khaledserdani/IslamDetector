@@ -190,7 +190,8 @@ def simulate_afe(waveform, config):
         "coil_tvs_threshold_v":coil_vt,
         "coil_tvs_dynamic_resistance_ohm":coil_rt,
         "input_clamp_threshold_v":vclamp,
-        "input_clamp_dynamic_resistance_ohm":rclamp,\n        "input_clamp_iv_curve_v_a":clamp_curve.tolist() if clamp_curve is not None else None
+        "input_clamp_dynamic_resistance_ohm":rclamp,
+        "input_clamp_iv_curve_v_a":clamp_curve.tolist() if clamp_curve is not None else None
     }
     arrays={"time_s":ta,"induced_emf_v":np.interp(ta,t,emf),"rx_coil_current_a":ia,
             "rx_terminal_voltage_v":vaa,"afe_input_voltage_v":vb,
@@ -213,6 +214,7 @@ def main():
     a.output_dir.mkdir(parents=True,exist_ok=True)
     with (a.output_dir/"afe_waveform.csv").open("w",newline="",encoding="utf-8") as f:
         w=csv.writer(f);w.writerow(arrays.keys());w.writerows(zip(*arrays.values()))
-    (a.output_dir/"afe_metrics.json").write_text(json.dumps(metrics,indent=2)+"\n",encoding="utf-8")
+    (a.output_dir/"afe_metrics.json").write_text(json.dumps(metrics,indent=2)+"
+",encoding="utf-8")
     print(json.dumps(metrics,indent=2))
 if __name__=="__main__": main()
