@@ -72,17 +72,25 @@ quit
 .end
 EOF
   if ngspice -b -o "$ROOT/BAT54S_dual_clamp.log" "$ROOT/bat54s_dual_clamp.cir" >/dev/null 2>&1 && [[ -s "$ROOT/BAT54S_dual_clamp_iv.dat" ]]; then
-    python3 - "$ROOT/BAT54S_dual_clamp.log" <<'PY'
-import re,sys
-s=open(sys.argv[1],encoding="utf-8",errors="replace").read()
-def value(name):
-    m=re.search(rf"\b{name}\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)",s,re.I)
-    if not m: raise SystemExit(f"missing {name} in ngspice log")
-    return float(m.group(1))
-lo=value("i_low"); hi=value("i_high")
-if not lo < 0 or not hi > 0:
-    raise SystemExit(f"wrong clamp current directions: i_low={lo}, i_high={hi}")
-print(f"dual clamp polarity PASS: low-rail current={lo:.6g} A; high-rail current={hi:.6g} A")
+    python3 - "$ROOT/BAT54S_dual_clamp_iv.dat" <<'PY'
+import sys
+rows=[]
+with open(sys.argv[1],encoding="utf-8") as f:
+    for line in f:
+        try:
+            values=[float(x) for x in line.split()]
+        except ValueError:
+            continue
+        # wrdata with wr_singlescale writes: sweep voltage, signal voltage, source current.
+        if len(values) >= 3:
+            rows.append(values)
+if len(rows) < 2:
+    raise SystemExit("dual-clamp sweep produced too few numeric rows")
+lo=rows[0][-1]
+hi=rows[-1][-1]
+if abs(lo) < 1e-6 or abs(hi) < 1e-6 or lo*hi >= 0:
+    raise SystemExit(f"dual clamp did not conduct with opposite polarities: low-end current={lo}, high-end current={hi}")
+print(f"dual clamp polarity PASS: low-end source current={lo:.6g} A; high-end source current={hi:.6g} A")
 PY
     echo "BAT54S_OFFICIAL_MODEL_DUAL_CLAMP_DC_SWEEP PASS" | tee -a "$REPORT"
   else
