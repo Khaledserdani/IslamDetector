@@ -102,6 +102,7 @@ def simulate_pulse(config):
     tx_loss_power = [0.0]
     target_loss_power = [0.0]
     clamp_power = [0.0]
+    source_energy = tx_copper_energy = target_copper_energy = clamp_energy = 0.0
 
     t = 0.0
     state = states[0].copy()
@@ -112,10 +113,29 @@ def simulate_pulse(config):
         h = min(dt_nominal, stop - t, boundary - t)
         if h <= 0:
             raise RuntimeError("non-positive integration step")
-        k1 = derivative(state, drive_on)
-        k2 = derivative(state + 0.5*h*k1, drive_on)
-        k3 = derivative(state + 0.5*h*k2, drive_on)
-        k4 = derivative(state + h*k3, drive_on)
+        stage1 = state
+        k1 = derivative(stage1, drive_on)
+        stage2 = state + 0.5*h*k1
+        k2 = derivative(stage2, drive_on)
+        stage3 = state + 0.5*h*k2
+        k3 = derivative(stage3, drive_on)
+        stage4 = state + h*k3
+        k4 = derivative(stage4, drive_on)
+
+        def powers(stage):
+            si, ti = map(float, stage)
+            return (
+                vbus * si if drive_on else 0.0,
+                rtx * si * si,
+                rtarget * ti * ti,
+                0.0 if drive_on else clamp * abs(si)
+            )
+        p1, p2, p3, p4 = map(powers, (stage1, stage2, stage3, stage4))
+        source_energy += h * (p1[0] + 2*p2[0] + 2*p3[0] + p4[0]) / 6.0
+        tx_copper_energy += h * (p1[1] + 2*p2[1] + 2*p3[1] + p4[1]) / 6.0
+        target_copper_energy += h * (p1[2] + 2*p2[2] + 2*p3[2] + p4[2]) / 6.0
+        clamp_energy += h * (p1[3] + 2*p2[3] + 2*p3[3] + p4[3]) / 6.0
+
         state = state + (h/6.0)*(k1 + 2*k2 + 2*k3 + k4)
         t = min(t+h, stop)
         deriv = derivative(state, drive_on)
@@ -142,10 +162,6 @@ def simulate_pulse(config):
     def integrate(power):
         return float(np.trapezoid(np.asarray(power, dtype=float), times_a))
 
-    source_energy = integrate(source_power)
-    tx_copper_energy = integrate(tx_loss_power)
-    target_copper_energy = integrate(target_loss_power)
-    clamp_energy = integrate(clamp_power)
     stored_energy = np.asarray([energy(s) for s in states_a])
     energy_delta = float(stored_energy[-1] - stored_energy[0])
     energy_residual = source_energy - tx_copper_energy - target_copper_energy - clamp_energy - energy_delta
