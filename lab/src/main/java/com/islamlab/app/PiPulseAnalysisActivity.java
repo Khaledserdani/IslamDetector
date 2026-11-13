@@ -55,6 +55,9 @@ public class PiPulseAnalysisActivity extends Activity {
         Button importButton=button("استيراد إعداد النبضة والهندسة (JSON)");
         importButton.setOnClickListener(v->openPicker());
         page.addView(importButton);
+        Button sampleButton=button("تشغيل المثال المرجعي المدمج");
+        sampleButton.setOnClickListener(v->loadSamplePulse());
+        page.addView(sampleButton);
 
         runButton=button("تشغيل محرك النبضة");
         runButton.setEnabled(false);
@@ -120,41 +123,7 @@ public class PiPulseAnalysisActivity extends Activity {
             }
             final PiPulseInput input=PiPulseInput.parse(out.toString("UTF-8"));
             pulseInput=input;
-            runButton.setEnabled(false);
-            resultView.setText("جارٍ حساب النبضة والاستجابة المستحثة...");
-            new Thread(()->{
-                try{
-                    PiPulseEngine.Result result=PiPulseEngine.simulate(input);
-                    String report=makeReport(result,input);
-                    runOnUiThread(()->{
-                        lastPulseResult=result;
-                        lastReport=report;
-                        resultView.setText(report);
-                        runButton.setEnabled(true);
-                        afeButton.setEnabled(true);
-                        Toast.makeText(this,"اكتمل حساب النبضة",Toast.LENGTH_SHORT).show();
-                    });
-                }catch(Exception e){
-                    runOnUiThread(()->{
-                        lastReport="";lastPulseResult=null;afeButton.setEnabled(false);
-                        resultView.setText("فشل الحساب:\n"+(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage()));
-                        runButton.setEnabled(true);
-                    });
-                }
-            }).start();
-            runButton.setOnClickListener(v->{
-                runButton.setEnabled(false);
-                resultView.setText("جارٍ إعادة حساب النبضة...");
-                new Thread(()->{
-                    try{
-                        PiPulseEngine.Result result=PiPulseEngine.simulate(input);
-                        String report=makeReport(result,input);
-                        runOnUiThread(()->{lastPulseResult=result;lastReport=report;resultView.setText(report);runButton.setEnabled(true);afeButton.setEnabled(true);});
-                    }catch(Exception e){
-                        runOnUiThread(()->{resultView.setText("فشل الحساب: "+e.getMessage());runButton.setEnabled(true);});
-                    }
-                }).start();
-            });
+            executePulse(input);
         }catch(Exception e){
             lastReport="";
             resultView.setText("تعذر قراءة إعداد النبضة:\n"+(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage()));
@@ -170,19 +139,47 @@ public class PiPulseAnalysisActivity extends Activity {
         startActivityForResult(intent,REQUEST_AFE_JSON);
     }
 
-    private void runPulseAgain(){
-        if(pulseInput==null){Toast.makeText(this,"استورد إعداد النبضة أولاً",Toast.LENGTH_SHORT).show();return;}
+    private String readStream(InputStream in)throws Exception{
+        ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[8192];int n;long total=0;
+        while((n=in.read(buffer))!=-1){total+=n;if(total>5L*1024L*1024L)throw new IllegalArgumentException("حجم الإعداد يتجاوز 5 ميغابايت");out.write(buffer,0,n);}
+        return out.toString("UTF-8");
+    }
+
+    private void loadSamplePulse(){
+        try(InputStream pulse=getAssets().open("sample_pulse_config.json");
+            InputStream afe=getAssets().open("sample_afe_config.json")){
+            pulseInput=PiPulseInput.parse(readStream(pulse));
+            afeInput=PiAfeInput.parse(readStream(afe));
+            executePulse(pulseInput);
+        }catch(Exception e){
+            Toast.makeText(this,"تعذر تحميل المثال المدمج: "+e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void executePulse(PiPulseInput input){
         runButton.setEnabled(false);afeButton.setEnabled(false);
-        resultView.setText("جارٍ إعادة حساب النبضة...");
+        resultView.setText("جارٍ حساب النبضة والاستجابة المستحثة...");
         new Thread(()->{
             try{
-                PiPulseEngine.Result result=PiPulseEngine.simulate(pulseInput);
-                String report=makeReport(result,pulseInput);
-                runOnUiThread(()->{lastPulseResult=result;lastReport=report;resultView.setText(report);runButton.setEnabled(true);afeButton.setEnabled(true);});
+                PiPulseEngine.Result result=PiPulseEngine.simulate(input);
+                String report=makeReport(result,input);
+                runOnUiThread(()->{
+                    lastPulseResult=result;lastReport=report;resultView.setText(report);
+                    runButton.setEnabled(true);afeButton.setEnabled(true);
+                    Toast.makeText(this,"اكتمل حساب النبضة",Toast.LENGTH_SHORT).show();
+                });
             }catch(Exception e){
-                runOnUiThread(()->{resultView.setText("فشل الحساب: "+e.getMessage());runButton.setEnabled(true);});
+                runOnUiThread(()->{
+                    lastReport="";lastPulseResult=null;afeButton.setEnabled(false);
+                    resultView.setText("فشل الحساب: "+e.getMessage());runButton.setEnabled(true);
+                });
             }
         }).start();
+    }
+
+    private void runPulseAgain(){
+        if(pulseInput==null){Toast.makeText(this,"استورد إعداد النبضة أولاً",Toast.LENGTH_SHORT).show();return;}
+        executePulse(pulseInput);
     }
 
     private void runAfeAnalysis(){
