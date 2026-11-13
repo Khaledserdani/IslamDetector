@@ -33,7 +33,9 @@
         0.8,
         0.1
       ]
-    ]
+    ],
+    "input_clamp_low_rail_v": 0,
+    "input_clamp_high_rail_v": 3.3
   },
   "integration": {
     "max_step_s": 1e-8
