@@ -4,15 +4,15 @@ package com.islamlab.app;
 public final class PiAfeEngine {
     private PiAfeEngine(){}
     public static final class Result{
-        public final double[] time,inducedEmf,coilCurrent,coilTerminalVoltage,inputVoltage,seriesCurrent,coilTvsCurrent,inputClampCurrent,storedEnergy;
+        public final double[] time,inducedEmf,coilCurrent,coilTerminalVoltage,inputVoltage,seriesCurrent,coilTvsCurrent,inputClampCurrent,storedEnergy,opampOutput;
         public final double peakInducedEmf,peakCoilCurrent,peakCoilTerminal,peakInputVoltage,peakSeriesCurrent,peakClampCurrent;
         public final double sourceEnergy,coilLoss,dampingLoss,coilTvsEnergy,seriesLoss,biasLoss,inputClampEnergy,storedEnergyChange,energyResidual,energyRelativeError;
-        public final int clampSamples;
-        Result(double[] t,double[] emf,double[] ic,double[] va,double[] vin,double[] is,double[] itvs,double[] iclamp,double[] stored,
-                double pe,double pc,double pv,double pi,double ps,double pk,double se,double cl,double dl,double te,double sl,double bl,double ie,double de,double er,double rel,int samples){
-            time=t;inducedEmf=emf;coilCurrent=ic;coilTerminalVoltage=va;inputVoltage=vin;seriesCurrent=is;coilTvsCurrent=itvs;inputClampCurrent=iclamp;storedEnergy=stored;
+        public final int clampSamples,slewLimitedSamples,outputSaturationSamples;\n        public final double peakOpampOutput,minOpampOutput;
+        Result(double[] t,double[] emf,double[] ic,double[] va,double[] vin,double[] is,double[] itvs,double[] iclamp,double[] stored,double[] opout,
+                double pe,double pc,double pv,double pi,double ps,double pk,double se,double cl,double dl,double te,double sl,double bl,double ie,double de,double er,double rel,int samples,int slewCount,int satCount,double opPeak,double opMin){
+            time=t;inducedEmf=emf;coilCurrent=ic;coilTerminalVoltage=va;inputVoltage=vin;seriesCurrent=is;coilTvsCurrent=itvs;inputClampCurrent=iclamp;storedEnergy=stored;opampOutput=opout;
             peakInducedEmf=pe;peakCoilCurrent=pc;peakCoilTerminal=pv;peakInputVoltage=pi;peakSeriesCurrent=ps;peakClampCurrent=pk;
-            sourceEnergy=se;coilLoss=cl;dampingLoss=dl;coilTvsEnergy=te;seriesLoss=sl;biasLoss=bl;inputClampEnergy=ie;storedEnergyChange=de;energyResidual=er;energyRelativeError=rel;clampSamples=samples;
+            sourceEnergy=se;coilLoss=cl;dampingLoss=dl;coilTvsEnergy=te;seriesLoss=sl;biasLoss=bl;inputClampEnergy=ie;storedEnergyChange=de;energyResidual=er;energyRelativeError=rel;clampSamples=samples;slewLimitedSamples=slewCount;outputSaturationSamples=satCount;peakOpampOutput=opPeak;minOpampOutput=opMin;
         }
     }
     private static final class D{
@@ -72,7 +72,7 @@ public final class PiAfeEngine {
         return new S(i+h*(k1.di+2*k2.di+2*k3.di+k4.di)/6.0,
                 v+h*(k1.dv+2*k2.dv+2*k3.dv+k4.dv)/6.0,e);
     }
-    private static double max(double[] a){double m=0;for(double x:a)m=Math.max(m,Math.abs(x));return m;}
+    private static double max(double[] a){double m=0;for(double x:a)m=Math.max(m,Math.abs(x));return m;}\n    private static double maxNeg(double[] a){double m=Double.POSITIVE_INFINITY;for(double x:a)m=Math.min(m,x);return m;}
     public static Result simulate(double[] times,double[] emf,PiAfeInput p){
         if(times==null||emf==null||times.length<3||times.length!=emf.length)throw new IllegalArgumentException("موجة RX غير صالحة");
         for(int i=0;i<times.length;i++){
@@ -104,6 +104,6 @@ public final class PiAfeEngine {
         double delta=ss[n-1]-ss[0],residual=totals[0]-(totals[1]+totals[2]+totals[3]+totals[4]+totals[5]+totals[6])-delta;
         return new Result(tt,ee,ii,vva,vv,iis,iit,iic,ss,max(ee),max(ii),max(vva),max(vv),max(iis),max(iic),
                 totals[0],totals[1],totals[2],totals[3],totals[4],totals[5],totals[6],delta,residual,
-                Math.abs(residual)/Math.max(Math.abs(totals[0]),1e-18),clampActive?1:0);
+                Math.abs(residual)/Math.max(Math.abs(totals[0]),1e-18),clampActive?1:0,slewCount,satCount,max(opout),-maxNeg(opout));
     }
 }
