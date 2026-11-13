@@ -138,7 +138,8 @@ def simulate_pulse(config):
 
         state = state + (h/6.0)*(k1 + 2*k2 + 2*k3 + k4)
         t = min(t+h, stop)
-        deriv = derivative(state, drive_on)
+        sample_drive_on = t < width - max(1e-15, width * 1e-14)
+        deriv = derivative(state, sample_drive_on)
         itx, itarget = map(float, state)
         times.append(t)
         states.append(state.copy())
