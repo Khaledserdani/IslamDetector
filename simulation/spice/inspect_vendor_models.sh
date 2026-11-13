@@ -43,6 +43,44 @@ quit
 EOF
 if ngspice -b -o "$ROOT/BAT54S_dc.log" "$ROOT/bat54s_dc.cir" >/dev/null 2>&1 && [[ -s "$ROOT/BAT54S_dc_iv.dat" ]]; then
   echo "BAT54S_OFFICIAL_MODEL_DC_SWEEP PASS (single junction only)" | tee -a "$REPORT"
+  cat > "$ROOT/bat54s_dual_clamp.cir" <<EOF
+* BAT54S package topology: pin 1 A1 -> pin 3 K1/A2; pin 3 -> pin 2 K2.
+* Pin 3 is the protected signal; pin 1 is the low rail; pin 2 is the high rail.
+.include "$ROOT/BAT54S.spice.txt"
+VLOW low 0 0
+VHIGH high 0 3.3
+VSWEEP sig 0 0
+DLOW low sig DI_BAT54S
+DHIGH sig high DI_BAT54S
+.control
+set noaskquit
+dc VSWEEP -0.5 3.8 1m
+meas dc i_low FIND i(VSWEEP) AT=-0.5
+meas dc i_high FIND i(VSWEEP) AT=3.8
+wrdata $ROOT/BAT54S_dual_clamp_iv.dat v(sig) i(VSWEEP)
+quit
+.endc
+.end
+EOF
+  if ngspice -b -o "$ROOT/BAT54S_dual_clamp.log" "$ROOT/bat54s_dual_clamp.cir" >/dev/null 2>&1 && [[ -s "$ROOT/BAT54S_dual_clamp_iv.dat" ]]; then
+    python3 - "$ROOT/BAT54S_dual_clamp.log" <<'PY'
+import re,sys
+s=open(sys.argv[1],encoding="utf-8",errors="replace").read()
+def value(name):
+    m=re.search(rf"\\b{name}\\s*=\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)",s,re.I)
+    if not m: raise SystemExit(f"missing {name} in ngspice log")
+    return float(m.group(1))
+lo=value("i_low"); hi=value("i_high")
+if not lo < 0 or not hi > 0:
+    raise SystemExit(f"wrong clamp current directions: i_low={lo}, i_high={hi}")
+print(f"dual clamp polarity PASS: low-rail current={lo:.6g} A; high-rail current={hi:.6g} A")
+PY
+    echo "BAT54S_OFFICIAL_MODEL_DUAL_CLAMP_DC_SWEEP PASS" | tee -a "$REPORT"
+  else
+    echo "BAT54S_OFFICIAL_MODEL_DUAL_CLAMP_DC_SWEEP FAIL" | tee -a "$REPORT"
+    tail -n 20 "$ROOT/BAT54S_dual_clamp.log" | sed 's/^/  /' | tee -a "$REPORT" || true
+    exit 1
+  fi
 else
   echo "BAT54S_OFFICIAL_MODEL_DC_SWEEP FAIL" | tee -a "$REPORT"
   tail -n 20 "$ROOT/BAT54S_dc.log" | sed 's/^/  /' | tee -a "$REPORT" || true
