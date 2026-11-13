@@ -39,7 +39,7 @@ public class PiAfeEngineTest {
         assertTrue(r.outputSaturationSamples>0);
         assertTrue(r.slewLimitedSamples>0);
         assertTrue(r.minOpampOutput>=0.01-1e-12);
-        assertTrue(r.peakOpampOutput<=3.29+1e-12);
+        assertTrue(r.peakOpampOutput<=3.29+1e-12);\n        PiAfeInput lowGain=base;\n        PiAfeEngine.Result slew=PiAfeEngine.simulate(w[0],w[1],lowGain);\n        assertTrue(slew.slewLimitedSamples>0);
     }
     @Test public void energyBalanceIncludesBothProtectionStages(){
         double[][] w=wave(30);PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],p());
