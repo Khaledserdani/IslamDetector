@@ -39,6 +39,7 @@ def simulate_afe(waveform, config):
     max_step=_positive(config.get("integration",{}).get("max_step_s",float(np.min(np.diff(t)))),"integration.max_step_s")
     if len(t)>200001: raise ValueError("input waveform exceeds 200,001 samples")
     def clamp_current(v,threshold,dynamic_r):
+        if threshold<=0: return 0.0
         if v>threshold: return (v-threshold)/dynamic_r
         if v< -threshold: return (v+threshold)/dynamic_r
         return 0.0
@@ -90,9 +91,12 @@ def simulate_afe(waveform, config):
         return state+h*(k1+2*k2+2*k3+k4)/6,integ
     out_t=[float(t[0])]; out_i=[0.0]; out_v=[0.0]; out_va=[0.0]; out_is=[0.0]; out_itvs=[0.0]; out_ic=[0.0]
     state=np.array([0.0,0.0]); totals=np.zeros(7)
+    generated_steps=0
     for idx in range(len(t)-1):
         left=float(t[idx]); right=float(t[idx+1]); span=right-left
         count=max(1,int(math.ceil(span/max_step)))
+        generated_steps+=count
+        if generated_steps>500000: raise ValueError("AFE integration exceeds 500,000 steps")
         h=span/count
         for k in range(count):
             now=left+k*h
