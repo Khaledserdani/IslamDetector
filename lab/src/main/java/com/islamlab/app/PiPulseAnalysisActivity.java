@@ -20,9 +20,13 @@ import java.util.Locale;
 /** Phone-first UI for the coupled PI pulse transient engine. */
 public class PiPulseAnalysisActivity extends Activity {
     private static final int REQUEST_PULSE_JSON=812;
+    private static final int REQUEST_AFE_JSON=813;
     private TextView resultView;
-    private Button runButton;
+    private Button runButton,afeButton;
     private String lastReport="";
+    private PiPulseInput pulseInput;
+    private PiPulseEngine.Result lastPulseResult;
+    private PiAfeInput afeInput=PiAfeInput.defaults();
 
     @Override protected void onCreate(Bundle state){
         super.onCreate(state);
@@ -54,8 +58,15 @@ public class PiPulseAnalysisActivity extends Activity {
 
         runButton=button("تشغيل محرك النبضة");
         runButton.setEnabled(false);
-        runButton.setOnClickListener(v->Toast.makeText(this,"أعد استيراد ملف الإعداد لتشغيل المحاكاة",Toast.LENGTH_SHORT).show());
+        runButton.setOnClickListener(v->runPulseAgain());
         page.addView(runButton);
+        Button importAfe=button("استيراد إعداد حماية RX / AFE (JSON)");
+        importAfe.setOnClickListener(v->openAfePicker());
+        page.addView(importAfe);
+        afeButton=button("تحليل الاستقبال والحماية AFE");
+        afeButton.setEnabled(false);
+        afeButton.setOnClickListener(v->runAfeAnalysis());
+        page.addView(afeButton);
 
         resultView=label("لم يتم تحميل إعداد النبضة بعد.",14,Color.WHITE,false);
         resultView.setTypeface(android.graphics.Typeface.MONOSPACE);
@@ -83,7 +94,19 @@ public class PiPulseAnalysisActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode!=REQUEST_PULSE_JSON||resultCode!=RESULT_OK||data==null)return;
+        if(resultCode!=RESULT_OK||data==null)return;
+        if(requestCode==REQUEST_AFE_JSON){
+            Uri afeUri=data.getData();if(afeUri==null)return;
+            try(InputStream in=getContentResolver().openInputStream(afeUri)){
+                if(in==null)throw new IllegalStateException("تعذر فتح إعداد AFE");
+                ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buf=new byte[4096];int n;long size=0;
+                while((n=in.read(buf))!=-1){size+=n;if(size>1024*1024)throw new IllegalArgumentException("ملف AFE أكبر من 1 ميغابايت");out.write(buf,0,n);}
+                afeInput=PiAfeInput.parse(out.toString("UTF-8"));
+                Toast.makeText(this,"تم تحميل إعداد حماية RX/AFE",Toast.LENGTH_LONG).show();
+            }catch(Exception e){Toast.makeText(this,"إعداد AFE غير صالح: "+e.getMessage(),Toast.LENGTH_LONG).show();}
+            return;
+        }
+        if(requestCode!=REQUEST_PULSE_JSON)return;
         Uri uri=data.getData();
         if(uri==null)return;
         try(InputStream in=getContentResolver().openInputStream(uri)){
@@ -96,6 +119,7 @@ public class PiPulseAnalysisActivity extends Activity {
                 out.write(buffer,0,n);
             }
             final PiPulseInput input=PiPulseInput.parse(out.toString("UTF-8"));
+            pulseInput=input;
             runButton.setEnabled(false);
             resultView.setText("جارٍ حساب النبضة والاستجابة المستحثة...");
             new Thread(()->{
@@ -103,14 +127,16 @@ public class PiPulseAnalysisActivity extends Activity {
                     PiPulseEngine.Result result=PiPulseEngine.simulate(input);
                     String report=makeReport(result,input);
                     runOnUiThread(()->{
+                        lastPulseResult=result;
                         lastReport=report;
                         resultView.setText(report);
                         runButton.setEnabled(true);
+                        afeButton.setEnabled(true);
                         Toast.makeText(this,"اكتمل حساب النبضة",Toast.LENGTH_SHORT).show();
                     });
                 }catch(Exception e){
                     runOnUiThread(()->{
-                        lastReport="";
+                        lastReport="";lastPulseResult=null;afeButton.setEnabled(false);
                         resultView.setText("فشل الحساب:\n"+(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage()));
                         runButton.setEnabled(true);
                     });
@@ -123,7 +149,7 @@ public class PiPulseAnalysisActivity extends Activity {
                     try{
                         PiPulseEngine.Result result=PiPulseEngine.simulate(input);
                         String report=makeReport(result,input);
-                        runOnUiThread(()->{lastReport=report;resultView.setText(report);runButton.setEnabled(true);});
+                        runOnUiThread(()->{lastPulseResult=result;lastReport=report;resultView.setText(report);runButton.setEnabled(true);afeButton.setEnabled(true);});
                     }catch(Exception e){
                         runOnUiThread(()->{resultView.setText("فشل الحساب: "+e.getMessage());runButton.setEnabled(true);});
                     }
@@ -134,6 +160,67 @@ public class PiPulseAnalysisActivity extends Activity {
             resultView.setText("تعذر قراءة إعداد النبضة:\n"+(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage()));
             Toast.makeText(this,"ملف إعداد النبضة غير صالح",Toast.LENGTH_LONG).show();
         }
+    }
+
+
+    private void openAfePicker(){
+        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent,REQUEST_AFE_JSON);
+    }
+
+    private void runPulseAgain(){
+        if(pulseInput==null){Toast.makeText(this,"استورد إعداد النبضة أولاً",Toast.LENGTH_SHORT).show();return;}
+        runButton.setEnabled(false);afeButton.setEnabled(false);
+        resultView.setText("جارٍ إعادة حساب النبضة...");
+        new Thread(()->{
+            try{
+                PiPulseEngine.Result result=PiPulseEngine.simulate(pulseInput);
+                String report=makeReport(result,pulseInput);
+                runOnUiThread(()->{lastPulseResult=result;lastReport=report;resultView.setText(report);runButton.setEnabled(true);afeButton.setEnabled(true);});
+            }catch(Exception e){
+                runOnUiThread(()->{resultView.setText("فشل الحساب: "+e.getMessage());runButton.setEnabled(true);});
+            }
+        }).start();
+    }
+
+    private void runAfeAnalysis(){
+        if(lastPulseResult==null){Toast.makeText(this,"شغّل محرك النبضة أولاً",Toast.LENGTH_SHORT).show();return;}
+        afeButton.setEnabled(false);
+        resultView.setText("جارٍ تحميل RX وحساب الحماية وميزانية الطاقة...");
+        new Thread(()->{
+            try{
+                PiAfeEngine.Result result=PiAfeEngine.simulate(lastPulseResult.time,lastPulseResult.rxTotal,afeInput);
+                String report=makeAfeReport(result,afeInput);
+                runOnUiThread(()->{
+                    lastReport=report;
+                    resultView.setText(report);
+                    afeButton.setEnabled(true);
+                    Toast.makeText(this,"اكتمل تحليل RX وAFE",Toast.LENGTH_SHORT).show();
+                });
+            }catch(Exception e){
+                runOnUiThread(()->{resultView.setText("تعذر تحليل AFE: "+e.getMessage());afeButton.setEnabled(true);});
+            }
+        }).start();
+    }
+
+    private String makeAfeReport(PiAfeEngine.Result r,PiAfeInput p){
+        StringBuilder b=new StringBuilder("ISLAM LAB — تقرير RX / AFE\n");
+        b.append("--------------------------------\n");
+        b.append(String.format(Locale.US,"ملف RX: R=%.3f Ω | L=%.3f µH\n",p.rxResistance,p.rxInductance*1e6));
+        b.append(String.format(Locale.US,"تخميد متوازٍ: %.1f Ω | حماية متسلسلة: %.1f Ω\n",p.dampingResistance,p.seriesResistance));
+        b.append(String.format(Locale.US,"سعة المدخل: %.3f nF | انحياز: %.0f kΩ\n",p.inputCapacitance*1e9,p.biasResistance/1e3));
+        b.append(String.format(Locale.US,"قمة القوة المستحثة: %.6f V\n",r.peakInducedEmf));
+        b.append(String.format(Locale.US,"قمة جهد طرف RX بعد التحميل: %.6f V\n",r.peakCoilTerminal));
+        b.append(String.format(Locale.US,"قمة جهد مدخل AFE: %.6f V\n",r.peakInputVoltage));
+        b.append(String.format(Locale.US,"قمة تيار ملف RX: %.6f A\n",r.peakCoilCurrent));
+        b.append(String.format(Locale.US,"قمة تيار المحدد: %.6f A\n",r.peakClampCurrent));
+        b.append(String.format(Locale.US,"طاقة TVS الملف: %.6f µJ\n",r.coilTvsEnergy*1e6));
+        b.append(String.format(Locale.US,"طاقة محدد المدخل: %.6f µJ\n",r.inputClampEnergy*1e6));
+        b.append(String.format(Locale.US,"خطأ اتزان الطاقة: %.6f %%\n",r.energyRelativeError*100));
+        b.append("\nهذه شبكة AFE مختزلة؛ لا يوجد بعد نموذج المضخم OPA365 أو ADC أو طفيليات اللوحة. قيم TVS والمحدد افتراضية للمقارنة وليست توصية شراء.");
+        return b.toString();
     }
 
     private String makeReport(PiPulseEngine.Result r,PiPulseInput p){
