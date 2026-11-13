@@ -77,6 +77,18 @@ class AfeEngineTests(unittest.TestCase):
         m2,_=simulate_afe(wave(30.0),c)
         self.assertGreater(m2["opamp_slew_limited_sample_count"],0)
 
+    def test_bat54s_datasheet_iv_curve_is_used_for_input_clamp(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.40,0.010],[0.50,0.030],[0.80,0.100]]
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_afe_input_voltage_v"],1.5)
+
+    def test_rejects_non_monotonic_diode_iv_curve(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.30,0.010]]
+        with self.assertRaises(ValueError):simulate_afe(wave(1.0),c)
+
     def test_rejects_non_monotonic_waveform_time(self):
         w=wave()
         w["time_s"][20]=w["time_s"][19]
