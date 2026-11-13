@@ -17,7 +17,16 @@ fetch_zip() {
 }
 
 fetch_zip "ti-opa365" "https://www.ti.com/lit/zip/SBOC133"
-fetch_zip "st-smaj-series" "https://www.st.com/resource/en/spice_model/smaj-series-thermal-pspice.zip"
+# ST's public endpoint can intermittently stall. Its model is supplementary: record
+# an unavailable download, but do not discard the independent TI/Diodes checks.
+if ! curl --http1.1 --connect-timeout 10 --max-time 35 --fail --location --retry 1 --retry-all-errors --retry-delay 2 --retry-connrefused --silent --show-error \
+  "https://www.st.com/resource/en/spice_model/smaj-series-thermal-pspice.zip" -o "$ROOT/st-smaj-series.zip"; then
+  rm -f "$ROOT/st-smaj-series.zip"
+  echo "ST_SMAJ_VENDOR_DOWNLOAD UNAVAILABLE (network timeout; remaining audits continue)" | tee -a "$REPORT"
+else
+  unzip -q "$ROOT/st-smaj-series.zip" -d "$ROOT/st-smaj-series"
+  echo "ST_SMAJ_ARCHIVE_SHA256 $(sha256sum "$ROOT/st-smaj-series.zip" | awk '{print $1}')" | tee -a "$REPORT"
+fi
 curl --http1.1 --connect-timeout 15 --max-time 60 --fail --location --retry 3 --retry-all-errors --retry-delay 2 --retry-connrefused --silent --show-error \
   "https://www.diodes.com/spice/download/431/BAT54S.spice.txt" -o "$ROOT/BAT54S.spice.txt"
 
