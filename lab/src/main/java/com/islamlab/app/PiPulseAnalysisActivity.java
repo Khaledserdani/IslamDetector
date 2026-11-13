@@ -47,7 +47,7 @@ public class PiPulseAnalysisActivity extends Activity {
         intro.setPadding(0,dp(10),0,dp(14));
         page.addView(intro);
 
-        TextView warning=label("النموذج الحالي حلقة هدف مكافئة واحدة، وRX مفتوح الدائرة. لا يمثل بعد توزيع التيارات داخل جسم معدني ثلاثي الأبعاد، ولا AFE أو الضوضاء أو التربة. القيم الكهربائية يجب أن تكون مقاسة أو موثقة كمقارنة.",13,0xffffd28a,false);
+        TextView warning=label("مرحلة النبضة تحسب RX كمصدر مستحث مفتوح الدائرة، ثم يحمّله محرك AFE بشبكة R/L والحماية والتخميد. الهدف ما زال حلقة مكافئة واحدة؛ لا يوجد بعد توزيع حجمي ثلاثي الأبعاد أو تربة أو مضخم OPA365 أو ADC. القيم الافتراضية للمقارنة فقط.",13,0xffffd28a,false);
         warning.setPadding(dp(12),dp(12),dp(12),dp(12));
         warning.setBackgroundColor(0xff263142);
         page.addView(warning);
@@ -194,7 +194,7 @@ public class PiPulseAnalysisActivity extends Activity {
                 PiAfeEngine.Result result=PiAfeEngine.simulate(lastPulseResult.time,lastPulseResult.rxTotal,afeInput);
                 String report=makeAfeReport(result,afeInput);
                 runOnUiThread(()->{
-                    lastReport=report;
+                    lastReport=makeReport(lastPulseResult,pulseInput)+"\n\n"+report;
                     resultView.setText(report);
                     afeButton.setEnabled(true);
                     Toast.makeText(this,"اكتمل تحليل RX وAFE",Toast.LENGTH_SHORT).show();
