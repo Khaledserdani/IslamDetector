@@ -120,7 +120,9 @@ def simulate_afe(waveform, config):
     bw=gbw/gain
     for k in range(1,len(ta)):
         h=ta[k]-ta[k-1]
-        target=min(max(vref+gain*vb[k],vlow+headroom),vhigh-headroom)
+        requested=vref+gain*vb[k]
+        target=min(max(requested,vlow+headroom),vhigh-headroom)
+        if requested< vlow+headroom or requested>vhigh-headroom:saturated+=1
         ideal=(target-opout[k-1])*(-math.expm1(-2.0*math.pi*bw*h))
         limit=slew*h
         delta_out=max(-limit,min(limit,ideal))
