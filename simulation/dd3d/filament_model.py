@@ -20,6 +20,11 @@ def _closed_segments(path: Iterable[Iterable[float]], name: str):
         raise ValueError(f"{name}: zero-length wire segment")
     return points[:-1], dl
 
+def path_length_m(path_m):
+    """Total centerline length [m] of one closed winding path."""
+    starts, dl = _closed_segments(path_m, "coil")
+    return float(np.sum(np.linalg.norm(dl, axis=1)))
+
 def field_at_points(path_m, points_m, current_a=1.0, turns=1, point_batch=64):
     """B [T] at observation points using midpoint Biot-Savart quadrature."""
     if not math.isfinite(current_a) or not isinstance(turns, int) or turns < 1:
