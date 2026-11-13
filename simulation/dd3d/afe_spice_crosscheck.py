@@ -24,6 +24,7 @@ def main():
     pycfg=copy.deepcopy(cfg)
     pycfg["afe"]["coil_tvs_threshold_v"]=0.0
     pycfg["afe"]["clamp_threshold_v"]=0.0
+    pycfg["afe"].pop("input_clamp_iv_curve_v_a",None)
     pycfg.setdefault("integration",{})["max_step_s"]=2.5e-9
     metrics,py=simulate_afe(wave,pycfg)
     out=args.output_dir
