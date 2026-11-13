@@ -95,6 +95,9 @@ bool rev_a_decode_device_info(
     size_t frame_length,
     rev_a_device_info_t *device_info);
 
+/* Validate the supported ADC model / format / resolution / input-mode tuple. */
+bool rev_a_device_info_valid(const rev_a_device_info_t *device_info);
+
 /* raw_word is right-justified; ADS7054 uses only bits 13..0. */
 bool rev_a_interpret_sample(
     uint16_t raw_word,

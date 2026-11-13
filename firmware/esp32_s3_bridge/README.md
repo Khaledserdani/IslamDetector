@@ -1,6 +1,6 @@
 # ESP32-S3 Rev A bridge — protocol core
 
-**Status:** portable C frame decoder implemented and host-tested. This directory is not yet a complete ESP-IDF application and does not yet configure the ESP32-S3 UART peripheral, Wi-Fi server, or Android JSON endpoints.
+**Status:** portable C frame decoder and DEVICE_INFO-gated session layer implemented and host-tested. This directory is not yet a complete ESP-IDF application and does not yet configure the ESP32-S3 UART peripheral, FreeRTOS RX ring buffer, Wi-Fi server, or Android JSON endpoints.
 
 ## Component
 
@@ -14,14 +14,14 @@ The decoder validates SYNC, protocol version, body length, sample count, valid m
 ## Integration contract
 
 1. Create one `rev_a_parser_t` per UART stream and call `rev_a_parser_feed()` for every byte block returned by the ESP-IDF UART driver.
-2. On `DEVICE_INFO`, store the complete metadata with the active acquisition session before interpreting any sample.
-3. Do not interpret or merge `MEASUREMENT` frames until a valid DEVICE_INFO has been received for that session.
-4. Copy callback data into a bounded queue; the parser callback runs synchronously in the caller's task and must not block.
-5. Preserve `raw_word`, frame sequence, timestamp, profile ID, validity flags and metadata in logs. Never replace invalid windows with zero.
-6. On UART overflow or framing loss, count the event and re-request DEVICE_INFO before opening a new data session.
+2. Pass each decoded frame to `rev_a_session_accept_frame()` from the parser callback.
+3. A valid `DEVICE_INFO` opens/refreshes the session; `MEASUREMENT` is rejected until metadata is valid. Each accepted record carries a metadata snapshot and generation number.
+4. Call `rev_a_session_invalidate_device_info()` after UART overflow, reconnect, framing loss or RP2040 reset; request DEVICE_INFO again before accepting measurements.
+5. Copy callback/session output into a bounded queue; the parser callback runs synchronously and must not block.
+6. Preserve raw words, sequence, timestamp, profile, validity mask and metadata. Interpret only VALID_MASK bits; never replace invalid windows with zero.
 
 ## Host tests
 
-The C test covers the CRC known vector, valid measurement and DEVICE_INFO frames, rejected inconsistent ADC metadata, 16-bit and 14-bit signed conversion, fragmented input, concatenated frames, noise and recovery after a corrupt frame.
+The C tests cover the CRC known vector, valid measurement and DEVICE_INFO frames, rejected inconsistent ADC metadata, 16-bit and 14-bit signed conversion, fragmented input, concatenated frames, noise and recovery after a corrupt frame. The session tests reject measurements before DEVICE_INFO, preserve raw invalid windows, snapshot metadata, and require a fresh DEVICE_INFO after session invalidation.
 
 The CI compiles with strict warnings and executes the test. This proves the portable decoder on the CI host only. ESP-IDF UART integration, FreeRTOS task behavior, UART loopback, Wi-Fi load, and the physical RP2040-to-ESP32 link remain untested.

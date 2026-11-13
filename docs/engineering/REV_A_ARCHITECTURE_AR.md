@@ -270,3 +270,15 @@ E_L(t) = 0.5 × L × I(t)^2
 أضيف مكوّن C11 محمول في `firmware/esp32_s3_bridge/components/rev_a_protocol/` ليكون نواة parser التي يستدعيها UART task لاحقاً. لا يعتمد على ESP-IDF headers، لذلك يمكن اختبار قواعد الإطار وCRC وDEVICE_INFO على Linux قبل ربطه بمحيط ESP32-S3. المكوّن يقرأ MEASUREMENT وDEVICE_INFO، يتحقق من صيغة ADC، ويحافظ على raw16. أضيف له `CMakeLists.txt` بصيغة ESP-IDF component واختبار host مستقل في `firmware/esp32_s3_bridge/tests/`.
 
 **لم يكتمل بعد:** ESP-IDF application، تهيئة UART 921600 8N1، RX ring buffer وevent task، طلب DEVICE_INFO عند الاتصال/إعادة الاتصال، ACK/HELLO، heartbeat وSTOP، Wi-Fi/WebServer، أو Hardware UART loopback. لا تسجل هذه النواة على أنها Firmware ESP32-S3 مكتمل أو اتصال بين اللوحتين مثبت.
+
+### 16.1 بوابة metadata بين محلل UART وجلسة القياس
+
+أضيفت طبقة rev_a_session.c/.h إلى مكوّن C المحمول. أصبح تسلسل الدمج المقصود:
+
+1. يستقبل UART task لاحقاً كتل bytes ويغذي rev_a_parser_feed().
+2. يمرر callback كل إطار CRC-valid إلى rev_a_session_accept_frame().
+3. لا تفسر MEASUREMENT قبل DEVICE_INFO؛ وكل سجل يحمل snapshot لهوية ADC وصيغة العينة والدقة ونمط الدخل وVREF.
+4. بعد overflow أو reconnect أو framing loss يستدعي المستهلك rev_a_session_invalidate_device_info() ويطلب DEVICE_INFO مجدداً.
+5. تبقى raw16 والكلمات غير الصالحة محفوظة؛ لا تفسر إلا عينات VALID_MASK.
+
+تم اختبار هذه الطبقة على المضيف في CI، بما في ذلك ADS8861 two's-complement 16-bit وADS7054 signed 14-bit. هذا لا يعني أن UART peripheral أو FreeRTOS task قد نُفذ على ESP32-S3؛ تلك هي الخطوة التالية، يليها loopback مادي.

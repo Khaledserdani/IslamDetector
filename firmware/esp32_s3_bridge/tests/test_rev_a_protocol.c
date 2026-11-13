@@ -1,4 +1,5 @@
 #include "rev_a_protocol.h"
+#include "rev_a_session.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,6 +180,88 @@ int main(void) {
     CHECK(sink.frames[0].value.measurement.sequence == 0x12345678u);
     CHECK(parser.rejected_frames > 0u);
 
-    puts("PASS: Rev A C parser CRC, DEVICE_INFO metadata, sample formats, fragmented/noisy streams and SYNC recovery");
+    rev_a_session_t session;
+    rev_a_session_measurement_t session_measurement;
+    rev_a_frame_t session_frame;
+    memset(&session_frame, 0, sizeof(session_frame));
+    rev_a_session_reset(&session);
+
+    session_frame.type = REV_A_TYPE_MEASUREMENT;
+    session_frame.value.measurement = measurement;
+    session_frame.value.measurement.valid_mask = 0x0Du;
+    session_frame.value.measurement.samples[1] = 0xDEADu;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_WAITING_FOR_DEVICE_INFO);
+    CHECK(session.rejected_measurements_without_info == 1u);
+
+    session_frame.type = REV_A_TYPE_DEVICE_INFO;
+    session_frame.value.device_info = info;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, NULL) == REV_A_SESSION_DEVICE_INFO_ACCEPTED);
+    CHECK(session.device_info_valid);
+    session_frame.type = REV_A_TYPE_MEASUREMENT;
+    session_frame.value.measurement = measurement;
+    session_frame.value.measurement.valid_mask = 0x0Du;
+    session_frame.value.measurement.samples[1] = 0xDEADu;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_MEASUREMENT_ACCEPTED);
+    CHECK(session_measurement.adc_model_id == REV_A_ADC_ADS8861);
+    CHECK(session_measurement.adc_vref_uv == 4096000u);
+    CHECK(session_measurement.raw.samples[1] == 0xDEADu);
+    CHECK(session_measurement.interpreted_mask == 0x0Du);
+    CHECK(session_measurement.interpreted_samples[0] == 1);
+    CHECK(session_measurement.interpreted_samples[2] == -32768);
+    CHECK(session_measurement.interpreted_samples[3] == -1);
+    CHECK(session_measurement.info_generation == session.info_generation);
+    CHECK(session.accepted_measurements == 1u);
+
+    rev_a_session_invalidate_device_info(&session);
+    CHECK(!session.device_info_valid);
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_WAITING_FOR_DEVICE_INFO);
+    CHECK(session.rejected_measurements_without_info == 2u);
+
+    rev_a_device_info_t bad_info = info;
+    bad_info.sample_format_id = REV_A_SAMPLE_UNSIGNED;
+    CHECK(!rev_a_device_info_valid(&bad_info));
+    session_frame.type = REV_A_TYPE_DEVICE_INFO;
+    session_frame.value.device_info = bad_info;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, NULL) == REV_A_SESSION_INVALID_DEVICE_INFO);
+    CHECK(!session.device_info_valid);
+
+    rev_a_device_info_t info14;
+    memset(&info14, 0, sizeof(info14));
+    info14.adc_model_id = REV_A_ADC_ADS7054;
+    info14.sample_format_id = REV_A_SAMPLE_TWOS_COMPLEMENT;
+    info14.adc_resolution_bits = 14u;
+    info14.adc_input_mode_id = REV_A_INPUT_DIFFERENTIAL;
+    info14.adc_vref_uv = 3300000u;
+    CHECK(rev_a_device_info_valid(&info14));
+    session_frame.type = REV_A_TYPE_DEVICE_INFO;
+    session_frame.value.device_info = info14;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, NULL) == REV_A_SESSION_DEVICE_INFO_ACCEPTED);
+    session_frame.type = REV_A_TYPE_MEASUREMENT;
+    session_frame.value.measurement = measurement;
+    session_frame.value.measurement.valid_mask = 0x01u;
+    session_frame.value.measurement.samples[0] = 0x2000u;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_MEASUREMENT_ACCEPTED);
+    CHECK(session_measurement.adc_model_id == REV_A_ADC_ADS7054);
+    CHECK(session_measurement.raw.samples[0] == 0x2000u);
+    CHECK(session_measurement.interpreted_samples[0] == -8192);
+    CHECK(session_measurement.interpreted_mask == 0x01u);
+
+    session_frame.type = 0x7Fu;
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_UNSUPPORTED_FRAME);
+
+    puts("PASS: Rev A parser CRC, DEVICE_INFO, metadata-gated sessions, raw preservation, signed ADC formats and SYNC recovery");
     return 0;
 }

@@ -159,6 +159,18 @@ bool rev_a_decode_measurement(
     return true;
 }
 
+
+bool rev_a_device_info_valid(const rev_a_device_info_t *device_info) {
+    if (device_info == NULL) {
+        return false;
+    }
+    return valid_adc_metadata(
+        device_info->adc_model_id,
+        device_info->sample_format_id,
+        device_info->adc_resolution_bits,
+        device_info->adc_input_mode_id);
+}
+
 bool rev_a_decode_device_info(
     const uint8_t *frame,
     size_t frame_length,
@@ -186,11 +198,7 @@ bool rev_a_decode_device_info(
     decoded.profile_crc32 = read_le32(&frame[19]);
     decoded.crc16 = read_le16(&frame[23]);
 
-    if (!valid_adc_metadata(
-            decoded.adc_model_id,
-            decoded.sample_format_id,
-            decoded.adc_resolution_bits,
-            decoded.adc_input_mode_id)) {
+    if (!rev_a_device_info_valid(&decoded)) {
         return false;
     }
 

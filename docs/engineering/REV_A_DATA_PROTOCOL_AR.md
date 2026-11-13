@@ -158,3 +158,17 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 أضيف اختبار C مستقل `firmware/esp32_s3_bridge/tests/test_rev_a_protocol.c` يغطي متجه CRC المعروف، MEASUREMENT، DEVICE_INFO، رفض metadata غير المتسقة، signed16/signed14، fragmentation، الضجيج، تعدد الإطارات، واستعادة الإطار السليم بعد إطار تالف. يترجم CI هذا المكوّن مع `-Wall -Wextra -Werror -pedantic` ويشغل الاختبار.
 
 **حدود الإثبات:** نجاح اختبار C على Linux لا يثبت تشغيل UART peripheral أو FreeRTOS على ESP32-S3. ما زال يلزم تنفيذ UART task مع RX ring buffer/overflow handling، إرسال GET_INFO/HELLO من ESP32، تخزين DEVICE_INFO قبل تفسير العينات، ثم Hardware UART loopback بين اللوحتين. لا توجد نتائج عتاد فعلية حتى الآن.
+
+
+### 8.3 بوابة جلسة DEVICE_INFO قبل تفسير العينات
+
+أضيفت طبقة C محمولة rev_a_session.c/.h فوق محلل الإطارات، لتطبيق شرط البروتوكول برمجياً بدلاً من تركه ملاحظة على مستدعي الدالة:
+
+- تحتفظ كل جلسة UART ببنية rev_a_session_t مستقلة.
+- لا تقبل MEASUREMENT للتحليل قبل وصول DEVICE_INFO صحيح؛ يزداد عداد الرفض وتعود الحالة REV_A_SESSION_WAITING_FOR_DEVICE_INFO.
+- عند قبول DEVICE_INFO تحفظ هوية ADC وصيغة العينة والدقة ونمط الدخل وVREF ونسخة metadata generation.
+- كل سجل مقبول يحمل نسخة metadata مع raw الكامل 16-bit. لا تفسر إلا البتات المحددة في VALID_MASK، وتبقى الكلمات الخام للنوافذ غير الصالحة محفوظة دون استبدالها بصفر.
+- rev_a_session_invalidate_device_info() تبطل metadata عند UART overflow أو reconnect أو framing loss أو reset؛ بعدها يجب طلب DEVICE_INFO جديد قبل متابعة القياس.
+- اختبارات C تغطي ADS8861 signed-16 وADS7054 right-justified signed-14، ورفض القياس قبل التعريف، وتغيير نوع ADC، وبقاء raw invalid window، وإبطال الجلسة.
+
+**حدود الإثبات:** هذه طبقة جلسة محمولة ومختبرة على مضيف CI، وليست بعد ESP-IDF UART task أو FreeRTOS ring buffer أو GET_INFO فعلياً على ESP32-S3. لا يوجد UART loopback بين اللوحتين.

@@ -816,3 +816,31 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - أضيفت أداة `tools/verify_uf2.py` واختبارات `tools/test_verify_uf2.py`، وربطت بخطوة CI قبل رفع Artifact؛ هذا يمنع الاكتفاء بفحص الحجم فقط. يجب انتظار CI على الرأس الجديد قبل اعتبار التحقق الآلي ناجحاً.
 - UF2 صالح بنيوياً ومبني من المصدر، لكنه Firmware اختبار توقيت فقط. لم يُفلش على لوحة RP2040-Zero ولم تُقَس الأرجل فعلياً. لا توصل GP4 إلى MOSFET أو ملف أو12V.
 - PR #6 ما زال مغلقاً وغير مدمج، وPR #7 مفتوح Draft وغير مدمج؛ لا دمج ولا تغيير لحالة أي PR.
+
+## 20) استئناف يومي Rev A — 2026-11-13
+
+### حالة GitHub وCI الفعلية
+- رأس الفرع عند بدء هذا التشغيل: 23c44d1a844d98bcd9dd3898f1b68fa071410b4d.
+- GitHub يؤكد أن PR #6 مغلق وغير مدمج منذ 2026-11-11؛ لا يطابق ذلك وصفه بأنه مفتوح. PR #7 هو المفتوح Draft وغير المدمج على الفرع نفسه. لم نغير حالة أي PR ولم ندمج شيئاً.
+- CI #711، ID 43228942335، على الرأس 23c44d1... اكتمل Success في الوظائف الثلاث: protocol-tests وandroid-app وrp2040-firmware.
+- Artifact UF2: ID 13949317820، الاسم IslamDetector-RevA-RP2040-Timing-Test-UF2، الحجم المضغوط 27,689 بايت. يحتوي UF2 بحجم 69,632 بايت/136 كتلة. فحصت كل كتلة: magic البداية والنهاية، أرقام الكتل، Family ID=0xE48BFF56، وعدم تداخل العناوين. SHA-256=b12504f61803e48a5b69fe656ae12d5694046b56e55f7f73f2f49d1236ec31bd.
+- هذا UF2 صالح بنيوياً ومبني من CI، لكنه اختبار GP4/GP5/GP6 فقط؛ لا يقود MOSFET أو ملفاً، وENABLE_ADS8861_CAPTURE=0. لم يفلش على لوحة فعلية ولم تقاس الموجات.
+
+### تدقيق Android وإصلاحان محافظان
+- Manifest: INTERNET وACCESS_NETWORK_STATE، cleartext HTTP لاتصال ESP32 المحلي، ودعم RTL؛ Gradle/Java: Java17، AGP8.7.3، Gradle8.9 في CI، compileSdk35/minSdk23/targetSdk35.
+- MainActivity: الشبكة على Executor منفصل مع timeout وdisconnect؛ SQLite والقراءة والتصدير على منفّذ تخزين تسلسلي، وإغلاق القاعدة بعد تصريف الطابور.
+- اكتشفت أن سجل القياسات يضيف النص الحرفي backslash-n بدلاً من فاصل سطر، وأصلحته إلى newline فعلي.
+- أصلحت تصدير CSV الفارغ: لم يعد يرسل ملفاً يحتوي الرأس فقط ثم يتجاوز رسالة «السجل فارغ»؛ لا يزال التصدير الحالي مشاركة نص CSV عبر Android Sharesheet، وليس إنشاء ملف مستقل عبر SAF.
+- لم يختبر التطبيق على هاتف في هذا التشغيل؛ نجاح Android build لا يثبت ذلك.
+
+### طبقة جلسة DEVICE_INFO الجديدة
+- أضيف rev_a_session.c/.h إلى مكوّن C المحمول، مع API للتحقق من metadata، وفتح/إبطال جلسة القياس، ومنع تفسير MEASUREMENT قبل DEVICE_INFO.
+- كل سجل مقبول يحمل snapshot لهوية ADC وصيغة العينة والدقة ونمط الدخل وVREF وgeneration، مع raw16 كامل. لا تفسر إلا نوافذ VALID_MASK.
+- اختبارات C أضيفت لحالات ADS8861 signed-16 وADS7054 signed-14، ورفض العينات قبل DEVICE_INFO، وإبطال metadata بعد فقد الجلسة، وحفظ raw للنوافذ غير الصالحة.
+- أضيفت ملفات C الجديدة إلى CMake وCI، وأضيف مسار firmware/esp32_s3_bridge/** إلى محفزات CI حتى لا تفلت تغييرات جسر ESP32 مستقبلاً من الاختبارات.
+
+### حدود العمل والخطوة التالية
+- هذه طبقة C محمولة فقط؛ لم يُنفذ ESP-IDF UART peripheral task أو FreeRTOS ring buffer أو GET_INFO/HELLO فعلياً أو Wi-Fi server أو Android endpoint.
+- PIO ADS8861 مدمج في مشروع RP2040 لكن معطل افتراضياً؛ لا يوجد ADC loopback أو قياس timing/jitter على لوحة.
+- لا توجد قياسات ملف DCR/L/قطبية/transient/clip-release؛ ولا قيم حماية TX/RX أو gain أو REF driver نهائية.
+- التالي: تنفيذ ESP-IDF UART task مع RX ring buffer وoverflow recovery وGET_INFO، وربطه بطبقة الجلسة، ثم اختبار UART loopback؛ بعد ذلك اختبار PIO/ADS8861 على طاولة منخفضة الجهد قبل KiCad أو BOM أو TX power.
