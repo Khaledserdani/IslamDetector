@@ -6,6 +6,14 @@ Mesh.ElementOrder = 1;
 Mesh.CharacteristicLengthMin = 0.00025;
 Mesh.CharacteristicLengthMax = 0.020;
 
+// Local target/coil refinement control for the mesh-convergence study.
+If (!Exists(MeshRefinementDivisions))
+  MeshRefinementDivisions = 3;
+EndIf
+If (MeshRefinementDivisions < 2)
+  Error("MeshRefinementDivisions must be >= 2");
+EndIf
+
 // Set IncludeTarget=0 for the no-target control. TargetGap is measured from
 // the lower face of the TX winding (z=30 mm) to the target upper face.
 If (!Exists(IncludeTarget))
@@ -89,7 +97,7 @@ Else
 EndIf
 Field[2] = Threshold;
 Field[2].InField = 1;
-Field[2].SizeMin = TargetThicknessM / 3.0;
+Field[2].SizeMin = TargetThicknessM / MeshRefinementDivisions;
 Field[2].SizeMax = 0.020;
 Field[2].DistMin = 0.005; // resolve thin coin/ring sections with local target-scale elements
 Field[2].DistMax = 0.060;
