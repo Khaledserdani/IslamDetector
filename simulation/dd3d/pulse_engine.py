@@ -177,6 +177,9 @@ def simulate_pulse(config):
     energy_delta = float(stored[-1] - stored[0])
     energy_residual = source_energy - tx_loss_energy - target_loss_energy - clamp_energy - energy_delta
     post = times_a >= width
+    def post_peak(values, delay_us):
+        mask = times_a >= width + delay_us * 1e-6
+        return float(np.max(np.abs(values[mask]))) if np.any(mask) else 0.0
     metrics = {
         "model": MODEL,
         "model_status": "reduced_order_single_target_loop_surrogate_not_3d_conductor_fem",
@@ -194,6 +197,17 @@ def simulate_pulse(config):
         "peak_abs_rx_voltage_after_turnoff_v": float(np.max(np.abs(vrx_total[post]))),
         "peak_abs_rx_direct_component_v": float(np.max(np.abs(vrx_direct))),
         "peak_abs_rx_target_component_v": float(np.max(np.abs(vrx_target))),
+        "peak_abs_rx_direct_after_1us_v": post_peak(vrx_direct, 1.0),
+        "peak_abs_rx_target_after_1us_v": post_peak(vrx_target, 1.0),
+        "peak_abs_rx_total_after_1us_v": post_peak(vrx_total, 1.0),
+        "peak_abs_rx_direct_after_5us_v": post_peak(vrx_direct, 5.0),
+        "peak_abs_rx_target_after_5us_v": post_peak(vrx_target, 5.0),
+        "peak_abs_rx_total_after_5us_v": post_peak(vrx_total, 5.0),
+        "peak_abs_rx_direct_after_10us_v": post_peak(vrx_direct, 10.0),
+        "peak_abs_rx_target_after_10us_v": post_peak(vrx_target, 10.0),
+        "peak_abs_rx_total_after_10us_v": post_peak(vrx_total, 10.0),
+        "rx_target_voltage_at_turnoff_v": float(np.interp(width, times_a, vrx_target)),
+        "target_current_at_turnoff_a": float(np.interp(width, times_a, itarget)),
         "source_energy_j": source_energy,
         "tx_copper_loss_j": tx_loss_energy,
         "target_copper_loss_j": target_loss_energy,
