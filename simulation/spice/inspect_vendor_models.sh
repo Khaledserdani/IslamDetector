@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Audit vendor files without committing or redistributing vendor model archives.
-# BAT54S DC sweep is one junction only; package-level two-junction topology is a separate gate.
+# BAT54S checks include a single-junction DC sweep and a dual-junction rail-clamp DC polarity sweep; no transient or thermal package validation is implied.
 set -euo pipefail
 
 ROOT="${RUNNER_TEMP:-/tmp}/islam-vendor-model-audit"
