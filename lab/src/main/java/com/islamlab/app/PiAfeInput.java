@@ -82,7 +82,7 @@ public final class PiAfeInput {
         if(Double.isNaN(low)||Double.isInfinite(low)||Double.isNaN(high)||Double.isInfinite(high)
                 ||Double.isNaN(reference)||Double.isInfinite(reference)||high<=low||reference<low||reference>high
                 ||high-low<2.2||high-low>5.5||2*headroom>=high-low
-                ||Double.isNaN(clampLow)||Double.isInfinite(clampLow)||Double.isNaN(clampHigh)||Double.isInfinite(clampHigh)||clampHigh<=clampLow)
+                ||Double.isNaN(clampLow)||Double.isInfinite(clampLow)||Double.isNaN(clampHigh)||Double.isInfinite(clampHigh)||clampLow<low||clampHigh>high||clampHigh<=clampLow)
             throw new IllegalArgumentException("قضبان أو مرجع المضخم/المحدد غير صالح");
         return new PiAfeInput(positive(rx,"resistance_ohm"),positive(rx,"inductance_h"),
                 positive(afe,"parallel_damping_ohm"),positive(afe,"series_protection_ohm"),
