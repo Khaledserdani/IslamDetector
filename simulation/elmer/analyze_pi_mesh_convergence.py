@@ -19,8 +19,8 @@ def fail(message):
 
 def read_times(sif_path):
     text = sif_path.read_text(encoding="utf-8")
-    sm = re.search(r"Timestep\\s+Sizes\\s*\\(\\s*(\\d+)\\s*\\)\\s*=\\s*Real\\s+([^\\n!]+)", text, re.I)
-    im = re.search(r"Timestep\\s+Intervals\\s*\\(\\s*(\\d+)\\s*\\)\\s*=\\s*([^\\n!]+)", text, re.I)
+    sm = re.search(r"Timestep\s+Sizes\s*\(\s*(\d+)\s*\)\s*=\s*Real\s+([^\n!]+)", text, re.I)
+    im = re.search(r"Timestep\s+Intervals\s*\(\s*(\d+)\s*\)\s*=\s*([^\n!]+)", text, re.I)
     if not sm or not im:
         fail(f"missing segmented time schedule in {sif_path}")
     sizes = [float(v) for v in sm.group(2).split()]
