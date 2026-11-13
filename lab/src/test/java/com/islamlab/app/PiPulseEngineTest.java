@@ -4,7 +4,9 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class PiPulseEngineTest {
-    private PiPulseInput sample(boolean decoupledTarget) {
+    private PiPulseInput sample(boolean decoupledTarget) { return sample(decoupledTarget,0.0); }
+
+    private PiPulseInput sample(boolean decoupledTarget,double clampVoltage) {
         double[][] tx=FilamentPhysics.circularLoop(0.12,128,0.0);
         double[][] rx=FilamentPhysics.circularLoop(0.10,128,0.015);
         double[][] target;
@@ -21,7 +23,7 @@ public class PiPulseEngineTest {
         }
         return PiPulseInputFactory.create(tx,rx,target,20,30,1,
                 1.52,350e-6,750e-6,0.08,20e-6,
-                5.0,100e-6,0.0,0.25e-6,600e-6);
+                5.0,100e-6,clampVoltage,0.25e-6,600e-6);
     }
 
     @Test public void uncoupledTxMatchesAnalyticalRlRiseAndDecay() {
@@ -46,6 +48,13 @@ public class PiPulseEngineTest {
     @Test public void energyBalanceClosesForSmallTimeStep() {
         PiPulseEngine.Result r=PiPulseEngine.simulate(sample(false));
         assertTrue("relative energy residual="+r.energyRelativeError,r.energyRelativeError<3e-4);
+    }
+
+    @Test public void oneWayClampAbsorbsEnergyWithoutReverseCurrent() {
+        PiPulseEngine.Result r=PiPulseEngine.simulate(sample(false,20.0));
+        assertTrue(r.clampEnergy>0.0);
+        assertTrue("relative energy residual="+r.energyRelativeError,r.energyRelativeError<3e-4);
+        for(double current:r.txCurrent) assertTrue("TX current reversed after one-way clamp",current>=-1e-12);
     }
 
     @Test public void timeGridEndsAtStopAndIncludesSwitchingEdge() {
