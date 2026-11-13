@@ -37,11 +37,23 @@ public final class PiAfeEngine {
         double conductance=1.0/p.dampingResistance+1.0/p.seriesResistance+1.0/p.coilTvsDynamicResistance;
         return (i+v/p.seriesResistance+sign*p.coilTvsThreshold/p.coilTvsDynamicResistance)/conductance;
     }
+    private static double inputClamp(double v,PiAfeInput p){
+        double a=Math.abs(v),current=0.0;
+        double[] volts=p.inputClampCurveVoltage,amps=p.inputClampCurveCurrent;
+        if(volts.length<2)return clamp(v,p.inputClampThreshold,p.inputClampDynamicResistance);
+        if(a<volts[0])return 0.0;
+        int n=1;
+        while(n<volts.length&&a>volts[n])n++;
+        if(n>=volts.length)n=volts.length-1;
+        double dv=volts[n]-volts[n-1],di=amps[n]-amps[n-1];
+        current=amps[n-1]+(a-volts[n-1])*di/dv;
+        return v<0?-current:current;
+    }
     private static D derivative(double i,double v,double source,PiAfeInput p){
         double va=terminal(i,v,p);
         double is=(va-v)/p.seriesResistance;
         double tv=p.coilTvsThreshold>0?clamp(va,p.coilTvsThreshold,p.coilTvsDynamicResistance):0;
-        double ci=clamp(v,p.inputClampThreshold,p.inputClampDynamicResistance);
+        double ci=inputClamp(v,p);
         return new D((source-p.rxResistance*i-va)/p.rxInductance,
                 (is-v/p.biasResistance-ci)/p.inputCapacitance,va,is,tv,ci);
     }
