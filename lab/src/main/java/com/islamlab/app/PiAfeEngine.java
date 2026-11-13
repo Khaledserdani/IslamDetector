@@ -103,6 +103,22 @@ public final class PiAfeEngine {
         System.arraycopy(t,0,tt,0,n);System.arraycopy(ic,0,ii,0,n);System.arraycopy(vin,0,vv,0,n);
         System.arraycopy(va,0,vva,0,n);System.arraycopy(is,0,iis,0,n);System.arraycopy(itvs,0,iit,0,n);
         System.arraycopy(iclamp,0,iic,0,n);System.arraycopy(eout,0,ee,0,n);System.arraycopy(stored,0,ss,0,n);
+        double[] opout=new double[n];
+        double low=p.supplyLow+p.outputHeadroom,high=p.supplyHigh-p.outputHeadroom;
+        double output=Math.min(Math.max(p.referenceVoltage,low),high);
+        opout[0]=output;int slewCount=0,satCount=0;
+        double bw=p.gainBandwidth/p.opampGain;
+        for(int k=1;k<n;k++){
+            double h=tt[k]-tt[k-1];
+            double target=Math.min(Math.max(p.referenceVoltage+p.opampGain*vv[k],low),high);
+            double ideal=(target-output)*(-Math.expm1(-2.0*Math.PI*bw*h));
+            double limit=p.slewRate*h;
+            if(Math.abs(ideal)>limit)slewCount++;
+            double raw=output+Math.max(-limit,Math.min(limit,ideal));
+            double clipped=Math.min(Math.max(raw,low),high);
+            if(clipped!=raw)satCount++;
+            output=clipped;opout[k]=output;
+        }
         double delta=ss[n-1]-ss[0],residual=totals[0]-(totals[1]+totals[2]+totals[3]+totals[4]+totals[5]+totals[6])-delta;
         return new Result(tt,ee,ii,vva,vv,iis,iit,iic,ss,max(ee),max(ii),max(vva),max(vv),max(iis),max(iic),
                 totals[0],totals[1],totals[2],totals[3],totals[4],totals[5],totals[6],delta,residual,
