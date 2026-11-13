@@ -69,6 +69,21 @@ class PulseEngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_inductance_matrix(100e-6,20e-6,750e-6,2e-3,1e-6,1e-6)
 
+    def test_clamped_turnoff_energy_balance(self):
+        c = config()
+        c["pulse"]["clamp_voltage_v"] = 20.0
+        metrics, _ = simulate_pulse(c)
+        self.assertGreater(metrics["clamp_absorbed_energy_j"], 0.0)
+        self.assertLess(metrics["energy_balance_relative_error"], 3e-4)
+
+    def test_pulse_current_increases_with_bus_voltage(self):
+        c1 = config()
+        c2 = config()
+        c2["pulse"]["bus_voltage_v"] *= 2.0
+        m1, _ = simulate_pulse(c1)
+        m2, _ = simulate_pulse(c2)
+        self.assertAlmostEqual(m2["peak_abs_tx_current_a"], 2*m1["peak_abs_tx_current_a"], delta=1e-6)
+
     def test_halving_time_step_converges_waveform(self):
         c=config()
         m1,d1=simulate_pulse(c)
