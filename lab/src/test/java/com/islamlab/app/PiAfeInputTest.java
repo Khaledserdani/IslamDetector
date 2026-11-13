@@ -1,8 +1,11 @@
 package com.islamlab.app;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
 import static org.junit.Assert.*;
 
+@RunWith(RobolectricTestRunner.class)
 public class PiAfeInputTest {
     private String json(double high){
         return "{\"rx_coil\":{\"resistance_ohm\":4.802,\"inductance_h\":0.00075},"+
