@@ -8,10 +8,12 @@ SWEEP_ROOT="${GITHUB_WORKSPACE:-$PWD}/artifacts/elmer-pi-depth-sweep"
 RUNNER="${GITHUB_WORKSPACE:-$PWD}/simulation/elmer/run_pi_pulse_foil_surrogate.sh"
 mkdir -p "$SWEEP_ROOT"
 
+SIF_TEMPLATE="${SIF_TEMPLATE:-${GITHUB_WORKSPACE:-$PWD}/simulation/elmer/pi_pulse_separate_coil.sif}"
+MESH_REFINEMENT_DIVISIONS="${MESH_REFINEMENT_DIVISIONS:-4}"
 for gap in 0.045 0.075 0.100 0.150; do
   case_name="gap-$(printf "%0.3f" "$gap" | tr "." "p")"
   echo "=== PI target-gap case: ${gap} m ==="
-  TARGET_GAP_M="$gap" OUTPUT_DIR="$SWEEP_ROOT/$case_name" bash "$RUNNER"
+  SIF_TEMPLATE="$SIF_TEMPLATE" MESH_REFINEMENT_DIVISIONS="$MESH_REFINEMENT_DIVISIONS" TARGET_GAP_M="$gap" OUTPUT_DIR="$SWEEP_ROOT/$case_name" bash "$RUNNER"
 done
 
 python3 "$GITHUB_WORKSPACE/simulation/elmer/summarize_pi_target_gap_sweep.py" "$SWEEP_ROOT"
