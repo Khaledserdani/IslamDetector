@@ -8,6 +8,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".FilamentAnalysisActivity" android:exported="false" />
+        <activity android:name=".PiPulseAnalysisActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
