@@ -101,6 +101,49 @@ def flux_through_loop(source_path_m, receiver_path_m, current_a=1.0, source_turn
         raise ValueError("receiver loop must be planar for surface-flux integration")
 
     edges = np.roll(receiver, -1, axis=0) - receiver
+    edge_lengths = np.linalg.norm(edges, axis=1)
+    if np.any(edge_lengths <= 1e-12 * span):
+        raise ValueError("receiver polygon contains a zero-length edge")
+
+    # Project the planar polygon to 2D and reject crossings between
+    # non-adjacent edges before using a triangle fan.
+    basis_u = edges[0] / edge_lengths[0]
+    basis_v = np.cross(normal, basis_u)
+    projected = np.column_stack(((receiver - receiver[0]) @ basis_u,
+                                 (receiver - receiver[0]) @ basis_v))
+    intersection_tolerance = 1e-12 * span * span
+    coordinate_tolerance = 1e-12 * span
+
+    def orient2(a, b, c):
+        ab, ac = b - a, c - a
+        return float(ab[0] * ac[1] - ab[1] * ac[0])
+
+    def on_segment(a, b, q):
+        return (min(a[0], b[0]) - coordinate_tolerance <= q[0] <= max(a[0], b[0]) + coordinate_tolerance
+                and min(a[1], b[1]) - coordinate_tolerance <= q[1] <= max(a[1], b[1]) + coordinate_tolerance)
+
+    count = len(projected)
+    for i in range(count):
+        a, b = projected[i], projected[(i + 1) % count]
+        for j in range(i + 1, count):
+            if j == i or j == (i + 1) % count or i == (j + 1) % count:
+                continue
+            c, d = projected[j], projected[(j + 1) % count]
+            o1, o2 = orient2(a, b, c), orient2(a, b, d)
+            o3, o4 = orient2(c, d, a), orient2(c, d, b)
+            proper = ((o1 > intersection_tolerance and o2 < -intersection_tolerance)
+                      or (o1 < -intersection_tolerance and o2 > intersection_tolerance)) and (
+                      (o3 > intersection_tolerance and o4 < -intersection_tolerance)
+                      or (o3 < -intersection_tolerance and o4 > intersection_tolerance))
+            touching = (
+                (abs(o1) <= intersection_tolerance and on_segment(a, b, c))
+                or (abs(o2) <= intersection_tolerance and on_segment(a, b, d))
+                or (abs(o3) <= intersection_tolerance and on_segment(c, d, a))
+                or (abs(o4) <= intersection_tolerance and on_segment(c, d, b))
+            )
+            if proper or touching:
+                raise ValueError("receiver polygon must be a simple, non-self-intersecting loop")
+
     turns = np.einsum("ij,j->i", np.cross(edges, np.roll(edges, -1, axis=0)), normal)
     convexity_tolerance = 1e-12 * span * span
     if np.any(turns < -convexity_tolerance):

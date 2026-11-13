@@ -60,6 +60,18 @@ class FilamentModelTests(unittest.TestCase):
         self.assertTrue(all(errors[i + 1] < errors[i] for i in range(len(errors) - 1)))
         self.assertLess(errors[-1], 1e-4)
 
+
+    def test_surface_flux_rejects_self_intersecting_star_loop(self):
+        tx = circular_loop(0.12, 96, z_m=0.0)
+        vertices = np.column_stack((
+            0.08 * np.cos(np.linspace(0.0, 2.0 * math.pi, 5, endpoint=False)),
+            0.08 * np.sin(np.linspace(0.0, 2.0 * math.pi, 5, endpoint=False)),
+            np.full(5, 0.02)
+        ))
+        star = vertices[[0, 2, 4, 1, 3, 0]]
+        with self.assertRaises(ValueError):
+            flux_through_loop(tx, star)
+
     def test_surface_flux_reverses_with_receiver_orientation(self):
         tx = circular_loop(0.12, 96, z_m=0.0)
         rx = circular_loop(0.10, 96, z_m=0.02)
