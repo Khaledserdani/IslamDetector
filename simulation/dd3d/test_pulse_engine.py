@@ -84,6 +84,18 @@ class PulseEngineTests(unittest.TestCase):
         m2, _ = simulate_pulse(c2)
         self.assertAlmostEqual(m2["peak_abs_tx_current_a"], 2*m1["peak_abs_tx_current_a"], delta=1e-6)
 
+    def test_higher_clamp_reduces_direct_rx_after_ten_microseconds(self):
+        values = []
+        target_values = []
+        for clamp in (0.0, 20.0, 40.0, 80.0):
+            c = config()
+            c["pulse"]["clamp_voltage_v"] = clamp
+            metrics, _ = simulate_pulse(c)
+            values.append(metrics["peak_abs_rx_direct_after_10us_v"])
+            target_values.append(metrics["peak_abs_rx_target_after_10us_v"])
+        self.assertTrue(all(values[i+1] <= values[i] + 1e-9 for i in range(len(values)-1)))
+        self.assertGreater(target_values[-1], 0.0)
+
     def test_halving_time_step_converges_waveform(self):
         c=config()
         m1,d1=simulate_pulse(c)
