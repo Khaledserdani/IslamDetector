@@ -1,6 +1,6 @@
 {
   "rx_coil": {
-    "resistance_ohm": 4.8,
+    "resistance_ohm": 4.802,
     "inductance_h": 0.00075
   },
   "afe": {
