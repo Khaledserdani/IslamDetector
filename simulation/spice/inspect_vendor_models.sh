@@ -21,6 +21,32 @@ curl --http1.1 --connect-timeout 15 --max-time 60 --fail --location --retry 3 --
 
 echo "BAT54S_SHA256 $(sha256sum "$ROOT/BAT54S.spice.txt" | awk '{print $1}')" | tee -a "$REPORT"
 
+if ! grep -qiE '^[[:space:]]*\.model[[:space:]]+DI_BAT54S[[:space:]]+D' "$ROOT/BAT54S.spice.txt"; then
+  echo "FAIL: expected single-junction DI_BAT54S diode model not found" | tee -a "$REPORT"
+  exit 1
+fi
+cat > "$ROOT/bat54s_dc.cir" <<EOF
+* One-junction DC sanity sweep using the official Diodes BAT54S model.
+.include "$ROOT/BAT54S.spice.txt"
+VSWEEP anode 0 0
+D1 anode 0 DI_BAT54S
+.control
+set noaskquit
+set wr_singlescale
+dc VSWEEP 0 1.0 1m
+wrdata $ROOT/BAT54S_dc_iv.dat v(anode) i(VSWEEP)
+quit
+.endc
+.end
+EOF
+if ngspice -b -o "$ROOT/BAT54S_dc.log" "$ROOT/bat54s_dc.cir" >/dev/null 2>&1 && [[ -s "$ROOT/BAT54S_dc_iv.dat" ]]; then
+  echo "BAT54S_OFFICIAL_MODEL_DC_SWEEP PASS (single junction only)" | tee -a "$REPORT"
+else
+  echo "BAT54S_OFFICIAL_MODEL_DC_SWEEP FAIL" | tee -a "$REPORT"
+  tail -n 20 "$ROOT/BAT54S_dc.log" | sed 's/^/  /' | tee -a "$REPORT" || true
+  exit 1
+fi
+
 find "$ROOT" -type f \( -iname '*.lib' -o -iname '*.cir' -o -iname '*.mod' -o -iname '*.txt' \) \
   ! -name 'vendor_model_audit.txt' | sort > "$ROOT/model_files.txt"
 
