@@ -427,7 +427,7 @@ public class MainActivity extends Activity {
                         b.append(date).append("  |  إشارة ").append(format(c.getDouble(2)));
                         if (!c.isNull(3)) b.append("  |  ثقة ").append(format(c.getDouble(3))).append("%");
                         if (!c.isNull(4)) b.append("  |  عمق ").append(format(c.getDouble(4))).append(" سم");
-                        b.append("\\n");
+                        b.append("\n");
                     } while (c.moveToNext());
                 }
             } catch (RuntimeException e) {
@@ -511,13 +511,15 @@ public class MainActivity extends Activity {
             return getReadableDatabase().rawQuery("SELECT id,timestamp,signal,confidence,depth,calibrated FROM readings ORDER BY timestamp DESC LIMIT " + limit, null);
         }
         String exportCsv() {
-            StringBuilder b = new StringBuilder("timestamp,signal,confidence_percent,depth_cm,calibrated\n");
+            StringBuilder b = new StringBuilder();
             try (Cursor c = getReadableDatabase().rawQuery("SELECT timestamp,signal,confidence,depth,calibrated FROM readings ORDER BY timestamp ASC", null)) {
-                while (c.moveToNext()) {
+                if (!c.moveToFirst()) return "";
+                b.append("timestamp,signal,confidence_percent,depth_cm,calibrated\n");
+                do {
                     b.append(c.getLong(0)).append(',').append(c.getDouble(1)).append(',');
                     b.append(c.isNull(2) ? "" : c.getDouble(2)).append(',');
                     b.append(c.isNull(3) ? "" : c.getDouble(3)).append(',').append(c.getInt(4)).append('\n');
-                }
+                } while (c.moveToNext());
             }
             return b.toString();
         }
