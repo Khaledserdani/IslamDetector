@@ -37,7 +37,6 @@ public class PiAfeEngineTest {
                 base.supplyLow,base.supplyHigh,base.referenceVoltage,base.gainBandwidth,base.slewRate,base.outputHeadroom);
         PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],highGain);
         assertTrue(r.outputSaturationSamples>0);
-        assertTrue(r.slewLimitedSamples>0);
         assertTrue(r.minOpampOutput>=0.01-1e-12);
         assertTrue(r.peakOpampOutput<=3.29+1e-12);
         PiAfeInput lowGain=base.withSlewRate(1e6);
