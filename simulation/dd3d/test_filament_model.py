@@ -3,7 +3,7 @@
 import unittest
 import math
 import numpy as np
-from filament_model import circular_loop, circular_loop_axis_field, field_at_points, mutual_inductance, path_length_m
+from filament_model import circular_loop, circular_loop_axis_field, field_at_points, mutual_inductance, path_length_m, flux_through_loop, flux_linkage
 
 class FilamentModelTests(unittest.TestCase):
     def test_circular_loop_axis_field_converges_to_analytic_solution(self):
@@ -44,6 +44,37 @@ class FilamentModelTests(unittest.TestCase):
         forward = mutual_inductance(tx, rx)
         reverse = mutual_inductance(tx, rx[::-1])
         self.assertAlmostEqual(forward, -reverse, delta=abs(forward) * 1e-12)
+
+
+    def test_surface_flux_converges_to_neumann_mutual_inductance(self):
+        tx = circular_loop(0.12, 128, z_m=0.0)
+        rx = circular_loop(0.10, 128, z_m=0.015)
+        reference = mutual_inductance(tx, rx, turns_a=20, turns_b=30)
+        errors = []
+        for subdivisions in (8, 16, 32):
+            linkage = flux_linkage(
+                tx, rx, current_a=1.0, source_turns=20,
+                receiver_turns=30, subdivisions=subdivisions
+            )
+            errors.append(abs(linkage - reference) / abs(reference))
+        self.assertTrue(all(errors[i + 1] < errors[i] for i in range(len(errors) - 1)))
+        self.assertLess(errors[-1], 1e-4)
+
+    def test_surface_flux_reverses_with_receiver_orientation(self):
+        tx = circular_loop(0.12, 96, z_m=0.0)
+        rx = circular_loop(0.10, 96, z_m=0.02)
+        forward = flux_through_loop(tx, rx, subdivisions=16)
+        reverse = flux_through_loop(tx, rx[::-1], subdivisions=16)
+        self.assertAlmostEqual(forward, -reverse, delta=abs(forward) * 1e-12)
+
+    def test_surface_flux_rejects_nonplanar_and_concave_receivers(self):
+        tx = circular_loop(0.12, 96, z_m=0.0)
+        nonplanar = [[-0.1,-0.1,0.02],[0.1,-0.1,0.02],[0.1,0.1,0.03],[-0.1,0.1,0.02],[-0.1,-0.1,0.02]]
+        concave = [[-0.1,-0.1,0.02],[0.1,-0.1,0.02],[0.0,0.0,0.02],[0.1,0.1,0.02],[-0.1,0.1,0.02],[-0.1,-0.1,0.02]]
+        with self.assertRaises(ValueError):
+            flux_through_loop(tx, nonplanar)
+        with self.assertRaises(ValueError):
+            flux_through_loop(tx, concave)
 
     def test_rejects_non_finite_geometry(self):
         with self.assertRaises(ValueError):

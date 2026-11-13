@@ -70,6 +70,82 @@ def mutual_inductance(path_a_m, path_b_m, turns_a=1, turns_b=1, segment_batch=12
         total += float(np.sum(dot / distance))
     return MU0 * turns_a * turns_b * total / (4.0 * math.pi)
 
+
+def flux_through_loop(source_path_m, receiver_path_m, current_a=1.0, source_turns=1, subdivisions=16):
+    """Integrate source B·dA over one planar, convex receiver loop [Wb/turn]."""
+    if not math.isfinite(current_a):
+        raise ValueError("current_a must be finite")
+    if not isinstance(source_turns, int) or source_turns < 1:
+        raise ValueError("source_turns must be a positive integer")
+    if not isinstance(subdivisions, int) or subdivisions < 1:
+        raise ValueError("subdivisions must be a positive integer")
+
+    receiver = np.asarray(list(receiver_path_m), dtype=float)
+    if receiver.ndim != 2 or receiver.shape[1] != 3 or len(receiver) < 4 or not np.isfinite(receiver).all():
+        raise ValueError("receiver loop must contain at least four finite 3D vertices")
+    if np.linalg.norm(receiver[0] - receiver[-1]) <= 1e-9:
+        receiver = receiver[:-1]
+    if len(receiver) < 3:
+        raise ValueError("receiver loop must contain at least three distinct vertices")
+
+    span = float(np.linalg.norm(np.ptp(receiver, axis=0)))
+    if not math.isfinite(span) or span <= 1e-12:
+        raise ValueError("receiver surface is degenerate")
+    area_vector = 0.5 * np.sum(np.cross(receiver, np.roll(receiver, -1, axis=0)), axis=0)
+    area = float(np.linalg.norm(area_vector))
+    if not math.isfinite(area) or area <= 1e-14 * span * span:
+        raise ValueError("receiver surface has zero or indeterminate area")
+    normal = area_vector / area
+    plane_error = float(np.max(np.abs((receiver - receiver[0]) @ normal)))
+    if plane_error > 1e-7 * span:
+        raise ValueError("receiver loop must be planar for surface-flux integration")
+
+    edges = np.roll(receiver, -1, axis=0) - receiver
+    turns = np.einsum("ij,j->i", np.cross(edges, np.roll(edges, -1, axis=0)), normal)
+    convexity_tolerance = 1e-12 * span * span
+    if np.any(turns < -convexity_tolerance):
+        raise ValueError("receiver polygon must be convex for fan triangulation")
+    triangle_count = (len(receiver) - 2) * subdivisions * subdivisions
+    if triangle_count > 500000:
+        raise ValueError("surface integration exceeds 500,000 subtriangles")
+
+    centroids = []
+    area_vectors = []
+    anchor = receiver[0]
+    for index in range(1, len(receiver) - 1):
+        b, c = receiver[index], receiver[index + 1]
+        for i in range(subdivisions):
+            for j in range(subdivisions - i):
+                coords = np.asarray(((i, j), (i + 1, j), (i, j + 1)), dtype=float) / subdivisions
+                weights = np.column_stack((1.0 - np.sum(coords, axis=1), coords))
+                vertices = (weights[:, 0, None] * anchor
+                            + weights[:, 1, None] * b
+                            + weights[:, 2, None] * c)
+                centroids.append(np.mean(vertices, axis=0))
+                area_vectors.append(0.5 * np.cross(vertices[1] - vertices[0], vertices[2] - vertices[0]))
+                if i + j < subdivisions - 1:
+                    coords = np.asarray(((i + 1, j), (i + 1, j + 1), (i, j + 1)), dtype=float) / subdivisions
+                    weights = np.column_stack((1.0 - np.sum(coords, axis=1), coords))
+                    vertices = (weights[:, 0, None] * anchor
+                                + weights[:, 1, None] * b
+                                + weights[:, 2, None] * c)
+                    centroids.append(np.mean(vertices, axis=0))
+                    area_vectors.append(0.5 * np.cross(vertices[1] - vertices[0], vertices[2] - vertices[0]))
+
+    magnetic_field = field_at_points(source_path_m, centroids, current_a=current_a, turns=source_turns)
+    return float(np.einsum("ij,ij->", magnetic_field, np.asarray(area_vectors)))
+
+
+def flux_linkage(source_path_m, receiver_path_m, current_a=1.0,
+                 source_turns=1, receiver_turns=1, subdivisions=16):
+    """Total receiver flux linkage [Wb-turn] from the source loop field."""
+    if not isinstance(receiver_turns, int) or receiver_turns < 1:
+        raise ValueError("receiver_turns must be a positive integer")
+    return receiver_turns * flux_through_loop(
+        source_path_m, receiver_path_m, current_a=current_a,
+        source_turns=source_turns, subdivisions=subdivisions
+    )
+
 def circular_loop(radius_m, segments=512, z_m=0.0):
     """Closed CCW circular centerline for analytical verification."""
     if not math.isfinite(radius_m) or radius_m <= 0 or segments < 16:
