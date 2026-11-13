@@ -42,6 +42,8 @@ def trapz(points):
 
 for gap in GAPS_MM:
     metrics = {}
+    reference_steps = None
+    reference_times = None
     for divisions in DIVISIONS:
         case = ROOT / f"gap-{gap}mm" / f"n{divisions}"
         csv_path = case / "target_induced_current_summary.csv"
@@ -54,6 +56,7 @@ for gap in GAPS_MM:
         if len(data) < 10:
             fail(f"insufficient time samples in {csv_path}")
         rms_points, integral_points = [], []
+        case_steps = []
         for item in data:
             step = int(item["time_step"])
             if step not in times:
@@ -62,10 +65,16 @@ for gap in GAPS_MM:
             integral = float(item["integral_abs_J_dV_A"])
             if not math.isfinite(rms) or not math.isfinite(integral) or rms < 0 or integral < 0:
                 fail(f"invalid response value in {csv_path}")
+            case_steps.append(step)
             rms_points.append((times[step], rms))
             integral_points.append((times[step], integral))
         rms_points.sort()
         integral_points.sort()
+        if reference_steps is None:
+            reference_steps = case_steps
+            reference_times = [t for t, _ in rms_points]
+        elif case_steps != reference_steps or [t for t, _ in rms_points] != reference_times:
+            fail(f"time samples differ across mesh levels for gap={gap} mm")
         metrics[divisions] = {
             "peak_rms": max(v for _, v in rms_points),
             "time_integral_rms": trapz(rms_points),
@@ -73,11 +82,17 @@ for gap in GAPS_MM:
             "mesh_elements_lines": sum(1 for _ in (case / "mesh.elements").open()),
         }
     coarse, medium, fine = (metrics[d] for d in DIVISIONS)
+    if not (coarse["mesh_elements_lines"] < medium["mesh_elements_lines"] < fine["mesh_elements_lines"]):
+        fail(f"mesh element counts did not increase strictly with refinement for gap={gap} mm: " +
+             ", ".join(str(metrics[d]["mesh_elements_lines"]) for d in DIVISIONS))
     def rel(a, b):
         return abs(a-b) / abs(b) if b else math.inf
     errors = {
+        "peak_rms_coarse_to_medium": rel(coarse["peak_rms"], medium["peak_rms"]),
         "peak_rms_medium_to_fine": rel(medium["peak_rms"], fine["peak_rms"]),
+        "time_integral_rms_coarse_to_medium": rel(coarse["time_integral_rms"], medium["time_integral_rms"]),
         "time_integral_rms_medium_to_fine": rel(medium["time_integral_rms"], fine["time_integral_rms"]),
+        "time_integral_absJdV_coarse_to_medium": rel(coarse["time_integral_absJdV"], medium["time_integral_absJdV"]),
         "time_integral_absJdV_medium_to_fine": rel(medium["time_integral_absJdV"], fine["time_integral_absJdV"]),
     }
     converged = all(v < 0.05 for v in errors.values())
