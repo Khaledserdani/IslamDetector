@@ -11,7 +11,7 @@
     "clamp_threshold_v": 0.24,
     "clamp_dynamic_resistance_ohm": 88.9,
     "coil_tvs_threshold_v": 6.4,
-    "coil_tvs_dynamic_resistance_ohm": 0.049,
+    "coil_tvs_dynamic_resistance_ohm": 0.064367816091954,
     "input_clamp_iv_curve_v_a": [
       [
         0.24,
