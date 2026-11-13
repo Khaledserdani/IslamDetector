@@ -9,20 +9,11 @@ on:
       - 'simulation/elmer/run_pi_mesh_convergence.sh'
       - 'simulation/elmer/analyze_pi_mesh_convergence.py'
       - 'simulation/elmer/verify_pi_pulse_vtu.py'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/mesh-convergence.yml'
-      - 'simulation/elmer/pi_pulse_separate_coil.geo'
-      - 'simulation/elmer/run_pi_pulse_foil_surrogate.sh'
-      - 'simulation/elmer/run_pi_mesh_convergence.sh'
-      - 'simulation/elmer/analyze_pi_mesh_convergence.py'
-      - 'simulation/elmer/verify_pi_pulse_vtu.py'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: islam-lab-mesh-convergence-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: islam-lab-mesh-convergence-${{ github.ref_name }}
   cancel-in-progress: false
 jobs:
   mesh-convergence:
