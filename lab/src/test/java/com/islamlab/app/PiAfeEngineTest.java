@@ -33,7 +33,7 @@ public class PiAfeEngineTest {
         double[][] w=wave(30);PiAfeInput base=p();
         PiAfeInput highGain=new PiAfeInput(base.rxResistance,base.rxInductance,base.dampingResistance,base.seriesResistance,
                 base.inputCapacitance,base.biasResistance,base.coilTvsThreshold,base.coilTvsDynamicResistance,
-                base.inputClampThreshold,base.inputClampDynamicResistance,base.maxStep,100.0,
+                base.inputClampThreshold,base.inputClampDynamicResistance,base.inputClampLowRail,base.inputClampHighRail,base.maxStep,100.0,
                 base.supplyLow,base.supplyHigh,base.referenceVoltage,base.gainBandwidth,base.slewRate,base.outputHeadroom,
                 base.inputClampCurveVoltage,base.inputClampCurveCurrent);
         PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],highGain);
