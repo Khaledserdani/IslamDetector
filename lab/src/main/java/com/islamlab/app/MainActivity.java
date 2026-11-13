@@ -77,6 +77,12 @@ public class MainActivity extends Activity {
         filamentAnalysis.setOnClickListener(v -> startActivity(new Intent(this, FilamentAnalysisActivity.class)));
         page.addView(filamentAnalysis);
 
+        page.addView(section("محرك نبضة PI المقترنة"));
+        page.addView(label("حساب تيار TX أثناء التشغيل والإطفاء، تيار الهدف الدوامي المكافئ، وإشارة RX مع فصل التسريب المباشر عن استجابة الهدف.", 13, 0xffd5e2ef, false));
+        Button pulseAnalysis = button("فتح محرك نبضة PI");
+        pulseAnalysis.setOnClickListener(v -> startActivity(new Intent(this, PiPulseAnalysisActivity.class)));
+        page.addView(pulseAnalysis);
+
         page.addView(section("إعداد تجربة الإشارة"));
         page.addView(label("سعة البداية (mV)", 14, 0xffd5e2ef, true));
         amplitudeInput = field("أدخل القيمة", "1000");
