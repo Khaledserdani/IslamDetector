@@ -55,11 +55,6 @@ def main():
     if run.returncode!=0 or not data.is_file():
         raise SystemExit("ngspice failed; inspect ngspice.log")
     raw=np.loadtxt(data)
-    print("ngspice wrdata shape:",raw.shape)
-    print("ngspice first rows:",raw[:3].tolist())
-    print("ngspice last row:",raw[-1].tolist())
-    print("Python RX/AFE peaks:",float(np.max(np.abs(py["rx_terminal_voltage_v"]))),float(np.max(np.abs(py["afe_input_voltage_v"]))))
-    print("ngspice log tail:",(out/"ngspice.log").read_text(encoding="utf-8")[-3000:])
     if raw.ndim!=2 or raw.shape[1]<4 or raw.shape[0]<100:
         raise SystemExit(f"unexpected ngspice wrdata shape: {raw.shape}")
     st=raw[:,0]; sv_rx=raw[:,1]; sv_afe=raw[:,2]; si=raw[:,3]
