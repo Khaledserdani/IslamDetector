@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1])
 TARGET_VOLUME_M3 = math.pi * 0.250**2 * 0.005
-NUMBER = re.compile(r"[-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eEdD][-+]?[0-9]+)?")
+NUMBER = re.compile(r"[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eEdD][-+]?[0-9]+)?")
 
 def numbers(line: str):
     return [float(x.replace("D", "E").replace("d", "e")) for x in NUMBER.findall(line)]
