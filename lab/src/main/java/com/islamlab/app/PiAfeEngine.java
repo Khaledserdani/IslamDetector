@@ -6,14 +6,14 @@ public final class PiAfeEngine {
     public static final class Result{
         public final double[] time,inducedEmf,coilCurrent,coilTerminalVoltage,inputVoltage,seriesCurrent,coilTvsCurrent,inputClampCurrent,storedEnergy,opampOutput;
         public final double peakInducedEmf,peakCoilCurrent,peakCoilTerminal,peakInputVoltage,peakSeriesCurrent,peakClampCurrent;
-        public final double sourceEnergy,coilLoss,dampingLoss,coilTvsEnergy,seriesLoss,biasLoss,inputClampEnergy,storedEnergyChange,energyResidual,energyRelativeError;
+        public final double sourceEnergy,coilLoss,dampingLoss,coilTvsEnergy,seriesLoss,biasLoss,inputClampEnergy,inputClampDiodeLoss,inputClampRailEnergy,storedEnergyChange,energyResidual,energyRelativeError;
         public final int clampSamples,slewLimitedSamples,outputSaturationSamples;
         public final double peakOpampOutput,minOpampOutput;
         Result(double[] t,double[] emf,double[] ic,double[] va,double[] vin,double[] is,double[] itvs,double[] iclamp,double[] stored,double[] opout,
-                double pe,double pc,double pv,double pi,double ps,double pk,double se,double cl,double dl,double te,double sl,double bl,double ie,double de,double er,double rel,int samples,int slewCount,int satCount,double opPeak,double opMin){
+                double pe,double pc,double pv,double pi,double ps,double pk,double se,double cl,double dl,double te,double sl,double bl,double ie,double id,double ir,double de,double er,double rel,int samples,int slewCount,int satCount,double opPeak,double opMin){
             time=t;inducedEmf=emf;coilCurrent=ic;coilTerminalVoltage=va;inputVoltage=vin;seriesCurrent=is;coilTvsCurrent=itvs;inputClampCurrent=iclamp;storedEnergy=stored;opampOutput=opout;
             peakInducedEmf=pe;peakCoilCurrent=pc;peakCoilTerminal=pv;peakInputVoltage=pi;peakSeriesCurrent=ps;peakClampCurrent=pk;
-            sourceEnergy=se;coilLoss=cl;dampingLoss=dl;coilTvsEnergy=te;seriesLoss=sl;biasLoss=bl;inputClampEnergy=ie;storedEnergyChange=de;energyResidual=er;energyRelativeError=rel;clampSamples=samples;slewLimitedSamples=slewCount;outputSaturationSamples=satCount;peakOpampOutput=opPeak;minOpampOutput=opMin;
+            sourceEnergy=se;coilLoss=cl;dampingLoss=dl;coilTvsEnergy=te;seriesLoss=sl;biasLoss=bl;inputClampEnergy=ie;inputClampDiodeLoss=id;inputClampRailEnergy=ir;storedEnergyChange=de;energyResidual=er;energyRelativeError=rel;clampSamples=samples;slewLimitedSamples=slewCount;outputSaturationSamples=satCount;peakOpampOutput=opPeak;minOpampOutput=opMin;
         }
     }
     private static final class D{
@@ -69,8 +69,25 @@ public final class PiAfeEngine {
     }
     private static double[] powers(double i,double v,double src,PiAfeInput p){
         D d=derivative(i,v,src,p);
+        double diodeLoss=0.0,railEnergy=0.0;
+        if(d.iclamp!=0.0){
+            double magnitude=Math.abs(d.iclamp);
+            if(p.inputClampCurveVoltage.length<2){
+                diodeLoss=Math.max(0.0,Math.abs(v)-p.inputClampThreshold)*magnitude;
+                railEnergy=p.inputClampThreshold*magnitude;
+            }else{
+                double absoluteVoltage=p.referenceVoltage+v;
+                if(d.iclamp>0.0){
+                    diodeLoss=Math.max(0.0,absoluteVoltage-p.inputClampHighRail)*magnitude;
+                    railEnergy=Math.max(0.0,p.inputClampHighRail-p.referenceVoltage)*magnitude;
+                }else{
+                    diodeLoss=Math.max(0.0,p.inputClampLowRail-absoluteVoltage)*magnitude;
+                    railEnergy=Math.max(0.0,p.referenceVoltage-p.inputClampLowRail)*magnitude;
+                }
+            }
+        }
         return new double[]{src*i,p.rxResistance*i*i,d.va*d.va/p.dampingResistance,
-                d.va*d.itvs,p.seriesResistance*d.is*d.is,v*v/p.biasResistance,v*d.iclamp};
+                d.va*d.itvs,p.seriesResistance*d.is*d.is,v*v/p.biasResistance,diodeLoss,railEnergy};
     }
     private static S advance(double i,double v,double t,double h,double[] times,double[] emf,PiAfeInput p){
         double s1=source(times,emf,t),s2=source(times,emf,t+h/2),s4=source(times,emf,t+h);
@@ -80,8 +97,8 @@ public final class PiAfeEngine {
         D k4=derivative(i+h*k3.di,v+h*k3.dv,s4,p);
         double[][] q={powers(i,v,s1,p),powers(i+0.5*h*k1.di,v+0.5*h*k1.dv,s2,p),
                 powers(i+0.5*h*k2.di,v+0.5*h*k2.dv,s2,p),powers(i+h*k3.di,v+h*k3.dv,s4,p)};
-        double[] e=new double[7];
-        for(int j=0;j<7;j++)e[j]=h*(q[0][j]+2*q[1][j]+2*q[2][j]+q[3][j])/6.0;
+        double[] e=new double[8];
+        for(int j=0;j<8;j++)e[j]=h*(q[0][j]+2*q[1][j]+2*q[2][j]+q[3][j])/6.0;
         return new S(i+h*(k1.di+2*k2.di+2*k3.di+k4.di)/6.0,
                 v+h*(k1.dv+2*k2.dv+2*k3.dv+k4.dv)/6.0,e);
     }
@@ -96,14 +113,14 @@ public final class PiAfeEngine {
         if(span/p.maxStep>500000)throw new IllegalArgumentException("AFE يتجاوز 500 ألف خطوة");
         int cap=(int)Math.ceil(span/p.maxStep)+times.length+2;
         double[] t=new double[cap],ic=new double[cap],vin=new double[cap],va=new double[cap],is=new double[cap],itvs=new double[cap],iclamp=new double[cap],stored=new double[cap],eout=new double[cap];
-        int n=1; t[0]=times[0]; double i=0,v=0;double[] totals=new double[7];boolean clampActive=false;
+        int n=1; t[0]=times[0]; double i=0,v=0;double[] totals=new double[8];boolean clampActive=false;
         for(int k=0;k<times.length-1;k++){
             double left=times[k],right=times[k+1],dt=right-left;
             int count=Math.max(1,(int)Math.ceil(dt/p.maxStep));
             for(int j=0;j<count;j++){
                 double now=left+j*dt/count,h=dt/count;
                 S s=advance(i,v,now,h,times,emf,p);i=s.i;v=s.v;
-                for(int q=0;q<7;q++)totals[q]+=s.energy[q];
+                for(int q=0;q<8;q++)totals[q]+=s.energy[q];
                 D d=derivative(i,v,source(times,emf,now+h),p);
                 t[n]=now+h;ic[n]=i;vin[n]=v;va[n]=d.va;is[n]=d.is;itvs[n]=d.itvs;iclamp[n]=d.iclamp;eout[n]=source(times,emf,now+h);
                 stored[n]=0.5*p.rxInductance*i*i+0.5*p.inputCapacitance*v*v;
@@ -133,9 +150,10 @@ public final class PiAfeEngine {
             if(clipped!=raw)satCount++;
             output=clipped;opout[k]=output;
         }
-        double delta=ss[n-1]-ss[0],residual=totals[0]-(totals[1]+totals[2]+totals[3]+totals[4]+totals[5]+totals[6])-delta;
+        double delta=ss[n-1]-ss[0],inputClampEnergy=totals[6]+totals[7];
+        double residual=totals[0]-(totals[1]+totals[2]+totals[3]+totals[4]+totals[5]+inputClampEnergy)-delta;
         return new Result(tt,ee,ii,vva,vv,iis,iit,iic,ss,opout,max(ee),max(ii),max(vva),max(vv),max(iis),max(iic),
-                totals[0],totals[1],totals[2],totals[3],totals[4],totals[5],totals[6],delta,residual,
+                totals[0],totals[1],totals[2],totals[3],totals[4],totals[5],inputClampEnergy,totals[6],totals[7],delta,residual,
                 Math.abs(residual)/Math.max(Math.abs(totals[0]),1e-18),clampActive?1:0,slewCount,satCount,max(opout),min(opout));
     }
 }
