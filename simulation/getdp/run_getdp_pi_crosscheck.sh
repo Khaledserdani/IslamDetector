@@ -18,11 +18,13 @@ for gap_mm in 45 75 100 150; do
     -setnumber TargetGap "$(python3 -c "print($gap_mm/1000)")" \
     -setnumber MeshRefinementDivisions 4 \
     -format msh2 -o "$case_dir/model.msh" > "$case_dir/gmsh.log" 2>&1
+  # GetDP writes PostOperation files beside the .pro file. Keep one copy per
+  # gap so the raw J2 table and fields are archived with that run.
+  cp "$ROOT/simulation/getdp/pi_pulse_axisymmetric.pro" "$case_dir/model.pro"
   (
     cd "$case_dir"
-    getdp "$ROOT/simulation/getdp/pi_pulse_axisymmetric.pro" \
-      -msh "$case_dir/model.msh" -solve Mag -pos Map > getdp.log 2>&1
-    grep -q "Resolution" getdp.log
+    getdp "$case_dir/model.pro" -msh "$case_dir/model.msh" -solve Mag -pos Map > getdp.log 2>&1
+    grep -q "Stopped" getdp.log
     test -s j2.txt
   )
 done
