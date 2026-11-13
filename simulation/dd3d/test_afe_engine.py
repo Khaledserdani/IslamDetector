@@ -63,6 +63,17 @@ class AfeEngineTests(unittest.TestCase):
         m,_=simulate_afe(wave(0.1),c)
         self.assertGreater(m["peak_abs_afe_input_voltage_v"],0.0)
 
+    def test_opamp_output_obeys_supply_rails_and_slew_rate(self):
+        c=cfg()
+        c["opamp"]={"closed_loop_gain":100.0,"supply_low_v":0.0,"supply_high_v":3.3,
+                    "reference_v":1.65,"gain_bandwidth_hz":50e6,
+                    "slew_rate_v_per_s":25e6,"output_headroom_v":0.01}
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["opamp_output_saturation_sample_count"],0)
+        self.assertGreater(m["opamp_slew_limited_sample_count"],0)
+        self.assertLessEqual(max(d["opamp_output_v"]),3.29+1e-12)
+        self.assertGreaterEqual(min(d["opamp_output_v"]),0.01-1e-12)
+
     def test_rejects_non_monotonic_waveform_time(self):
         w=wave()
         w["time_s"][20]=w["time_s"][19]
