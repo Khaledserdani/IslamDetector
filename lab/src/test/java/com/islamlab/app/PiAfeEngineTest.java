@@ -25,9 +25,21 @@ public class PiAfeEngineTest {
     }
     @Test public void strongerDampingReducesTerminalVoltage(){
         double[][] w=wave(0.1);PiAfeInput a=p();
-        PiAfeInput b=new PiAfeInput(4.802,750e-6,100,1000,2e-9,1e6,6,2,.35,50,10e-9);
+        PiAfeInput b=a.withDamping(100.0);
         PiAfeEngine.Result x=PiAfeEngine.simulate(w[0],w[1],a),y=PiAfeEngine.simulate(w[0],w[1],b);
         assertTrue(y.peakCoilTerminal<x.peakCoilTerminal);
+    }
+    @Test public void opampOutputRespectsRailsAndSlewRate(){
+        double[][] w=wave(30);PiAfeInput base=p();
+        PiAfeInput highGain=new PiAfeInput(base.rxResistance,base.rxInductance,base.dampingResistance,base.seriesResistance,
+                base.inputCapacitance,base.biasResistance,base.coilTvsThreshold,base.coilTvsDynamicResistance,
+                base.inputClampThreshold,base.inputClampDynamicResistance,base.maxStep,100.0,
+                base.supplyLow,base.supplyHigh,base.referenceVoltage,base.gainBandwidth,base.slewRate,base.outputHeadroom);
+        PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],highGain);
+        assertTrue(r.outputSaturationSamples>0);
+        assertTrue(r.slewLimitedSamples>0);
+        assertTrue(r.minOpampOutput>=0.01-1e-12);
+        assertTrue(r.peakOpampOutput<=3.29+1e-12);
     }
     @Test public void energyBalanceIncludesBothProtectionStages(){
         double[][] w=wave(30);PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],p());
