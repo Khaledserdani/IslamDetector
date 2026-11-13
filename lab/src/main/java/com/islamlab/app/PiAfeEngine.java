@@ -33,15 +33,9 @@ public final class PiAfeEngine {
     private static double terminal(double i,double v,PiAfeInput p){
         double linear=p.dampingResistance*(p.seriesResistance*i+v)/(p.dampingResistance+p.seriesResistance);
         if(p.coilTvsThreshold<=0||Math.abs(linear)<=p.coilTvsThreshold)return linear;
-        double extent=Math.abs(v)+Math.abs(i)*(p.dampingResistance+p.seriesResistance)+p.coilTvsThreshold+20;
-        double lo=-extent,hi=extent;
-        for(int n=0;n<64;n++){
-            double mid=0.5*(lo+hi);
-            double tv=p.coilTvsThreshold>0?clamp(mid,p.coilTvsThreshold,p.coilTvsDynamicResistance):0;
-            double f=mid/p.dampingResistance+tv+(mid-v)/p.seriesResistance-i;
-            if(f>0)hi=mid;else lo=mid;
-        }
-        return 0.5*(lo+hi);
+        double sign=linear>0?1.0:-1.0;
+        double conductance=1.0/p.dampingResistance+1.0/p.seriesResistance+1.0/p.coilTvsDynamicResistance;
+        return (i+v/p.seriesResistance+sign*p.coilTvsThreshold/p.coilTvsDynamicResistance)/conductance;
     }
     private static D derivative(double i,double v,double source,PiAfeInput p){
         double va=terminal(i,v,p);
