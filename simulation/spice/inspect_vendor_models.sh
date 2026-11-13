@@ -16,7 +16,7 @@ fetch_zip() {
 
 fetch_zip "ti-opa365" "https://www.ti.com/lit/zip/SBOC133"
 fetch_zip "st-smaj-series" "https://www.st.com/resource/en/spice_model/smaj-series-thermal-pspice.zip"
-curl --fail --location --retry 3 --retry-delay 2 --silent --show-error \
+curl --http1.1 --connect-timeout 15 --max-time 60 --fail --location --retry 3 --retry-all-errors --retry-delay 2 --retry-connrefused --silent --show-error \
   "https://www.diodes.com/spice/download/431/BAT54S.spice.txt" -o "$ROOT/BAT54S.spice.txt"
 
 echo "BAT54S_SHA256 $(sha256sum "$ROOT/BAT54S.spice.txt" | awk '{print $1}')" | tee -a "$REPORT"
