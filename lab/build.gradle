@@ -2,18 +2,17 @@ plugins {
     id 'com.android.application'
 }
 
-android {
-    signingConfigs {
-        release {
-            if (releaseSigningReady) {
-                storeFile file(releaseStoreFile)
-
 def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
 def releaseStorePassword = System.getenv('ANDROID_STORE_PASSWORD')
 def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
 def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
 
+android {
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFile)
                 storePassword releaseStorePassword
                 keyAlias releaseKeyAlias
                 keyPassword releaseKeyPassword
