@@ -9,7 +9,7 @@ public final class PiAfeInput {
     public final double inputCapacitance,biasResistance,coilTvsThreshold,coilTvsDynamicResistance;
     public final double inputClampThreshold,inputClampDynamicResistance,maxStep;
 
-    private PiAfeInput(double rr,double ll,double rd,double rs,double c,double rb,
+    PiAfeInput(double rr,double ll,double rd,double rs,double c,double rb,
             double tv,double rtv,double iv,double riv,double step){
         rxResistance=rr;rxInductance=ll;dampingResistance=rd;seriesResistance=rs;
         inputCapacitance=c;biasResistance=rb;coilTvsThreshold=tv;coilTvsDynamicResistance=rtv;
@@ -17,7 +17,7 @@ public final class PiAfeInput {
     }
     private static double positive(JSONObject o,String k)throws JSONException{
         double v=o.getDouble(k);
-        if(!Double.isFinite(v)||v<=0)throw new IllegalArgumentException(k+" يجب أن يكون موجباً");
+        if((Double.isNaN(v)||Double.isInfinite(v))||v<=0)throw new IllegalArgumentException(k+" يجب أن يكون موجباً");
         return v;
     }
     private static double nonnegative(JSONObject o,String k)throws JSONException{
