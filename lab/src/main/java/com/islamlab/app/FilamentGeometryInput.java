@@ -6,6 +6,7 @@ import org.json.JSONObject;
 
 /** Strict JSON input model for measured/CAD-exported 3D coil centerlines. */
 public final class FilamentGeometryInput {
+    private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
     public final double[][] txPath;
     public final double[][] rxPath;
     public final double[][] observationPoints;
@@ -33,7 +34,7 @@ public final class FilamentGeometryInput {
         int ntx=turns.getInt("TX"), nrx=turns.getInt("RX");
         if(ntx<1 || nrx<1) throw new IllegalArgumentException("عدد اللفات يجب أن يكون موجباً");
         double current=root.optDouble("tx_current_a",1.0);
-        if(!Double.isFinite(current)) throw new IllegalArgumentException("تيار TX غير صالح");
+        if(!finite(current)) throw new IllegalArgumentException("تيار TX غير صالح");
         Double txLength=null, rxLength=null;
         JSONObject wire=root.optJSONObject("wire_lengths_m");
         if(wire!=null){
@@ -44,7 +45,7 @@ public final class FilamentGeometryInput {
     }
 
     private static Double positiveLength(double value,String name){
-        if(!Double.isFinite(value) || value<=0) throw new IllegalArgumentException(name+": طول السلك يجب أن يكون موجباً");
+        if(!finite(value) || value<=0) throw new IllegalArgumentException(name+": طول السلك يجب أن يكون موجباً");
         return value;
     }
 
@@ -56,7 +57,7 @@ public final class FilamentGeometryInput {
             if(point.length()!=3) throw new IllegalArgumentException(name+": كل نقطة يجب أن تحتوي X وY وZ");
             for(int j=0;j<3;j++){
                 double value=point.getDouble(j);
-                if(!Double.isFinite(value)) throw new IllegalArgumentException(name+": إحداثيات غير محدودة");
+                if(!finite(value)) throw new IllegalArgumentException(name+": إحداثيات غير محدودة");
                 result[i][j]=value;
             }
         }
