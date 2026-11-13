@@ -56,16 +56,10 @@ def simulate_afe(waveform, config):
         # Closed-form passive solution when the coil TVS is not conducting.
         linear=rdamp*(rseries*icoil+vnode)/(rdamp+rseries)
         if coil_vt<=0 or abs(linear)<=coil_vt: return linear
-        # Otherwise solve KCL with the bidirectional TVS.
-        lo=-(abs(vnode)+abs(icoil)*(rdamp+rseries)+coil_vt+20.0)
-        hi=abs(vnode)+abs(icoil)*(rdamp+rseries)+coil_vt+20.0
-        for _ in range(64):
-            mid=0.5*(lo+hi)
-            itvs=clamp_current(mid,coil_vt,coil_rt) if coil_vt>0 else 0.0
-            residual=mid/rdamp+itvs+(mid-vnode)/rseries-icoil
-            if residual>0: hi=mid
-            else: lo=mid
-        return 0.5*(lo+hi)
+        # Piecewise-linear TVS branch has a closed-form KCL solution.
+        sign=1.0 if linear>0 else -1.0
+        conductance=1.0/rdamp+1.0/rseries+1.0/coil_rt
+        return (icoil+vnode/rseries+sign*coil_vt/coil_rt)/conductance
     def deriv(state, source):
         icoil,vnode=state
         va=terminal_voltage(icoil,vnode)
