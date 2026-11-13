@@ -215,6 +215,8 @@ public class PiPulseAnalysisActivity extends Activity {
         b.append(String.format(Locale.US,"قمة تيار المحدد: %.6f A\n",r.peakClampCurrent));
         b.append(String.format(Locale.US,"طاقة TVS الملف: %.6f µJ\n",r.coilTvsEnergy*1e6));
         b.append(String.format(Locale.US,"طاقة محدد المدخل: %.6f µJ\n",r.inputClampEnergy*1e6));
+        b.append(String.format(Locale.US,"فقد وصلة Schottky: %.6f µJ\\n",r.inputClampDiodeLoss*1e6));
+        b.append(String.format(Locale.US,"الطاقة المتبادلة مع سكة التغذية: %.6f µJ\\n",r.inputClampRailEnergy*1e6));
         b.append(String.format(Locale.US,"خرج OPA365 السلوكي: %.6f .. %.6f V\n",r.minOpampOutput,r.peakOpampOutput));
         b.append(String.format(Locale.US,"عينات حد معدل التغير: %d | عينات قص الخرج: %d\n",r.slewLimitedSamples,r.outputSaturationSamples));
         b.append(String.format(Locale.US,"خطأ اتزان الطاقة: %.6f %%\n",r.energyRelativeError*100));
