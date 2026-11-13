@@ -8,6 +8,7 @@ package com.islamlab.app;
 public final class FilamentPhysics {
     private static final double MU0 = 4.0e-7 * Math.PI;
     private FilamentPhysics() {}
+    private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
 
     private static final class Segments {
         final double[][] mid;
@@ -21,7 +22,7 @@ public final class FilamentPhysics {
         for (int i = 0; i < path.length; i++) {
             if (path[i] == null || path[i].length != 3) throw new IllegalArgumentException(name + ": each vertex must have three coordinates");
             for (int j = 0; j < 3; j++) {
-                if (!Double.isFinite(path[i][j])) throw new IllegalArgumentException(name + ": coordinates must be finite");
+                if (!finite(path[i][j])) throw new IllegalArgumentException(name + ": coordinates must be finite");
                 points[i][j] = path[i][j];
             }
         }
@@ -58,7 +59,7 @@ public final class FilamentPhysics {
 
     public static double[][] fieldAtPoints(double[][] path, double[][] observationPoints,
                                             double currentAmps, int turns) {
-        if (!Double.isFinite(currentAmps) || turns < 1) throw new IllegalArgumentException("current must be finite and turns positive");
+        if (!finite(currentAmps) || turns < 1) throw new IllegalArgumentException("current must be finite and turns positive");
         if (observationPoints == null) throw new IllegalArgumentException("observation points are required");
         Segments s = segments(path, "coil");
         double[][] result = new double[observationPoints.length][3];
@@ -66,7 +67,7 @@ public final class FilamentPhysics {
         for (int p = 0; p < observationPoints.length; p++) {
             double[] point = observationPoints[p];
             if (point == null || point.length != 3) throw new IllegalArgumentException("each observation point must have three coordinates");
-            for (double value : point) if (!Double.isFinite(value)) throw new IllegalArgumentException("observation coordinates must be finite");
+            for (double value : point) if (!finite(value)) throw new IllegalArgumentException("observation coordinates must be finite");
             double bx=0, by=0, bz=0;
             for (int i = 0; i < s.mid.length; i++) {
                 double rx=point[0]-s.mid[i][0], ry=point[1]-s.mid[i][1], rz=point[2]-s.mid[i][2];
@@ -102,7 +103,7 @@ public final class FilamentPhysics {
     }
 
     public static double[][] circularLoop(double radiusMetres, int segmentCount, double zMetres) {
-        if (!Double.isFinite(radiusMetres) || radiusMetres <= 0 || segmentCount < 16 || !Double.isFinite(zMetres))
+        if (!finite(radiusMetres) || radiusMetres <= 0 || segmentCount < 16 || !finite(zMetres))
             throw new IllegalArgumentException("invalid circular-loop geometry");
         double[][] points=new double[segmentCount+1][3];
         for(int i=0;i<=segmentCount;i++){
@@ -116,8 +117,8 @@ public final class FilamentPhysics {
 
     public static double circularLoopAxisFieldTesla(double radiusMetres, double zMetres,
                                                      double currentAmps, int turns) {
-        if (!Double.isFinite(radiusMetres) || radiusMetres <= 0 || !Double.isFinite(zMetres)
-                || !Double.isFinite(currentAmps) || turns < 1) throw new IllegalArgumentException("invalid circular-loop parameters");
+        if (!finite(radiusMetres) || radiusMetres <= 0 || !finite(zMetres)
+                || !finite(currentAmps) || turns < 1) throw new IllegalArgumentException("invalid circular-loop parameters");
         double sum=radiusMetres*radiusMetres+zMetres*zMetres;
         return MU0*turns*currentAmps*radiusMetres*radiusMetres/(2.0*Math.pow(sum,1.5));
     }
