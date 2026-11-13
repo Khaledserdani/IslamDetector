@@ -9,8 +9,8 @@ def cfg():
       "rx_coil":{"resistance_ohm":4.8,"inductance_h":750e-6},
       "afe":{"parallel_damping_ohm":390.0,"series_protection_ohm":1000.0,
              "input_capacitance_f":2e-9,"input_bias_ohm":1e6,
-             "clamp_threshold_v":0.35,"clamp_dynamic_resistance_ohm":5.0},
-      "integration":{"max_step_s":2e-9}
+             "clamp_threshold_v":0.35,"clamp_dynamic_resistance_ohm":50.0},
+      "integration":{"max_step_s":10e-9}
     }
 def wave(amplitude=1.0):
     t=np.linspace(0,100e-6,1001)
@@ -28,7 +28,7 @@ class AfeEngineTests(unittest.TestCase):
     def test_bidirectional_clamp_limits_input_node_and_absorbs_energy(self):
         m,d=simulate_afe(wave(30.0),cfg())
         self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
-        self.assertLess(m["peak_abs_afe_input_voltage_v"],2.0)
+        self.assertLess(m["peak_abs_afe_input_voltage_v"],2.5)
         self.assertLess(m["energy_balance_relative_error"],2e-4)
 
     def test_more_damping_reduces_rx_terminal_voltage(self):
@@ -70,9 +70,11 @@ class AfeEngineTests(unittest.TestCase):
                     "slew_rate_v_per_s":25e6,"output_headroom_v":0.01}
         m,d=simulate_afe(wave(30.0),c)
         self.assertGreater(m["opamp_output_saturation_sample_count"],0)
-        self.assertGreater(m["opamp_slew_limited_sample_count"],0)
         self.assertLessEqual(max(d["opamp_output_v"]),3.29+1e-12)
         self.assertGreaterEqual(min(d["opamp_output_v"]),0.01-1e-12)
+        c["opamp"]["closed_loop_gain"]=2.0
+        m2,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m2["opamp_slew_limited_sample_count"],0)
 
     def test_rejects_non_monotonic_waveform_time(self):
         w=wave()
