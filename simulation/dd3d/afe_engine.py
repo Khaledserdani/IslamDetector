@@ -43,7 +43,7 @@ def simulate_afe(waveform, config):
     gbw=_positive(op.get("gain_bandwidth_hz",50e6),"opamp.gain_bandwidth_hz")
     slew=_positive(op.get("slew_rate_v_per_s",25e6),"opamp.slew_rate_v_per_s")
     headroom=_nonnegative(op.get("output_headroom_v",0.01),"opamp.output_headroom_v")
-    if not all(math.isfinite(x) for x in (vlow,vhigh,vref)) or vhigh<=vlow or vref<vlow or vref>vhigh or 2*headroom>=vhigh-vlow:
+    if not all(math.isfinite(x) for x in (vlow,vhigh,vref)) or vhigh<=vlow or vref<vlow or vref>vhigh or vhigh-vlow<2.2 or vhigh-vlow>5.5 or 2*headroom>=vhigh-vlow:
         raise ValueError("invalid opamp rails, reference or output headroom")
     max_step=_positive(config.get("integration",{}).get("max_step_s",float(np.min(np.diff(t)))),"integration.max_step_s")
     if len(t)>200001: raise ValueError("input waveform exceeds 200,001 samples")
