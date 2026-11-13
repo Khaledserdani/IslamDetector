@@ -12,7 +12,7 @@ public final class PiPulseInput {
     public final double targetResistance, targetInductance;
     public final double busVoltage, pulseWidth, clampVoltage, timeStep, stopTime;
 
-    private PiPulseInput(double[][] tx, double[][] rx, double[][] target,
+    PiPulseInput(double[][] tx, double[][] rx, double[][] target,
             int ntx, int nrx, int ntarget, double rtx, double ltx, double lrx,
             double rt, double lt, double vb, double width, double clamp,
             double dt, double stop) {
