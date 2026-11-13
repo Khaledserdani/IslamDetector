@@ -852,3 +852,12 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - bc4197cce61fa0b50fc1f2e1bb1cf3702a18d7ee — إضافة طبقة DEVICE_INFO-gated session، اختبارات ADS8861/ADS7054، تحديث CMake وCI والوثائق.
 - CI #996 على commit 83e24b5 اكتمل Success في Android.
 - CI #1001، ID 43432913691، على commit bc4197c: protocol-tests وandroid-app اكتملتا Success؛ rp2040-firmware كان لا يزال قيد البناء عند آخر فحص. لذلك لا نسجل UF2 جديداً لهذا الرأس حتى يكتمل Verify/Upload. آخر UF2 مؤكد يبقى Artifact CI #711، SHA-256 المسجل في القسم أعلاه.
+
+
+### 20.2 اكتمال CI #1001 والتحقق من UF2 — 2026-11-13
+
+- CI #1001، ID 43432913691، اكتمل Success على commit bc4197cce61fa0b50fc1f2e1bb1cf3702a18d7ee في الوظائف الثلاث: protocol-tests وandroid-app وrp2040-firmware.
+- اجتازت خطوة Build RP2040 logic timing firmware، ثم Verify RP2040 UF2 structure and family ID، ثم Upload.
+- Artifact UF2 الجديد ID 14039639966، حجمه المضغوط 27,689 بايت، وانتهاؤه 2026-12-13 13:22:32Z. يحتوي islam_rev_a_timing_test.uf2 بحجم69,632 بايت.
+- فحص ZIP سليم، وUF2 يتكون من136 كتلة ×512 بايت، payload=34,816 بايت، Family ID=0xE48BFF56، مجال التحميل 0x10000000..0x10008800، دون كتل مكررة أو متداخلة. SHA-256=138a5f48db6114bb11b6a7c8182ac3df3df9c43f1e0c1382abeba4b3b2f4035c.
+- هذا إثبات بناء وصحة بنية UF2 فقط؛ لم يتم تفليش اللوحة أو قياس GP4/GP5/GP6، ولا يزال ADS8861 capture معطلاً افتراضياً. PR #7 بقي Draft مفتوحاً وغير مدمج؛ PR #6 مغلق وغير مدمج.
