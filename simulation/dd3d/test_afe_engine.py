@@ -48,6 +48,21 @@ class AfeEngineTests(unittest.TestCase):
         self.assertAlmostEqual(m1["peak_abs_afe_input_voltage_v"],m2["peak_abs_afe_input_voltage_v"],
                                delta=max(1e-5,m2["peak_abs_afe_input_voltage_v"]*0.01))
 
+    def test_coil_tvs_limits_terminal_voltage_and_energy_closes(self):
+        c=cfg()
+        c["afe"]["coil_tvs_threshold_v"]=0.5
+        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=0.5
+        m,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["coil_tvs_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_rx_terminal_voltage_v"],1.5)
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
+    def test_zero_clamp_threshold_disables_that_clamp(self):
+        c=cfg()
+        c["afe"]["clamp_threshold_v"]=0.0
+        m,_=simulate_afe(wave(0.1),c)
+        self.assertGreater(m["peak_abs_afe_input_voltage_v"],0.0)
+
     def test_rejects_non_monotonic_waveform_time(self):
         w=wave()
         w["time_s"][20]=w["time_s"][19]
