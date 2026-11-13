@@ -157,6 +157,11 @@ public class PiPulseAnalysisActivity extends Activity {
         b.append(String.format(Locale.US,"أقصى RX بعد الإطفاء: %.6f mV\n",r.peakRxAfterTurnoff*1e3));
         b.append(String.format(Locale.US,"مكوّن TX المباشر: %.6f mV\n",r.peakRxDirect*1e3));
         b.append(String.format(Locale.US,"مكوّن الهدف: %.6f mV\n",r.peakRxTarget*1e3));
+        b.append("\nاستعادة RX بعد الإطفاء:\n");
+        b.append(String.format(Locale.US,"بعد 1 µs — مباشر %.6f mV | هدف %.6f mV | كلي %.6f mV\n",r.rxDirectAfter1us*1e3,r.rxTargetAfter1us*1e3,r.rxTotalAfter1us*1e3));
+        b.append(String.format(Locale.US,"بعد 5 µs — مباشر %.6f mV | هدف %.6f mV | كلي %.6f mV\n",r.rxDirectAfter5us*1e3,r.rxTargetAfter5us*1e3,r.rxTotalAfter5us*1e3));
+        b.append(String.format(Locale.US,"بعد 10 µs — مباشر %.6f mV | هدف %.6f mV | كلي %.6f mV\n",r.rxDirectAfter10us*1e3,r.rxTargetAfter10us*1e3,r.rxTotalAfter10us*1e3));
+        b.append(String.format(Locale.US,"جهد الهدف عند الإطفاء: %.6f mV | تيار الهدف: %.6f A\n",r.rxTargetAtTurnoff*1e3,r.targetCurrentAtTurnoff));
         b.append("\nميزانية الطاقة العددية:\n");
         b.append(String.format(Locale.US,"طاقة المصدر: %.6f mJ\n",r.sourceEnergy*1e3));
         b.append(String.format(Locale.US,"فقد النحاس TX: %.6f mJ\n",r.txLossEnergy*1e3));
