@@ -875,3 +875,11 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - CI #1026 على commit 69f10f9 كشف خطأً في ملف الاختبار فقط: استُخدمت دالة read_le16 في assertions دون تعريفها. اختبارات Python الـ39 نجحت، لكن تجميع C توقف بسبب implicit declaration مع -Werror.
 - أضيف helper صغير read_le16 إلى الاختبار لقراءة حقلي LENGTH وCRC little-endian؛ لم يتغير encoder أو صيغة الإطار.
 - سيعاد التحقق على الرأس الجديد. لا نسجل نجاح CI أو UF2 لهذا التعديل قبل اكتمال الوظائف الثلاث.
+
+
+### 20.5 حالة CI بعد إصلاح الاختبارات
+
+- 69f10f947b9f07c3578ee33a19f377aa2860ab6f — إضافة command encoder لإطارات التحكم وGET_INFO واختبار CRC/LENGTH/payload.
+- 2df2113be3993ccedf967f33e4072168ea138b61 — إضافة read_le16 المفقودة في اختبارات C بعد أن كشفها CI #1026.
+- CI #1026 (ID 43433668209) كشف فشل تجميع الاختبار فقط؛ Python tests نجحت، لكن C compile توقف بسبب implicit declaration لـread_le16. لم يكن الفشل في encoder نفسه.
+- CI #1028 (ID 43433785109) على commit 2df2113: protocol-tests Success وandroid-app Success؛ كان rp2040-firmware في خطوة تثبيت ARM toolchain عند آخر فحص. لا نسجل UF2 لهذا الرأس حتى تنجح build وverify وupload.
