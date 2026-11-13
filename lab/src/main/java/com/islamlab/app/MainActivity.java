@@ -71,6 +71,12 @@ public class MainActivity extends Activity {
         warning.setBackgroundColor(0xff263142);
         page.addView(warning);
 
+        page.addView(section("محرك المجال ثلاثي الأبعاد"));
+        page.addView(label("استيراد مسارات TX وRX من CAD وحساب المجال والاقتران وطول المسار على الهاتف.", 13, 0xffd5e2ef, false));
+        Button filamentAnalysis = button("فتح تحليل الملف ثلاثي الأبعاد");
+        filamentAnalysis.setOnClickListener(v -> startActivity(new Intent(this, FilamentAnalysisActivity.class)));
+        page.addView(filamentAnalysis);
+
         page.addView(section("إعداد تجربة الإشارة"));
         page.addView(label("سعة البداية (mV)", 14, 0xffd5e2ef, true));
         amplitudeInput = field("أدخل القيمة", "1000");
