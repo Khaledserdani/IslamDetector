@@ -73,6 +73,7 @@ class AfeEngineTests(unittest.TestCase):
         self.assertLessEqual(max(d["opamp_output_v"]),3.29+1e-12)
         self.assertGreaterEqual(min(d["opamp_output_v"]),0.01-1e-12)
         c["opamp"]["closed_loop_gain"]=2.0
+        c["opamp"]["slew_rate_v_per_s"]=1e6
         m2,_=simulate_afe(wave(30.0),c)
         self.assertGreater(m2["opamp_slew_limited_sample_count"],0)
 
