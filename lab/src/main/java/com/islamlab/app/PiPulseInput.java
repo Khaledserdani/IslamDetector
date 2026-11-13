@@ -23,6 +23,7 @@ public final class PiPulseInput {
         busVoltage=vb; pulseWidth=width; clampVoltage=clamp; timeStep=dt; stopTime=stop;
     }
 
+    private static final int MAX_PATH_VERTICES=2048;
     private static boolean finite(double v){return !Double.isNaN(v)&&!Double.isInfinite(v);}
     private static double positive(JSONObject o,String key) throws JSONException {
         double v=o.getDouble(key);
@@ -32,6 +33,7 @@ public final class PiPulseInput {
     private static double[][] path(JSONObject paths,String key) throws JSONException {
         JSONArray a=paths.getJSONArray(key);
         if(a.length()<4) throw new IllegalArgumentException(key+": يلزم أربع نقاط على الأقل");
+        if(a.length()>MAX_PATH_VERTICES) throw new IllegalArgumentException(key+": تجاوزت الهندسة الحد الآمن 2048 نقطة للمسار");
         double[][] out=new double[a.length()][3];
         for(int i=0;i<a.length();i++){
             JSONArray p=a.getJSONArray(i);
@@ -63,6 +65,7 @@ public final class PiPulseInput {
         double dt=positive(pulse,"time_step_s");
         double stop=positive(pulse,"stop_time_s");
         if(stop<=width) throw new IllegalArgumentException("زمن المحاكاة يجب أن يتجاوز عرض النبضة");
+        if(Math.ceil(stop/dt)>200000) throw new IllegalArgumentException("المحاكاة تتجاوز 200 ألف خطوة زمنية");
         return new PiPulseInput(path(paths,"TX"),path(paths,"RX"),path(paths,"target_loop"),
                 ntx,nrx,nt,positive(e,"tx_resistance_ohm"),positive(e,"tx_inductance_h"),
                 positive(e,"rx_inductance_h"),positive(target,"resistance_ohm"),
