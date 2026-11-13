@@ -9,16 +9,26 @@ public final class PiPulseEngine {
         public final double mTxTarget, mTxRx, mRxTarget, normalizedInductanceDeterminant;
         public final double peakTxCurrent, txCurrentAtTurnoff, peakTargetCurrent;
         public final double peakRxVoltage, peakRxAfterTurnoff, peakRxDirect, peakRxTarget;
+        public final double rxDirectAfter1us,rxTargetAfter1us,rxTotalAfter1us;
+        public final double rxDirectAfter5us,rxTargetAfter5us,rxTotalAfter5us;
+        public final double rxDirectAfter10us,rxTargetAfter10us,rxTotalAfter10us;
+        public final double rxTargetAtTurnoff,targetCurrentAtTurnoff;
         public final double sourceEnergy, txLossEnergy, targetLossEnergy, clampEnergy, storedEnergyChange, energyResidual;
         public final double energyRelativeError;
         Result(double[] time,double[] itx,double[] it,double[] vd,double[] vt,double[] vr,double[] energy,
                double mtt,double mtr,double mrt,double normalizedDet,double ptx,double turnoff,double pt,
-               double prv,double post,double pd,double ptarget,double source,double txloss,
+               double prv,double post,double pd,double ptarget,
+               double d1,double t1,double a1,double d5,double t5,double a5,double d10,double t10,double a10,
+               double targetAtOff,double targetCurrentOff,double source,double txloss,
                double targetloss,double clamp,double delta,double residual,double relative) {
             this.time=time; txCurrent=itx; targetCurrent=it; rxDirect=vd; rxTarget=vt; rxTotal=vr; storedEnergy=energy;
             mTxTarget=mtt; mTxRx=mtr; mRxTarget=mrt; normalizedInductanceDeterminant=normalizedDet;
             peakTxCurrent=ptx; txCurrentAtTurnoff=turnoff; peakTargetCurrent=pt;
             peakRxVoltage=prv; peakRxAfterTurnoff=post; peakRxDirect=pd; peakRxTarget=ptarget;
+            rxDirectAfter1us=d1;rxTargetAfter1us=t1;rxTotalAfter1us=a1;
+            rxDirectAfter5us=d5;rxTargetAfter5us=t5;rxTotalAfter5us=a5;
+            rxDirectAfter10us=d10;rxTargetAfter10us=t10;rxTotalAfter10us=a10;
+            rxTargetAtTurnoff=targetAtOff;targetCurrentAtTurnoff=targetCurrentOff;
             sourceEnergy=source; txLossEnergy=txloss; targetLossEnergy=targetloss; clampEnergy=clamp;
             storedEnergyChange=delta; energyResidual=residual; energyRelativeError=relative;
         }
@@ -80,6 +90,17 @@ public final class PiPulseEngine {
     private static double maxAbs(double[] a,int from){
         double m=0;for(int i=from;i<a.length;i++)m=Math.max(m,Math.abs(a[i]));return m;
     }
+    private static double maxAbsAfter(double[] values,double[] time,double threshold){
+        int first=0;while(first<time.length&&time[first]<threshold)first++;
+        return first<time.length?maxAbs(values,first):0.0;
+    }
+    private static double interpolate(double[] x,double[] y,double target){
+        if(target<=x[0])return y[0];
+        for(int i=1;i<x.length;i++)if(x[i]>=target){
+            double f=(target-x[i-1])/(x[i]-x[i-1]);return y[i-1]+f*(y[i]-y[i-1]);
+        }
+        return y[y.length-1];
+    }
     private static double[] trim(double[] a,int n){double[] b=new double[n];System.arraycopy(a,0,b,0,n);return b;}
 
     public static Result simulate(PiPulseInput p) {
@@ -138,8 +159,13 @@ public final class PiPulseEngine {
         int turnoff=0;while(turnoff<n&&ta[turnoff]<p.pulseWidth-1e-15)turnoff++;
         double peakTx=maxAbs(xa,0),peakTarget=maxAbs(ya,0),peakRx=maxAbs(va,0);
         double post=maxAbs(va,turnoff),peakDirect=maxAbs(da,0),peakTargetRx=maxAbs(tva,0);
+        double d1=maxAbsAfter(da,ta,p.pulseWidth+1e-6),t1=maxAbsAfter(tva,ta,p.pulseWidth+1e-6),a1=maxAbsAfter(va,ta,p.pulseWidth+1e-6);
+        double d5=maxAbsAfter(da,ta,p.pulseWidth+5e-6),t5=maxAbsAfter(tva,ta,p.pulseWidth+5e-6),a5=maxAbsAfter(va,ta,p.pulseWidth+5e-6);
+        double d10=maxAbsAfter(da,ta,p.pulseWidth+10e-6),t10=maxAbsAfter(tva,ta,p.pulseWidth+10e-6),a10=maxAbsAfter(va,ta,p.pulseWidth+10e-6);
+        double targetAtOff=interpolate(ta,tva,p.pulseWidth),targetCurrentOff=interpolate(ta,ya,p.pulseWidth);
         return new Result(ta,xa,ya,da,tva,va,ea,mtt,mtr,mrt,normalizedDet,peakTx,
                 xa[Math.min(turnoff,n-1)],peakTarget,peakRx,post,peakDirect,peakTargetRx,
+                d1,t1,a1,d5,t5,a5,d10,t10,a10,targetAtOff,targetCurrentOff,
                 sourceEnergy,txLossEnergy,targetLossEnergy,clampEnergy,delta,residual,
                 Math.abs(residual)/Math.max(Math.abs(sourceEnergy),1e-18));
     }
