@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: islam-lab-getdp-pi-${{ github.ref_name }}
+  group: islam-lab-getdp-pi-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
   getdp-pi-crosscheck:
