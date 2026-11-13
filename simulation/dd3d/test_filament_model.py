@@ -2,7 +2,7 @@
 """Numerical verification tests for the 3D filament reference kernel."""
 import unittest
 import numpy as np
-from filament_model import circular_loop, circular_loop_axis_field, field_at_points, mutual_inductance
+from filament_model import circular_loop, circular_loop_axis_field, field_at_points, mutual_inductance, path_length_m
 
 class FilamentModelTests(unittest.TestCase):
     def test_circular_loop_axis_field_converges_to_analytic_solution(self):
@@ -14,6 +14,13 @@ class FilamentModelTests(unittest.TestCase):
             errors.append(abs(actual - exact) / exact)
         self.assertLess(errors[-1], 1e-5)
         self.assertTrue(all(errors[i + 1] < errors[i] for i in range(len(errors) - 1)))
+
+    def test_circular_path_length_matches_analytic_circumference(self):
+        radius = 0.16
+        path = circular_loop(radius, 2048)
+        actual = path_length_m(path)
+        exact = 2.0 * math.pi * radius
+        self.assertLess(abs(actual - exact) / exact, 1e-6)
 
     def test_field_scales_with_current_and_turns(self):
         loop = circular_loop(0.12, 512)
