@@ -77,6 +77,15 @@ class AfeEngineTests(unittest.TestCase):
         m2,_=simulate_afe(wave(30.0),c)
         self.assertGreater(m2["opamp_slew_limited_sample_count"],0)
 
+    def test_smaj50ca_datasheet_endpoint_limits_rx_terminal(self):
+        c=cfg()
+        c["afe"]["coil_tvs_threshold_v"]=6.4
+        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=0.049
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["coil_tvs_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_rx_terminal_voltage_v"],10.0)
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
     def test_bat54s_datasheet_iv_curve_is_used_for_input_clamp(self):
         c=cfg()
         c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.40,0.010],[0.50,0.030],[0.80,0.100]]
