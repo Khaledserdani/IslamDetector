@@ -58,3 +58,12 @@
 - ISLAM LAB artifact `14043344963` (1,975,580 bytes؛ SHA-256 `b6386e5ac292b7c21bd2ef666a6d20026e9c32d3a5d6b6e000a8e845e0975230`). ISLAM DETECTOR artifact `14043344958` (18,887 bytes؛ SHA-256 `2f5888af503e43c619185b4d62b65b6c8318cb68ee599ab6ea522c0ad39cd902`).
 - هذه artifacts تحقق Debug/CI فقط، ولا تغلق بوابة اختبار الهاتف الفعلي أو توقيع Release.
 - تشغيل Scientific simulation references رقم `43437534423` أُلغي؛ لذلك لا تُعتمد نتائجه. إعادة تشغيله وفحص مخرجاته تبقى مهمة مفتوحة.
+
+
+## متابعة نماذج الشركات — 13 نوفمبر 2026
+- تم تصحيح رابط ST إلى أرشيف PSpice الحراري الرسمي `smaj-series-thermal-pspice.zip`، وإضافة حدود زمنية لإعادة تنزيل BAT54S.
+- تم التحقق نصياً من نموذج BAT54S الرسمي: `DI_BAT54S`، diode model، مع RS=0.210Ω وCJO=13.3pF وTT=7.20ns وغيرها؛ لم ينجز transient validation بعد.
+- ST يعلن SMAJ5.0CA ثنائي الاتجاه وVRWM=5V ودرجة وصلة -55..150°C، ويعرض PSpice electro-thermal model v2.1 (09-Apr-2026). لا تُعتمد القطعة للتصميم من هذه البيانات وحدها.
+- TI تعرض OPA365 PSpice Model Rev.A `SBOC133A.ZIP`، لكن لم يتم بعد إثبات توافقه مع ngspice أو دمجه.
+- PI/AFE CI `43438186054` وAndroid CI `43438185926` ناجحان. تدقيق vendor `43438185947` بقي جارياً، لذلك لا يحقق بوابة توافق النماذج.
+- لا تغلق بوابة AFE release حتى transient testbench للحماية ونموذج OPA365 الفعلي وfeedback stability وADC واختبار العتاد.
