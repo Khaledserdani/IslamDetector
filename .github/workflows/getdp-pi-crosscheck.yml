@@ -29,11 +29,18 @@ jobs:
           bash -n simulation/getdp/run_getdp_pi_crosscheck.sh
           python3 -m py_compile simulation/getdp/analyze_getdp_pi_sweep.py
           bash simulation/getdp/run_getdp_pi_crosscheck.sh
-      - name: Upload raw GetDP fields, logs and measurements
+      - name: Upload compact raw GetDP tables and measurements
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ISLAM-LAB-GetDP-PI-target-gap-crosscheck
-          path: artifacts/getdp-pi-crosscheck/
+          name: ISLAM-LAB-GetDP-PI-target-gap-compact
+          path: |
+            artifacts/getdp-pi-crosscheck/getdp-version.txt
+            artifacts/getdp-pi-crosscheck/python-version.txt
+            artifacts/getdp-pi-crosscheck/getdp_pi_target_gap_sweep.csv
+            artifacts/getdp-pi-crosscheck/gap-*/j2.txt
+            artifacts/getdp-pi-crosscheck/gap-*/getdp.log
+            artifacts/getdp-pi-crosscheck/gap-*/gmsh.log
+            artifacts/getdp-pi-crosscheck/gap-*/model.msh
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
