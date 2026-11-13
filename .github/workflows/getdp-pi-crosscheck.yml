@@ -1,0 +1,39 @@
+name: ISLAM LAB GetDP PI target cross-check
+on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/getdp-pi-crosscheck.yml'
+      - 'simulation/getdp/**'
+      - 'simulation/elmer/pi_pulse_separate_coil.geo'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: islam-lab-getdp-pi-${{ github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  getdp-pi-crosscheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GetDP and Gmsh
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y getdp gmsh python3
+      - name: Validate model and run independent GetDP transient FEM sweep
+        run: |
+          set -euo pipefail
+          bash -n simulation/getdp/run_getdp_pi_crosscheck.sh
+          python3 -m py_compile simulation/getdp/analyze_getdp_pi_sweep.py
+          bash simulation/getdp/run_getdp_pi_crosscheck.sh
+      - name: Upload raw GetDP fields, logs and measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-GetDP-PI-target-gap-crosscheck
+          path: artifacts/getdp-pi-crosscheck/
+          if-no-files-found: warn
+          retention-days: 30
