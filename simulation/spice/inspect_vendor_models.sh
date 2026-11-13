@@ -9,7 +9,7 @@ REPORT="$ROOT/vendor_model_audit.txt"
 fetch_zip() {
   local name="$1" url="$2" dest="$ROOT/$1.zip"
   echo "FETCH $name $url" | tee -a "$REPORT"
-  curl --fail --location --retry 3 --retry-delay 2 --silent --show-error "$url" -o "$dest"
+  curl --http1.1 --fail --location --retry 6 --retry-all-errors --retry-delay 3 --retry-connrefused --silent --show-error "$url" -o "$dest"
   unzip -q "$dest" -d "$ROOT/$name"
   echo "ARCHIVE_SHA256 $(sha256sum "$dest" | awk '{print $1}')" | tee -a "$REPORT"
 }
