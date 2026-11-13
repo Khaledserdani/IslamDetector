@@ -37,17 +37,21 @@ public final class PiAfeEngine {
         double conductance=1.0/p.dampingResistance+1.0/p.seriesResistance+1.0/p.coilTvsDynamicResistance;
         return (i+v/p.seriesResistance+sign*p.coilTvsThreshold/p.coilTvsDynamicResistance)/conductance;
     }
-    private static double inputClamp(double v,PiAfeInput p){
-        double a=Math.abs(v),current=0.0;
+    private static double diodeCurveCurrent(double forwardVoltage,PiAfeInput p){
         double[] volts=p.inputClampCurveVoltage,amps=p.inputClampCurveCurrent;
-        if(volts.length<2)return clamp(v,p.inputClampThreshold,p.inputClampDynamicResistance);
-        if(a<volts[0])return 0.0;
-        int n=1;
-        while(n<volts.length&&a>volts[n])n++;
+        if(volts.length<2)return 0.0;
+        if(forwardVoltage<volts[0])return 0.0;
+        int n=1;while(n<volts.length&&forwardVoltage>volts[n])n++;
         if(n>=volts.length)n=volts.length-1;
         double dv=volts[n]-volts[n-1],di=amps[n]-amps[n-1];
-        current=amps[n-1]+(a-volts[n-1])*di/dv;
-        return v<0?-current:current;
+        return amps[n-1]+(forwardVoltage-volts[n-1])*di/dv;
+    }
+    private static double inputClamp(double v,PiAfeInput p){
+        if(p.inputClampCurveVoltage.length<2)return clamp(v,p.inputClampThreshold,p.inputClampDynamicResistance);
+        double absolute=p.referenceVoltage+v;
+        if(absolute>p.inputClampHighRail)return diodeCurveCurrent(absolute-p.inputClampHighRail,p);
+        if(absolute<p.inputClampLowRail)return -diodeCurveCurrent(p.inputClampLowRail-absolute,p);
+        return 0.0;
     }
     private static D derivative(double i,double v,double source,PiAfeInput p){
         double va=terminal(i,v,p);
