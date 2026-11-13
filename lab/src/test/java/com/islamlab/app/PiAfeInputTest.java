@@ -18,11 +18,16 @@ public class PiAfeInputTest {
         assertEquals(4.802,p.rxResistance,0.0);
         assertEquals(390,p.dampingResistance,0.0);
         assertEquals(2.0,p.opampGain,0.0);
-        assertEquals(50e6,p.gainBandwidth,0.0);
+        assertEquals(50e6,p.gainBandwidth,0.0);\n        assertEquals(5,p.inputClampCurveVoltage.length);
     }
     @Test(expected=IllegalArgumentException.class)
     public void rejectsSupplyOutsideOpa365OperatingRange() throws Exception {
         PiAfeInput.parse(json(6.0));
+    }
+    @Test(expected=IllegalArgumentException.class)
+    public void rejectsNonMonotonicInputClampCurve() throws Exception {
+        PiAfeInput.parse(json(3.3).replace("[[0.24,0.0001],[0.32,0.001],[0.4,0.01],[0.5,0.03],[0.8,0.1]]",
+                "[[0.24,0.0001],[0.32,0.001],[0.30,0.01]]"));
     }
     @Test public void defaultsUseOfficialRxResistanceAndNominalOpaLimits(){
         PiAfeInput p=PiAfeInput.defaults();
