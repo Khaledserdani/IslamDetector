@@ -1,0 +1,17 @@
+{
+  "rx_coil": {
+    "resistance_ohm": 4.8,
+    "inductance_h": 0.00075
+  },
+  "afe": {
+    "parallel_damping_ohm": 390,
+    "series_protection_ohm": 1000,
+    "input_capacitance_f": 2e-9,
+    "input_bias_ohm": 1000000,
+    "clamp_threshold_v": 0.35,
+    "clamp_dynamic_resistance_ohm": 5
+  },
+  "integration": {
+    "max_step_s": 2.5e-7
+  }
+}
