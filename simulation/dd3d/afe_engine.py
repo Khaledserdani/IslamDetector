@@ -99,9 +99,30 @@ def simulate_afe(waveform, config):
         return np.array([di,dv]),(va,iseries,itvs,iclamp)
     def source_at(x):
         return float(np.interp(x,t,emf))
+    def clamp_power_components(vnode, current):
+        # Split energy removed from the signal node into diode dissipation and
+        # energy exchanged with the 0..VDD steering rails. This matters because
+        # vnode is measured relative to Vref, not relative to either rail.
+        if current == 0.0:
+            return 0.0, 0.0
+        magnitude = abs(current)
+        if clamp_curve is None:
+            diode_drop = max(0.0, abs(vnode) - vclamp)
+            rail_distance = vclamp
+        elif current > 0.0:
+            absolute_voltage = vref + vnode
+            diode_drop = max(0.0, absolute_voltage - clamp_high)
+            rail_distance = max(0.0, clamp_high - vref)
+        else:
+            absolute_voltage = vref + vnode
+            diode_drop = max(0.0, clamp_low - absolute_voltage)
+            rail_distance = max(0.0, vref - clamp_low)
+        return diode_drop * magnitude, rail_distance * magnitude
+
     def powers(state, source):
         icoil,vnode=state
         _,(va,iseries,itvs,iclamp)=deriv(state,source)
+        clamp_diode_power,clamp_rail_power=clamp_power_components(vnode,iclamp)
         return np.array([
             source*icoil,
             rcoil*icoil*icoil,
@@ -109,7 +130,8 @@ def simulate_afe(waveform, config):
             va*itvs,
             rseries*iseries*iseries,
             vnode*vnode/rbias,
-            vnode*iclamp
+            clamp_diode_power,
+            clamp_rail_power
         ])
     def step(state,ta,h):
         s1=source_at(ta); s2=source_at(ta+h/2); s4=source_at(ta+h)
@@ -187,7 +209,9 @@ def simulate_afe(waveform, config):
         "series_resistor_loss_j":float(totals[4]),
         "bias_resistor_loss_j":float(totals[5]),
         "coil_tvs_absorbed_energy_j":float(totals[3]),
-        "input_clamp_absorbed_energy_j":float(totals[6]),
+        "input_clamp_absorbed_energy_j":float(totals[6]+totals[7]),
+        "input_clamp_diode_loss_j":float(totals[6]),
+        "input_clamp_rail_energy_j":float(totals[7]),
         "stored_energy_change_j":delta,
         "energy_balance_residual_j":residual,
         "energy_balance_relative_error":abs(residual)/max(abs(totals[0]),1e-18),
