@@ -80,7 +80,7 @@ class AfeEngineTests(unittest.TestCase):
     def test_smaj50ca_datasheet_endpoint_limits_rx_terminal(self):
         c=cfg()
         c["afe"]["coil_tvs_threshold_v"]=6.4
-        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=0.049
+        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=(9.2-6.4)/43.5
         m,d=simulate_afe(wave(30.0),c)
         self.assertGreater(m["coil_tvs_absorbed_energy_j"],0.0)
         self.assertLess(m["peak_abs_rx_terminal_voltage_v"],10.0)
