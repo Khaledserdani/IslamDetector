@@ -76,7 +76,7 @@ public final class PiAfeEngine {
     public static Result simulate(double[] times,double[] emf,PiAfeInput p){
         if(times==null||emf==null||times.length<3||times.length!=emf.length)throw new IllegalArgumentException("موجة RX غير صالحة");
         for(int i=0;i<times.length;i++){
-            if(!Double.isFinite(times[i])||!Double.isFinite(emf[i])||(i>0&&times[i]<=times[i-1]))throw new IllegalArgumentException("عينات الزمن أو الجهد غير صالحة");
+            if((Double.isNaN(times[i])||Double.isInfinite(times[i]))||(Double.isNaN(emf[i])||Double.isInfinite(emf[i]))||(i>0&&times[i]<=times[i-1]))throw new IllegalArgumentException("عينات الزمن أو الجهد غير صالحة");
         }
         double span=times[times.length-1]-times[0];
         if(span/p.maxStep>500000)throw new IllegalArgumentException("AFE يتجاوز 500 ألف خطوة");
