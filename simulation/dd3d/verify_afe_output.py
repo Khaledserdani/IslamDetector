@@ -9,7 +9,7 @@ if not wave.is_file() or m["sample_count"]<100:
     raise SystemExit("FAIL: AFE waveform missing or too short")
 if m["energy_balance_relative_error"]>3e-4:
     raise SystemExit(f"FAIL: AFE energy residual {m['energy_balance_relative_error']}")
-for key in ("peak_abs_induced_emf_v","peak_abs_rx_terminal_voltage_v","peak_abs_afe_input_voltage_v"):
+for key in ("peak_abs_induced_emf_v","peak_abs_rx_terminal_voltage_v","peak_abs_afe_input_voltage_v","opamp_peak_output_v"):
     if not math.isfinite(m[key]) or m[key]<0: raise SystemExit(f"FAIL: invalid metric {key}")
-print("PASS: RX/AFE waveform and passive energy balance verified")
-print(f"AFE input peak: {m['peak_abs_afe_input_voltage_v']:.9g} V; clamp energy: {m['coil_tvs_absorbed_energy_j']+m['input_clamp_absorbed_energy_j']:.9g} J")
+print("PASS: RX/AFE waveform, passive energy balance and OPA output verified")
+print("OPA output range: %.6g..%.6g V" % (m["opamp_min_output_v"],m["opamp_peak_output_v"]))
