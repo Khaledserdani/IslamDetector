@@ -62,7 +62,7 @@ def simulate_afe(waveform, config):
         return 0.0
     clamp_low=float(afe.get("input_clamp_low_rail_v",vlow))
     clamp_high=float(afe.get("input_clamp_high_rail_v",vhigh))
-    if not math.isfinite(clamp_low) or not math.isfinite(clamp_high) or clamp_high<=clamp_low:
+    if not math.isfinite(clamp_low) or not math.isfinite(clamp_high) or clamp_low<vlow or clamp_high>vhigh or clamp_high<=clamp_low:
         raise ValueError("input clamp rails must be finite and ordered")
     def diode_curve_current(forward_voltage):
         if forward_voltage<clamp_curve[0,0]:return 0.0
