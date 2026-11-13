@@ -8,12 +8,16 @@ public final class PiAfeInput {
     public final double rxResistance,rxInductance,dampingResistance,seriesResistance;
     public final double inputCapacitance,biasResistance,coilTvsThreshold,coilTvsDynamicResistance;
     public final double inputClampThreshold,inputClampDynamicResistance,maxStep;
+    public final double opampGain,supplyLow,supplyHigh,referenceVoltage,gainBandwidth,slewRate,outputHeadroom;
 
     PiAfeInput(double rr,double ll,double rd,double rs,double c,double rb,
-            double tv,double rtv,double iv,double riv,double step){
+            double tv,double rtv,double iv,double riv,double step,
+            double gain,double low,double high,double reference,double gbw,double slew,double headroom){
         rxResistance=rr;rxInductance=ll;dampingResistance=rd;seriesResistance=rs;
         inputCapacitance=c;biasResistance=rb;coilTvsThreshold=tv;coilTvsDynamicResistance=rtv;
         inputClampThreshold=iv;inputClampDynamicResistance=riv;maxStep=step;
+        opampGain=gain;supplyLow=low;supplyHigh=high;referenceVoltage=reference;
+        gainBandwidth=gbw;slewRate=slew;outputHeadroom=headroom;
     }
     private static double positive(JSONObject o,String k)throws JSONException{
         double v=o.getDouble(k);
@@ -32,7 +36,7 @@ public final class PiAfeInput {
     public static PiAfeInput parse(String json)throws JSONException{
         JSONObject root=new JSONObject(json);
         JSONObject rx=root.getJSONObject("rx_coil"),afe=root.getJSONObject("afe");
-        JSONObject integration=root.optJSONObject("integration");
+        JSONObject integration=root.optJSONObject("integration");\n        JSONObject op=root.optJSONObject("opamp");
         double tv=nonnegative(afe,"coil_tvs_threshold_v");
         double iv=nonnegative(afe,"clamp_threshold_v");
         double step=integration==null?10e-9:positive(integration,"max_step_s");
@@ -40,6 +44,6 @@ public final class PiAfeInput {
                 positive(afe,"parallel_damping_ohm"),positive(afe,"series_protection_ohm"),
                 positive(afe,"input_capacitance_f"),positive(afe,"input_bias_ohm"),
                 tv,positive(afe,"coil_tvs_dynamic_resistance_ohm"),iv,
-                positive(afe,"clamp_dynamic_resistance_ohm"),step);
+                positive(afe,"clamp_dynamic_resistance_ohm"),step,gain,low,high,reference,gbw,slew,headroom);
     }
 }
