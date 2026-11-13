@@ -4,7 +4,9 @@ on:
     branches: [ feature/islam-lab-foundation ]
     paths:
       - '.github/workflows/getdp-pi-crosscheck.yml'
-      - 'simulation/getdp/**'
+      - 'simulation/getdp/pi_pulse_axisymmetric.pro'
+      - 'simulation/getdp/run_getdp_pi_crosscheck.sh'
+      - 'simulation/getdp/analyze_getdp_pi_sweep.py'
       - 'simulation/elmer/pi_pulse_separate_coil.geo'
   workflow_dispatch:
 permissions:
