@@ -11,7 +11,7 @@ ROOT = Path(sys.argv[1])
 # Axisymmetric volume of the modelled solid aluminium disk: radius 0.25 m,
 # thickness 0.005 m. This is the exact volume implied by the shared Gmsh geometry.
 TARGET_VOLUME_M3 = math.pi * 0.250**2 * 0.005
-NUMBER = re.compile(r"[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?")
+NUMBER = re.compile(r"[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
 
 def read_table(path: Path):
     rows = []
