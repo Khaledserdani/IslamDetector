@@ -844,3 +844,11 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - PIO ADS8861 مدمج في مشروع RP2040 لكن معطل افتراضياً؛ لا يوجد ADC loopback أو قياس timing/jitter على لوحة.
 - لا توجد قياسات ملف DCR/L/قطبية/transient/clip-release؛ ولا قيم حماية TX/RX أو gain أو REF driver نهائية.
 - التالي: تنفيذ ESP-IDF UART task مع RX ring buffer وoverflow recovery وGET_INFO، وربطه بطبقة الجلسة، ثم اختبار UART loopback؛ بعد ذلك اختبار PIO/ADS8861 على طاولة منخفضة الجهد قبل KiCad أو BOM أو TX power.
+
+
+### 20.1 سجل commits لهذا التشغيل
+
+- 83e24b575c7997c341b2b2ea6296901c7ca107e8 — إصلاح فواصل الأسطر في سجل Android ومنع تصدير CSV فارغ برأس فقط.
+- bc4197cce61fa0b50fc1f2e1bb1cf3702a18d7ee — إضافة طبقة DEVICE_INFO-gated session، اختبارات ADS8861/ADS7054، تحديث CMake وCI والوثائق.
+- CI #996 على commit 83e24b5 اكتمل Success في Android.
+- CI #1001، ID 43432913691، على commit bc4197c: protocol-tests وandroid-app اكتملتا Success؛ rp2040-firmware كان لا يزال قيد البناء عند آخر فحص. لذلك لا نسجل UF2 جديداً لهذا الرأس حتى يكتمل Verify/Upload. آخر UF2 مؤكد يبقى Artifact CI #711، SHA-256 المسجل في القسم أعلاه.
