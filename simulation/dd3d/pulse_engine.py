@@ -125,6 +125,7 @@ def simulate_pulse(config):
     tx_blocked = False
     source_energy = tx_loss_energy = target_loss_energy = clamp_energy = 0.0
     t, state = 0.0, states[0].copy()
+    clamp_zero_event_time = None
     while t < stop - max(1e-15, stop * 1e-14):
         drive_on = t < width - max(1e-15, width * 1e-14)
         boundary = width if drive_on else stop
@@ -147,6 +148,7 @@ def simulate_pulse(config):
                 else:
                     hi = mid
             h = hi
+            clamp_zero_event_time = t + h
             new_state, integrals = rk4_step(state, h, False, False)
             new_state[0] = 0.0
             tx_blocked = True
@@ -180,6 +182,10 @@ def simulate_pulse(config):
     vrx_from_flux = -np.gradient(rx_flux_linkage, times_a, edge_order=2)
     smooth_mask = ((times_a > times_a[0]) & (times_a < times_a[-1])
                    & (np.abs(times_a - width) > 2.5 * dt_nominal))
+    # The one-way clamp creates a second derivative discontinuity when TX
+    # current reaches zero; exclude that event from the smooth-region metric.
+    if clamp_zero_event_time is not None:
+        smooth_mask &= np.abs(times_a - clamp_zero_event_time) > 2.5 * dt_nominal
     if np.count_nonzero(smooth_mask) >= 3:
         flux_derivative_error = float(
             np.sqrt(np.mean((vrx_from_flux[smooth_mask] - vrx_total[smooth_mask]) ** 2))
@@ -206,6 +212,7 @@ def simulate_pulse(config):
         "inductance_matrix_eigenvalues_h": eigenvalues.tolist(),
         "peak_abs_tx_current_a": float(np.max(np.abs(itx))),
         "tx_current_at_turnoff_a": float(np.interp(width, times_a, itx)),
+        "tx_clamp_zero_event_time_s": clamp_zero_event_time,
         "peak_abs_target_loop_current_a": float(np.max(np.abs(itarget))),
         "peak_abs_rx_voltage_v": float(np.max(np.abs(vrx_total))),
         "peak_abs_rx_voltage_from_flux_derivative_v": float(np.max(np.abs(vrx_from_flux))),
