@@ -12,8 +12,16 @@ extern "C" {
 #define REV_A_PROTOCOL_VERSION       1u
 #define REV_A_SYNC_BYTE_0             0x49u
 #define REV_A_SYNC_BYTE_1             0x53u
+#define REV_A_TYPE_HELLO              0x01u
+#define REV_A_TYPE_GET_INFO           0x02u
+#define REV_A_TYPE_START              0x03u
+#define REV_A_TYPE_STOP               0x04u
+#define REV_A_TYPE_SET_PROFILE        0x05u
+#define REV_A_TYPE_SELF_TEST          0x06u
+#define REV_A_TYPE_ACK                0x80u
 #define REV_A_TYPE_MEASUREMENT        0x10u
 #define REV_A_TYPE_DEVICE_INFO        0x82u
+#define REV_A_MAX_COMMAND_FRAME_SIZE  9u
 #define REV_A_MAX_SAMPLES             8u
 #define REV_A_MAX_FRAME_SIZE          49u
 #define REV_A_PARSER_CAPACITY         64u
@@ -84,6 +92,15 @@ typedef struct {
 } rev_a_parser_t;
 
 uint16_t rev_a_crc16_ccitt_false(const uint8_t *data, size_t length);
+
+/* Encode HELLO/GET_INFO/START/STOP/SELF_TEST (no payload) or SET_PROFILE (1 byte). */
+bool rev_a_encode_command(
+    uint8_t command_type,
+    const uint8_t *payload,
+    uint8_t payload_length,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length);
 
 bool rev_a_decode_measurement(
     const uint8_t *frame,

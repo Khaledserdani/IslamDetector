@@ -102,9 +102,18 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 | ACTIVE_PROFILE_ID | 1 | جدول التأخيرات النشط |
 | PROFILE_CRC32 | 4 | CRC32/ISO-HDLC لجدول الملف |
 
-مرجع Python الحالي يدعم MEASUREMENT وDEVICE_INFO في stream decoder؛ رسائل ACK وأوامر التحكم ما زالت مواصفة وليست تنفيذاً برمجياً كاملاً.
+مرجع Python ومحلل C يدعمان MEASUREMENT وDEVICE_INFO. أضيف في C encoder لإطارات HELLO وGET_INFO وSTART وSTOP وSELF_TEST دون payload، وSET_PROFILE مع بايت واحد لمعرف الملف. هذا لا ينفذ مستقبل الأوامر في RP2040 ولا ACK حتى الآن؛ كما أن قائمة profile IDs المسموحة يجب أن يفرضها Firmware ولا يختارها encoder.
 
 يجب على ESP32-S3 طلب DEVICE_INFO عند الاتصال أو إعادة الاتصال، وحفظ هذه البيانات مع جلسة القياس. عند ADS8861، يحول التطبيق raw16 إلى signed int16 وفق SAMPLE_FORMAT_ID=0x01، مع الاحتفاظ بالـraw الأصلي. إذا تغير ADC_MODEL_ID أو SAMPLE_FORMAT_ID، لا تخلط البيانات مع جلسة قديمة. تركيبات metadata المقبولة: ADS8861=(two's-complement,16,differential)، ADS8860=(unsigned,16,single-ended)، ADS7054=(two's-complement,14,differential)، AD7980=(unsigned,16,pseudo-differential). في ADS7054 يحفظ Firmware كود14-bit right-justified داخل حاوية16-bit، وتكون البتات العليا صفراً؛ يطبق التطبيق sign-extension من bit13 وفق ADC_RESOLUTION_BITS=14.
+
+### 5.2 ترميز أوامر ESP32-S3
+
+الدالة rev_a_encode_command() تنشئ إطاراً كاملاً بنفس SYNC/VERSION/LENGTH/CRC16:
+- HELLO وGET_INFO وSTART وSTOP وSELF_TEST: لا payload، LENGTH=4، والإطار8 بايت.
+- SET_PROFILE: بايت واحد فقط لمعرف الملف، LENGTH=5، والإطار9 بايت.
+- ترفض الدالة أنواع الأوامر غير المعروفة وأطوال payload غير المطابقة والسعة غير الكافية.
+- لا تعتمد الدالة profile ID ولا تثبت أنه آمن؛ يجب أن يتحقق RP2040 من allowlist ثابتة قبل تنفيذ SET_PROFILE.
+- ACK ومتلقي الأوامر على RP2040، وربط GET_INFO بالـUART task على ESP32، لم تنفذ بعد.
 
 ## 6. سلوك الأمان
 

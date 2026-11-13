@@ -11,6 +11,10 @@
 
 The decoder validates SYNC, protocol version, body length, sample count, valid mask, sweep-complete flag, non-zero pulse rate, CRC-16/CCITT-FALSE and the supported ADC metadata combinations. It preserves raw sample words. `rev_a_interpret_sample()` converts a raw word only when the DEVICE_INFO format and resolution are supplied; ADS8861 is signed 16-bit two's-complement, while ADS7054 is right-justified signed 14-bit.
 
+## Command frame encoder
+
+`rev_a_encode_command()` builds CRC-protected HELLO, GET_INFO, START, STOP and SELF_TEST frames with no payload, plus SET_PROFILE with exactly one profile-ID byte. The encoder does not decide which profile IDs are safe; the RP2040 firmware must enforce its own allowlist. ACK generation/handling and the RP2040 command receiver are not implemented yet.
+
 ## Integration contract
 
 1. Create one `rev_a_parser_t` per UART stream and call `rev_a_parser_feed()` for every byte block returned by the ESP-IDF UART driver.

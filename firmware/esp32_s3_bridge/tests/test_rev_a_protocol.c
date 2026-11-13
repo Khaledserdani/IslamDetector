@@ -96,6 +96,41 @@ static void collect_frame(void *context, const rev_a_frame_t *frame) {
 
 int main(void) {
     CHECK(rev_a_crc16_ccitt_false((const uint8_t *)"123456789", 9u) == 0x29B1u);
+    uint8_t command_frame[REV_A_MAX_COMMAND_FRAME_SIZE];
+    size_t command_length = 0u;
+    CHECK(rev_a_encode_command(
+        REV_A_TYPE_GET_INFO, NULL, 0u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(command_length == 8u);
+    CHECK(command_frame[0] == REV_A_SYNC_BYTE_0);
+    CHECK(command_frame[1] == REV_A_SYNC_BYTE_1);
+    CHECK(command_frame[3] == REV_A_TYPE_GET_INFO);
+    CHECK(read_le16(&command_frame[4]) == 4u);
+    CHECK(read_le16(&command_frame[6]) ==
+          rev_a_crc16_ccitt_false(&command_frame[2], 4u));
+
+    const uint8_t profile_id = 2u;
+    CHECK(rev_a_encode_command(
+        REV_A_TYPE_SET_PROFILE, &profile_id, 1u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(command_length == 9u);
+    CHECK(command_frame[3] == REV_A_TYPE_SET_PROFILE);
+    CHECK(read_le16(&command_frame[4]) == 5u);
+    CHECK(command_frame[6] == profile_id);
+    CHECK(read_le16(&command_frame[7]) ==
+          rev_a_crc16_ccitt_false(&command_frame[2], 5u));
+    CHECK(!rev_a_encode_command(
+        REV_A_TYPE_GET_INFO, &profile_id, 1u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(!rev_a_encode_command(
+        REV_A_TYPE_SET_PROFILE, NULL, 0u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(!rev_a_encode_command(
+        0x7Fu, NULL, 0u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(!rev_a_encode_command(
+        REV_A_TYPE_SET_PROFILE, &profile_id, 1u,
+        command_frame, 8u, &command_length));
 
     uint8_t measurement_bytes[REV_A_MAX_FRAME_SIZE];
     const size_t measurement_length = make_measurement(measurement_bytes);

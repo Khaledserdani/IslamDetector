@@ -282,3 +282,8 @@ E_L(t) = 0.5 × L × I(t)^2
 5. تبقى raw16 والكلمات غير الصالحة محفوظة؛ لا تفسر إلا عينات VALID_MASK.
 
 تم اختبار هذه الطبقة على المضيف في CI، بما في ذلك ADS8861 two's-complement 16-bit وADS7054 signed 14-bit. هذا لا يعني أن UART peripheral أو FreeRTOS task قد نُفذ على ESP32-S3؛ تلك هي الخطوة التالية، يليها loopback مادي.
+
+
+### 16.2 ترميز أوامر GET_INFO
+
+أضيف encoder محمول لإطارات HELLO وGET_INFO وSTART وSTOP وSELF_TEST وSET_PROFILE، مع CRC16 واختبارات لطول الإطار ورفض payload غير الصحيح. أصبح بناء إطار GET_INFO جاهزاً للاستخدام من UART task، لكن لا توجد بعد تهيئة UART أو إرسال فعلي على ESP32-S3، ولا مستقبل أو ACK على RP2040. لم تُحدد أرجل ESP32-S3 لأن نوع لوحة التطوير وتوصيلاتها الفعلية لم يحسما؛ لا نختار GPIO بالتخمين.

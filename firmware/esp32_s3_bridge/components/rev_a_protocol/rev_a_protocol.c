@@ -46,6 +46,63 @@ static bool valid_adc_metadata(
     }
 }
 
+bool rev_a_encode_command(
+    uint8_t command_type,
+    const uint8_t *payload,
+    uint8_t payload_length,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length) {
+    if (frame_length == NULL) {
+        return false;
+    }
+    *frame_length = 0u;
+    if (frame == NULL) {
+        return false;
+    }
+
+    const bool no_payload_command =
+        command_type == REV_A_TYPE_HELLO
+        || command_type == REV_A_TYPE_GET_INFO
+        || command_type == REV_A_TYPE_START
+        || command_type == REV_A_TYPE_STOP
+        || command_type == REV_A_TYPE_SELF_TEST;
+
+    if (no_payload_command) {
+        if (payload_length != 0u) {
+            return false;
+        }
+    } else if (command_type == REV_A_TYPE_SET_PROFILE) {
+        if (payload == NULL || payload_length != 1u) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    const uint16_t body_length = (uint16_t)(4u + payload_length);
+    const size_t total_length = (size_t)body_length + 4u;
+    if (frame_capacity < total_length) {
+        return false;
+    }
+
+    frame[0] = REV_A_SYNC_BYTE_0;
+    frame[1] = REV_A_SYNC_BYTE_1;
+    frame[2] = REV_A_PROTOCOL_VERSION;
+    frame[3] = command_type;
+    frame[4] = (uint8_t)(body_length & 0xFFu);
+    frame[5] = (uint8_t)(body_length >> 8);
+    if (payload_length != 0u) {
+        memcpy(&frame[6], payload, payload_length);
+    }
+
+    const uint16_t crc = rev_a_crc16_ccitt_false(&frame[2], body_length);
+    frame[6u + payload_length] = (uint8_t)(crc & 0xFFu);
+    frame[7u + payload_length] = (uint8_t)(crc >> 8);
+    *frame_length = total_length;
+    return true;
+}
+
 uint16_t rev_a_crc16_ccitt_false(const uint8_t *data, size_t length) {
     uint16_t crc = 0xFFFFu;
     if (data == NULL && length != 0u) {
