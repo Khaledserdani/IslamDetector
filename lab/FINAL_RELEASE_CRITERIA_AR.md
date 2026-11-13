@@ -78,3 +78,11 @@
 
 ### تقرير Android — شفافية طاقة الحماية
 - يجب أن يعرض تقرير AFE كلاً من `inputClampDiodeLoss` و`inputClampRailEnergy`، إضافة إلى `inputClampEnergy` الإجمالي. تم تنفيذ ذلك في `PiPulseAnalysisActivity`; ينتظر تحقق Android CI.
+
+
+## بوابة توحيد Python/Android — تشغيل اعتماد واحد
+يجب أن يجتاز Android CI على رأس فرع يحتوي كلاً من:
+- حقول `inputClampDiodeLoss` و`inputClampRailEnergy` في `PiAfeEngine.Result`.
+- اختبار `railSteeringEnergyIsSplitFromSchottkyJunctionLoss`.
+- عرض فقد الوصلة وطاقة السكة منفصلين في تقرير `PiPulseAnalysisActivity`.
+لا تعتمد هذه المرحلة إلا بعد نجاح `:lab:testDebugUnitTest` وبناء APK وفحص الحزم. لا تُعد حزمة Debug إصداراً نهائياً.
