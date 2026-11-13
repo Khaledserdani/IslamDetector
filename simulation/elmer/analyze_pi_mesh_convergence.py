@@ -95,7 +95,8 @@ for gap in GAPS_MM:
         "time_integral_absJdV_coarse_to_medium": rel(coarse["time_integral_absJdV"], medium["time_integral_absJdV"]),
         "time_integral_absJdV_medium_to_fine": rel(medium["time_integral_absJdV"], fine["time_integral_absJdV"]),
     }
-    converged = all(v < 0.05 for v in errors.values())
+    fine_errors = {k: v for k, v in errors.items() if k.endswith("_medium_to_fine")}
+    converged = len(fine_errors) == 3 and all(v < 0.05 for v in fine_errors.values())
     for divisions in DIVISIONS:
         row = {"gap_mm": gap, "refinement_divisions": divisions, **metrics[divisions]}
         rows.append(row)
@@ -104,7 +105,7 @@ for gap in GAPS_MM:
     print(f"{gap} mm: n=3/5/8 peak RMS = " +
           " / ".join(f"{metrics[d]['peak_rms']:.8g}" for d in DIVISIONS))
     print(f"{gap} mm: medium-to-fine relative errors = " +
-          ", ".join(f"{k}={v:.3%}" for k, v in errors.items()))
+          ", ".join(f"{k}={v:.3%}" for k, v in fine_errors.items()))
     print(f"{gap} mm: {'CONVERGED (<5% on all three metrics)' if converged else 'NOT CONVERGED (<5% criterion not met)'}")
 
 out = ROOT / "mesh_convergence_summary.csv"
