@@ -89,7 +89,8 @@ public final class PiPulseEngine {
             x+=h*(k1.tx+2*k2.tx+2*k3.tx+k4.tx)/6.0;
             y+=h*(k1.target+2*k2.target+2*k3.target+k4.target)/6.0;
             t+=h;
-            Derivative deriv=derivative(x,y,ltx,lt,p.txResistance,p.targetResistance,mtt,d2,p.busVoltage,p.clampVoltage,on);
+            boolean sampleOn=t<p.pulseWidth-Math.max(1e-15,p.pulseWidth*1e-14);
+            Derivative deriv=derivative(x,y,ltx,lt,p.txResistance,p.targetResistance,mtt,d2,p.busVoltage,p.clampVoltage,sampleOn);
             time[n]=t; itx[n]=x; it[n]=y;
             vd[n]=-mtr*deriv.tx; vt[n]=-mrt*deriv.target; vr[n]=vd[n]+vt[n];
             stored[n]=energy(x,y,ltx,lt,mtt);
