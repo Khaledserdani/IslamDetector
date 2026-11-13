@@ -22,7 +22,7 @@ public final class PiAfeInput {
     }
     private static double nonnegative(JSONObject o,String k)throws JSONException{
         double v=o.optDouble(k,0.0);
-        if(!Double.isFinite(v)||v<0)throw new IllegalArgumentException(k+" يجب ألا يكون سالباً");
+        if(Double.isNaN(v)||Double.isInfinite(v)||v<0)throw new IllegalArgumentException(k+" يجب ألا يكون سالباً");
         return v;
     }
     public static PiAfeInput defaults(){
