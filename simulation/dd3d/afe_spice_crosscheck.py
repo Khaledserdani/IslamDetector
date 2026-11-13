@@ -39,13 +39,13 @@ def main():
       "* ISLAM LAB linear RX/AFE cross-check; nonlinear clamps intentionally disabled",
       f"VEMF src 0 PWL(\n"+"\n".join(pwl)+"\n)",
       f"RCOIL src ncoil {float(rx['resistance_ohm']):.12g}",
-      f"LCOIL ncoil rx {float(rx['inductance_h']):.12g}",
+      f"LCOIL ncoil rx {float(rx['inductance_h']):.12g} IC=0",
       f"RDAMP rx 0 {float(cfgafe['parallel_damping_ohm']):.12g}",
       f"RPROTECT rx afe {float(cfgafe['series_protection_ohm']):.12g}",
-      f"CIN afe 0 {float(cfgafe['input_capacitance_f']):.12g}",
+      f"CIN afe 0 {float(cfgafe['input_capacitance_f']):.12g} IC=0",
       f"RBIAS afe 0 {float(cfgafe['input_bias_ohm']):.12g}",
       ".control","set noaskquit","set wr_singlescale",
-      "tran 2.5n 6e-4 0 2.5n",
+      "tran 2.5n 6e-4 0 2.5n uic",
       f"wrdata {data.name} v(rx) v(afe) i(LCOIL)",
       "quit",".endc",".end"
     ]
