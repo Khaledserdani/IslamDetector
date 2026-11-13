@@ -55,6 +55,10 @@ jobs:
         working-directory: simulation/dd3d
         run: |
           python afe_spice_crosscheck.py ../../artifacts/dd3d-pulse-reference/pulse_waveform.csv sample_afe_config.json --output-dir ../../artifacts/dd3d-pulse-reference/spice
+      - name: Compare BAT54S vendor SPICE model with datasheet VF limits
+        working-directory: simulation/dd3d
+        run: |
+          python bat54s_spice_crosscheck.py --output-dir ../../artifacts/dd3d-pulse-reference/bat54s
       - name: Archive pulse-engine reference waveform
         uses: actions/upload-artifact@v4
         with:
