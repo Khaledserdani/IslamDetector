@@ -89,7 +89,7 @@ def simulate_afe(waveform, config):
         integ=h*(p[0]+2*p[1]+2*p[2]+p[3])/6
         return state+h*(k1+2*k2+2*k3+k4)/6,integ
     out_t=[float(t[0])]; out_i=[0.0]; out_v=[0.0]; out_va=[0.0]; out_is=[0.0]; out_itvs=[0.0]; out_ic=[0.0]
-    state=np.array([0.0,0.0]); totals=np.zeros(6)
+    state=np.array([0.0,0.0]); totals=np.zeros(7)
     for idx in range(len(t)-1):
         left=float(t[idx]); right=float(t[idx+1]); span=right-left
         count=max(1,int(math.ceil(span/max_step)))
@@ -121,8 +121,8 @@ def simulate_afe(waveform, config):
         "source_energy_j":float(totals[0]),
         "rx_copper_loss_j":float(totals[1]),
         "damping_loss_j":float(totals[2]),
-        "series_resistor_loss_j":float(totals[3]),
-        "bias_resistor_loss_j":float(totals[4]),
+        "series_resistor_loss_j":float(totals[4]),
+        "bias_resistor_loss_j":float(totals[5]),
         "coil_tvs_absorbed_energy_j":float(totals[3]),
         "input_clamp_absorbed_energy_j":float(totals[6]),
         "stored_energy_change_j":delta,
