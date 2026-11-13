@@ -53,10 +53,12 @@ def simulate_afe(waveform, config):
         if v< -threshold: return (v+threshold)/dynamic_r
         return 0.0
     def terminal_voltage(icoil,vnode):
-        # Solve KCL at the RX coil terminal with a possible bidirectional TVS.
-        # f(Va)=Va/Rdamp + I_TVS(Va) + (Va-Vin)/Rseries - Icoil = 0.
-        lo=min(-100.0,(vnode-rseries*abs(icoil)-10.0))
-        hi=max(100.0,(vnode+rseries*abs(icoil)+10.0))
+        # Closed-form passive solution when the coil TVS is not conducting.
+        linear=rdamp*(rseries*icoil+vnode)/(rdamp+rseries)
+        if coil_vt<=0 or abs(linear)<=coil_vt: return linear
+        # Otherwise solve KCL with the bidirectional TVS.
+        lo=-(abs(vnode)+abs(icoil)*(rdamp+rseries)+coil_vt+20.0)
+        hi=abs(vnode)+abs(icoil)*(rdamp+rseries)+coil_vt+20.0
         for _ in range(64):
             mid=0.5*(lo+hi)
             itvs=clamp_current(mid,coil_vt,coil_rt) if coil_vt>0 else 0.0
