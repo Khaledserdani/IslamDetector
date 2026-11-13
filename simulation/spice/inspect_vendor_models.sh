@@ -87,8 +87,8 @@ else
   exit 1
 fi
 
-find "$ROOT" -type f \( -iname '*.lib' -o -iname '*.cir' -o -iname '*.mod' -o -iname '*.txt' \) \
-  ! -name 'vendor_model_audit.txt' | sort > "$ROOT/model_files.txt"
+find "$ROOT" -type f \( -iname '*.lib' -o -iname '*.mod' -o -iname '*.spice.txt' \) \
+  | sort > "$ROOT/model_files.txt"
 
 while IFS= read -r model; do
   [[ -s "$model" ]] || continue
@@ -120,5 +120,50 @@ while IFS= read -r model; do
     grep -iE 'error|unknown|syntax|undefined|cannot' "$log" | head -n 12 | sed 's/^/  /' | tee -a "$REPORT" || true
   fi
 done < "$ROOT/model_files.txt"
+
+OPA_LIB="$(find "$ROOT/ti-opa365" -type f -iname 'OPA365.lib' -print -quit)"
+if [[ -z "$OPA_LIB" ]] || ! grep -qiE '^[[:space:]]*\.subckt[[:space:]]+OPA365[[:space:]]+3[[:space:]]+4[[:space:]]+5[[:space:]]+2[[:space:]]+1' "$OPA_LIB"; then
+  echo "OPA365_TRANSIENT_TEST FAIL: official subcircuit or expected pin order not found" | tee -a "$REPORT"
+  exit 1
+fi
+cat > "$ROOT/opa365_closed_loop.cir" <<EOF
+* OPA365 official TI macromodel; pins: +IN, -IN, V+, V-, OUT.
+.include "$OPA_LIB"
+VCC vcc 0 3.3
+VEE vee 0 0
+VREF ref 0 1.65
+VIN in 0 PULSE(1.65 1.66 1u 20n 20n 2u 5u)
+RG nminus ref 10k
+RF out nminus 10k
+XU1 in nminus vcc vee out OPA365
+CLOAD out 0 10p
+.control
+set noaskquit
+tran 5n 8u
+meas tran vout_peak MAX v(out) FROM=1u TO=4u
+meas tran vout_final FIND v(out) AT=7u
+quit
+.endc
+.end
+EOF
+if ngspice -b -o "$ROOT/opa365_closed_loop.log" "$ROOT/opa365_closed_loop.cir" >/dev/null 2>&1; then
+  python3 - "$ROOT/opa365_closed_loop.log" <<'PY'
+import re,sys
+s=open(sys.argv[1],encoding="utf-8",errors="replace").read()
+def value(name):
+    m=re.search(rf"\b{name}\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)",s,re.I)
+    if not m: raise SystemExit(f"missing {name} in OPA365 transient log")
+    return float(m.group(1))
+peak=value("vout_peak"); final=value("vout_final")
+if not 1.655 < peak < 1.69 or not 1.645 < final < 1.655:
+    raise SystemExit(f"OPA365 closed-loop response outside sanity bounds: peak={peak}, final={final}")
+print(f"OPA365 closed-loop transient PASS: peak={peak:.6f} V, final={final:.6f} V")
+PY
+  echo "OPA365_OFFICIAL_MODEL_CLOSED_LOOP_TRANSIENT PASS" | tee -a "$REPORT"
+else
+  echo "OPA365_OFFICIAL_MODEL_CLOSED_LOOP_TRANSIENT FAIL" | tee -a "$REPORT"
+  tail -n 30 "$ROOT/opa365_closed_loop.log" | sed 's/^/  /' | tee -a "$REPORT" || true
+  exit 1
+fi
 
 cat "$REPORT"
