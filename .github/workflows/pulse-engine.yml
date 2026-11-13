@@ -32,6 +32,10 @@ jobs:
       - name: Verify coupled PI pulse engine
         working-directory: simulation/dd3d
         run: python -m unittest -v test_pulse_engine.py
+      - name: Compare turn-off clamp scenarios
+        working-directory: simulation/dd3d
+        run: |
+          python pulse_clamp_sweep.py --input sample_pulse_config.json --output ../../artifacts/dd3d-pulse-reference/clamp_sweep.csv
       - name: Run synthetic pulse-engine reference case
         working-directory: simulation/dd3d
         run: |
