@@ -38,7 +38,7 @@ def simulate_afe(waveform, config):
     coil_rt=_positive(afe.get("coil_tvs_dynamic_resistance_ohm",1.0),"afe.coil_tvs_dynamic_resistance_ohm")
     op=config.get("opamp",{})
     gain=_positive(op.get("closed_loop_gain",2.0),"opamp.closed_loop_gain")
-    vlow=_finite= float(op.get("supply_low_v",0.0)); vhigh=float(op.get("supply_high_v",3.3))
+    vlow=float(op.get("supply_low_v",0.0)); vhigh=float(op.get("supply_high_v",3.3))
     vref=float(op.get("reference_v",0.5*(vlow+vhigh)))
     gbw=_positive(op.get("gain_bandwidth_hz",50e6),"opamp.gain_bandwidth_hz")
     slew=_positive(op.get("slew_rate_v_per_s",25e6),"opamp.slew_rate_v_per_s")
