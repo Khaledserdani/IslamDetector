@@ -23,6 +23,16 @@ public class PiAfeEngineTest {
         assertTrue(r.peakClampCurrent>0);assertTrue(r.peakInputVoltage<2.5);
         assertTrue(r.energyRelativeError<3e-4);
     }
+    @Test public void railSteeringEnergyIsSplitFromSchottkyJunctionLoss(){
+        double[][] w=wave(30);
+        PiAfeEngine.Result r=PiAfeEngine.simulate(w[0],w[1],p());
+        assertTrue(r.inputClampDiodeLoss>0.0);
+        assertTrue(r.inputClampRailEnergy>0.0);
+        assertEquals(r.inputClampEnergy,
+                r.inputClampDiodeLoss+r.inputClampRailEnergy,
+                Math.max(1e-18,r.inputClampEnergy*1e-10));
+        assertTrue(r.energyRelativeError<3e-4);
+    }
     @Test public void strongerDampingReducesTerminalVoltage(){
         double[][] w=wave(0.1);PiAfeInput a=p();
         PiAfeInput b=a.withDamping(100.0);
