@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Numerical verification tests for the 3D filament reference kernel."""
 import unittest
+import math
 import numpy as np
 from filament_model import circular_loop, circular_loop_axis_field, field_at_points, mutual_inductance, path_length_m
 
