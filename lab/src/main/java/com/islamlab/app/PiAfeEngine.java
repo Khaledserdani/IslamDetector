@@ -122,7 +122,7 @@ public final class PiAfeEngine {
             output=clipped;opout[k]=output;
         }
         double delta=ss[n-1]-ss[0],residual=totals[0]-(totals[1]+totals[2]+totals[3]+totals[4]+totals[5]+totals[6])-delta;
-        return new Result(tt,ee,ii,vva,vv,iis,iit,iic,ss,max(ee),max(ii),max(vva),max(vv),max(iis),max(iic),
+        return new Result(tt,ee,ii,vva,vv,iis,iit,iic,ss,opout,max(ee),max(ii),max(vva),max(vv),max(iis),max(iic),
                 totals[0],totals[1],totals[2],totals[3],totals[4],totals[5],totals[6],delta,residual,
                 Math.abs(residual)/Math.max(Math.abs(totals[0]),1e-18),clampActive?1:0,slewCount,satCount,max(opout),min(opout));
     }
