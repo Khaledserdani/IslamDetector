@@ -923,3 +923,48 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - PR #6 مغلق وغير مدمج حسب GitHub. PR #7 هو المفتوح Draft وغير مدمج. لا تغيير على main ولا دمج لأي PR.
 
 لا يزال UART bridge معطلاً افتراضياً، TX/RX GPIO=-1، ولا يوجد pinout فعلي مثبت أو اختبار loopback. لا يوجد RP2040 command receiver/ACK/DEVICE_INFO transmitter أو Wi-Fi/Android endpoint بعد.
+
+
+## 20.9 تحقق شامل Rev A وإضافة بوابات الأمان — 2026-11-14
+
+### حالة GitHub والفرع
+- الفرع الفعلي: `hardware/rev-a-measurement-design`.
+- HEAD الحالي بعد إضافة اختبار بوابات الأمان: `61ab603fa4baa285c57a9e4e5b264aa6d61d3e77`.
+- PR #6 حالته الفعلية في GitHub: **closed، Draft، غير مدمج**، وأُغلق بتاريخ 2026-11-11. لم يُعَد فتحه ولم يُدمج.
+- PR #7 هو طلب المراجعة المفتوح Draft على الفرع نفسه، head=`61ab603`. لم يُدمج ولم يتغير `main`.
+- لا نفتح PR مكرراً ولا نغيّر حالة الطلبات تلقائياً عند وجود هذا التعارض.
+
+### CI #1319 — نجاح كامل على HEAD السابق
+- Run ID `43604013988`، commit `e24dfb04b2040f4388e1c9cdc5b30a4f89730499`: الوظائف الأربع كلها Success: `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge`.
+- ESP-IDF release-v5.4 ترجم وربط مشروع ESP32-S3، بما فيه `rev_a_protocol` و`rev_a_uart_bridge` و`app_main`، وأنتج صورة ESP32-S3. هذا compile/link فقط، وليس Flash أو اختبار UART فعلياً.
+- Android: `clean :app:assembleDebug` نجح، وفحص APK عبر ZIP نجح، ثم رُفع artifact `IslamDetector-Original-APK`، ID `14117745681`، ينتهي 2026-12-14.
+- RP2040: بناء UF2 وفحصه الآلي نجحا. نتيجة `verify_uf2.py`: 136 كتلة، payload=34,816 bytes، Family ID=`0xE48BFF56`، المجال `0x10000000..0x10008800`. الحجم الخام المحسوب من 136×512 هو 69,632 bytes. SHA-256 الخام: `9eaf665bc363af01f0791931d6ea6231a9e056ab2e899563e93a2da4836b572a`.
+- Artifact UF2: `IslamDetector-RevA-RP2040-Timing-Test-UF2`، ID `14117516571`، ينتهي 2026-12-14؛ digest لأرشيف ZIP: `d53a93b6b6ec0d0b8663d801929e1ddf3b62c404b83bd15cf6d7fb5715968d05`.
+- هذا UF2 يبقى اختباراً منطقياً لـGP4/GP5/GP6؛ لا يقود MOSFET ولا يشغّل ملف البحث ولا يقرأ ADS8861.
+
+### اختبار حواجز الأمان الجديدة
+- أُضيف `tools/test_rev_a_safety_gates.py` في commit `61ab603`.
+- يثبت الاختبار افتراضياً: تعطيل ADC capture، وUART bridge، وترك GPIO TX/RX بقيمة -1، ورفض UART0/الأرجل غير الصالحة أو المتطابقة، واشتراط بدء يدوي لاختبار النبض المنطقي مع GP4 منخفضاً عند الإقلاع.
+- CI #1320، run ID `43607459283`، على HEAD=`61ab603`: عند آخر تحقق، `protocol-tests` نجحت مع **45 اختبار Python**، ثم نجح تجميع واختبار C الصارم؛ `android-app` نجح مع بناء APK وفحصه ورفعه. وظيفتا `rp2040-firmware` و`esp32-s3-bridge` كانتا قيد التنفيذ؛ لذلك لا نسجل #1320 نجاحاً كاملاً ولا ننسب إليه UF2 جديداً قبل اكتماله.
+
+### تدقيق Android
+- Manifest يحتوي INTERNET وACCESS_NETWORK_STATE ويدعم RTL، ويستخدم HTTP cleartext لأن واجهة ESP32 المحلية محددة حالياً على HTTP.
+- `applicationId=com.islamdetector.app`، `targetSdk=35`، وJava 17/Gradle 8.9 في Workflow.
+- MainActivity يفصل الشبكة والتخزين في منفذين مستقلين، ويُسلسل عمليات SQLite، ويغلق HttpURLConnection داخل `finally`.
+- CSV الحالي يُشارك كنص `text/csv` عبر Android Share؛ لم يتحول بعد إلى ملف مستقل محفوظ في Downloads/SAF. لا نعلن هذه الوظيفة كحفظ ملف.
+- لا يوجد خطأ مانع ظهر في البناء الحالي؛ لم نغيّر سلوك التطبيق المقصود في هذا التشغيل.
+
+### حالة القياس والعتاد
+- ESP32 UART task موجود ومبني، لكنه معطل افتراضياً؛ UART1 افتراضي، UART0 للـconsole، TX/RX GPIO=-1 حتى تثبيت لوحة التطوير ومخططها.
+- GET_INFO/HELLO retry وRX ring buffer وDEVICE_INFO session gate موجودة في ESP32. لكن RP2040 لا يملك بعد command receiver أو DEVICE_INFO transmitter أو ACK؛ لذلك لا يوجد اتصال end-to-end.
+- PIO ADS8861 driver موجود ومبني، لكن `ENABLE_ADS8861_CAPTURE=0`. حسابات النوافذ وSCLK وCONVST اختبارات ساكنة، وليست قياسات فعلية.
+- لم يُفلش UF2 على لوحة، ولم تُقَس jitter أو GP4→CONVST أو DOUT أو loopback. لا توجد قياسات ملف L/DCR أو RX transient/clip-release.
+- لا يوجد KiCad نهائي أو حماية TX/RX أو MOSFET/snubber معتمد أو BOM تصنيع أو PCB/PCBA.
+
+### الخطوة التالية
+1. تثبيت صيغة ACK وقيود الأوامر قبل تنفيذها؛ ACK معرف كنوع `0x80` لكن حمولة ACK غير محددة ومحلل ESP32 الحالي لا يقبله.
+2. تنفيذ RP2040 command receiver وDEVICE_INFO transmitter ببيانات صادقة؛ لا يعلن ADS8861 مركباً قبل وجوده فعلياً.
+3. اختبار UART loopback منخفض الجهد بعد تأكيد GPIO الفعلي، ثم ربط اللوحتين.
+4. تفعيل PIO/ADC فقط بعد تركيب ADS8861 والحماية والمرجع، مع قياس النوافذ والضوضاء والاستعادة.
+5. بعد القياسات الفعلية: تثبيت AFE وKiCad، ثم حساب طاقة TX والحماية وBOM وPCB/PCBA وتعليمات التجميع.
+

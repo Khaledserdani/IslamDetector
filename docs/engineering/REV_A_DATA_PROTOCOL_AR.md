@@ -194,3 +194,15 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - القياسات المقبولة تحفظ raw16 وADC metadata وinfo_generation. عند امتلاء queue تسقط العينة الجديدة مع عداد واضح ولا توقف UART task.
 
 لا يوجد RP2040 command receiver أو ACK/DEVICE_INFO transmitter بعد؛ لذلك لا يوجد اختبار end-to-end أو Wi-Fi/Android endpoint. راجع REV_A_ESP32_UART_INTEGRATION_AR.md.
+
+
+## 8.5 تحقق تكامل ESP32 وتحديد فجوة جهة RP2040 — 2026-11-14
+
+- اكتمل بناء ESP-IDF bridge على CI #1319 (run ID `43604013988`) مع الوظائف الثلاث الأخرى. هذا compile/link للبرنامج فقط، ولا يثبت إرسال GET_INFO فعلياً على UART.
+- أضيفت على ESP32 UART task تستخدم UART driver وRX ring buffer وevent queue وFreeRTOS task، وتغذي parser/session وتطلب GET_INFO كل ثانية حتى DEVICE_INFO صالح.
+- لا يرسل RP2040 حالياً DEVICE_INFO ولا ينفذ HELLO/GET_INFO أو START/STOP/SET_PROFILE. لذلك لا يوجد handshake أو قياس end-to-end.
+- ACK (`TYPE=0x80`) مذكور كنوع في جدول البروتوكول، لكن payload (command echo/status/reason/sequence) لم يُحدد بعد. محلل ESP32 الحالي يقبل DEVICE_INFO وMEASUREMENT فقط؛ أي ACK قبل إضافة decoder سيُعامل كإطار مرفوض وقد يؤدي إلى إبطال DEVICE_INFO وطلبه مجدداً. **لا تضف ACK من RP2040 قبل تثبيت بنية payload واختبار parser على الطرفين.**
+- DEVICE_INFO يجب أن يصف ADC المركب فعلياً. لا ترسل metadata ADS8861 إذا لم يكن ADC موجوداً ومهيأ؛ لا نستخدم هوية مرشحة كأنها حقيقة.
+- اختبارات C وPython على CI تثبت منطق framing/session على المضيف. لا تثبت UART peripheral أو baud/throughput أو استعادة الأخطاء على اللوحتين.
+- الخطوة التالية: تعريف ACK بدقة، ثم تنفيذ command receiver وDEVICE_INFO transmitter على RP2040، وإضافة اختبارات host مشتركة للـencoder/decoder قبل UART loopback منخفض الجهد.
+

@@ -1,6 +1,6 @@
 # تنفيذ جسر UART على ESP32-S3 — Rev A
 
-**الحالة:** مكوّن ESP-IDF أضيف إلى المشروع؛ البناء الآلي مطلوب لإثبات توافقه. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
+**الحالة:** مكوّن ESP-IDF أضيف واكتمل compile/link في CI #1319 باستخدام ESP-IDF release-v5.4. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
 
 ## ما أضيف
 - مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
@@ -47,3 +47,14 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 اكتمل CI #1315 على commit f3d2516 بنجاح في الوظائف الأربع. ESP-IDF release-v5.4 ترجم rev_a_uart_bridge وrev_a_protocol وapp_main وربط مشروع ESP32-S3 وأنتج BIN. هذا يثبت compile/link فقط، وليس flashing أو تشغيل UART على لوحة فعلية.
 
 بعد هذا التشغيل عولجت ملكية retry state ووقف FreeRTOS task في commits 621e283 وa39fbaa. تحقق الكود الأحدث جارٍ في CI #1318؛ لا تسجل هذه التعديلات نجاحاً حتى تنتهي الوظائف الأربع.
+
+
+## تحقق محدث — 2026-11-14
+
+- CI #1319 / run ID `43604013988` اكتمل Success في الوظائف الأربع: `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge`.
+- سجل ESP-IDF يؤكد إنشاء صورة ESP32-S3 واكتمال Project build. هذا يثبت compile/link فقط؛ لم يحدث flash أو تشغيل على لوحة.
+- تعديلا ملكية GET_INFO retry وإيقاف FreeRTOS task في commits `621e283` و`a39fbaa` دخلا في البناء الناجح #1319.
+- الإعدادات لا تزال آمنة افتراضياً: `CONFIG_REV_A_UART_ENABLE=n)، وTX/RX GPIO=-1، وUART1 افتراضي وUART0 محفوظ للـconsole.
+- CI #1320 على commit `61ab603`: عند آخر تحقق نجح protocol-tests (45 اختبار Python + C strict compile) وAndroid build/verify/upload؛ كان RP2040 وESP-IDF قيد التنفيذ. لا يعتمد هذا كنجاح كامل قبل اكتمال الوظيفتين.
+- RP2040 لا يرسل DEVICE_INFO بعد؛ لذلك GET_INFO من ESP32 لا يحقق handshake حالياً. لا يوجد ACK decoder أو command receiver حتى الآن.
+- لا تُفعّل UART حتى تثبيت أرقام الأرجل من مخطط اللوحة الفعلية. لا يوجد UART loopback أو اختبار throughput/fault recovery على العتاد.
