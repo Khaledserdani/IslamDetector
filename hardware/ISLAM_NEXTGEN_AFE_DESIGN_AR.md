@@ -556,3 +556,15 @@ https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments
 
 المصدر: TMUX6219 Rev.E §§7.4–7.5 و9–10:
 https://www.ti.com/lit/ds/symlink/tmux6219.pdf
+
+
+## 13. قيد حراري إلزامي على AD8336 وrail التغذية
+
+داتا شيت AD8336 Rev.G تحدد مجال التغذية ±3V إلى±12V، لكنها تنص على أن التشغيل عند جهد تغذية مقداره ±10V أو أكثر يخفض الحد الأعلى لحرارة التشغيل إلى +85°C بسبب تبديد القدرة. لذلك:
+- لا نعتبر ±12V rail نهائياً مباشراً لـAD8336 في جهاز ميداني قد يعمل في جو حار.
+- TEN8-1222 (±12V) يبقى مرشح مصدر أولي فقط، وليس rail AFE معتمداً.
+- يجب إما إثبات التبريد/الحرارة عند ±12V، أو تصميم post-regulation منخفض الضجيج إلى rail أقل (مثلاً ±9V) بعد حساب تيار كل rail وdropout والحرارة والـPSRR.
+- لا يثبت اختيار منظم ±9V أو قيم المرشحات قبل حساب الحمل الكامل ومحاكاة/قياس الضجيج والاستقرار.
+- لا ترفع تغذية AD8336 فوق ±12V، ولا تفترض أن وصول التغذية إلى الحد الأقصى يعطي أفضل أداء.
+
+المصدر الرسمي: https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf (Rev.G، قسم POWER SUPPLY / Absolute Maximum Ratings).
