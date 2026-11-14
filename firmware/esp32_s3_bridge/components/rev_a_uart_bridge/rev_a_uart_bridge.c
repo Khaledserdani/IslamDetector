@@ -235,7 +235,7 @@ esp_err_t rev_a_uart_bridge_start(const rev_a_uart_bridge_config_t *cfg) {
              (int)s_uart_port, cfg->tx_gpio_num, cfg->rx_gpio_num, baud);
     const esp_err_t hello = rev_a_uart_bridge_send_command(REV_A_TYPE_HELLO, NULL, 0u);
     if (hello != ESP_OK) ESP_LOGW(TAG, "HELLO send failed: %s", esp_err_to_name(hello));
-    request_device_info();
+    /* UART task owns GET_INFO retry state and sends the first request. */
     return ESP_OK;
 }
 esp_err_t rev_a_uart_bridge_stop(void) {
