@@ -378,3 +378,18 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - AD8336 Rev.G: https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 
 هذه إضافة headroom إلزامية؛ لا يُعتمد توصيل مباشر ولا schematic نهائي قبل محاكاتها.
+
+
+## 19. إعادة توظيف OPA2365 في المكان الصحيح: ADC driver
+
+OPA2365 لا يعود مضخم الاستقبال الأساسي ولا gyrator؛ لكنه يبقى مفيداً جداً كمرحلة نهائية بعد تكييف الإشارة:
+
+- U5A: buffer/driver لقناة ADC1_IN1 / PA0.
+- U5B: buffer/driver لقناة ADC2_IN2 / PA1.
+- تغذية3.3V، rail-to-rail، GBW50MHz، slew25V/µs.
+- قبل كل مدخل توجد شبكة مقاومات attenuator/level-shift تحوّل الإشارة التناظرية ذات المجال المزدوج إلى مجال آمن0–3.3V ومركز1.65V.
+- مرجع1.65V يجب أن يكون منخفض الضجيج ومخزناً بbuffer؛ لا نعتمد divider مقاومات غير مخزّن كمرجع دقيق.
+- يضاف RC صغير عند مدخل ADC بعد buffer لتقليل charge kickback، وتحدد قيمته من زمن acquisition وsample capacitance في STM32G474.
+- لا يتعرض OPA2365 ولا ADC مباشرة إلى خرج AD8336 أو ملف البحث أو عقدة flyback.
+
+بهذا نستخدم OPA2365 في بيئة تغذيته الطبيعية 3.3V كـADC interface، ونترك ±12V analog front-end لمكونات OPA1612/AD8336.
