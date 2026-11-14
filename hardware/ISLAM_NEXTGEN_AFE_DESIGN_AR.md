@@ -329,3 +329,29 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - ADC1/ADC2: خرج الفرق + قناة مراقبة محمية.
 
 هذا توزيع كتلي وليس schematic. يجب فحص استقرار gyrator، كسب Avr، مجال AD8336، common-mode، differential stage، وADC level-shift كمنظومة واحدة.
+
+
+## 16. تدقيق واجهة تحكم AD8336 من الداتا شيت
+
+تمت مراجعة Rev.G كاملة، وليس الاعتماد على عبارة 50dB/V فقط:
+
+- عند التغذية المزدوجة، pin VCOM يوصل عادةً إلى GND التناظري.
+- التحكم هو (V_{GAIN}=V_{GPOS}-V_{GNEG})، بميل نموذجي49.9dB/V.
+- مجال gain-control العملي يقارب −0.6V إلى+0.6V؛ شكل Figure 11 يبين أن مجال common-mode المسموح عند ±12V واسع ويشمل 0–0.6V.
+- لذلك يمكن استخدام DAC1_CH1 وDAC1_CH2 بعد buffer/attenuator لإنتاج GPOS وGNEG ضمن0–0.6V، بحيث يتغير الفرق من−0.6 إلى+0.6V. لا نخرج 3.3V مباشرة إلى أرجل GPOS/GNEG.
+- VCOM=AGND عند dual supply.
+- خرج AD8336 عند ±12V يحتاج حملاً لا يقل عن1kΩ لتحقيق مجال الخرج المحدد، ويجب ألا يتجاوز تيار الخرج الخطي20mA.
+- عند ±12V، الحمل السعوي قد يتطلب مقاومة سلسلة20Ω للاستقرار وفق الداتا شيت.
+- الداتا شيت تذكر offset output يصل إلى حدود مئات mV في حالات gain عالية؛ يجب معايرة offset وحفظه رقمياً، مع منع المعايرة من إزالة هدف حقيقي.
+- لا نستخدم PWRA low-power mode في البداية؛ لأنه يخفض bandwidth إلى نحو35MHz، ونقيّم ذلك فقط إذا كان استهلاك الطاقة مهماً ولم يؤثر على شكل transient.
+
+المصدر: AD8336 Rev.G، Table 3، Table 1، Figures 11 و15 و78، Sections VGA وDriving Capacitive Loads:
+https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
+
+## 17. شروط PCB لـAD8336
+
+- LFCSP16 مع exposed pad غير متصل كهربائياً؛ يلحم إلى أرضي PCB لتحسين الاعتمادية والتبريد.
+- يوصى بأربع طبقات مع أرضي/قدرة داخلية ومسارات قصيرة.
+- فصل GPOS/GNEG وVCOM عن عقدة TX والـgate drive.
+- إضافة نقاط اختبار GPOS/GNEG وVOUT وPRAO وVGAI و±12V.
+- لا تضع AD8336 قرب MOSFET أو حلقة flyback؛ يثبت في منطقة AFE النظيفة.
