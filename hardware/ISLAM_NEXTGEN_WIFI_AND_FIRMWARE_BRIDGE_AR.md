@@ -40,8 +40,8 @@ USART3 على STM32G474:
 مرشح GPIO على ESP32-S3:
 - GPIO17 = UART1_TX نحو PB11 (STM32 RX).
 - GPIO18 = UART1_RX من PB10 (STM32 TX).
-- GPIO16 = خط تحكم احتياطي لمدخل PB8/BOOT0، لكنه لا يفعّل ROM bootloader افتراضياً قبل ضبط option bytes.
-- GPIO15 = تحكم NRST عبر ترانزستور open-drain.
+- GPIO16 = احتياطي لخط PB8/BOOT0 فقط إذا تم تهيئة option bytes/JP7 للاسترداد.
+- GPIO15 = تحكم NRST عبر ترانزستور open-drain للاسترداد/إعادة التشغيل.
 
 يجب تدقيق pinout النهائي للوحة ESP32-S3 المختارة، وعدم استخدام GPIO0/3/45/46 كأرجل تحكم بسبب أدوار strapping.
 
@@ -52,23 +52,22 @@ USART3 على STM32G474:
 التسلسل:
 1. يرفع تطبيق Android ملف Firmware إلى ESP32-S3 عبر Wi-Fi.
 2. ESP32 يتحقق من الحجم وSHA-256 ونسخة الملف ويخزنه مؤقتاً.
-3. يطلب من STM32 الدخول في وضع التحديث.
-4. ESP32 يرفع BOOT0 (PB8) ثم يعمل reset عبر NRST.
-5. STM32 يدخل ROM bootloader.
-6. ESP32 يرسل بروتوكول ST USART bootloader على USART3 PB10/PB11 (8-bit, even parity, 1 stop bit).
-7. بعد كتابة الفلاش والتحقق من checksum، يعيد ESP32 التشغيل مع BOOT0 منخفض.
+3. يطلب من STM32 الدخول في وضع التحديث عبر أمر موثق.
+4. Firmware الجاري على STM32 ينفذ انتقالاً آمناً إلى ROM system-memory bootloader (jump-to-system-memory) بعد إيقاف TX والتأكد من سلامة الطاقة.
+5. ESP32 يرسل بروتوكول ST USART bootloader على USART3 PB10/PB11 (8-bit, even parity, 1 stop bit).
+7. بعد كتابة الفلاش والتحقق من checksum، يطلب ESP32 إعادة تشغيل STM32.
 8. STM32 يقلع من التطبيق الجديد ويرسل version/health handshake.
 9. إذا فشل التحقق، لا يُعلن التحديث ناجحاً؛ يحتفظ ESP32 بالملف السابق ويعيد المحاولة/يطلب recovery.
 
 المصدر الرسمي:
 https://www.st.com/resource/en/application_note/an2606-introduction-to-stm32-microcontroller-system-memory-boot-mode-stmicroelectronics.pdf
 
-ملاحظة: هذا التحديث يستخدم ROM bootloader الرسمي؛ لا نعتمد على Android لتشغيل ST-LINK أو SWD. يجب تنفيذ توصيل BOOT0/NRST بترانزستورات وحماية مناسبة، وتأكيد أن نسخة NUCLEO-G474RE المختارة تتيح الوصول إلى PB8/NRST عبر موصلاتها.
+ملاحظة: المسار الأساسي يعتمد jump-to-system-memory من Firmware سليم، ولا يحتاج تحريك BOOT0 في كل تحديث. إذا تلف Firmware قبل تنفيذ jump، فاستعادة الجهاز تتطلب إعداد BOOT0/option bytes وJP7 بشكل صحيح أو استخدام ST-LINK؛ لا نزعم أن الاسترداد الذاتي مضمون قبل اختبار اللوحة.
 
 ## 5. الأثر على المنافذ والطاقة
 
 - PB10/PB11 محجوزان حصرياً للربط UART بين المعالجين؛ PB10 على CN9 pin 7 وPB11 على CN10 pin 17.
-- PB8 محجوز كخيار BOOT0 على CN7 pin 7؛ لا نستخدمه I2C1 في التصميم الأساسي. يجب ضبط option bytes لأن BOOT0 غير موصول افتراضياً إلى دائرة اختيار boot.
+- PB8 خيار BOOT0 على CN7 pin 7، لكنه غير موصول افتراضياً إلى دائرة اختيار boot؛ لا نعتمد عليه لمسار التحديث العادي، ويُخصص فقط لمسار الاسترداد بعد تهيئة option bytes/JP7.
 - 5V من Power Bank يغذي Nucleo وESP32-S3 عبر توزيع طاقة محمي، مع 3.3V مستقلة/مفلترة للـAFE.
 - 12V بطارية مستقلة لمسار TX؛ لا تُغذى قدرة TX من Power Bank.
 - لا بد من أرضي مشترك منظم ومسارات منفصلة لعودة تيار TX عن AFE وWi-Fi.
