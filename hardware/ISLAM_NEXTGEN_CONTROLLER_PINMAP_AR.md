@@ -212,3 +212,16 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - SPI2: PB13=SCK، PB15=SDI، PB6=CS.
 
 المصدر: MCP41HVX1 datasheet DS20005207C §§4.2–4.3 و6.1.
+
+
+## 14. تمكين آمن لمفتاحي TMUX6219
+
+نخصص PB7 كتمكين مشترك:
+- PB7 / CN7 pin21 = AFE_SWITCH_EN إلى EN في شريحتي TMUX6219.
+- مقاومة pull-down10kΩ إلىDGND تجعل المفتاحين disabled أثناء reset/boot.
+- Firmware لا يرفع PB7 إلا بعد نجاح فحص +12V_AFE و−12V_AFE و3.3V.
+- بعد التمكين، PA9/PA10 HRTIM outputs تتحكمان في SEL فقط.
+- high-gain input يبقى منحازاً إلى AGND عبر مقاومة bias عندما يكون المفتاح disabled، ولا يترك floating.
+- عند fault، يعيد Firmware PB7 إلى low، مع بقاء COMP1/HRTIM hardware fault هو مسار إيقاف TX الفوري.
+
+هذا يمنع توصيل مفاتيح ±12V قبل استقرار rails ويجعل حالة الإقلاع آمنة افتراضياً.
