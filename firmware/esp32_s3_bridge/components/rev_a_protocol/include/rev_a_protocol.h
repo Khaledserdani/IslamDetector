@@ -42,6 +42,11 @@ extern "C" {
 #define REV_A_INPUT_PSEUDO_DIFFERENTIAL 0x03u
 
 typedef struct {
+    uint8_t type;
+    uint8_t profile_id; /* Meaningful only for SET_PROFILE. */
+} rev_a_command_t;
+
+typedef struct {
     uint32_t sequence;
     uint32_t timestamp_us;
     uint8_t profile_id;
@@ -101,6 +106,11 @@ bool rev_a_encode_command(
     uint8_t *frame,
     size_t frame_capacity,
     size_t *frame_length);
+/* Decode one complete command frame and validate its exact payload contract. */
+bool rev_a_decode_command(
+    const uint8_t *frame,
+    size_t frame_length,
+    rev_a_command_t *command);
 
 /* Encode a measurement or DEVICE_INFO frame using the Rev A v1 wire format. */
 bool rev_a_encode_measurement(
