@@ -134,3 +134,23 @@ L_{var}=R_{var}RC,quad \tau_b=R_{var}C
 - **مرشح AFE أولي:** OPA1612 مع rails منفصلة عن 3.3V الرقمية.
 - **مرفوض كاختصار:** DAC-only bucking أو OPA2365 على 3.3V دون إثبات كامل.
 - **غير محسوم:** VDCb، طوبولوجيا SWb، قيم gyrator النهائية، VGA، كسب المراحل، جهد AFE، وحماية المدخل.
+
+
+## 13. تحديث مكونات VGA وتغذية AFE
+
+بدلاً من ترك كلمة VGA ككتلة غير محددة، ظهر مرشح حقيقي:
+- **AD8336**: VGA DC-coupled، 3nV/√Hz، 115MHz، مدى كسب60dB، تحكم50dB/V، يعمل على ±3V إلى±12V. يستخدم في مسار bucking لضبط سعة المرجع. تحكمه تفاضلي GPOS/GNEG؛ لا يوصل DAC مباشرة قبل buffer/level-shift وحساب common-mode.
+- **TEN8-1222**: محول معزول من دخل9–18V إلى ±12V، 335mA لكل rail، 8W؛ مناسب مبدئياً لتغذية OPA1612 وAD8336 من بطارية12V. يحتاج post-filter لأن ripple/noise النموذجي50mVpp.
+
+التوزيع الأولي:
+- OPA1612: gyrator + coil preamp + differential subtraction + buffer/monitor.
+- AD8336: bucking VGA.
+- DAC1_CH1/CH2: تحكم gain differential.
+- MCP41100: Rvar gyrator فقط إذا احتجنا ضبطه رقمياً.
+
+المراجع:
+https://www.analog.com/en/products/ad8336.html
+https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
+https://www.tme.com/ca/en/details/ten8-1222/dc-dc-converters/traco-power/ten-8-1222/
+
+لا شراء حتى محاكاة مستوى الإشارة وcommon-mode وrails والـpost-filter، وتأكيد التوفر والشحن للجزائر.
