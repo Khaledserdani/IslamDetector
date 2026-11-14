@@ -1,0 +1,31 @@
+name: ISLAM LAB 3D filament kernel verification
+on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/dd3d-filament.yml'
+      - 'simulation/dd3d/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/dd3d-filament.yml'
+      - 'simulation/dd3d/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: islam-lab-dd3d-filament-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install numerical dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - name: Run 3D filament verification tests
+        working-directory: simulation/dd3d
+        run: python -m unittest -v test_filament_model.py test_rx_turn_flux_linkage.py

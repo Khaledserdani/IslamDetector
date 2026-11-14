@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Unit and convergence tests for the lumped RX/AFE front-end."""
+import unittest
+import numpy as np
+from afe_engine import simulate_afe
+
+def cfg():
+    return {
+      "rx_coil":{"resistance_ohm":4.8,"inductance_h":750e-6},
+      "afe":{"parallel_damping_ohm":390.0,"series_protection_ohm":1000.0,
+             "input_capacitance_f":2e-9,"input_bias_ohm":1e6,
+             "clamp_threshold_v":0.35,"clamp_dynamic_resistance_ohm":50.0},
+      "integration":{"max_step_s":10e-9}
+    }
+def wave(amplitude=1.0):
+    t=np.linspace(0,100e-6,1001)
+    # finite, smooth induced pulse to exercise input loading and clamp
+    v=amplitude*np.exp(-((t-20e-6)/(3e-6))**2)-0.4*amplitude*np.exp(-((t-35e-6)/(5e-6))**2)
+    return {"time_s":t,"v_rx_total_v":v}
+
+class AfeEngineTests(unittest.TestCase):
+    def test_zero_source_remains_at_zero_and_energy_balances(self):
+        w=wave(0.0)
+        m,d=simulate_afe(w,cfg())
+        self.assertAlmostEqual(m["peak_abs_afe_input_voltage_v"],0.0,delta=1e-15)
+        self.assertLess(m["energy_balance_relative_error"],1e-8)
+
+    def test_bidirectional_clamp_limits_input_node_and_absorbs_energy(self):
+        m,d=simulate_afe(wave(30.0),cfg())
+        self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_afe_input_voltage_v"],2.5)
+        self.assertLess(m["energy_balance_relative_error"],2e-4)
+
+    def test_more_damping_reduces_rx_terminal_voltage(self):
+        c1=cfg();c2=cfg()
+        c1["afe"]["parallel_damping_ohm"]=390.0
+        c2["afe"]["parallel_damping_ohm"]=100.0
+        m1,_=simulate_afe(wave(0.1),c1)
+        m2,_=simulate_afe(wave(0.1),c2)
+        self.assertLess(m2["peak_abs_rx_terminal_voltage_v"],m1["peak_abs_rx_terminal_voltage_v"])
+
+    def test_smaller_integration_step_converges(self):
+        c1=cfg();c2=cfg()
+        c1["integration"]["max_step_s"]=0.2e-6
+        c2["integration"]["max_step_s"]=0.1e-6
+        m1,_=simulate_afe(wave(0.5),c1)
+        m2,_=simulate_afe(wave(0.5),c2)
+        self.assertAlmostEqual(m1["peak_abs_afe_input_voltage_v"],m2["peak_abs_afe_input_voltage_v"],
+                               delta=max(1e-5,m2["peak_abs_afe_input_voltage_v"]*0.01))
+
+    def test_coil_tvs_limits_terminal_voltage_and_energy_closes(self):
+        c=cfg()
+        c["afe"]["coil_tvs_threshold_v"]=0.5
+        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=0.5
+        m,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["coil_tvs_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_rx_terminal_voltage_v"],1.5)
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
+    def test_zero_clamp_threshold_disables_that_clamp(self):
+        c=cfg()
+        c["afe"]["clamp_threshold_v"]=0.0
+        m,_=simulate_afe(wave(0.1),c)
+        self.assertGreater(m["peak_abs_afe_input_voltage_v"],0.0)
+
+    def test_opamp_output_obeys_supply_rails_and_slew_rate(self):
+        c=cfg()
+        c["opamp"]={"closed_loop_gain":100.0,"supply_low_v":0.0,"supply_high_v":3.3,
+                    "reference_v":1.65,"gain_bandwidth_hz":50e6,
+                    "slew_rate_v_per_s":25e6,"output_headroom_v":0.01}
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["opamp_output_saturation_sample_count"],0)
+        self.assertLessEqual(max(d["opamp_output_v"]),3.29+1e-12)
+        self.assertGreaterEqual(min(d["opamp_output_v"]),0.01-1e-12)
+        c["opamp"]["closed_loop_gain"]=2.0
+        c["opamp"]["slew_rate_v_per_s"]=1e6
+        m2,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m2["opamp_slew_limited_sample_count"],0)
+
+    def test_smaj50ca_datasheet_endpoint_limits_rx_terminal(self):
+        c=cfg()
+        c["afe"]["coil_tvs_threshold_v"]=6.4
+        c["afe"]["coil_tvs_dynamic_resistance_ohm"]=(9.2-6.4)/43.5
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["coil_tvs_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_rx_terminal_voltage_v"],10.0)
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
+    def test_bat54s_datasheet_iv_curve_is_used_for_input_clamp(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.40,0.010],[0.50,0.030],[0.80,0.100]]
+        m,d=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["input_clamp_absorbed_energy_j"],0.0)
+        self.assertLess(m["peak_abs_afe_input_voltage_v"],2.5)
+
+    def test_rail_steering_energy_is_split_into_diode_and_rail_terms(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.40,0.010],[0.50,0.030],[0.80,0.100]]
+        c["afe"]["input_clamp_low_rail_v"]=0.0
+        c["afe"]["input_clamp_high_rail_v"]=3.3
+        c["opamp"]={"closed_loop_gain":2.0,"supply_low_v":0.0,"supply_high_v":3.3,
+                    "reference_v":1.65,"gain_bandwidth_hz":50e6,
+                    "slew_rate_v_per_s":25e6,"output_headroom_v":0.01}
+        m,_=simulate_afe(wave(30.0),c)
+        self.assertGreater(m["input_clamp_diode_loss_j"],0.0)
+        self.assertGreater(m["input_clamp_rail_energy_j"],0.0)
+        self.assertAlmostEqual(
+            m["input_clamp_absorbed_energy_j"],
+            m["input_clamp_diode_loss_j"]+m["input_clamp_rail_energy_j"],
+            delta=max(1e-18,m["input_clamp_absorbed_energy_j"]*1e-10))
+        self.assertLess(m["energy_balance_relative_error"],3e-4)
+
+    def test_rejects_non_monotonic_diode_iv_curve(self):
+        c=cfg()
+        c["afe"]["input_clamp_iv_curve_v_a"]=[[0.24,0.0001],[0.32,0.001],[0.30,0.010]]
+        with self.assertRaises(ValueError):simulate_afe(wave(1.0),c)
+
+    def test_rejects_non_monotonic_waveform_time(self):
+        w=wave()
+        w["time_s"][20]=w["time_s"][19]
+        with self.assertRaises(ValueError): simulate_afe(w,cfg())
+
+if __name__=="__main__": unittest.main(verbosity=2)

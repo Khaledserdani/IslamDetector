@@ -1,0 +1,10 @@
+* ISLAM LAB nominal DD32 TX coil RL pulse-decay reference
+* Coil: R=1.52 ohm theoretical copper DCR; L=350 uH midpoint of 300-400 uH target.
+* Excitation is normalized to 1 V for solver validation, not a hardware supply setting.
+VSTEP in 0 PULSE(0 1 0 1n 1n 200u 1m)
+RCOIL in n1 1.52
+LTX n1 0 350u
+.tran 1u 700u
+.meas tran i_on FIND i(LTX) AT=200u
+.meas tran i_off FIND i(LTX) AT=500u
+.end

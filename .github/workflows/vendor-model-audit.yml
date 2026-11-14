@@ -1,0 +1,37 @@
+name: ISLAM LAB vendor SPICE model compatibility audit
+on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/vendor-model-audit.yml'
+      - 'simulation/spice/inspect_vendor_models.sh'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/vendor-model-audit.yml'
+      - 'simulation/spice/inspect_vendor_models.sh'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: islam-lab-vendor-model-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ngspice and unzip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ngspice unzip
+      - name: Fetch official vendor models and audit parser compatibility
+        run: bash simulation/spice/inspect_vendor_models.sh
+      - name: Upload vendor model audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-vendor-model-audit
+          path: ${{ runner.temp }}/islam-vendor-model-audit/vendor_model_audit.txt
+          if-no-files-found: warn

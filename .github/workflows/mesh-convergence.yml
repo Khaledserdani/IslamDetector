@@ -1,0 +1,45 @@
+name: ISLAM LAB PI mesh convergence
+on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/mesh-convergence.yml'
+      - 'simulation/elmer/pi_pulse_separate_coil.geo'
+      - 'simulation/elmer/run_pi_pulse_foil_surrogate.sh'
+      - 'simulation/elmer/run_pi_mesh_convergence.sh'
+      - 'simulation/elmer/analyze_pi_mesh_convergence.py'
+      - 'simulation/elmer/verify_pi_pulse_vtu.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: islam-lab-mesh-convergence-${{ github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  mesh-convergence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Elmer and Gmsh
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:elmer-csc-ubuntu/elmer-csc-ppa
+          sudo apt-get update
+          sudo apt-get install -y elmerfem-csc gmsh
+      - name: Check Python syntax
+        run: |
+          python3 -m py_compile simulation/elmer/analyze_pi_mesh_convergence.py
+          bash -n simulation/elmer/run_pi_mesh_convergence.sh
+          bash -n simulation/elmer/run_pi_pulse_foil_surrogate.sh
+      - name: Run two-gap three-level mesh convergence
+        run: bash simulation/elmer/run_pi_mesh_convergence.sh
+      - name: Upload mesh convergence data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-PI-mesh-convergence
+          path: artifacts/elmer-pi-mesh-convergence/
+          if-no-files-found: warn
+          retention-days: 30
