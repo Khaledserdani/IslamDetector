@@ -56,3 +56,26 @@ ESP32-S3 ممتاز كاتصال لاسلكي وواجهة تحكم، لكن و�
 - BinaryTech STM boards: https://binarytech-dz.com/category/cartes-stm-et-micro-bit
 
 هذا السجل يثبت سبب الترجيح فقط، ولا يثبت تفوق الجهاز النهائي أو نجاح الكشف.
+
+
+## تحديث حاسم لمسار اللوحة والتوفر — 2026-11-14
+
+تم التحقق من رقم لوحة رسمي مناسب للمرشح G4:
+- **NUCLEO-G474RE** هي لوحة Nucleo-64 الرسمية التي تحمل STM32G474RE، وبها مبرمج/مصحح ST-LINK مدمج حسب دليل ST. ليست مجرد لوحة تحمل اسم STM32G4 عام.
+- ST تصنف المنتج Active وفي الإنتاج الكمي، لكن صفحة ST لا تعرض حالياً مخزون موزعين مؤكد؛ لا نعدها متوفرة محلياً.
+- DigiKey يعرض رقم القطعة نفسه بسعر ظاهر 20.13 USD ومخزون 2,274 وقت الفهرسة؛ لكن لا يوجد إثبات في النتائج أن الشحن إلى الجزائر متاح أو أن السعر النهائي يشمل الشحن والجمارك.
+- TME يعرض قطعتين في المخزون بسعر إجمالي ظاهر 23.21 USD قبل النقل والضرائب؛ يجب التحقق من شحن الجزائر قبل اعتباره قناة شراء.
+- البحث المحلي لم يجد NUCLEO-G474RE في كتالوجات الجزائر التي فُحصت. Dzinotech يعرض STM32F3DISCOVERY/STM32F303VC بسعر 22,000 دج وحالة In Stock وقت البحث، بينما BinaryTech يعرض STM32F411 Black Pill وقطع STM32 أخرى، لا G474RE. لا نشتري F303 أو F411 لمجرد أنهما متاحان؛ مواصفاتهما لا تعادل G474 ولا تحسم تصميم جهازنا.
+
+المصادر:
+- ST NUCLEO-G474RE: https://www.st.com/en/evaluation-tools/nucleo-g474re
+- دليل ST Nucleo-G4: https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf
+- DigiKey: https://www.digikey.com/en/products/detail/stmicroelectronics/NUCLEO-G474RE/10231585
+- TME: https://www.tme.eu/en/details/nucleo-g474re/stm-development-kits/stmicroelectronics/
+- Dzinotech: https://www.dzinotech.com/Development%20Platfome/STM%2032
+- BinaryTech: https://binarytech-dz.com/category/cartes-stm-et-micro-bit
+
+### القرار الحالي بعد التحقق
+- **اللوحة المرجعية المحددة للاختبار والتحكم:** NUCLEO-G474RE (STM32G474RE)، لا STM32F303 Discovery ولا Black Pill.
+- **حالة الشراء:** لا شراء حتى يكتمل مخطط النظام الكامل ونتحقق من قناة توريد فعلية للجزائر. لا نفترض أن المستخدم يملك أي معالج أو لوحة تحكم.
+- **حالة الاستخدام النهائي:** لوحة Nucleo مرجع تطوير وتحقيق. لا نقرر بعد إن كانت ستبقى داخل الجهاز المركب أم سنستخدمها لإثبات التصميم ثم ننتقل إلى PCB مخصصة مجمعة مصنعياً؛ يحسم ذلك بعد تثبيت pinout والواجهات والضجيج والتغذية، وليس لتوليد تجربة إضافية غير ضرورية.
