@@ -102,6 +102,18 @@ bool rev_a_encode_command(
     size_t frame_capacity,
     size_t *frame_length);
 
+/* Encode a measurement or DEVICE_INFO frame using the Rev A v1 wire format. */
+bool rev_a_encode_measurement(
+    const rev_a_measurement_t *measurement,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length);
+bool rev_a_encode_device_info(
+    const rev_a_device_info_t *device_info,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length);
+
 bool rev_a_decode_measurement(
     const uint8_t *frame,
     size_t frame_length,
