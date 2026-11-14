@@ -62,8 +62,8 @@
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
 | DAC لضبط سعة bucking | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | خرج DAC إلى buffer AFE |
-| SPI clock للمقاومة الرقمية | PA5 / SPI1_SCK | CN5 pin 6 / D13 | MCP41100 |
-| SPI data إلى المقاومة الرقمية | PA7 / SPI1_MOSI | CN5 pin 4 / D11 | MCP41100؛ لا يحتاج MISO |
+| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 30 | MCP41100 |
+| SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 26 | MCP41100؛ لا يحتاج MISO |
 | CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 وCN10 pin 17 | Chip select |
 | ADC1 إشارة الفرق | PA0 / ADC1_IN1 | A0 / CN8 pin 1 | القناة الأساسية |
 | ADC2 مراقبة bucking | PA1 / ADC2_IN2 | A1 / CN8 pin 2 | متزامنة مع ADC1 |
