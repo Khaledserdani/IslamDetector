@@ -1,0 +1,56 @@
+# خريطة منافذ وحدة التحكم — ISLAM NEXTGEN / NUCLEO-G474RE
+
+التاريخ: 2026-11-14
+الفرع: hardware/islam-nextgen-final-platform
+الحالة: توزيع أولي للمنافذ من داتا شيت ST ودليل اللوحة؛ لا توصيل للقدرة قبل مخطط الحماية النهائي.
+
+## 1. وحدة التحكم المرجعية
+
+اللوحة المحددة: NUCLEO-G474RE، المتحكم STM32G474RE.
+- HRTIM1 لتوليد توقيت TX بدقة عتادية.
+- ADC1+ADC2 في regular simultaneous mode.
+- DMA لنقل العينات.
+- ST-LINK مدمج للبرمجة والتصحيح.
+- وحدة Wi-Fi منفصلة على UART؛ لا نحمّل اتصال الهاتف توقيت النبضة.
+
+المراجع:
+- ST NUCLEO-G474RE: https://www.st.com/en/evaluation-tools/nucleo-g474re
+- ST UM2505: https://www.st.com/resource/en/user_manual/dm00556337.pdf
+- STM32G474 datasheet: https://www.st.com/resource/en/datasheet/stm32g474mb.pdf
+- STM32G4 RM0440: https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+
+## 2. المنافذ المحجوزة
+
+| الوظيفة | منفذ MCU | قناة/وظيفة بديلة | موصل اللوحة | الحالة |
+|---|---|---|---|---|
+| قياس إشارة الملف بعد AFE | PA0 | ADC1_IN1 | CN8-1 / Arduino A0 | مرشح أول |
+| قياس مرجع/قناة مراقبة متزامنة | PA1 | ADC2_IN2 | CN8-2 / Arduino A1 | مرشح أول |
+| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9-D7 وMorpho CN10-15 | مرشح أول |
+| خرج توقيت ثانٍ/تحكم متزامن | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5-1 وMorpho CN10-? | احتياطي |
+| إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10-10 | مرشح أول |
+| UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10-17 | مرشح أول |
+| UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10-16 | مرشح أول |
+| ناقل I²C لحساسات الطاقة/الحرارة | PB8/PB9 | I2C1 SCL/SDA | Arduino D15/D14 | احتياطي |
+| SPI احتياطي لوحدة ADC خارجية/تخزين | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | Arduino D13/D12/D11 | احتياطي |
+
+## 3. نقاط تدقيق
+
+- PA0 وPA1 مدخلان سريعان من مجموعة ADCx_IN1..IN5، ويمكن ضبط ADC1 على IN1 وADC2 على IN2 مع أخذ عينتين متزامنتين. لا تستخدم PA4 كبديل سريع؛ PA4 هو ADC2_IN17 ويقع ضمن slow channels.
+- PA8/PA9 يدعمان HRTIM1_CHA1/CHA2 وفق جدول alternate functions. نستخدم HRTIM كمصدر توقيت لا software GPIO toggling.
+- PA12 يحمل HRTIM1_FLT1، ويجب أن يُستخدم كمسار حماية عتادي إذا ثبتت ملاءمة التوصيل؛ يمكن أن يأتي fault من comparator أو دائرة overcurrent مستقلة.
+- PB10/PB11 يدعمان USART3، وهما منفصلان عن PA8/PA9 المخصصين للتوقيت.
+- PB8/PB9 يمكن حجزهما لـI²C لمراقبة البطارية والتيار/الحرارة، مع تجنب تعارضات أي لوحة توسعة.
+- SPI يبقى احتياطياً، وليس مطلوباً في baseline إذا استخدمنا ADC الداخلي.
+
+## 4. قيود لا تزال قبل المخطط النهائي
+
+1. مراجعة كامل pinout والـsolder bridges للوحة MB1367 revision التي ستُشترى.
+2. التأكد من أن موصلات Nucleo تأتي مركبة/ملحومة مسبقاً أو تحديد shield مصنعياً يركب دون لحام يدوي.
+3. حساب مستويات منطق Gate Driver وWi-Fi UART والتغذية المشتركة.
+4. اختيار مدخل fault الفعلي ومصدره (comparator/overcurrent) وتأكيد أن الاستجابة hardware fault تمنع نبضة TX في الزمن المطلوب.
+5. اختيار القنوات الإضافية لمراقبة تيار TX وجهد البطارية وحرارة MOSFET بعد تثبيت دارة القياس.
+6. منع أي اتصال مباشر بين منافذ MCU والملف أو drain MOSFET أو عقدة الجهد النبضي.
+
+## 5. قرار أولي
+
+هذه الخريطة تجعل وحدة التحكم قابلة للتوصيل إلى لوحة AFE/TX مصنعة مسبقاً عبر shield أو ضفيرة مقفلة، وتترك Wi-Fi منفصلاً. لا تُعد pinout نهائياً للـPCB قبل مراجعة ملفات التصنيع والسكيما الخاصة بإصدار NUCLEO-G474RE الذي سيُستخدم.
