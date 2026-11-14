@@ -260,3 +260,12 @@ https://www.vishay.com/docs/91217/irfp264pbf.pdf
 - لا نعتمد avalanche الداخلي للـMOSFET كآلية clamp في التشغيل الطبيعي.
 - إذا أظهر transient/PCB parasitic simulation أن VDS يتجاوز200V، نرفع تصنيف MOSFET أو نعيد تصميم clamp قبل إصدار PCB.
 - يجب أن يكون القياس/المحاكاة على turn-off edge، لا متوسط VDS فقط.
+
+
+## 13. قرار إغلاق TX — منع إصدار شراء
+هذا القسم يتقدم على أي تيار/قطعة سابقة في الملف:
+- سقف التصميم الأولي للنسخة الأولى 5A؛ 6A ملغى من خط الأساس ولا يستخدم كإعداد تشغيل. لا توجد قيمة نبضة ثابتة 300µs ولا تردد 1kHz معتمد.
+- COMP1/HRTIM hardware fault يوقف النبضة عند حد التيار؛ يضاف maximum-on-time مستقل. زمن 96.8µs لبلوغ5A على الملف النظري مجرد تقدير RL وليس إعداداً زمنياً بديلاً عن المقارن.
+- IRFP264PBF وTC4420CPA و3×1.5KE39CA و47Ω وSTTH112U تبقى مرشحات/فرضيات نموذج ولا تدخل أمر الشراء.
+- النموذج الحالي لا يتضمن parasitic inductance/capacitance أو منحنى TVS الفعلي أو SOA/thermal impedance؛ لا يعتمد ذروة VDS الناتجة منه كضمان.
+- إغلاق TX الكهربائي يتطلب schematic، transient simulation parasitic، SOA/thermal report، ثم قياساً على منصة اختبار محدودة الطاقة قبل اعتماد PCB النهائية.
