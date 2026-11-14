@@ -5,6 +5,7 @@ OUT="$ROOT/artifacts/getdp-mesh-convergence"
 mkdir -p "$OUT"
 command -v gmsh
 command -v getdp
+gmsh --version | tee "$OUT/gmsh-version.txt"
 getdp -version 2>&1 | tee "$OUT/getdp-version.txt" || true
 python3 --version | tee "$OUT/python-version.txt"
 for divisions in 3 4 6; do
