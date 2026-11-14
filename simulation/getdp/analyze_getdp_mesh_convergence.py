@@ -122,7 +122,8 @@ out = ROOT / "getdp_mesh_convergence_45mm.csv"
 fields = list(records[0])
 for key in changes:
     fields.append(f"change_{key}_medium_to_fine_percent")
-if "overall_convergence_status" not in fields:\n    fields.append("overall_convergence_status")
+if "overall_convergence_status" not in fields:
+    fields.append("overall_convergence_status")
 with out.open("w", newline="") as stream:
     writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
