@@ -229,3 +229,13 @@ Artifacts المنشورة وغير منتهية الصلاحية وقت الت�
 
 ## نقطة التوقف — 2026-11-11
 بناءً على طلب المستخدم، تم حفظ الحالة الكاملة في `ISLAM.md` وإيقاف العمل الهندسي مؤقتاً للنقاش. الفرع `hardware/rev-a-measurement-design`، PR #7 Draft وغير مدمج، والرأس قبل هذا التحديث `56da984e59924b84591c0add3361635b2bec83ff`. CI #233 و#236 و#237 و#240 و#241 و#242 ناجحة؛ CI #243 على الرأس المذكور كان قيد التنفيذ: protocol-tests ناجح وRP2040/Android قيد التنفيذ. لا تسجل نجاح #243 حتى إعادة فحصه. جميع قرارات هندسات الملف غير نهائية، DD32 مرجع فقط. SCLK=8.929MHz متوازن 50%، قراءة ADS8861 1.792µs، النوافذ الاسمية 8/12/16/24/36/52/72/100µs؛ الحسابات لم تقاس على العتاد. THS4521 فرق VIN± المطلق1V، لا توصيل مباشر للملف. Gain/RF/RG غير معتمدة. `ENABLE_ADS8861_CAPTURE=0`. لا دمج PR ولا شراء أو تشغيل عتاد قبل النقاش والاستئناف الصريح. عند الاستئناف افحص PR وCI #243 أولاً.
+
+
+## 22. متابعة إصلاح إعادة تسليح الالتقاط — 2026-11-14
+
+- HEAD: `f9d4f12722a47490630f657fad402af1b4f21405` على `hardware/rev-a-measurement-design`.
+- أصلحنا تجاهل فشل `capture_arm_next_sweep()`: enum يوضح حالة عدم الجاهزية/نجاح sweep/فشل إعادة التسليح، وmain يوقف مولد التوقيت عند الفشل. commits: `9561d7f2d33136b7ccc059b4a4f231b394f5c14e`, `8f1166952c7a10bc85db847d2da0c59941333eeb`, `f9d4f12722a47490630f657fad402af1b4f21405`.
+- CI run `43612891196` اكتمل Success في الوظائف الأربع (protocol-tests, rp2040-firmware, esp32-s3-bridge, android-app). APK artifact `14121305728`، وUF2 artifact `14120822394`، صلاحية حتى 2026-12-14.
+- حد الإثبات: CI build/host tests فقط. `ENABLE_ADS8861_CAPTURE=0`؛ لا UART producer ولا MEASUREMENT serializer ولا RP2040 command receiver/DEVICE_INFO transmitter؛ لا handshake أو loopback أو تطبيق مرتبط بقياس حقيقي. لا تُعلن ADS8861/VREF كعتاد موجود قبل تركيبه.
+- PR #7 Open Draft وغير مدمج، و`main` لم يتغير.
+- التالي: بناء واختبار encoder/serializer على RP2040 مقابل golden vectors، ثم command receiver وDEVICE_INFO صادق، وبعدها loopback منخفض الجهد عند تثبيت pinout. لا ACK قبل تعريف payload.
