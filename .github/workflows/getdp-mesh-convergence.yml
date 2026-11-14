@@ -9,6 +9,7 @@ on:
       - 'simulation/getdp/analyze_getdp_mesh_convergence.py'
       - 'simulation/getdp/derive_rx_voltage.py'
       - 'simulation/getdp/test_derive_rx_voltage.py'
+      - 'simulation/getdp/pi_pulse_axisymmetric.pro'
       - 'simulation/elmer/pi_pulse_separate_coil.geo'
   workflow_dispatch:
 permissions:
@@ -48,6 +49,7 @@ jobs:
             artifacts/getdp-mesh-convergence/getdp_mesh_convergence_45mm.csv
             artifacts/getdp-mesh-convergence/mesh-integrity-sha256.txt
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/j2.txt
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/az_rx_point.txt
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/getdp.log
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/gmsh.log
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/model.msh
