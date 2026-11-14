@@ -7,6 +7,8 @@ on:
       - 'simulation/getdp/pi_pulse_axisymmetric.pro'
       - 'simulation/getdp/run_getdp_mesh_convergence.sh'
       - 'simulation/getdp/analyze_getdp_mesh_convergence.py'
+      - 'simulation/getdp/derive_rx_voltage.py'
+      - 'simulation/getdp/test_derive_rx_voltage.py'
       - 'simulation/elmer/pi_pulse_separate_coil.geo'
   workflow_dispatch:
 permissions:
@@ -24,11 +26,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y getdp gmsh python3
+      - name: Test RX flux-to-voltage numerical kernel
+        run: |
+          set -euo pipefail
+          python3 -m py_compile simulation/getdp/*.py
+          python3 -m unittest discover -s simulation/getdp -p 'test_*.py' -v
       - name: Run three independent mesh resolutions
         run: |
           set -euo pipefail
           bash -n simulation/getdp/run_getdp_mesh_convergence.sh
-          python3 -m py_compile simulation/getdp/analyze_getdp_mesh_convergence.py
           bash simulation/getdp/run_getdp_mesh_convergence.sh
       - name: Upload raw J2 histories and convergence table
         if: always()
@@ -36,9 +42,11 @@ jobs:
         with:
           name: ISLAM-LAB-GetDP-mesh-convergence-45mm
           path: |
+            artifacts/getdp-mesh-convergence/gmsh-version.txt
             artifacts/getdp-mesh-convergence/getdp-version.txt
             artifacts/getdp-mesh-convergence/python-version.txt
             artifacts/getdp-mesh-convergence/getdp_mesh_convergence_45mm.csv
+            artifacts/getdp-mesh-convergence/mesh-integrity-sha256.txt
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/j2.txt
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/getdp.log
             artifacts/getdp-mesh-convergence/gap-45mm-refine-*/gmsh.log
