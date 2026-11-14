@@ -25,11 +25,11 @@
 |---|---|---|---|---|
 | قياس إشارة الملف بعد AFE | PA0 | ADC1_IN1 | CN8-1 / Arduino A0 | مرشح أول |
 | قياس مرجع/قناة مراقبة متزامنة | PA1 | ADC2_IN2 | CN8-2 / Arduino A1 | مرشح أول |
-| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9-D7 وMorpho CN10-15 | مرشح أول |
-| خرج توقيت ثانٍ/تحكم متزامن | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5-1 فقط | احتياطي |
-| إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10-10 | مرشح أول |
-| UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10-17 | مرشح أول |
-| UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10-16 | مرشح أول |
+| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9 pin 8 (D7) وCN10 pin 23 | مرشح أول |
+| خرج توقيت ثانٍ/تحكم متزامن | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5 pin 1 وCN10 pin 21 | احتياطي |
+| إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10 pin 12 | مرشح أول |
+| UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10 pin 25 | مرشح أول |
+| UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 18 | مرشح أول |
 | ناقل I²C لحساسات الطاقة/الحرارة | PB8/PB9 | I2C1 SCL/SDA | Arduino D15/D14 | احتياطي |
 | SPI احتياطي لوحدة ADC خارجية/تخزين | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | Arduino D13/D12/D11 | احتياطي |
 
@@ -54,3 +54,29 @@
 ## 5. قرار أولي
 
 هذه الخريطة تجعل وحدة التحكم قابلة للتوصيل إلى لوحة AFE/TX مصنعة مسبقاً عبر shield أو ضفيرة مقفلة، وتترك Wi-Fi منفصلاً. لا تُعد pinout نهائياً للـPCB قبل مراجعة ملفات التصنيع والسكيما الخاصة بإصدار NUCLEO-G474RE الذي سيُستخدم.
+
+
+## 6. منافذ AFE بعد اعتماد time-domain bucking
+
+بعد تحديث قرار الاستقبال، تضاف المنافذ التالية:
+| الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
+|---|---|---|---|
+| DAC لضبط سعة bucking | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | خرج DAC إلى buffer AFE |
+| SPI clock للمقاومة الرقمية | PA5 / SPI1_SCK | CN5 pin 6 / D13 | MCP41100 |
+| SPI data إلى المقاومة الرقمية | PA7 / SPI1_MOSI | CN5 pin 4 / D11 | MCP41100؛ لا يحتاج MISO |
+| CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 وCN10 pin 17 | Chip select |
+| ADC1 إشارة الفرق | PA0 / ADC1_IN1 | A0 / CN8 pin 1 | القناة الأساسية |
+| ADC2 مراقبة bucking | PA1 / ADC2_IN2 | A1 / CN8 pin 2 | متزامنة مع ADC1 |
+
+**تدقيق موصلات:** وفق جدول UM2505:
+- PA12 على CN10 pin 12.
+- PB10 على CN10 pin 25.
+- PB11 على CN10 pin 18.
+- PA8 على CN10 pin 23.
+- PA9 على CN10 pin 21.
+- PA5/PA6/PA7 على CN5 pins 6/5/4.
+- PB6 على CN5 pin 3 وCN10 pin 17.
+- PA4 على A2 / CN8 pin 3.
+
+المصدر الرسمي:
+https://www.st.com/resource/en/user_manual/dm00556337.pdf
