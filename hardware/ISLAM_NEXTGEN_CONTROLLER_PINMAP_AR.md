@@ -26,7 +26,7 @@
 | قياس إشارة الملف بعد AFE | PA0 | ADC1_IN1 | CN8-1 / Arduino A0 | مرشح أول |
 | قياس مرجع/قناة مراقبة متزامنة | PA1 | ADC2_IN2 | CN8-2 / Arduino A1 | مرشح أول |
 | خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9-D7 وMorpho CN10-15 | مرشح أول |
-| خرج توقيت ثانٍ/تحكم متزامن | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5-1 وMorpho CN10-? | احتياطي |
+| خرج توقيت ثانٍ/تحكم متزامن | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5-1 فقط | احتياطي |
 | إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10-10 | مرشح أول |
 | UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10-17 | مرشح أول |
 | UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10-16 | مرشح أول |
