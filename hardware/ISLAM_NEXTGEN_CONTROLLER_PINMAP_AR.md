@@ -25,12 +25,12 @@
 |---|---|---|---|---|
 | قياس إشارة الملف بعد AFE | PA0 | ADC1_IN1 | CN8-1 / Arduino A0 | مرشح أول |
 | قياس مرجع/قناة مراقبة متزامنة | PA1 | ADC2_IN2 | CN8-2 / Arduino A1 | مرشح أول |
-| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9 pin 8 (D7) وCN10 pin 23 | مرشح أول |
-| خرج تشغيل مفتاح مرجع bucking SWb | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5 pin 1 وCN10 pin 21 | تشغيل SWb متزامن مع TX-off |
-| إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10 pin 12 | مرشح أول |
-| UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10 pin 25 | مرشح أول |
-| UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 18 | مرشح أول |
-| BOOT0 لتحديث STM32 عبر ESP32 | PB8 | BOOT0 | CN10 pin 3 | محجوز؛ لا يستخدم I²C1 |
+| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9 pin 8 (D7) وCN9 pin 8 | مرشح أول |
+| خرج تشغيل مفتاح مرجع bucking SWb | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5 pin 1 وCN5 pin 1 | تشغيل SWb متزامن مع TX-off |
+| إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10 pin 11 | مرشح أول |
+| UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN9 pin 7 | مرشح أول |
+| UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 17 | مرشح أول |
+| BOOT0 لتحديث STM32 عبر ESP32 | PB8 | BOOT0 | CN7 pin 7 / CN5 D15 | محجوز؛ لا يستخدم I²C1 |
 | SPI احتياطي لوحدة ADC خارجية/تخزين | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | Arduino D13/D12/D11 | احتياطي |
 
 ## 3. نقاط تدقيق
@@ -62,18 +62,18 @@
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
 | DAC لضبط سعة bucking | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | خرج DAC إلى buffer AFE |
-| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 30 | MCP41100 |
+| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN7 pin 7 / CN5 D150 | MCP41100 |
 | SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 26 | MCP41100؛ لا يحتاج MISO |
 | CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 وCN10 pin 17 | Chip select |
 | ADC1 إشارة الفرق | PA0 / ADC1_IN1 | A0 / CN8 pin 1 | القناة الأساسية |
 | ADC2 مراقبة bucking | PA1 / ADC2_IN2 | A1 / CN8 pin 2 | متزامنة مع ADC1 |
 
 **تدقيق موصلات:** وفق جدول UM2505:
-- PA12 على CN10 pin 12.
-- PB10 على CN10 pin 25.
-- PB11 على CN10 pin 18.
-- PA8 على CN10 pin 23.
-- PA9 على CN10 pin 21.
+- PA12 على CN10 pin 11.
+- PB10 على CN9 pin 7.
+- PB11 على CN10 pin 17.
+- PA8 على CN9 pin 8.
+- PA9 على CN5 pin 1.
 - PA5/PA6/PA7 على CN5 pins 6/5/4.
 - PB6 على CN5 pin 3 وCN10 pin 17.
 - PA4 على A2 / CN8 pin 3.
@@ -89,7 +89,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - **COMP2**: مدخل موجب PA7 لقياس envelope في مسار الاستقبال منخفض الكسب، ومدخل سالب DAC3_CH2 الداخلي كعتبة recovery. خرجه يربط بحدث HRTIM خارجي داخلياً.
 - **DAC1_CH1 على PA4/A2**: ضبط سعة مرجع bucking.
 - **DAC3_CH1 وDAC3_CH2**: عتبتا COMP1/COMP2 داخلياً، ولا تحتاجان أرجل GPIO.
-- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin30، PB15=MOSI على CN10 pin26، وPB6=CS على D10/CN10 pin17. لا يحتاج MCP41100 خط MISO.
+- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin 29، PB15=MOSI على CN10 pin 25، وPB6=CS على D10/CN10 pin17. لا يحتاج MCP41100 خط MISO.
 - **PA12 / CN10 pin12**: مدخل زر إيقاف/Interlock خارجي مستقل، إضافة إلى مسار المقارن الداخلي.
 
 هذا يترك PA3 حراً ولا يتعارض مع LPUART1/VCP المدمج على اللوحة. ويترك PA5/PA6/PA7 خارج SPI1؛ PA7 مستخدم الآن كمدخل COMP2 فقط.
@@ -105,9 +105,35 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 
 ## 8. BOOT0 وتحديث الهاتف
 
-- PB8 / BOOT0 على CN10 pin 3 محجوز للتحكم في دخول ROM bootloader.
-- NRST على CN7 pin 14 يتحكم به ESP32-S3 عبر ترانزستور open-drain.
+- PB8 / BOOT0 على CN7 pin 7 / CN5 D15 محجوز للتحكم في دخول ROM bootloader.
+- NRST على CN6 pin 14 يتحكم به ESP32-S3 عبر ترانزستور open-drain.
 - PB8 لا يستخدم كـI2C1_SCL في هذه النسخة؛ لا نشارك وظيفة Boot0 مع ناقل حساس.
 - USART3 PB10/PB11 هو رابط التطبيق وجسر ROM bootloader.
 - إذا استخدمنا jump-to-system-memory من التطبيق، تبقى دائرة PB8/NRST كمسار recovery احتياطي لتحديث أولي أو استرداد فشل.
 
+
+
+## 9. تصحيح إلزامي لخريطة الموصلات بعد مراجعة UM2505 Rev.7
+
+المراجعة الدقيقة لجدول موصلات NUCLEO-G474RE كشفت أخطاء ترقيم في النسخة السابقة. هذه هي الأرقام الصحيحة المعتمدة الآن:
+
+| الإشارة | الموصل الصحيح |
+|---|---|
+| PA8 / HRTIM1_CHA1 / D7 | CN9 pin 8 |
+| PA9 / HRTIM1_CHA2 / D8 | CN5 pin 1 |
+| PA12 / HRTIM1_FLT1 (إن اختير) | CN10 pin 11 |
+| PB10 / USART3_TX | CN9 pin 7 (D6) |
+| PB11 / USART3_RX | CN10 pin 17 |
+| PB8 / BOOT0 | CN7 pin 7، وله أيضاً موضع D15 على CN5 pin 10 |
+| NRST | CN6 pin 14 |
+| PB13 / SPI2_SCK | CN10 pin 29 |
+| PB15 / SPI2_MOSI | CN10 pin 25 |
+| PB6 / CS | CN5 pin 3 |
+| PA4 / DAC1_OUT1 | CN8 A2 pin 3 |
+| PA0 / ADC1 | CN8 A0 pin 1 |
+| PA1 / ADC2 | CN8 A1 pin 2 |
+| PB1 / COMP1 input | CN10 pin 23 |
+
+**تصحيح وظيفة BOOT0:** دليل UM2505 Rev.7 يوضح أن BOOT0 غير موصول بوضع افتراضي إلى دائرة اختيار boot، وتُدار الوظيفة افتراضياً عبر option bytes. لا يكفي توصيل سلك إلى PB8 والقول إن ROM bootloader سيعمل. يجب أولاً ضبط option bytes بحيث يستخدم boot من PB8، والتحقق من jumper JP7 ومسار اللوحة. إذا تعذر ذلك، نستخدم jump-to-system-memory من التطبيق كمسار تحديث أساسي، مع ST-LINK recovery عند الفشل.
+
+المصدر الرسمي: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf (UM2505 Rev.7، الصفحات 33–35).
