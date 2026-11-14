@@ -77,7 +77,7 @@ ADC1 يقرأ خرج الفرق الأساسي. ADC2 يراقب مرجع bucking
 - HRTIM يطلق SWb نسبةً إلى TX-off.
 - firmware يكتب قيمة wiper بعد استقرار ±12V و3.3V؛ لا يعتمد على POR code. تُحفظ قيمة المعايرة في Flash.
 
-**تسلسل الطاقة:** يجب أن تستقر V+/V− قبل تطبيق جهد على أطراف A/B/W. يبقى CS غير فعال وSHDN في الحالة الآمنة أثناء الإقلاع، ثم يُفعّل الجهاز بعد تأكيد rails.
+**تسلسل الطاقة:** يدعم الجهاز إقلاع التغذية التناظرية أو الرقمية أولاً؛ المهم أن يكون DGND مرجعاً مشتركاً بين المجالين، وألا يرتفع DGND فوق V+ أثناء الإقلاع. يبقى CS غير فعال أثناء startup. يربط WLAT إلى DGND (منخفض) لأننا لا نحتاج تحديثاً متزامناً، ويربط SHDN إلى VL عبر10kΩ (غير فعال).
 
 المصادر:
 https://www.microchip.com/en-us/product/MCP41HV51
@@ -507,7 +507,7 @@ VDCb=9V يترك headroom تحت ±12V للـTMUX6219، ويولد طاقة كا
 - تيار طرفي أقصى للنسخة100kΩ نحو6.5mA؛ تيار gyrator المتوقع أقل بكثير.
 - يستخدم مع مقاومة ثابتة200kΩ للحصول على مجال Rvar≈200–300kΩ.
 - خطوة المقاومة≈392Ω، وخطوة τ≈0.039µs عند C=100pF، وهي أدق من حاجة الضبط الأولي.
-- Firmware يضبط الكود بعد startup؛ لا يعتمد على قيمة POR الافتراضية.
+- POR wiper code=0x7F (midscale) يعطي نحو49.8kΩ؛ مع200kΩ ثابتة يصبح Rvar≈249.8kΩ وτ≈25µs، أي نقطة بدء مناسبة تلقائياً. Firmware يعيد ضبط الكود بعد startup إذا احتاج معايرة أدق.
 - يلزم احترام power sequencing: rails التناظرية V+/V− قبل تطبيق الجهد على أطراف A/B/W، مع إبقاء SHDN/CS في حالة آمنة حتى استقرار ±12V وVL.
 
 المصادر:
@@ -515,3 +515,19 @@ https://www.microchip.com/en-us/product/MCP41HV51
 https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments/DataSheets/MCP41HVX1-Data-Sheet-20005207.pdf
 
 هذه القطعة الآن مرشح Rvar الصحيح؛ لا شراء قبل التأكد من توصيلات A/W/B في gyrator ومحاكاة حدود terminal voltage والتيار.
+
+
+### توصيل أطراف MCP41HV51-104E/ST
+
+- V+ = +12V_AFE.
+- V− = −12V_AFE.
+- DGND = AGND (0V).
+- VL = +3.3V digital.
+- P0A/P0W/P0B: شبكة Rvar؛ يستخدم P0W مع P0B كرهيستات، ويترك الطرف الآخر وفق مخطط gyrator.
+- SCK=PB13، SDI=PB15، CS=PB6.
+- SDO غير موصول حالياً (لا نحتاج readback).
+- WLAT يربط DGND لأن تحديثات wiper غير متزامنة مع zero crossing.
+- SHDN يربط VL عبر10kΩ ليبقى غير فعال؛ لا يحتاج GPIO.
+- POR code=0x7F؛ يعطي نحو49.8kΩ من pot، فينتج Rvar≈249.8kΩ مع200kΩ ثابتة.
+
+يجب تثبيت اختيار P0W/P0B في schematic النهائي بعد مراجعة Fig.3 gyrator، مع تجنب وضع الجهد على أطراف pot خارج V+ وV−.
