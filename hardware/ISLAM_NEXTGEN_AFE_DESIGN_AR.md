@@ -68,15 +68,15 @@ ADC1 يقرأ خرج الفرق الأساسي. ADC2 يراقب مرجع bucking
 تنفيذ رقمي مرشح بعد تثبيت gyrator: 
 - مكثف C0G/NP0 بقيمة100pF وتفاوت1% أو أفضل.
 - مقاومة ثابتة200kΩ دقيقة.
-- MCP41100 digital potentiometer بقيمة100kΩ و256 خطوة، على التوالي مع المقاومة الثابتة لتوفير مجال200–300kΩ.
+- MCP41HV51 digital potentiometer بقيمة100kΩ و256 خطوة، على التوالي مع المقاومة الثابتة لتوفير مجال200–300kΩ.
 - تحكم SPI من STM32G474.
 - DAC1_CH1/CH2 مرشحان للتحكم التفاضلي في VGA عبر attenuator/RC، وليس بديلاً عن VDCb أو SWb.
 - HRTIM يطلق SWb في اللحظة نفسها بالنسبة إلى TX-off.
 
-MCP41100 يعمل على2.7–5.5V، 256 taps، 100kΩ، SPI، ومتوفر في PDIP أو SOIC وفق Microchip. لا يوجد مخزون جزائري مؤكد حتى الآن؛ يمكن تركيبه مصنعياً على PCB.
+MCP41HV51 يعمل على2.7–5.5V، 256 taps، 100kΩ، SPI، ومتوفر في PDIP أو SOIC وفق Microchip. لا يوجد مخزون جزائري مؤكد حتى الآن؛ يمكن تركيبه مصنعياً على PCB.
 
 المصدر:
-https://www.microchip.com/en-us/product/MCP41100
+https://www.microchip.com/en-us/product/MCP41HV51
 https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSheets/11195c.pdf
 
 ## 5. حماية مدخل AFE
@@ -104,7 +104,7 @@ https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSh
 - **المرشح الأساسي قيد إعادة التصميم:** OPA1612 مع تغذية تناظرية منفصلة، gyrator حقيقي، VGA، وطرح تفاضلي. لا توجد قيم نهائية بعد.
 - **خيار بديل:** AD8421 كـinstrumentation amplifier إذا تطلب القياس CMRR/ضجيجاً أعلى، بعد تأكيد تغذيته وتوريده.
 - **غير معتمد بعد:** قيم الكسب النهائية، مقاومة دخل AFE، دايودات الحماية، مصدر 1.65V، نوع/قيمة LDO، وعدد نوافذ العينة.
-- **لا شراء:** لا تشتري OPA2365 أو MCP41100 منفردين قبل تجميع BOM النهائي؛ القطع SMD ستأتي على لوحة مجمعة مصنعياً.
+- **لا شراء:** لا تشتري OPA2365 أو MCP41HV51 منفردين قبل تجميع BOM النهائي؛ القطع SMD ستأتي على لوحة مجمعة مصنعياً.
 
 
 
@@ -165,7 +165,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - OPA1612 ×2 (مرشح أولي فقط): preamp/gyrator/differential stages بعد حساب التغذية والكسب؛ لا شراء قبل المحاكاة.
 - TMUX6219 ×2: blanking/enable high-gain path بعد clamp.
 - BAV99: مرشح حماية بحثي فقط، غير معتمد ولا يوصل مباشرة إلى rails.
-- MCP41100 ×1: ضبط Rvar 200–300kΩ عبر 200k ثابت +100k digital pot.
+- MCP41HV51 ×1: ضبط Rvar 200–300kΩ عبر 200k ثابت +100k digital pot.
 - C0G 100pF، R=100Ω، وشبكة مقاومات matched 0.01% أو أفضل.
 - DAC1_CH1/PA4 يضبط bucking amplitude.
 - DAC3_CH1/CH2 داخليان لعتبات COMP1/2.
@@ -281,7 +281,7 @@ Power Lab يعرض **TEN8-4823** بسعر3800 دج، لكنه موديل دخل4
 - دخل/خرج single-ended وDC-coupled.
 - تغذية مزدوجة ±3V إلى±12V.
 - يحتوي preamplifier مستقل قابل لضبط كسبه 6–26dB.
-- gain-control differential pins: (V_{GAIN}=V_{GPOS}-V_{GNEG})، وليس مقاومة رقمية على feedback.
+- gain-control differential pins: (V_{GAIN}=V_{GPOS}-V_{GNEG})، وليس مقاومة رقمية عالية الجهد على feedback.
 - استجابة تغيير كسب60dB نحو300ns.
 - حزمة LFCSP؛ يجب تجميعها مصنعياً على PCB، لا لحام يدوي.
 
@@ -296,7 +296,7 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - DAC1_CH1/CH2 من STM32G474 يقدمان GPOS/GNEG عبر مقسمات مقاومة وRC attenuation مضبوطة؛ لا حاجة إلى buffer افتراضياً لأن gain pins واجهة تحكم عالية الممانعة، ويضاف buffer فقط إذا أثبت القياس الحاجة. كلا الخرجين يحددان ضمن0–0.6V.
 - لا نربط DAC مباشرة قبل حساب مجال common-mode وabsolute maximum للـGAIN pins.
 
-هذا يزيل الحاجة إلى MCP41100 في مسار VGA؛ يبقى MCP41100 فقط مرشحاً لضبط Rvar في gyrator.
+هذا يزيل الحاجة إلى MCP41HV51 في مسار VGA؛ يبقى MCP41HV51 فقط مرشحاً لضبط Rvar في gyrator.
 
 ## 14. اختيار تغذية تناظرية متوافقة مع AD8336
 
@@ -329,7 +329,7 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - U3 AD8336: bucking VGA.
 - U4 TMUX6219: مفتاح SWb.
 - U5 TMUX6219: high-gain blanking/enable بعد حماية المدخل.
-- MCP41100: Rvar فقط إذا بقي الضبط الرقمي للمحث المكافئ مطلوباً.
+- MCP41HV51: Rvar فقط إذا بقي الضبط الرقمي للمحث المكافئ مطلوباً.
 - DAC1_CH1/CH2: تحكم AD8336 gain differential عبر resistor attenuators وRC.
 - ADC1/ADC2: خرج الفرق + قناة مراقبة محمية.
 
@@ -489,3 +489,25 @@ VDCb=9V يترك headroom تحت ±12V للـTMUX6219، ويولد طاقة كا
 المراجع:
 - STM32G474 datasheet Table 12: PA10 supports HRTIM1_CHB1.
 - UM2505 Rev.7: PA10 على CN9 pin3 / Arduino D2.
+
+
+## 24. تصحيح نهائي لنوع digital potentiometer في gyrator
+
+تم إسقاط MCP41100 نهائياً من هذا الموضع؛ حد أطرافه التناظرية5.5V لا يكفي مع gyrator على ±12V.
+
+**القطعة الصحيحة المرشحة: Microchip MCP41HV51-104E/ST**
+- 100kΩ، 8-bit، 256 taps، SPI، حزمة TSSOP-14.
+- مجال أطراف تناظرية حتى±18V (أو36V أحادي)، مناسب لـ±12V.
+- منطق رقمي2.7–5.5V؛ يعمل مع STM32 3.3V.
+- Wiper resistance نموذجي75Ω.
+- تيار طرفي أقصى للنسخة100kΩ نحو6.5mA؛ تيار gyrator المتوقع أقل بكثير.
+- يستخدم مع مقاومة ثابتة200kΩ للحصول على مجال Rvar≈200–300kΩ.
+- خطوة المقاومة≈392Ω، وخطوة τ≈0.039µs عند C=100pF، وهي أدق من حاجة الضبط الأولي.
+- Firmware يضبط الكود بعد startup؛ لا يعتمد على قيمة POR الافتراضية.
+- يلزم احترام power sequencing: rails التناظرية V+/V− قبل تطبيق الجهد على أطراف A/B/W، مع إبقاء SHDN/CS في حالة آمنة حتى استقرار ±12V وVL.
+
+المصادر:
+https://www.microchip.com/en-us/product/MCP41HV51
+https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments/DataSheets/MCP41HVX1-Data-Sheet-20005207.pdf
+
+هذه القطعة الآن مرشح Rvar الصحيح؛ لا شراء قبل التأكد من توصيلات A/W/B في gyrator ومحاكاة حدود terminal voltage والتيار.
