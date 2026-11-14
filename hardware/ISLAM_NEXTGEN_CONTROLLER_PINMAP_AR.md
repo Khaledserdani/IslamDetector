@@ -25,8 +25,8 @@
 |---|---|---|---|---|
 | قياس إشارة الملف بعد AFE | PA0 | ADC1_IN1 | CN8-1 / Arduino A0 | مرشح أول |
 | قياس مرجع/قناة مراقبة متزامنة | PA1 | ADC2_IN2 | CN8-2 / Arduino A1 | مرشح أول |
-| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9 pin 8 (D7) وCN9 pin 8 | مرشح أول |
-| خرج تشغيل مفتاح مرجع bucking SWb | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5 pin 1 وCN5 pin 1 | تشغيل SWb متزامن مع TX-off |
+| خرج توقيت TX الأساسي | PA8 | HRTIM1_CHA1 (AF13) | CN9 pin 8 (D7) | مرشح أول |
+| خرج تشغيل مفتاح مرجع bucking SWb | PA9 | HRTIM1_CHA2 (AF13) | Arduino D8 / CN5 pin 1 | تشغيل SWb متزامن مع TX-off |
 | إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10 pin 11 | مرشح أول |
 | UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN9 pin 7 | مرشح أول |
 | UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 17 | مرشح أول |
@@ -39,7 +39,7 @@
 - PA8/PA9 يدعمان HRTIM1_CHA1/CHA2 وفق جدول alternate functions. نستخدم HRTIM كمصدر توقيت لا software GPIO toggling.
 - PA12 يحمل HRTIM1_FLT1، ويجب أن يُستخدم كمسار حماية عتادي إذا ثبتت ملاءمة التوصيل؛ يمكن أن يأتي fault من comparator أو دائرة overcurrent مستقلة.
 - PB10/PB11 يدعمان USART3، وهما منفصلان عن PA8/PA9 المخصصين للتوقيت.
-- PB8/PB9 يمكن حجزهما لـI²C لمراقبة البطارية والتيار/الحرارة، مع تجنب تعارضات أي لوحة توسعة.
+- PB8 محجوز كخيار BOOT0 ولا يستخدم لـI²C في هذا التصميم؛ يمكن دراسة PB9 لوظيفة مستقلة بعد مراجعة التوصيلات.
 - SPI يبقى احتياطياً، وليس مطلوباً في baseline إذا استخدمنا ADC الداخلي.
 
 ## 4. قيود لا تزال قبل المخطط النهائي
@@ -62,9 +62,9 @@
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
 | DAC لضبط سعة bucking | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | خرج DAC إلى buffer AFE |
-| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN7 pin 7 / CN5 D150 | MCP41100 |
-| SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 26 | MCP41100؛ لا يحتاج MISO |
-| CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 وCN10 pin 17 | Chip select |
+| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 29 | MCP41100 |
+| SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 25 | MCP41100؛ لا يحتاج MISO |
+| CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 | Chip select |
 | ADC1 إشارة الفرق | PA0 / ADC1_IN1 | A0 / CN8 pin 1 | القناة الأساسية |
 | ADC2 مراقبة bucking | PA1 / ADC2_IN2 | A1 / CN8 pin 2 | متزامنة مع ADC1 |
 
@@ -75,7 +75,7 @@
 - PA8 على CN9 pin 8.
 - PA9 على CN5 pin 1.
 - PA5/PA6/PA7 على CN5 pins 6/5/4.
-- PB6 على CN5 pin 3 وCN10 pin 17.
+- PB6 على CN5 pin 3.
 - PA4 على A2 / CN8 pin 3.
 
 المصدر الرسمي:
