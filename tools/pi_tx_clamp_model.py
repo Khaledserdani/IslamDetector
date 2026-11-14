@@ -33,7 +33,7 @@ class Result:
 def simulate(
     inductance_uH: float = 175.8,
     current_A: float = 5.0,
-    coil_resistance_ohm: float = 1.04,
+    coil_resistance_ohm: float = 1.064,
     clamp_resistance_ohm: float = 47.0,
     diode_forward_V: float = 1.5,
     tvs_count: int = 3,
