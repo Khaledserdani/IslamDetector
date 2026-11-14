@@ -136,6 +136,24 @@ int main(void) {
         REV_A_TYPE_SET_PROFILE, &profile_id, 1u,
         command_frame, 8u, &command_length));
 
+    rev_a_command_t decoded_command;
+    CHECK(rev_a_decode_command(command_frame, command_length, &decoded_command));
+    CHECK(decoded_command.type == REV_A_TYPE_SET_PROFILE);
+    CHECK(decoded_command.profile_id == profile_id);
+    CHECK(rev_a_encode_command(
+        REV_A_TYPE_GET_INFO, NULL, 0u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(rev_a_decode_command(command_frame, command_length, &decoded_command));
+    CHECK(decoded_command.type == REV_A_TYPE_GET_INFO);
+    CHECK(decoded_command.profile_id == 0u);
+    uint8_t damaged_command[REV_A_MAX_COMMAND_FRAME_SIZE];
+    memcpy(damaged_command, command_frame, command_length);
+    damaged_command[command_length - 1u] ^= 0x01u;
+    CHECK(!rev_a_decode_command(damaged_command, command_length, &decoded_command));
+    CHECK(!rev_a_decode_command(command_frame, command_length - 1u, &decoded_command));
+    command_frame[3] = 0x7Fu;
+    CHECK(!rev_a_decode_command(command_frame, command_length, &decoded_command));
+
     uint8_t measurement_bytes[REV_A_MAX_FRAME_SIZE];
     const size_t measurement_length = make_measurement(measurement_bytes);
     rev_a_measurement_t measurement;
