@@ -179,3 +179,15 @@ F. اختبار ميداني أعمى وتكراري بعد نجاح المخت�
 بناءً على ذلك، يُخفض TX منفصل + bifilar switched RX من المرشح الأول إلى بديل بحثي محفوظ، لأنه يزيد مفاتيح الرأس والتحكم المعزول دون أن يقدم حالياً دليلاً مستقلاً أقوى من bucking المقاس. تبقى إمكانية دمجه لاحقاً إذا أظهرت المحاكاة أن بقايا الإشارة الذاتية لا تزال تمنع الاستقبال المبكر.
 
 الرأس الأساسي يصبح mono-loop واحداً يتناوب TX/RX، مع رأسين قابلين للتبديل (صغير وكبير) إذا أثبتت المقارنة قيمتهما. DD يبقى بديلاً لتربة شديدة التمعدن. راجع `hardware/ISLAM_NEXTGEN_RECEIVER_DECISION_AR.md`.
+
+
+## 17. حماية AFE وقرار التعافي العتادي
+
+أضيف مسار استقبال مزدوج:
+- low-gain protected monitor يبقى متصلاً خلال TX/flyback.
+- high-gain AFE مفصول عبر TMUX1134 حتى يهبط envelope إلى مجال آمن.
+- BAV99 مع مقاومة سلسلة يحمي عقدة المراقبة، وCOMP2/DAC3_CH2 يحددان التعافي.
+- COMP1/DAC3_CH1 يراقب تيار TX ويوقف HRTIM عبر fault.
+- HRTIM يفرض dead-time ويفتح high-gain path ثم يطلق ADC1/ADC2.
+
+الهدف منع تشبع preamp قبل عملية bucking. راجع `hardware/ISLAM_NEXTGEN_AFE_DESIGN_AR.md` و`hardware/ISLAM_NEXTGEN_CONTROLLER_PINMAP_AR.md`.
