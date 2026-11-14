@@ -17,6 +17,12 @@ bool ads8861_capture_init(PIO pio, uint sm);
 bool ads8861_capture_start(PIO pio, uint sm);
 void ads8861_capture_stop(PIO pio, uint sm);
 
-// Non-blocking: returns one completed eight-sample raw sweep and re-arms PIO/DMA.
-bool ads8861_capture_try_read_sweep(
+typedef enum {
+    ADS8861_SWEEP_NOT_READY = 0,
+    ADS8861_SWEEP_READY = 1,
+    ADS8861_SWEEP_READY_REARM_FAILED = 2
+} ads8861_sweep_result_t;
+
+// Non-blocking: returns a completed sweep and reports whether re-arming succeeded.
+ads8861_sweep_result_t ads8861_capture_try_read_sweep(
     PIO pio, uint sm, uint16_t samples[ADS8861_SWEEP_SAMPLES]);
