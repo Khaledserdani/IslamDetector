@@ -79,3 +79,19 @@ https://www.st.com/resource/en/application_note/an2606-introduction-to-stm32-mic
 - **مرشح شراء محلي:** ESP32-S3 N16R8 مع headers ملحومة مسبقاً من TIKNO.
 - **مرشح شراء غير محلي مؤكد:** NUCLEO-G474RE؛ لا يوجد مخزون جزائري مؤكد حتى الآن.
 - **غير معتمد بعد:** كابل/موصل UART النهائي، GPIOs النهائية بعد مراجعة لوحة DevKit المختارة، دائرة BOOT0/NRST، توزيع 5V، وبروتوكول التحديث.
+
+
+## 7. تدقيق GPIO لوحة ESP32-S3 DevKitC-1 N16R8
+
+دليل Espressif الرسمي للوحة DevKitC-1 v1.0 يطابق التوزيع التالي:
+- GPIO17 = U1TXD.
+- GPIO18 = U1RXD.
+- GPIO15 وGPIO16 أرجل XTAL 32kHz اختيارية، لكنها متاحة كـGPIO إذا لم تُركب crystal 32kHz.
+- نتجنب GPIO0 وGPIO3 وGPIO45 وGPIO46 لأنها strapping pins.
+- GPIO35/36/37 غير متاحة في N16R8 لأنها مرتبطة بذاكرة Octal PSRAM.
+- GPIO43/44 محجوزتان لـUART0/USB-to-UART bridge.
+
+إذن GPIO17/18 للرابط التسلسلي وGPIO15/16 لخطوط boot/reset مقبولة مبدئياً، بعد التأكد من مراجعة PCB الفعلية للوحة التي يرسلها المورد.
+
+المصدر الرسمي:
+https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.0.html
