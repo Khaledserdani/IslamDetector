@@ -64,7 +64,7 @@
 بعد تحديث قرار الاستقبال، تضاف المنافذ التالية:
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
-| DAC1_CH1 للتحكم التفاضلي في AD8336 | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | إلى buffer/level-shift ثم GPOS/GNEG |
+| DAC1_CH1 للتحكم التفاضلي في AD8336 | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | عبر attenuator/RC إلى GPOS/GNEG |
 | SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 29 | MCP41100 |
 | SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 25 | MCP41100؛ لا يحتاج MISO |
 | CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 | Chip select |
