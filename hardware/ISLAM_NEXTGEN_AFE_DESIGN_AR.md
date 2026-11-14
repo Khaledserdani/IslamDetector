@@ -486,8 +486,8 @@ VDCb=9V يترك headroom تحت ±12V للـTMUX6219، ويولد طاقة كا
 
 ## 23. توقيت مفاتيح bucking وblanking
 
-- PA9 / HRTIM1_CHA2 يطلق EN لمفتاح SWb.
-- PA10 / HRTIM1_CHB1 يطلق EN لمفتاح high-gain blanking.
+- PA9 / HRTIM1_CHA2 يبدل SEL لمفتاح SWb.
+- PA10 / HRTIM1_CHB1 يبدل SEL لمفتاح high-gain blanking.
 - PA8 / HRTIM1_CHA1 يطلق TX gate driver.
 - COMP2 recovery event يعيد تمكين high-gain عبر HRTIM بعد minimum dead-time.
 - TMUX6219 SEL يثبت على المسار المختار؛ لا نبدل SEL أثناء transient.
