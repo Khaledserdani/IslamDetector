@@ -31,7 +31,10 @@
 | UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN9 pin 7 | مرشح أول |
 | UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 17 | مرشح أول |
 | BOOT0 لتحديث STM32 عبر ESP32 | PB8 | BOOT0 | CN7 pin 7 / CN5 D15 | محجوز؛ لا يستخدم I²C1 |
-| SPI احتياطي لوحدة ADC خارجية/تخزين | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | Arduino D13/D12/D11 | احتياطي |
+| DAC1_CH2 للتحكم التفاضلي في AD8336 | PA5 | DAC1_OUT2 | CN5 pin 6 / Arduino D13 | مرشح أول |
+| COMP2 لمراقبة recovery envelope | PA7 | COMP2_INP | CN5 pin 4 / Arduino D11 | مرشح أول |
+| SPI1 | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | — | غير متاح؛ الأرجل محجوزة للـDAC/COMP |
+
 
 ## 3. نقاط تدقيق
 
@@ -61,7 +64,7 @@
 بعد تحديث قرار الاستقبال، تضاف المنافذ التالية:
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
-| DAC لضبط سعة bucking | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | خرج DAC إلى buffer AFE |
+| DAC1_CH1 للتحكم التفاضلي في AD8336 | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | إلى buffer/level-shift ثم GPOS/GNEG |
 | SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 29 | MCP41100 |
 | SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 25 | MCP41100؛ لا يحتاج MISO |
 | CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 | Chip select |
@@ -137,3 +140,16 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 **تصحيح وظيفة BOOT0:** دليل UM2505 Rev.7 يوضح أن BOOT0 غير موصول بوضع افتراضي إلى دائرة اختيار boot، وتُدار الوظيفة افتراضياً عبر option bytes. لا يكفي توصيل سلك إلى PB8 والقول إن ROM bootloader سيعمل. يجب أولاً ضبط option bytes بحيث يستخدم boot من PB8، والتحقق من jumper JP7 ومسار اللوحة. إذا تعذر ذلك، نستخدم jump-to-system-memory من التطبيق كمسار تحديث أساسي، مع ST-LINK recovery عند الفشل.
 
 المصدر الرسمي: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf (UM2505 Rev.7، الصفحات 33–35).
+
+
+## 10. تخصيص DAC1 لقناة تحكم VGA
+
+بعد إضافة AD8336:
+- PA4 / DAC1_OUT1 / Arduino A2 / CN8 pin3 = DAC control 1.
+- PA5 / DAC1_OUT2 / Arduino D13 / CN5 pin6 = DAC control 2.
+- يذهب الخرجان إلى buffer/level-shift لتوليد GPOS/GNEG وفق common-mode في داتا شيت AD8336.
+- PA7 يبقى COMP2 envelope recovery.
+- SPI2 PB13/PB15 وCS PB6 يبقى للمقاومة الرقمية MCP41100 الخاصة بـRvar.
+- لذلك لا نستخدم SPI1 على PA5/PA6/PA7.
+
+يجب التحقق من alternate function الخاص بـDAC1_OUT2 على نسخة STM32G474RE LQFP64 قبل PCB النهائي.
