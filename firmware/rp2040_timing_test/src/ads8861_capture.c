@@ -139,21 +139,22 @@ void ads8861_capture_stop(PIO pio, uint sm) {
     }
 }
 
-bool ads8861_capture_try_read_sweep(
+ads8861_sweep_result_t ads8861_capture_try_read_sweep(
     PIO pio, uint sm, uint16_t samples[ADS8861_SWEEP_SAMPLES]) {
     if (!capture_configured || !capture_active || pio != capture_pio ||
         sm != capture_sm || samples == NULL ||
         dma_channel_is_busy((uint)capture_dma)) {
-        return false;
+        return ADS8861_SWEEP_NOT_READY;
     }
 
     for (size_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
         samples[i] = (uint16_t)(capture_buffer[i] & 0xFFFFu);
     }
 
-    // Re-arm before the next TX pulse. At the prototype's 100 Hz PRF there
-    // is ample idle time; missed/late re-arm must be visible in hardware tests.
+    // Re-arm before the next TX pulse. A failed re-arm is returned explicitly
+    // so the caller can stop pulse generation instead of silently going idle.
     capture_active = false;
-    (void)capture_arm_next_sweep(pio, sm);
-    return true;
+    return capture_arm_next_sweep(pio, sm)
+        ? ADS8861_SWEEP_READY
+        : ADS8861_SWEEP_READY_REARM_FAILED;
 }
