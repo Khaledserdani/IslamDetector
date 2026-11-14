@@ -994,3 +994,15 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 **قيد الملف المحدث:** ملف بحث واحد حلزوني مسطح؛ مرشح العمل المسجل 35×35 سم، 13 لفة، سلك مينا 0.60 مم. قطر32 سم لم يعتمد لهذا التصميم. هذه مواصفة مرشح للقياس وليست أمراً نهائياً لشراء النحاس قبل قياس L/DCR/Q والاستجابة النبضية.
 
 مسار الشراء المرحلي والقطع المرشحة وبوابات السلامة موثقة في `docs/engineering/REV_A_PURCHASE_PLAN_AR.md`. لا تشتر MOSFET/TVS/snubber أو قيم حماية RX قبل حساب طاقة TX وقياس transient.
+
+
+## 21.12 متابعة إصلاح إعادة تسليح ADS8861 ونتيجة CI — 2026-11-14
+
+- HEAD الحالي للفرع `hardware/rev-a-measurement-design`: `f9d4f12722a47490630f657fad402af1b4f21405`.
+- تم إصلاح تجاهل فشل إعادة تسليح PIO/DMA بعد قراءة sweep في `ads8861_capture_try_read_sweep()`. أصبحت النتيجة enum بثلاث حالات: لا توجد بيانات جاهزة، sweep ناجح مع إعادة تسليح ناجحة، وsweep مكتمل لكن إعادة التسليح فشلت. عند الحالة الثالثة يطبع RP2040 خطأ ويوقف مولد التوقيت/النبض المنطقي.
+- commits الإصلاح المتتابعة: `9561d7f2d33136b7ccc059b4a4f231b394f5c14e` (header)، `8f1166952c7a10bc85db847d2da0c59941333eeb` (capture)، `f9d4f12722a47490630f657fad402af1b4f21405` (main).
+- CI run ID `43612891196` على HEAD أعلاه اكتمل Success في الوظائف الأربع: protocol-tests وrp2040-firmware وesp32-s3-bridge وandroid-app. تم رفع APK artifact ID `14121305728` وUF2 artifact ID `14120822394`؛ كلاهما ينتهي في 2026-12-14. هذا إثبات build/host tests وUF2 structure فقط، وليس اختبار عتاد.
+- مراجعة المصدر تؤكد أن `ENABLE_ADS8861_CAPTURE=0` ما زال افتراضياً. لا يوجد serializer في RP2040 لإطار `MEASUREMENT` الثنائي ولا producer UART، ولا command receiver/DEVICE_INFO transmitter. RP2040 ما زال يطبع sweep كنص USB عند تفعيل مسار الالتقاط، وESP32 UART bridge ينتظر DEVICE_INFO ويعيد GET_INFO. لا يوجد handshake أو قياس end-to-end أو Wi-Fi/Android endpoint مربوط بالقياسات.
+- PR #7 ما زال Open Draft وغير مدمج. لم يتغير `main`.
+- الخطوة التالية ذات الأولوية: تنفيذ/اختبار encoder مشترك لإطارات MEASUREMENT وDEVICE_INFO على RP2040 باستخدام عقد `rev_a_protocol.h` ومتجهات golden tests، ثم تحديد/تنفيذ receiver للأوامر على RP2040 واختبار host قبل UART loopback. لا تُرسل ACK قبل تثبيت payload الخاص به؛ ولا تُعلن ADS8861 أو VREF مركبين في DEVICE_INFO قبل تركيبها فعلياً.
+- يظل ADC capture معطلاً، ولا توجد قياسات عتاد فعلية أو ملف/AFE/حماية TX نهائية أو BOM تصنيع.
