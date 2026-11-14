@@ -179,3 +179,23 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 المراجع:
 - STM32G474 datasheet DS12288 Table 12: https://www.st.com/resource/en/datasheet/stm32g474re.pdf
 - UM2505 Rev.7 Tables 14–17: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf
+
+
+## 12. إخراج HRTIM إلى مفتاحي TMUX6219
+
+بعد اعتماد TMUX6219 ثنائي التغذية، تثبت أرجل التحكم:
+| الوظيفة | رجل MCU | خرج HRTIM | موصل Nucleo |
+|---|---|---|---|
+| TX MOSFET gate-driver input | PA8 | HRTIM1_CHA1 | CN9 pin 8 / D7 |
+| SWb enable | PA9 | HRTIM1_CHA2 | CN5 pin 1 / D8 |
+| High-gain AFE enable/blanking | PA10 | HRTIM1_CHB1 | CN9 pin 3 / D2 |
+
+- PA8 وPA9 وPA10 كلها HRTIM outputs مؤكدة في STM32G474 datasheet Table12.
+- PA10/HRTIM1_CHB1 متاح على CN9 pin3، وليس مستخدماً في USART3.
+- HRTIM master يزامن Timer A وTimer B؛ PA9 يحدد SWb event عند TX-off، وPA10 يبقي high-gain مفصولاً حتى COMP2 recovery event.
+- منطق TMUX6219 يقبل 1.8V، لذا 3.3V HRTIM logic مناسب.
+- تغذية مفاتيح TMUX6219 هي ±12V_AFE، ومساراتها التناظرية يجب أن تبقى ضمن rails. لا يمرر أي switch transient يتجاوز±12V دون clamp محسوب.
+
+المراجع:
+- STM32G474 datasheet Table12: https://www.st.com/resource/en/datasheet/stm32g474re.pdf
+- UM2505 Rev.7 Table15: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf
