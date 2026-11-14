@@ -4,8 +4,9 @@
 ; One GP4 TX falling edge starts an entire 8-window decay sweep.
 ; GP8=CONVST, GP9=SCLK, GP10=DOUT. ADS8861 DIN is tied HIGH (3-wire CS).
 ; clk_sys/PIO clock must be 125 MHz.
-; CONVST high = SET [15] + five NOP [15] + SET [11] = 108 cycles = 864 ns at 125 MHz.
-; ADS8861 3-wire mode requires CONVST high through tconv-max (710 ns max); 864 ns meets this.
+; CONVST high = SET [15] + five NOP [15] = 96 cycles = 768 ns at 125 MHz.
+; The following SET pins,0 [11] changes CONVST low at its start; its delay is LOW time.
+; ADS8861 3-wire mode requires CONVST high through tconv-max (710 ns max); 768 ns meets this.
 ; SCLK = 7 cycles high + 7 cycles low = 8.929 MHz (50% duty).
 ; DOUT MSB is sampled 120 ns after CONVST falls (t_d-CNV-DO max 12.3 ns).
 ; ADS8861 updates DOUT after each SCLK falling edge (t_d-CK-DO max 13.4 ns),
