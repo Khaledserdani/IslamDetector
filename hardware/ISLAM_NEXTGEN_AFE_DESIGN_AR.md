@@ -106,3 +106,66 @@ https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSh
 - **غير معتمد بعد:** قيم الكسب النهائية، مقاومة دخل AFE، دايودات الحماية، مصدر 1.65V، نوع/قيمة LDO، وعدد نوافذ العينة.
 - **لا شراء:** لا تشتري OPA2365 أو MCP41100 منفردين قبل تجميع BOM النهائي؛ القطع SMD ستأتي على لوحة مجمعة مصنعياً.
 
+
+
+## 8. حماية/Blanking بمسارين بدل تعريض الكسب العالي للنبضة
+
+ظهر أثناء مراجعة مجال الجهد أن توصيل preamp بكسب25 مباشرة إلى عقدة الملف طوال TX قد يشبعه قبل أن يتمكن bucking من المساعدة. لذلك نضيف بنية dual-path:
+- **مسار مراقبة منخفض الكسب ومحمي** يبقى متصلاً، ويقيس envelope بعد مقاومة سلسلة ومشابك منخفضة السعة.
+- **مسار كسب عالٍ** يبقى مفصولاً خلال TX والـflyback، ثم يوصل بعد أن يؤكد comparator أن الإشارة هبطت إلى مجال آمن.
+- بعد التوصيل، يطرح bucking المرجع من إشارة الملف، ثم يطبق الكسب العالي.
+- ADC2 يراقب المسار المنخفض/مرجع bucking؛ ADC1 يقرأ خرج الفرق عالي الكسب.
+
+هذا لا يستبدل bucking؛ بل يمنع تشبع المرحلة الأولى قبل أن يصل الفرق إلى مرحلة الطرح.
+
+### مرشح analog switch
+**TMUX1134** من TI:
+- أربع قنوات SPDT.
+- تغذية 1.08–5.5V، مناسبة لـ3.3V.
+- RON نموذجي2Ω.
+- Charge injection منخفض يقارب1pC.
+- bandwidth يصل إلى220MHz.
+- يستخدم بعد مشابك الحماية فقط؛ لا يوصل بعقدة TX العالية مباشرة.
+
+المصدر:
+https://www.ti.com/product/TMUX1134
+https://www.ti.com/lit/ds/symlink/tmux1134.pdf
+
+### حماية دخل منخفضة السعة
+**BAV99** dual switching diode مرشح محلي لحماية عقدة AFE بعد مقاومة سلسلة:
+- يربط الدايود الأول من GND إلى عقدة الإشارة، والثاني من عقدة الإشارة إلى 3.3V_AFE، فيحد الإشارة خارج المجال.
+- صفحة Power Lab تعرض BAV99 بسعر15 دج ومخزون ظاهر5890 وقت الفهرسة.
+- مقاومة سلسلة 1kΩ هي قيمة مرشحة أولية فقط؛ عند transient مفترض116V تحد التيار إلى نحو116mA. يجب التحقق من pulse rating للمقاومة والدايود ومن شحنة الحقن إلى rail.
+- يضاف reservoir/bleeder محسوب على 3.3V_AFE حتى لا ترتفع التغذية بسبب تيار clamp.
+- لا يصل clamp مباشرة إلى رجل MCU؛ يكون على لوحة AFE قبل buffer/analog switch.
+
+المصدر:
+https://powerlab.dz/product/bav99-dual-series-switching-diode-sot-23/
+
+## 9. كشف التعافي عتادياً باستخدام COMP/HRTIM
+
+تم التحقق من RM0440 أن STM32G474 يستطيع ربط مخارج COMP داخلياً بمداخل HRTIM external events وfault inputs، وأن DAC3_CH1/CH2 داخليان ويمكنهما ضبط عتبات COMP1/COMP2:
+- COMP1: PB1 كمدخل موجب لقياس shunt تيار TX، وDAC3_CH1 كعتبة؛ خرجه يوقف HRTIM عبر fault عند overcurrent.
+- COMP2: PA7 كمدخل موجب لمسار envelope منخفض الكسب، وDAC3_CH2 كعتبة recovery؛ خرجه يطلق HRTIM event عند وصول الإشارة إلى المجال الآمن.
+- PA12 يبقى interlock/إيقاف خارجي إضافي.
+- HRTIM يفرض minimum delay ثم يفتح TMUX1134 للمسار عالي الكسب. إذا لم يصل recovery قبل timeout، يمنع النبضة التالية.
+
+هذا يوفر استجابة عتادية لا تعتمد على polling أو Wi-Fi. القيم الرقمية للعتبات والـhysteresis تُحدد بعد محاكاة/قياس الإشارة.
+
+المصدر:
+https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+https://www.st.com/resource/en/user_manual/dm00556337.pdf
+
+## 10. تحديث مكونات AFE المرجحة
+
+- OPA2365 ×2: preamp coil، gyrator، bucking buffer، differential stage.
+- TMUX1134 ×1: blanking/enable high-gain path بعد clamp.
+- BAV99 ×1 أو أكثر: clamp مزدوج منخفض السعة.
+- MCP41100 ×1: ضبط Rvar 200–300kΩ عبر 200k ثابت +100k digital pot.
+- C0G 100pF، R=100Ω، وشبكة مقاومات matched 0.01% أو أفضل.
+- DAC1_CH1/PA4 يضبط bucking amplitude.
+- DAC3_CH1/CH2 داخليان لعتبات COMP1/2.
+- ADC1/ADC2 متزامنان على PA0/PA1.
+- SPI2 PB13/PB15 وCS PB6 للمقاومة الرقمية.
+
+لا تزال هذه قائمة مرشحين وليست BOM شراء نهائية؛ يلزم التحقق من headroom والضجيج وsettling وabsolute maximum لكل عقدة.
