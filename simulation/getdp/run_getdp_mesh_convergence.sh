@@ -23,6 +23,11 @@ for divisions in 3 4 6; do
     grep -q "Stopped" getdp.log
     test -s j2.txt
     test -s az_rx_point.txt
+    python3 "$ROOT/simulation/getdp/convert_rx_probe_to_flux.py" \
+      --input az_rx_point.txt --output rx_flux_per_turn.csv \
+      --radius-m 0.145 --z-m 0.045
+    python3 "$ROOT/simulation/getdp/derive_rx_voltage.py" \
+      --input rx_flux_per_turn.csv --output rx_voltage_per_turn.csv --turns 1
     echo "J2_TABLE_PREVIEW divisions=$divisions"
     sed -n '1,12p' j2.txt
   )
