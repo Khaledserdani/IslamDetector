@@ -22,6 +22,7 @@ for divisions in 3 4 6; do
     getdp "$case_dir/model.pro" -msh "$case_dir/model.msh" -solve Mag -pos Map > getdp.log 2>&1
     grep -q "Stopped" getdp.log
     test -s j2.txt
+    test -s az_rx_point.txt
     echo "J2_TABLE_PREVIEW divisions=$divisions"
     sed -n '1,12p' j2.txt
   )
