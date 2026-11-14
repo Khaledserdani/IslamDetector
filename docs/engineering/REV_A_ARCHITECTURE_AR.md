@@ -287,3 +287,10 @@ E_L(t) = 0.5 × L × I(t)^2
 ### 16.2 ترميز أوامر GET_INFO
 
 أضيف encoder محمول لإطارات HELLO وGET_INFO وSTART وSTOP وSELF_TEST وSET_PROFILE، مع CRC16 واختبارات لطول الإطار ورفض payload غير الصحيح. أصبح بناء إطار GET_INFO جاهزاً للاستخدام من UART task، لكن لا توجد بعد تهيئة UART أو إرسال فعلي على ESP32-S3، ولا مستقبل أو ACK على RP2040. لم تُحدد أرجل ESP32-S3 لأن نوع لوحة التطوير وتوصيلاتها الفعلية لم يحسما؛ لا نختار GPIO بالتخمين.
+
+
+## جسر ESP32-S3 UART
+
+يوجد الآن مشروع ESP-IDF ومكوّن rev_a_uart_bridge مستقل. UART1/2 قابل للاختيار وUART0 محفوظ للـconsole. لا توجد GPIOs مفترضة؛ الإعداد الافتراضي disabled وTX/RX=-1. المكوّن يربط RX ring buffer وUART events مع parser/session، ويمنع قبول MEASUREMENT قبل DEVICE_INFO، ويضع السجلات المقبولة في queue محدودة. تفاصيل الإعداد والأخطاء والاسترداد في REV_A_ESP32_UART_INTEGRATION_AR.md.
+
+CI #1315: protocol وAndroid وRP2040 build/UF2 verify نجحت؛ ESP-IDF build ما زال قيد التنفيذ عند آخر تحقق. لم يتم UART loopback أو ربط Wi-Fi/Android بعد.

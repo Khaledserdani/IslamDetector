@@ -900,3 +900,13 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 الملفات: firmware/esp32_s3_bridge/CMakeLists.txt، Kconfig.projbuild، main/app_main.c، components/rev_a_uart_bridge/، docs/engineering/REV_A_ESP32_UART_INTEGRATION_AR.md.
 
 حدود الإثبات: لم يختبر UART loopback أو توصيل اللوحتين؛ لا يوجد RP2040 command receiver/ACK/DEVICE_INFO transmitter ولا Wi-Fi server/Android JSON bridge. لا يوجد TX power أو MOSFET أو ملف بحث ضمن هذا البرنامج.
+
+
+## 20.7 تحقق Rev A بعد إضافة UART task — 2026-11-14
+
+- PR #6: مغلق وغير مدمج حسب حالة GitHub الحالية. لا نعيد فتحه ولا ندمجه تلقائياً.
+- PR #7: مفتوح Draft وغير مدمج، وهو طلب المراجعة الفعلي للفرع hardware/rev-a-measurement-design.
+- commit f3d2516d598d1f4d63333a19f4909324a3cecc40 أضاف ESP-IDF project ومكوّن rev_a_uart_bridge وCI job مستقل لـESP32-S3.
+- CI #1315 / ID 43603452816 على هذا commit: protocol-tests Success، Android build/verify/upload Success، RP2040 build وUF2 verify Success. وظيفة esp32-s3-bridge ما زالت قيد التنفيذ عند آخر تحقق؛ لا نسجل CI الكامل نجاحاً حتى تنتهي.
+- UF2 من CI #1315 نُزّل وفُكّ ضغطه وفُحص يدوياً: 136 block، payload 34,816 bytes، Family ID 0xE48BFF56، range 0x10000000..0x10008800، SHA-256 9eaf665bc363af01f0791931d6ea6231a9e056ab2e899563e93a2da4836b572a. هذا firmware لاختبار GP4/GP5/GP6 المنطقي فقط؛ لا يقود MOSFET ولا يقرأ ADC ولا يثبت اتصال اللوحتين.
+- لم يكتمل ESP-IDF UART build بعد، ولم يُجر loopback أو اختبار عتادي. لا GPIOs مثبتة؛ الجسر يبقى disabled افتراضياً حتى مراجعة pinout لوحة ESP32-S3.

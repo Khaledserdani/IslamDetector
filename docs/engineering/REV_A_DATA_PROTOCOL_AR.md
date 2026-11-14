@@ -181,3 +181,16 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - اختبارات C تغطي ADS8861 signed-16 وADS7054 right-justified signed-14، ورفض القياس قبل التعريف، وتغيير نوع ADC، وبقاء raw invalid window، وإبطال الجلسة.
 
 **حدود الإثبات:** هذه طبقة جلسة محمولة ومختبرة على مضيف CI، وليست بعد ESP-IDF UART task أو FreeRTOS ring buffer أو GET_INFO فعلياً على ESP32-S3. لا يوجد UART loopback بين اللوحتين.
+
+
+## 8.4 UART task على ESP32-S3
+
+أضيف مكوّن ESP-IDF rev_a_uart_bridge:
+- RX ring buffer وevent queue وFreeRTOS task.
+- استقبال fragmented/concatenated/noisy frames عبر parser الحالي؛ تغذية parser بايتاً بايتاً تسمح بإبطال metadata فور اكتشاف frame rejection.
+- DEVICE_INFO يفتح جلسة ADC، وMEASUREMENT لا يصل إلى queue إلا بعد metadata صالحة.
+- HELLO وGET_INFO عند بدء التشغيل، وإعادة GET_INFO كل ثانية حتى وصول DEVICE_INFO.
+- UART FIFO overflow وbuffer full وparity/frame/break errors تمسح RX/parser وتبطل DEVICE_INFO ثم تطلبه مجدداً.
+- القياسات المقبولة تحفظ raw16 وADC metadata وinfo_generation. عند امتلاء queue تسقط العينة الجديدة مع عداد واضح ولا توقف UART task.
+
+لا يوجد RP2040 command receiver أو ACK/DEVICE_INFO transmitter بعد؛ لذلك لا يوجد اختبار end-to-end أو Wi-Fi/Android endpoint. راجع REV_A_ESP32_UART_INTEGRATION_AR.md.
