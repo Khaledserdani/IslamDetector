@@ -264,3 +264,68 @@ Power Lab يعرض **TEN8-4823** بسعر3800 دج، لكنه موديل دخل4
 
 ### القرار
 TEN8-1223 يصبح **مرشح تغذية AFE أولياً** إذا ثبت أن 265mA لكل rail كافية بعد حساب تيار VDCb وOPA ومراحل VGA. لا شراء قبل حساب الحمل والتموج والضجيج، ولا نفترض أن 50mVpp مقبول مباشرة على AFE؛ يلزم مرشح post-filter مصمم ومتحقق منه.
+
+
+## 13. اختيار VGA فعلي بدلاً من مرحلة كسب متغيرة مبهمة
+
+ظهر مرشح مناسب جداً لوظيفة VGA في الدراسة:
+
+**Analog Devices AD8336 — VGA DC-coupled**
+- ضجيج دخل نموذجي3nV/√Hz.
+- bandwidth صغير الإشارة115MHz، وlarge-signal 80MHz عند2Vpp.
+- مدى كسب حتى60dB، والتحكم الخطي بالديسيبل 50dB/V.
+- دخل/خرج single-ended وDC-coupled.
+- تغذية مزدوجة ±3V إلى±12V.
+- يحتوي preamplifier مستقل قابل لضبط كسبه 6–26dB.
+- gain-control differential pins: (V_{GAIN}=V_{GPOS}-V_{GNEG})، وليس مقاومة رقمية على feedback.
+- استجابة تغيير كسب60dB نحو300ns.
+- حزمة LFCSP؛ يجب تجميعها مصنعياً على PCB، لا لحام يدوي.
+
+المراجع:
+https://www.analog.com/en/products/ad8336.html
+https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
+
+### كيف نستخدمه؟
+- مسار coil: OPA1612 كـpreamp ثابت الكسب (مرجع الدراسة25V/V).
+- مسار bucking: gyrator OPA1612 ثم AD8336 لضبط سعة المرجع عبر VGA.
+- بعد VGA: differential amplifier OPA1612 يطرح مرجع bucking من مسار الملف.
+- DAC1_CH1/CH2 من STM32G474 يقدمان فرق تحكم إلى GPOS/GNEG عبر buffer/level-shift مضبوط حسب common-mode المحدد في داتا شيت AD8336.
+- لا نربط DAC مباشرة قبل حساب مجال common-mode وabsolute maximum للـGAIN pins.
+
+هذا يزيل الحاجة إلى MCP41100 في مسار VGA؛ يبقى MCP41100 فقط مرشحاً لضبط Rvar في gyrator.
+
+## 14. اختيار تغذية تناظرية متوافقة مع AD8336
+
+لأن AD8336 أقصى تغذية له ±12V، يصبح المرشح الأكثر اتساقاً:
+
+**TRACO POWER TEN 8-1222**
+- دخل9–18V، مناسب لبطارية12V.
+- خرج +12V/−12V.
+- 335mA لكل rail، 8W.
+- كفاءة نموذجية87%، عزل1.5kV.
+- Ripple/noise نموذجي50mVpp؛ يحتاج post-filter وdecoupling.
+
+مصادر:
+- TME: https://www.tme.com/ca/en/details/ten8-1222/dc-dc-converters/traco-power/ten-8-1222/
+- DigiKey: https://www.digikey.com/en/products/detail/traco-power/TEN-8-1222/9383254
+- TRACO TEN8 datasheet: https://www.traco-powers.com/files/ca/ten-8-4822.pdf
+
+**القرار المؤقت:** ±12V هو خط AFE المرشح حالياً لأنه يسمح بتشغيل OPA1612 وAD8336 معاً دون خفض جهد إضافي. TEN8-1223 ±15V يتراجع إلى خيار بديل إذا أُلغي AD8336 أو أضيف تنظيم ±12V بعده.
+
+### التوفر
+لم يظهر TEN8-1222 أو AD8336 في مخزون جزائري مؤكد. TME/DigiKey يعرضان TEN8-1222 دولياً، وADI تعرض AD8336 كمنتج Production. لا شراء قبل حساب الحمل والتموج وتأكيد الشحن.
+
+## 15. توزيع مضخمات AFE المقترح للمحاكاة
+
+مرشح أولي:
+- U1A OPA1612: gyrator.
+- U1B OPA1612: coil preamp.
+- U2A OPA1612: differential subtraction.
+- U2B OPA1612: low-gain monitor/buffer أو post-filter stage بعد حساب الحاجة.
+- U3 AD8336: bucking VGA.
+- U4 TMUX1134: high-gain blanking/enable بعد حماية المدخل.
+- MCP41100: Rvar فقط إذا بقي الضبط الرقمي للمحث المكافئ مطلوباً.
+- DAC1_CH1/CH2: تحكم AD8336 gain differential، مع buffer/level shift.
+- ADC1/ADC2: خرج الفرق + قناة مراقبة محمية.
+
+هذا توزيع كتلي وليس schematic. يجب فحص استقرار gyrator، كسب Avr، مجال AD8336، common-mode، differential stage، وADC level-shift كمنظومة واحدة.
