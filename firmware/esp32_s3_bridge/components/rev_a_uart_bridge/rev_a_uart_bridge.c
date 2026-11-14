@@ -68,15 +68,17 @@ esp_err_t rev_a_uart_bridge_send_command(uint8_t type, const uint8_t *payload, u
     }
     xSemaphoreGive(s_tx_mutex);
     if (result != ESP_OK) status_add(&s_status.tx_errors, 1u);
-    else if (type == REV_A_TYPE_GET_INFO) {
-        s_last_info_request_tick = xTaskGetTickCount(); s_info_request_sent = true;
-        status_add(&s_status.info_requests, 1u);
-    }
     return result;
 }
 static void request_device_info(void) {
     const esp_err_t result = rev_a_uart_bridge_send_command(REV_A_TYPE_GET_INFO, NULL, 0u);
-    if (result != ESP_OK) ESP_LOGW(TAG, "GET_INFO send failed: %s", esp_err_to_name(result));
+    if (result == ESP_OK) {
+        s_last_info_request_tick = xTaskGetTickCount();
+        s_info_request_sent = true;
+        status_add(&s_status.info_requests, 1u);
+    } else {
+        ESP_LOGW(TAG, "GET_INFO send failed: %s", esp_err_to_name(result));
+    }
 }
 static void parser_frame_callback(void *ctx, const rev_a_frame_t *frame) {
     (void)ctx;
@@ -155,7 +157,12 @@ static void rev_a_uart_task(void *arg) {
     (void)arg;
     const TickType_t t = pdMS_TO_TICKS(s_info_retry_ms == 0u ? DEFAULT_INFO_RETRY_MS : s_info_retry_ms);
     const TickType_t retry = t == 0u ? 1u : t;
-    while (s_running) {
+    for (;;) {
+        if (!s_running) {
+            /* stop() owns task deletion; suspension avoids a self-delete race. */
+            vTaskSuspend(NULL);
+            continue;
+        }
         uart_event_t event;
         if (xQueueReceive(s_event_queue, &event, pdMS_TO_TICKS(100)) == pdTRUE) {
             switch (event.type) {
@@ -174,7 +181,6 @@ static void rev_a_uart_task(void *arg) {
                 request_device_info();
         }
     }
-    vTaskDelete(NULL);
 }
 static void release_resources(bool installed) {
     if (s_task != NULL) { vTaskDelete(s_task); s_task = NULL; }
@@ -184,7 +190,8 @@ static void release_resources(bool installed) {
     s_event_queue = NULL; s_initialized = false; s_running = false; status_set_running(false);
 }
 esp_err_t rev_a_uart_bridge_start(const rev_a_uart_bridge_config_t *cfg) {
-    if (cfg == NULL || s_initialized) return ESP_ERR_INVALID_ARG;
+    if (cfg == NULL) return ESP_ERR_INVALID_ARG;
+    if (s_initialized) return ESP_ERR_INVALID_STATE;
     if (cfg->uart_port <= UART_NUM_0 || cfg->uart_port >= UART_NUM_MAX ||
         cfg->tx_gpio_num < 0 || cfg->rx_gpio_num < 0 || cfg->tx_gpio_num == cfg->rx_gpio_num)
         return ESP_ERR_INVALID_ARG;
