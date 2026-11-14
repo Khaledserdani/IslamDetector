@@ -40,3 +40,10 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 4. إثبات HELLO/GET_INFO/DEVICE_INFO وقياس throughput والفقد.
 5. إضافة RP2040 ACK/command receiver وDEVICE_INFO transmitter.
 6. بعد ذلك ربط القياسات بخادم Wi-Fi.
+
+
+## نتيجة البناء الآلي
+
+اكتمل CI #1315 على commit f3d2516 بنجاح في الوظائف الأربع. ESP-IDF release-v5.4 ترجم rev_a_uart_bridge وrev_a_protocol وapp_main وربط مشروع ESP32-S3 وأنتج BIN. هذا يثبت compile/link فقط، وليس flashing أو تشغيل UART على لوحة فعلية.
+
+بعد هذا التشغيل عولجت ملكية retry state ووقف FreeRTOS task في commits 621e283 وa39fbaa. تحقق الكود الأحدث جارٍ في CI #1318؛ لا تسجل هذه التعديلات نجاحاً حتى تنتهي الوظائف الأربع.

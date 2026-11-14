@@ -40,3 +40,6 @@ UART defaults to disabled and TX/RX GPIO -1. No development-board pins are assum
 Default transport: 921600 baud, 8N1. The bridge sends HELLO/GET_INFO, retries GET_INFO until valid DEVICE_INFO arrives, invalidates metadata after UART faults or parser rejection, and exposes measurement snapshots through a FreeRTOS queue.
 
 This is not yet complete detector firmware: ACK parsing, RP2040 command receiver/DEVICE_INFO transmitter, Wi-Fi/WebServer JSON endpoints, Android integration, and physical UART loopback remain outstanding. A successful build does not prove a physical connection.
+
+
+Build checkpoint: CI #1315 completed successfully for ESP-IDF release-v5.4, including compilation and linking of the ESP32-S3 bridge project. Later FreeRTOS lifecycle/retry-state fixes are being revalidated by CI #1318. No board flash or UART loopback has been performed.
