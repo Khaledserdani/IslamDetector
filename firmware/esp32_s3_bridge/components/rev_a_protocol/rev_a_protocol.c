@@ -122,6 +122,102 @@ uint16_t rev_a_crc16_ccitt_false(const uint8_t *data, size_t length) {
     return crc;
 }
 
+static void write_le16(uint8_t *p, uint16_t value) {
+    p[0] = (uint8_t)(value & 0xFFu);
+    p[1] = (uint8_t)(value >> 8);
+}
+
+static void write_le32(uint8_t *p, uint32_t value) {
+    p[0] = (uint8_t)(value & 0xFFu);
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+}
+
+static bool finish_encoded_frame(
+    uint8_t *frame, size_t body_length, size_t frame_capacity, size_t *frame_length) {
+    const size_t total_length = body_length + 4u;
+    if (frame == NULL || frame_length == NULL || frame_capacity < total_length ||
+        body_length > UINT16_MAX) {
+        if (frame_length != NULL) *frame_length = 0u;
+        return false;
+    }
+    write_le16(&frame[4], (uint16_t)body_length);
+    const uint16_t crc = rev_a_crc16_ccitt_false(&frame[2], body_length);
+    write_le16(&frame[2u + body_length], crc);
+    *frame_length = total_length;
+    return true;
+}
+
+bool rev_a_encode_measurement(
+    const rev_a_measurement_t *m,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length) {
+    if (frame_length == NULL) return false;
+    *frame_length = 0u;
+    if (m == NULL || frame == NULL || m->sample_count == 0u ||
+        m->sample_count > REV_A_MAX_SAMPLES || m->pulse_rate_hz == 0u ||
+        (m->valid_mask & (uint8_t)~((1u << m->sample_count) - 1u)) != 0u ||
+        ((m->flags & REV_A_FLAG_SWEEP_COMPLETE) != 0u &&
+         m->sample_count != REV_A_MAX_SAMPLES)) {
+        return false;
+    }
+    const size_t body_length = MEASUREMENT_FIXED_BODY_LENGTH + 2u * m->sample_count;
+    const size_t total_length = body_length + 4u;
+    if (frame_capacity < total_length) return false;
+
+    frame[0] = REV_A_SYNC_BYTE_0;
+    frame[1] = REV_A_SYNC_BYTE_1;
+    frame[2] = REV_A_PROTOCOL_VERSION;
+    frame[3] = REV_A_TYPE_MEASUREMENT;
+    write_le32(&frame[6], m->sequence);
+    write_le32(&frame[10], m->timestamp_us);
+    frame[14] = m->profile_id;
+    write_le16(&frame[15], m->flags);
+    write_le32(&frame[17], m->pulse_width_ns);
+    write_le16(&frame[21], m->pulse_rate_hz);
+    write_le16(&frame[23], m->supply_mv);
+    write_le16(&frame[25], m->tx_current_ma);
+    write_le16(&frame[27], (uint16_t)m->temp_centi_c);
+    frame[29] = m->valid_mask;
+    frame[30] = m->sample_count;
+    for (uint8_t i = 0u; i < m->sample_count; ++i) {
+        write_le16(&frame[31u + 2u * i], m->samples[i]);
+    }
+    return finish_encoded_frame(frame, body_length, frame_capacity, frame_length);
+}
+
+bool rev_a_encode_device_info(
+    const rev_a_device_info_t *info,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length) {
+    if (frame_length == NULL) return false;
+    *frame_length = 0u;
+    if (info == NULL || frame == NULL || !rev_a_device_info_valid(info) ||
+        frame_capacity < 25u) {
+        return false;
+    }
+    frame[0] = REV_A_SYNC_BYTE_0;
+    frame[1] = REV_A_SYNC_BYTE_1;
+    frame[2] = REV_A_PROTOCOL_VERSION;
+    frame[3] = REV_A_TYPE_DEVICE_INFO;
+    frame[6] = info->hw_rev;
+    frame[7] = info->fw_major;
+    frame[8] = info->fw_minor;
+    frame[9] = info->fw_patch;
+    frame[10] = info->adc_model_id;
+    frame[11] = info->sample_format_id;
+    frame[12] = info->adc_resolution_bits;
+    frame[13] = info->adc_input_mode_id;
+    write_le32(&frame[14], info->adc_vref_uv);
+    frame[18] = info->active_profile_id;
+    write_le32(&frame[19], info->profile_crc32);
+    return finish_encoded_frame(frame, DEVICE_INFO_BODY_LENGTH,
+                                frame_capacity, frame_length);
+}
+
 static bool frame_envelope_valid(
     const uint8_t *frame,
     size_t frame_length,
