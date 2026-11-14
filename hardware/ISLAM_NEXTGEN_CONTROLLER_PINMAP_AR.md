@@ -89,8 +89,8 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - **COMP2**: مدخل موجب PA7 لقياس envelope في مسار الاستقبال منخفض الكسب، ومدخل سالب DAC3_CH2 الداخلي كعتبة recovery. خرجه يربط بحدث HRTIM خارجي داخلياً.
 - **DAC1_CH1 على PA4/A2**: ضبط سعة مرجع bucking.
 - **DAC3_CH1 وDAC3_CH2**: عتبتا COMP1/COMP2 داخلياً، ولا تحتاجان أرجل GPIO.
-- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin 29، PB15=MOSI على CN10 pin 25، وPB6=CS على D10/CN10 pin17. لا يحتاج MCP41100 خط MISO.
-- **PA12 / CN10 pin12**: مدخل زر إيقاف/Interlock خارجي مستقل، إضافة إلى مسار المقارن الداخلي.
+- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin 29، PB15=MOSI على CN10 pin 25، وPB6=CS على D10/CN5 pin3. لا يحتاج MCP41100 خط MISO.
+- **PA12 / CN10 pin11**: مدخل زر إيقاف/Interlock خارجي مستقل، إضافة إلى مسار المقارن الداخلي.
 
 هذا يترك PA3 حراً ولا يتعارض مع LPUART1/VCP المدمج على اللوحة. ويترك PA5/PA6/PA7 خارج SPI1؛ PA7 مستخدم الآن كمدخل COMP2 فقط.
 
