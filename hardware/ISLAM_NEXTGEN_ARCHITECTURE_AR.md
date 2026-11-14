@@ -115,3 +115,31 @@ F. اختبار ميداني أعمى وتكراري بعد نجاح المخت�
 - ST STM32G474 datasheet: https://www.st.com/resource/en/datasheet/stm32g474vb.pdf
 - Espressif ESP32-S3 datasheet: https://documentation.espressif.com/esp32_s3_datasheet_en.pdf
 - Espressif ADC calibration: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/adc/adc_calibration.html
+
+
+## 12. مسار توفر لوحات التطوير في الجزائر (فحص ويب 2026-11-14)
+
+تم العثور على خيارات فعلية في كتالوجات جزائرية، مع التنبيه إلى أن المخزون يتغير ويجب تأكيده عند الطلب:
+
+- Dzinotech يعرض لوحة STM32F3DISCOVERY المبنية على STM32F303VC بسعر ظاهر 22,000 دج وحالة In Stock. وتعرض الصفحة نفسها لوحة Nucleo-144 بمعالج STM32F746ZG بسعر ظاهر 22,000 دج لكنها Out Of Stock.
+- BinaryTech يعرض STM32F411 Black Pill بسعر ظاهر 2,200 دج، مع توفر ظاهر في الصفحة (تغيرت الكمية بين لقطات صفحات الفهرس، لذلك يلزم تأكيدها).
+- BinaryTech يعرض أيضاً STM32H743VGT6 بسعر ظاهر 7,500 دج لكنه Out Of Stock في الصفحة المفهرسة.
+- لم يظهر حتى هذا البحث مخزون مؤكد للوحة STM32G474 Nucleo في المتاجر التي فُحصت.
+
+معلومة مهمة: STM32F303VC ليس G4، لكنه خيار منصة اختبار واقعي متاح محلياً بحسب الكتالوج. صفحة ST الرسمية تذكر له حتى أربعة ADC سريعة 12-bit بمعدل 5 MSPS لكل قناة، و7 comparators و4 op-amps مدمجة، بينما يعمل حتى 72 MHz. لذلك يستحق أن يكون منصة تحقق أولى إذا تأكد المخزون، بينما يبقى STM32G474 المرشح الأقوى للنسخة النهائية بسبب مؤقت HRTIM وميزات التوقيت الأعلى.
+
+قنوات الموردين التي يمكن التحقق منها:
+- Dzinotech: https://www.dzinotech.com/Development%20Platfome/STM%2032
+- BinaryTech STM/Development boards: https://binarytech-dz.com/category/cartes-stm-et-micro-bit
+- Dzduino: https://dzduino.com/en/collection/electronic-components
+- Atlas Electronics: https://atlas-electronics-dz.com/produits
+
+هذه نتائج كتالوجات وليست تأكيداً هاتفياً أو حجزاً للمخزون. لا توجد قائمة شراء نهائية بعد.
+
+## 13. موردون محليون للمعاينة أو الاستفسار في الغرب الجزائري
+
+- ADC Electronique، وهران: Rue Aspt Maoued Ahmed (المعروفة سابقاً Rue Mirauchaux)، هاتف ظاهر في الدليل +213 41 40 20 20. نشاطها يشمل الإلكترونيات ومعدات/مكونات، لكن مخزون قطع PI الدقيقة غير مؤكد.
+- Arduino 1001، وهران: مدرج في دليل متاجر إلكترونيات جزائري، هاتف 06 64 66 69 58؛ يجب تأكيد العنوان والمخزون.
+- Dzduino Electronics، مستغانم: Route du Port، هاتف +213 550 88 88 27؛ متجر إلكترونيات وتطوير ومكونات وموصلات.
+
+لا نعتبر متاجر الإلكترونيات الصناعية أو العامة مصدراً مؤكداً لمكونات AFE أو MOSFET بعينها قبل الاستعلام برقم القطعة.
