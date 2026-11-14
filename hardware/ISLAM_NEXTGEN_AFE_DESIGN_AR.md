@@ -118,25 +118,29 @@ https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSh
 
 هذا لا يستبدل bucking؛ بل يمنع تشبع المرحلة الأولى قبل أن يصل الفرق إلى مرحلة الطرح.
 
-### مرشح analog switch
+### مرشح analog switch — تم استبدال TMUX1134
 **TMUX6219** من TI:
-- أربع قنوات SPDT.
-- تغذية 1.08–5.5V، مناسبة لـ3.3V.
-- RON نموذجي2Ω.
-- Charge injection منخفض يقارب1pC.
-- bandwidth يصل إلى220MHz.
-- يستخدم بعد مشابك الحماية فقط؛ لا يوصل بعقدة TX العالية مباشرة.
+- قناة واحدة SPDT لكل شريحة.
+- تغذية مزدوجة ±4.5V إلى±18V، مناسبة لـ±12V_AFE.
+- RON نموذجي2.1Ω.
+- Charge injection نحو−10pC.
+- bandwidth43MHz.
+- تيار مستمر حتى330mA في حزمة VSSOP.
+- منطق تحكم1.8V متوافق مع GPIO/HRTIM 3.3V.
+- Break-before-make وfail-safe logic.
+
+يستخدم شريحتان: الأولى لـSWb والثانية لـhigh-gain blanking. يمرر إشارات ثنائية القطبية ضمن rails، لكنه لا يوصل مباشرة بعقدة flyback خارج ±12V.
 
 المصدر:
-https://www.ti.com/product/TMUX1134
-https://www.ti.com/lit/ds/symlink/tmux1134.pdf
+https://www.ti.com/product/TMUX6219
+https://www.ti.com/lit/ds/symlink/tmux6219.pdf
 
 ### حماية دخل منخفضة السعة
 **BAV99** dual switching diode مرشح محلي لحماية عقدة AFE بعد مقاومة سلسلة:
 - لا نعتمد توصيل clamp إلى 3.3V_AFE مباشرة. أي clamp rail يحتاج حساب تيار الحقن ومسار امتصاص مستقل قبل اعتماده.
 - صفحة Power Lab تعرض BAV99 بسعر15 دج ومخزون ظاهر5890 وقت الفهرسة.
-- مقاومة سلسلة 1kΩ هي قيمة مرشحة أولية فقط؛ عند transient مفترض116V تحد التيار إلى نحو116mA. يجب التحقق من pulse rating للمقاومة والدايود ومن شحنة الحقن إلى rail.
-- يضاف reservoir/bleeder محسوب على 3.3V_AFE حتى لا ترتفع التغذية بسبب تيار clamp.
+- قيمة مقاومة السلسلة ونوع clamp لم يحسما بعد؛ لا تعتمد قيمة1kΩ من الحساب النظري السابق.
+- أي clamp إلى rail يحتاج مسار امتصاص/bleeder محسوباً، ولا يحقن تياراً غير مسموح في3.3V أو±12V.
 - لا يصل clamp مباشرة إلى رجل MCU؛ يكون على لوحة AFE قبل buffer/analog switch.
 
 المصدر:
@@ -148,7 +152,7 @@ https://powerlab.dz/product/bav99-dual-series-switching-diode-sot-23/
 - COMP1: PB1 كمدخل موجب لقياس shunt تيار TX، وDAC3_CH1 كعتبة؛ خرجه يوقف HRTIM عبر fault عند overcurrent.
 - COMP2: PA7 كمدخل موجب لمسار envelope منخفض الكسب، وDAC3_CH2 كعتبة recovery؛ خرجه يطلق HRTIM event عند وصول الإشارة إلى المجال الآمن.
 - PA12 يبقى interlock/إيقاف خارجي إضافي.
-- HRTIM يفرض minimum delay ثم يفتح TMUX1134 للمسار عالي الكسب. إذا لم يصل recovery قبل timeout، يمنع النبضة التالية.
+- HRTIM يفرض minimum delay ثم يفتح TMUX6219 للمسار عالي الكسب. إذا لم يصل recovery قبل timeout، يمنع النبضة التالية.
 
 هذا يوفر استجابة عتادية لا تعتمد على polling أو Wi-Fi. القيم الرقمية للعتبات والـhysteresis تُحدد بعد محاكاة/قياس الإشارة.
 
@@ -160,7 +164,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 
 - OPA1612 ×2 (مرشح أولي فقط): preamp/gyrator/differential stages بعد حساب التغذية والكسب؛ لا شراء قبل المحاكاة.
 - TMUX6219 ×2: blanking/enable high-gain path بعد clamp.
-- BAV99 ×1 أو أكثر: clamp مزدوج منخفض السعة.
+- BAV99: مرشح حماية بحثي فقط، غير معتمد ولا يوصل مباشرة إلى rails.
 - MCP41100 ×1: ضبط Rvar 200–300kΩ عبر 200k ثابت +100k digital pot.
 - C0G 100pF، R=100Ω، وشبكة مقاومات matched 0.01% أو أفضل.
 - DAC1_CH1/PA4 يضبط bucking amplitude.
