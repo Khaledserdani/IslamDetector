@@ -50,3 +50,11 @@ Commit المحاكاة: `962d66890507abe7c0961823ab25b5ab8c8d2fb8`
 - Workflow: https://github.com/Khaledserdani/IslamDetector/actions/runs/43563497992
 - Artifact: `ISLAM-LAB-PI-pulse-engine-reference` (ضمن تشغيل GitHub أعلاه)
 - GetDP workflow: https://github.com/Khaledserdani/IslamDetector/actions/runs/43563493387
+
+
+## ملحق لاحق: اكتمال إثبات GetDP
+
+عند إعداد النسخة الأولى من هذا التقرير كان تشغيل GetDP لا يزال قيد التنفيذ. اكتمل لاحقاً تشغيل `43563493387` بنجاح، وفُحص الأثر الناتج. التفاصيل الرقمية في:
+`docs/science/GETDP_RX_PROBE_CONVERGENCE_RESULTS_AR.md`.
+
+لا يغير ذلك حدود نموذج الاقتران المباشر المخفّض المذكورة أعلاه، ولا يحول المسبار المحوري إلى ملف DD32.
