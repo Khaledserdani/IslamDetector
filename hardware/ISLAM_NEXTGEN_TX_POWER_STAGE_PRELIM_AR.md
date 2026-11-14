@@ -251,3 +251,12 @@ Power Lab يعرض IRFP264 (250V / 38A) بلا suffix، بسعر ظاهر380 د�
 المراجع:
 https://www.digikey.com/en/products/detail/vishay-siliconix/IRFP264PBF/811617
 https://www.vishay.com/docs/91217/irfp264pbf.pdf
+
+
+### حد قبول VDS قبل اعتماد MOSFET
+مع clamp model عند VBRmax، VDS المتوقع138–140V قبل parasitic overshoot. لذلك نضع شرط التصميم:
+- VDS peak على Drain لا يتجاوز200V في worst-case (80% من rating250V).
+- ميزانية overshoot المتبقية نحو60V فقط.
+- لا نعتمد avalanche الداخلي للـMOSFET كآلية clamp في التشغيل الطبيعي.
+- إذا أظهر transient/PCB parasitic simulation أن VDS يتجاوز200V، نرفع تصنيف MOSFET أو نعيد تصميم clamp قبل إصدار PCB.
+- يجب أن يكون القياس/المحاكاة على turn-off edge، لا متوسط VDS فقط.
