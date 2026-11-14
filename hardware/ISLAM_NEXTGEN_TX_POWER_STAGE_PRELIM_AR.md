@@ -214,3 +214,28 @@ I(t)=\frac{V}{R}\left(1-e^{-tR/L}\right)
 كما أن 1.5KE39CA مواصفاتها 1500W pulse وفق شكل اختبار 10/1000µs؛ هذا لا يثبت تحملها الحراري لنبضات متكررة عند1kHz. يجب حساب transient thermal impedance وaverage power عند تردد التشغيل الفعلي.
 
 المرجع: https://www.littelfuse.com/assetdocs/littelfuse_tvs_diode_1_5ke_datasheet.pdf
+
+
+## 12. إعادة تقييم MOSFET مع هامش VDS محافظ وتوفر محلي
+
+بعد رفع clamp model إلى VBRmax، أصبحت ذروة VDS النظرية 138–140V قبل parasitic overshoot. لذلك لم يعد IRFP260N (200V) الاختيار الأول؛ يبقى مرشحاً فقط إذا أثبت قياس/محاكاة أن overshoot محدود بما يكفي.
+
+### مرشح محلي أقوى: IRFP264
+Power Lab يعرض IRFP264 (250V / 38A) بسعر ظاهر 380 دج ومخزون ظاهر 67 قطعة وقت البحث.
+الداتا شيت Vishay للقطعة:
+- VDS=250V.
+- RDS(on) max=75mΩ عند VGS=10V وID=23A.
+- Qg max=210nC.
+- TO-247AC.
+- SOA والـthermal pulse limits يجب مراجعتها على ظروفنا.
+
+المراجع:
+- Power Lab: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/
+- Vishay datasheet: https://www.mouser.com/datasheet/2/427/irfp264-1768569.pdf
+
+هذا يجعل IRFP264 مرشحاً أولياً أفضل من IRFP260N من ناحية تحمل الجهد، لكنه **ليس اعتماداً نهائياً ولا طلب شراء**. يجب التأكد من أصالة القطعة، وفحص SOA مع موجة flyback، وحساب gate-drive وحرارة التبديل.
+
+### ملاحظات الاستبعاد
+- IXFB100N30P المدرج محلياً كـ300V/100A/49mΩ له بيانات متضاربة في نتائج البحث ولا يوجد لدينا داتا شيت مصنع مؤكدة لنفس suffix؛ لا يدخل shortlist حتى يثبت رقم القطعة ومصدرها.
+- IRFP460 (500V/20A) متوفر محلياً، لكن RDS(on) المنشور يقارب0.27Ω، ما يسبب فقداً أعلى عند 5A؛ لا يتقدم على IRFP264 حالياً.
+- معيار الاختيار النهائي: VDS≥250V، RDS(on) مناسب، Qg مقبول، SOA مضمون عند turn-off، وتوفر أصلي موثوق. لا نختار على تيار 100A المعلن وحده.
