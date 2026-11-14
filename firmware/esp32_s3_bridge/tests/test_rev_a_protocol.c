@@ -148,6 +148,19 @@ int main(void) {
     CHECK(measurement.tx_current_ma == 1250u);
     CHECK(measurement.temp_centi_c == -123);
 
+    /* The common C encoder must round-trip exactly through the decoder. */
+    uint8_t encoded_measurement[REV_A_MAX_FRAME_SIZE];
+    size_t encoded_measurement_length = 0u;
+    CHECK(rev_a_encode_measurement(
+        &measurement, encoded_measurement, sizeof(encoded_measurement),
+        &encoded_measurement_length));
+    CHECK(encoded_measurement_length == measurement_length);
+    CHECK(memcmp(encoded_measurement, measurement_bytes, measurement_length) == 0);
+    CHECK(!rev_a_encode_measurement(
+        &measurement, encoded_measurement, measurement_length - 1u,
+        &encoded_measurement_length));
+    CHECK(encoded_measurement_length == 0u);
+
     uint8_t info_bytes[25];
     const size_t info_length = make_device_info(info_bytes, REV_A_SAMPLE_TWOS_COMPLEMENT);
     rev_a_device_info_t info;
@@ -155,6 +168,16 @@ int main(void) {
     CHECK(info.adc_model_id == REV_A_ADC_ADS8861);
     CHECK(info.adc_vref_uv == 4096000u);
     CHECK(info.profile_crc32 == 0x1234ABCDu);
+
+    uint8_t encoded_info[25];
+    size_t encoded_info_length = 0u;
+    CHECK(rev_a_encode_device_info(
+        &info, encoded_info, sizeof(encoded_info), &encoded_info_length));
+    CHECK(encoded_info_length == info_length);
+    CHECK(memcmp(encoded_info, info_bytes, info_length) == 0);
+    CHECK(!rev_a_encode_device_info(
+        &info, encoded_info, sizeof(encoded_info) - 1u, &encoded_info_length));
+    CHECK(encoded_info_length == 0u);
 
     int32_t interpreted = 0;
     CHECK(rev_a_interpret_sample(0x8000u, REV_A_SAMPLE_TWOS_COMPLEMENT, 16u, &interpreted));
