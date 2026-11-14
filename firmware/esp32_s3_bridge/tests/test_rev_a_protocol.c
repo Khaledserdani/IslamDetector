@@ -149,6 +149,28 @@ int main(void) {
     CHECK(rev_a_decode_command(command_frame, command_length, &decoded_command));
     CHECK(decoded_command.type == REV_A_TYPE_GET_INFO);
     CHECK(decoded_command.profile_id == 0u);
+
+    const uint8_t no_payload_commands[] = {
+        REV_A_TYPE_HELLO, REV_A_TYPE_GET_INFO, REV_A_TYPE_START,
+        REV_A_TYPE_STOP, REV_A_TYPE_SELF_TEST
+    };
+    for (size_t i = 0u; i < sizeof(no_payload_commands); ++i) {
+        CHECK(rev_a_encode_command(
+            no_payload_commands[i], NULL, 0u,
+            command_frame, sizeof(command_frame), &command_length));
+        CHECK(rev_a_decode_command(command_frame, command_length, &decoded_command));
+        CHECK(decoded_command.type == no_payload_commands[i]);
+        CHECK(decoded_command.profile_id == 0u);
+    }
+
+    /* The decoder rejects extra bytes and a mismatched declared body length. */
+    CHECK(rev_a_encode_command(
+        REV_A_TYPE_GET_INFO, NULL, 0u,
+        command_frame, sizeof(command_frame), &command_length));
+    CHECK(!rev_a_decode_command(command_frame, command_length + 1u, &decoded_command));
+    command_frame[4] = 5u;
+    CHECK(!rev_a_decode_command(command_frame, command_length, &decoded_command));
+
     uint8_t damaged_command[REV_A_MAX_COMMAND_FRAME_SIZE];
     memcpy(damaged_command, command_frame, command_length);
     damaged_command[command_length - 1u] ^= 0x01u;
