@@ -80,3 +80,24 @@
 
 المصدر الرسمي:
 https://www.st.com/resource/en/user_manual/dm00556337.pdf
+
+
+## 7. التوزيع النهائي الأولي لمقارنات الحماية وواجهة AFE
+
+بعد تدقيق مصفوفة الربط الداخلية في RM0440، يمكن استخدام المقارنات وDACs الداخلية دون استهلاك أرجل إضافية:
+- **COMP1**: مدخل موجب PB1 لقياس shunt تيار TX، ومدخل سالب DAC3_CH1 الداخلي كعتبة تيار. خرج COMP1 يربط داخلياً بمدخل HRTIM fault؛ لا يلزم إخراجه على PA0/PA6.
+- **COMP2**: مدخل موجب PA7 لقياس envelope في مسار الاستقبال منخفض الكسب، ومدخل سالب DAC3_CH2 الداخلي كعتبة recovery. خرجه يربط بحدث HRTIM خارجي داخلياً.
+- **DAC1_CH1 على PA4/A2**: ضبط سعة مرجع bucking.
+- **DAC3_CH1 وDAC3_CH2**: عتبتا COMP1/COMP2 داخلياً، ولا تحتاجان أرجل GPIO.
+- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin30، PB15=MOSI على CN10 pin26، وPB6=CS على D10/CN10 pin17. لا يحتاج MCP41100 خط MISO.
+- **PA12 / CN10 pin12**: مدخل زر إيقاف/Interlock خارجي مستقل، إضافة إلى مسار المقارن الداخلي.
+
+هذا يترك PA3 حراً ولا يتعارض مع LPUART1/VCP المدمج على اللوحة. ويترك PA5/PA6/PA7 خارج SPI1؛ PA7 مستخدم الآن كمدخل COMP2 فقط.
+
+المراجع:
+- RM0440 Table 72: DAC outputs to COMP1/2; DAC3 internal.
+- RM0440 Table 73: COMP1/2 pin inputs and DAC3 thresholds.
+- RM0440 §11.3.9: comparator outputs can connect internally to HRTIM external events and fault inputs.
+- UM2505 Table 16/17: PB1, PA7, PB13, PB15, PB6, PA12 connector mapping.
+https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+https://www.st.com/resource/en/user_manual/dm00556337.pdf
