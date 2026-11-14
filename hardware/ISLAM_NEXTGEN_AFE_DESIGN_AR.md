@@ -325,7 +325,7 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - U3 AD8336: bucking VGA.
 - U4 TMUX1134: high-gain blanking/enable بعد حماية المدخل.
 - MCP41100: Rvar فقط إذا بقي الضبط الرقمي للمحث المكافئ مطلوباً.
-- DAC1_CH1/CH2: تحكم AD8336 gain differential، مع buffer/level shift.
+- DAC1_CH1/CH2: تحكم AD8336 gain differential عبر resistor attenuators وRC.
 - ADC1/ADC2: خرج الفرق + قناة مراقبة محمية.
 
 هذا توزيع كتلي وليس schematic. يجب فحص استقرار gyrator، كسب Avr، مجال AD8336، common-mode، differential stage، وADC level-shift كمنظومة واحدة.
