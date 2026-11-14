@@ -119,7 +119,7 @@ https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSh
 هذا لا يستبدل bucking؛ بل يمنع تشبع المرحلة الأولى قبل أن يصل الفرق إلى مرحلة الطرح.
 
 ### مرشح analog switch
-**TMUX1134** من TI:
+**TMUX6219** من TI:
 - أربع قنوات SPDT.
 - تغذية 1.08–5.5V، مناسبة لـ3.3V.
 - RON نموذجي2Ω.
@@ -159,7 +159,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 ## 10. تحديث مكونات AFE المرجحة
 
 - OPA1612 ×2 (مرشح أولي فقط): preamp/gyrator/differential stages بعد حساب التغذية والكسب؛ لا شراء قبل المحاكاة.
-- TMUX1134 ×1: blanking/enable high-gain path بعد clamp.
+- TMUX6219 ×2: blanking/enable high-gain path بعد clamp.
 - BAV99 ×1 أو أكثر: clamp مزدوج منخفض السعة.
 - MCP41100 ×1: ضبط Rvar 200–300kΩ عبر 200k ثابت +100k digital pot.
 - C0G 100pF، R=100Ω، وشبكة مقاومات matched 0.01% أو أفضل.
@@ -430,3 +430,57 @@ Firmware ينفذ sweep بطيئاً لرمزي DAC، ويقيس VOUT عبر م�
 G_{dB}=G_0+S\cdot V_{GAIN}
 ]
 حيث يبدأ S≈49.9dB/V وG0≈16.4dB عند preamp4×، ثم تُستبدل القيم المقاسة بالقيم الفعلية. لا تتم المعايرة أثناء وجود هدف محتمل.
+
+
+## 21. مفتاحا SWb وHigh-gain: اختيار TMUX6219
+
+بعد مقارنة المفاتيح ذات مجال ±12V، أصبح **TI TMUX6219** مرشحاً أفضل من TMUX1134:
+- SPDT أحادي القناة.
+- يعمل بتغذية مزدوجة ±4.5V إلى±18V؛ مناسب لـ±12V_AFE.
+- RON نموذجي2.1Ω.
+- تيار مستمر حتى330mA (حزمة VSSOP)، أعلى من تيار bucking المرجعي المتوقع.
+- Charge injection نحو−10pC.
+- bandwidth43MHz.
+- منطق تحكم1.8V متوافق مع GPIO/HRTIM 3.3V.
+- Break-before-make وfail-safe logic.
+
+المصادر:
+https://www.ti.com/product/TMUX6219
+https://www.ti.com/lit/ds/symlink/tmux6219.pdf
+
+### التوزيع المقترح
+- U4 TMUX6219: مفتاح SWb لفرع VDCb/gyrator.
+- U5 TMUX6219: فصل/وصل مسار high-gain AFE بعد حماية low-gain.
+- كلاهما على ±12V_AFE؛ EN من HRTIM، وSEL ثابت أو يختار مساراً آمناً.
+- TMUX1134 (5.5V max) لم يعد الاختيار الأساسي؛ لا يصلح لتمرير الإشارة ثنائية القطبية على ±12V.
+
+## 22. قيمة VDCb وخط bucking الأولي للمحاكاة
+
+قيمة VDCb لم تذكرها الورقة؛ نحتاج فرضية واحدة لبدء المحاكاة، لا فتح بدائل كثيرة:
+
+**Baseline simulation:**
+- VDCb = 9V regulated.
+- R = 100Ω.
+- C = 100pF C0G.
+- Rvar = 255kΩ.
+- Lvar النظري = 2.55mH.
+- τ النظري = 25.5µs.
+- مع RON≈2.1Ω لمفتاح TMUX6219 يصبح Rseries≈102.1Ω، وτ الفعلي الأولي≈25.0µs.
+- تيار bucking الابتدائي التقريبي = 9V/102.1Ω ≈88mA.
+- الطاقة الابتدائية المخزنة تقريباً (0.5×2.55mH×(88mA)^2≈9.9µJ).
+
+VDCb=9V يترك headroom تحت ±12V للـTMUX6219، ويولد طاقة كافية كبداية مع إمكانية ضبط السعة عبر AD8336. لا يُعتمد كقيمة نهائية حتى نحاكي شكل spike ونسبة المطابقة مع coil response.
+
+مصدر 9V يشتق من +12V_AFE عبر regulator منخفض الضجيج؛ رقم المنظم لم يحدد بعد. لا نأخذ VDCb مباشرة من بطارية غير منظمة حتى لا يتغير bucking مع هبوط البطارية.
+
+## 23. توقيت مفاتيح bucking وblanking
+
+- PA9 / HRTIM1_CHA2 يطلق EN لمفتاح SWb.
+- PA10 / HRTIM1_CHB1 يطلق EN لمفتاح high-gain blanking.
+- PA8 / HRTIM1_CHA1 يطلق TX gate driver.
+- COMP2 recovery event يعيد تمكين high-gain عبر HRTIM بعد minimum dead-time.
+- TMUX6219 SEL يثبت على المسار المختار؛ لا نبدل SEL أثناء transient.
+
+المراجع:
+- STM32G474 datasheet Table 12: PA10 supports HRTIM1_CHB1.
+- UM2505 Rev.7: PA10 على CN9 pin3 / Arduino D2.
