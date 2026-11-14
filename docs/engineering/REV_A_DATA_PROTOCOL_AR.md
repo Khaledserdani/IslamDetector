@@ -206,3 +206,9 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - اختبارات C وPython على CI تثبت منطق framing/session على المضيف. لا تثبت UART peripheral أو baud/throughput أو استعادة الأخطاء على اللوحتين.
 - الخطوة التالية: تعريف ACK بدقة، ثم تنفيذ command receiver وDEVICE_INFO transmitter على RP2040، وإضافة اختبارات host مشتركة للـencoder/decoder قبل UART loopback منخفض الجهد.
 
+
+
+## 8.6 نتيجة CI #1320 — 2026-11-14
+
+اكتملت الوظائف الأربع في CI #1320 على commit `61ab603` بنجاح؛ شملت 45 اختبار Python، واختبار C الصارم للـparser/session، وبناء ESP-IDF، وبناء RP2040 مع UF2 verification. لا يغير ذلك حدود البروتوكول: RP2040 لم ينفذ بعد command receiver أو DEVICE_INFO transmitter، وACK payload غير معرف. لذلك لا يوجد handshake فعلي بين المتحكمين، ولا يجوز اعتبار القياسات متاحة قبل DEVICE_INFO صحيحة من العتاد الحقيقي.
+

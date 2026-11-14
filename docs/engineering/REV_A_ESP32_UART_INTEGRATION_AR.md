@@ -58,3 +58,15 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - CI #1320 على commit `61ab603`: عند آخر تحقق نجح protocol-tests (45 اختبار Python + C strict compile) وAndroid build/verify/upload؛ كان RP2040 وESP-IDF قيد التنفيذ. لا يعتمد هذا كنجاح كامل قبل اكتمال الوظيفتين.
 - RP2040 لا يرسل DEVICE_INFO بعد؛ لذلك GET_INFO من ESP32 لا يحقق handshake حالياً. لا يوجد ACK decoder أو command receiver حتى الآن.
 - لا تُفعّل UART حتى تثبيت أرقام الأرجل من مخطط اللوحة الفعلية. لا يوجد UART loopback أو اختبار throughput/fault recovery على العتاد.
+
+
+## نتيجة CI النهائية — 2026-11-14
+
+اكتمل CI #1320 / run ID `43607459283` على commit `61ab603` بنجاح في الوظائف الأربع:
+- `esp32-s3-bridge`: ESP-IDF release-v5.4 compile/link Success.
+- `rp2040-firmware`: build + `verify_uf2.py` + upload Success.
+- `protocol-tests`: 45 اختبار Python وC strict compile/test Success.
+- `android-app`: Gradle build + APK ZIP verification + upload Success.
+
+هذا يثبت البناء الآلي فقط. يبقى الجسر معطلاً افتراضياً، وTX/RX GPIO=-1. لا يوجد RP2040 command receiver أو DEVICE_INFO transmitter أو ACK decoder، ولا يوجد UART loopback أو Flash أو اختبار Wi-Fi/Android end-to-end.
+

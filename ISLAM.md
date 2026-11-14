@@ -945,7 +945,7 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 ### اختبار حواجز الأمان الجديدة
 - أُضيف `tools/test_rev_a_safety_gates.py` في commit `61ab603`.
 - يثبت الاختبار افتراضياً: تعطيل ADC capture، وUART bridge، وترك GPIO TX/RX بقيمة -1، ورفض UART0/الأرجل غير الصالحة أو المتطابقة، واشتراط بدء يدوي لاختبار النبض المنطقي مع GP4 منخفضاً عند الإقلاع.
-- CI #1320، run ID `43607459283`، على HEAD=`61ab603`: عند آخر تحقق، `protocol-tests` نجحت مع **45 اختبار Python**، ثم نجح تجميع واختبار C الصارم؛ `android-app` نجح مع بناء APK وفحصه ورفعه. وظيفتا `rp2040-firmware` و`esp32-s3-bridge` كانتا قيد التنفيذ؛ لذلك لا نسجل #1320 نجاحاً كاملاً ولا ننسب إليه UF2 جديداً قبل اكتماله.
+- CI #1320، run ID `43607459283`، على HEAD=`61ab603`: اكتمل Success في الوظائف الأربع. `protocol-tests` نجحت مع **45 اختبار Python** وتجميع/اختبار C الصارم؛ `android-app` نجح في البناء وفحص APK ورفعه؛ `rp2040-firmware` نجح في build وUF2 verify/upload؛ و`esp32-s3-bridge` نجح في ESP-IDF build. تفاصيل UF2 والـartifacts مثبتة في القسم 20.10 أدناه.
 
 ### تدقيق Android
 - Manifest يحتوي INTERNET وACCESS_NETWORK_STATE ويدعم RTL، ويستخدم HTTP cleartext لأن واجهة ESP32 المحلية محددة حالياً على HTTP.
@@ -967,4 +967,19 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 3. اختبار UART loopback منخفض الجهد بعد تأكيد GPIO الفعلي، ثم ربط اللوحتين.
 4. تفعيل PIO/ADC فقط بعد تركيب ADS8861 والحماية والمرجع، مع قياس النوافذ والضوضاء والاستعادة.
 5. بعد القياسات الفعلية: تثبيت AFE وKiCad، ثم حساب طاقة TX والحماية وBOM وPCB/PCBA وتعليمات التجميع.
+
+
+
+## 20.10 النتيجة النهائية لاختبار حواجز الأمان — 2026-11-14
+
+- CI #1320 / run ID `43607459283` اكتمل Success على commit `61ab603fa4baa285c57a9e4e5b264aa6d61d3e77` في الوظائف الأربع.
+- Python: `Ran 45 tests` ثم `OK`؛ تشمل الاختبارات الستة الجديدة في `tools/test_rev_a_safety_gates.py`.
+- C: تجميع decoder/session مع `-std=c11 -Wall -Wextra -Werror -pedantic` ثم تنفيذ اختبار C نجح.
+- Android: `BUILD SUCCESSFUL`، فحص ZIP بلا أخطاء، ورفع `IslamDetector-Original-APK`، artifact ID `14118931541`، digest ZIP `3611baf77348fadaae8e53af0c5032daa709ac6bcea6372ea155dbddad49e12c`.
+- ESP32-S3: ESP-IDF release-v5.4 bridge job اكتمل Success.
+- RP2040: UF2 verify نجح: 136 كتلة، payload=34,816 bytes، Family ID=`0xE48BFF56`، address=`0x10000000..0x10008800`. SHA-256 الخام `9eaf665bc363af01f0791931d6ea6231a9e056ab2e899563e93a2da4836b572a`.
+- Artifact `IslamDetector-RevA-RP2040-Timing-Test-UF2`: ID `14118851259`، ZIP size=27,689 bytes، ZIP digest `27fe407df48ed7df232bd1142c346688bac3e74f252873b4cb0f10af1e0b0381`، expires 2026-12-14.
+- هذا UF2 هو نفسه اختبار التوقيت المنطقي فقط؛ لا يعني أن PIO ADC مفعّل أو أن UART موصول أو أن TX power جاهز.
+- بعد CI أُضيف commit توثيق فقط `368dfe02d779f9d46018ab90d1d1f116f558e0a8`، ولم تتغير ملفات البرنامج التي اختبرها #1320.
+- PR #7 ما زال Open Draft وغير مدمج على الفرع، وPR #6 ما زال Closed وغير مدمج. لم يتغير `main`.
 
