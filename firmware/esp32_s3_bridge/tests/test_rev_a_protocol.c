@@ -136,6 +136,9 @@ int main(void) {
         REV_A_TYPE_SET_PROFILE, &profile_id, 1u,
         command_frame, 8u, &command_length));
 
+    CHECK(rev_a_encode_command(
+        REV_A_TYPE_SET_PROFILE, &profile_id, 1u,
+        command_frame, sizeof(command_frame), &command_length));
     rev_a_command_t decoded_command;
     CHECK(rev_a_decode_command(command_frame, command_length, &decoded_command));
     CHECK(decoded_command.type == REV_A_TYPE_SET_PROFILE);
