@@ -218,13 +218,20 @@ int main(void) {
             print_help();
         }
 #if ENABLE_ADS8861_CAPTURE
-        if (ads8861_ready &&
-            ads8861_capture_try_read_sweep(pio0, ads8861_sm, ads8861_sweep)) {
-            printf("ADS8861_SWEEP_RAW16=");
-            for (uint8_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
-                printf("%s%04X", (i == 0u) ? "" : ",", ads8861_sweep[i]);
+        if (ads8861_ready) {
+            const ads8861_sweep_result_t sweep_result =
+                ads8861_capture_try_read_sweep(pio0, ads8861_sm, ads8861_sweep);
+            if (sweep_result != ADS8861_SWEEP_NOT_READY) {
+                printf("ADS8861_SWEEP_RAW16=");
+                for (uint8_t i = 0u; i < ADS8861_SWEEP_SAMPLES; ++i) {
+                    printf("%s%04X", (i == 0u) ? "" : ",", ads8861_sweep[i]);
+                }
+                printf("\n");
             }
-            printf("\n");
+            if (sweep_result == ADS8861_SWEEP_READY_REARM_FAILED) {
+                printf("ERROR: ADS8861 sweep captured, but re-arm failed; stopping timing outputs.\n");
+                timing_outputs_stop();
+            }
         }
 #endif
         tight_loop_contents();
