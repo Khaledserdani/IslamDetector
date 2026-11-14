@@ -31,8 +31,8 @@ https://powerlab.dz/product/esp32-s3-devkitm/
 ## 3. الربط بين ESP32-S3 وSTM32G474
 
 USART3 على STM32G474:
-- PB10 = USART3_TX.
-- PB11 = USART3_RX.
+- PB10 = USART3_TX على CN9 pin 7 (D6).
+- PB11 = USART3_RX على CN10 pin 17.
 - UART TTL 3.3V؛ الربط متقاطع TX↔RX مع GND مشترك.
 - مقاومات سلسلة صغيرة وحماية ESD عند الكابل.
 - سرعة تشغيل التطبيق يمكن أن تكون 460800 أو921600 بعد اختبار سلامة الرابط؛ لا نعتمدها قبل التحقق.
@@ -40,7 +40,7 @@ USART3 على STM32G474:
 مرشح GPIO على ESP32-S3:
 - GPIO17 = UART1_TX نحو PB11 (STM32 RX).
 - GPIO18 = UART1_RX من PB10 (STM32 TX).
-- GPIO16 = تحكم BOOT0 على PB8.
+- GPIO16 = خط تحكم احتياطي لمدخل PB8/BOOT0، لكنه لا يفعّل ROM bootloader افتراضياً قبل ضبط option bytes.
 - GPIO15 = تحكم NRST عبر ترانزستور open-drain.
 
 يجب تدقيق pinout النهائي للوحة ESP32-S3 المختارة، وعدم استخدام GPIO0/3/45/46 كأرجل تحكم بسبب أدوار strapping.
@@ -67,8 +67,8 @@ https://www.st.com/resource/en/application_note/an2606-introduction-to-stm32-mic
 
 ## 5. الأثر على المنافذ والطاقة
 
-- PB10/PB11 محجوزان حصرياً للربط UART بين المعالجين.
-- PB8 محجوز للتحكم BOOT0؛ لذلك لا نستخدم I2C1 على PB8/PB9 في التصميم الأساسي.
+- PB10/PB11 محجوزان حصرياً للربط UART بين المعالجين؛ PB10 على CN9 pin 7 وPB11 على CN10 pin 17.
+- PB8 محجوز كخيار BOOT0 على CN7 pin 7؛ لا نستخدمه I2C1 في التصميم الأساسي. يجب ضبط option bytes لأن BOOT0 غير موصول افتراضياً إلى دائرة اختيار boot.
 - 5V من Power Bank يغذي Nucleo وESP32-S3 عبر توزيع طاقة محمي، مع 3.3V مستقلة/مفلترة للـAFE.
 - 12V بطارية مستقلة لمسار TX؛ لا تُغذى قدرة TX من Power Bank.
 - لا بد من أرضي مشترك منظم ومسارات منفصلة لعودة تيار TX عن AFE وWi-Fi.
@@ -95,3 +95,14 @@ https://www.st.com/resource/en/application_note/an2606-introduction-to-stm32-mic
 
 المصدر الرسمي:
 https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.0.html
+
+
+## 8. تصحيح التوصيلات الفعلية وفق UM2505 Rev.7
+
+- STM32 PB10 / USART3_TX: **CN9 pin 7 (D6)**.
+- STM32 PB11 / USART3_RX: **CN10 pin 17**.
+- STM32 PB8 / BOOT0: **CN7 pin 7** (وموضع D15 على CN5 pin 10).
+- STM32 NRST: **CN6 pin 14**.
+- PB8/BOOT0 لا يختار ROM bootloader بمجرد توصيله؛ يوضح UM2505 أن BOOT0 غير موصول افتراضياً وأن option bytes تتحكم بالوظيفة. لذلك تحديث الهاتف يعتمد أساساً على jump-to-system-memory من Firmware سليم، بينما recovery الكامل بعد تلف Firmware يحتاج ST-LINK/مسار صيانة موثق، إلا إذا تم تهيئة option bytes ومسار JP7 بشكل صحيح.
+
+تم إلغاء أي رقم موصل سابق يخالف هذه الخريطة.
