@@ -460,7 +460,7 @@ https://www.ti.com/lit/ds/symlink/tmux6219.pdf
 ### التوزيع المقترح
 - U4 TMUX6219: مفتاح SWb لفرع VDCb/gyrator.
 - U5 TMUX6219: فصل/وصل مسار high-gain AFE بعد حماية low-gain.
-- كلاهما على ±12V_AFE؛ HRTIM يبدل SEL. EN يثبت فعالاً بمستوى منطقي آمن بعد استقرار التغذية.
+- كلاهما على ±12V_AFE؛ HRTIM يبدل SEL. PB7/AFE_SWITCH_EN يقود EN المشترك، مع pull-down10kΩ، ولا يفعّل إلا بعد استقرار rails.
 - مفتاح SWb يبدل بين حالة شحن فرع VDCb وحالة توليد/تفريغ المرجع؛ نقاط S1/S2/D تحسم من إعادة بناء Fig.2 في schematic.
 - مفتاح high-gain يبدل مدخل المضخم بين signal وAGND/bias أثناء blanking، حتى لا يترك المدخل عائماً.
 - TMUX1134 (5.5V max) لم يعد الاختيار الأساسي؛ لا يصلح لتمرير الإشارة ثنائية القطبية على ±12V.
