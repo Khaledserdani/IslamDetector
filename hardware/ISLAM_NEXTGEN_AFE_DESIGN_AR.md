@@ -540,3 +540,19 @@ https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments
 - POR=0x7F يعطي تقريباً Rvar=249.8kΩ، وτ الفعلي≈24.5µs بعد RON النموذجي للمفتاح.
 - كود wiper=0x8C (140 decimal) يعطي Rvar≈254.9kΩ، وτ الفعلي≈25.0µs.
 - Firmware يبدأ بكود0x8C بعد اكتمال فحص rails، ثم يسمح بمعايرة صغيرة حوله؛ لا يجري sweep كاملاً عند وجود هدف.
+
+
+### تدقيق EN/SEL من جدول الحقيقة في داتا شيت TMUX6219
+
+- EN=0: كلا المسارين S1/S2 مفتوحان (Hi-Z).
+- EN=1 وSEL=0: S1 متصل بـD.
+- EN=1 وSEL=1: S2 متصل بـD.
+- EN له pull-up داخلي ضعيف4MΩ، وSEL له pull-down داخلي4MΩ.
+- لذلك نضيف pull-down خارجي10kΩ على EN المشترك إلىDGND ليبقى المفتاحان OFF أثناء reset، ثم يرفع PB7 EN بعد نجاح فحص ±12V.
+- SEL لكل شريحة له pull-down10kΩ؛ PA9/PA10 يبدلان الحالة بعد بدء HRTIM.
+- عندما يكون SWb disabled، يوضع bleeder عالي القيمة على عقدة gyrator لتجنب floating دون تحميل ثابت الزمن.
+- مدخل high-gain differential له bias resistor إلى AGND حتى لا يطفو أثناء الفصل.
+- لكل TMUX6219 مكثف100nF و1µF قريبان من VDD وVSS إلى GND، وفق إرشادات TI.
+
+المصدر: TMUX6219 Rev.E §§7.4–7.5 و9–10:
+https://www.ti.com/lit/ds/symlink/tmux6219.pdf
