@@ -187,8 +187,8 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 | الوظيفة | رجل MCU | خرج HRTIM | موصل Nucleo |
 |---|---|---|---|
 | TX MOSFET gate-driver input | PA8 | HRTIM1_CHA1 | CN9 pin 8 / D7 |
-| SWb enable | PA9 | HRTIM1_CHA2 | CN5 pin 1 / D8 |
-| High-gain AFE enable/blanking | PA10 | HRTIM1_CHB1 | CN9 pin 3 / D2 |
+| SWb state select | PA9 | HRTIM1_CHA2 | CN5 pin 1 / D8 |
+| High-gain signal/blank select | PA10 | HRTIM1_CHB1 | CN9 pin 3 / D2 |
 
 - PA8 وPA9 وPA10 كلها HRTIM outputs مؤكدة في STM32G474 datasheet Table12.
 - PA10/HRTIM1_CHB1 متاح على CN9 pin3، وليس مستخدماً في USART3.
