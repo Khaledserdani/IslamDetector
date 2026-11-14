@@ -31,9 +31,9 @@ class Result:
 
 
 def simulate(
-    inductance_uH: float = 300.0,
+    inductance_uH: float = 175.8,
     current_A: float = 5.0,
-    coil_resistance_ohm: float = 1.5,
+    coil_resistance_ohm: float = 1.04,
     clamp_resistance_ohm: float = 47.0,
     diode_forward_V: float = 1.5,
     tvs_count: int = 3,
@@ -118,7 +118,7 @@ def main() -> None:
         "L_uH,I_A,decay_us,E0_mJ,R_mJ,TVS_mJ,D_mJ,coil_mJ,"
         "energy_error_pct,Vcoil_peak_V,Vds_peak_V,R_avg_W,TVS_avg_W"
     )
-    for inductance in (180.0, 240.0, 300.0, 400.0):
+    for inductance in (175.8, 240.0, 300.0, 400.0):
         for current in (5.0, 6.0):
             r = simulate(inductance_uH=inductance, current_A=current)
             print(
