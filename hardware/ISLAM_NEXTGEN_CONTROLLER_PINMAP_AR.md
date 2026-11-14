@@ -30,7 +30,7 @@
 | إيقاف عتادي سريع | PA12 | HRTIM1_FLT1 | Morpho CN10 pin 12 | مرشح أول |
 | UART إلى وحدة Wi-Fi | PB10 | USART3_TX (AF7) | Morpho CN10 pin 25 | مرشح أول |
 | UART من وحدة Wi-Fi | PB11 | USART3_RX (AF7) | Morpho CN10 pin 18 | مرشح أول |
-| ناقل I²C لحساسات الطاقة/الحرارة | PB8/PB9 | I2C1 SCL/SDA | Arduino D15/D14 | احتياطي |
+| BOOT0 لتحديث STM32 عبر ESP32 | PB8 | BOOT0 | CN10 pin 3 | محجوز؛ لا يستخدم I²C1 |
 | SPI احتياطي لوحدة ADC خارجية/تخزين | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI | Arduino D13/D12/D11 | احتياطي |
 
 ## 3. نقاط تدقيق
@@ -101,3 +101,13 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - UM2505 Table 16/17: PB1, PA7, PB13, PB15, PB6, PA12 connector mapping.
 https://www.st.com/resource/en/reference_manual/dm00355726.pdf
 https://www.st.com/resource/en/user_manual/dm00556337.pdf
+
+
+## 8. BOOT0 وتحديث الهاتف
+
+- PB8 / BOOT0 على CN10 pin 3 محجوز للتحكم في دخول ROM bootloader.
+- NRST على CN7 pin 14 يتحكم به ESP32-S3 عبر ترانزستور open-drain.
+- PB8 لا يستخدم كـI2C1_SCL في هذه النسخة؛ لا نشارك وظيفة Boot0 مع ناقل حساس.
+- USART3 PB10/PB11 هو رابط التطبيق وجسر ROM bootloader.
+- إذا استخدمنا jump-to-system-memory من التطبيق، تبقى دائرة PB8/NRST كمسار recovery احتياطي لتحديث أولي أو استرداد فشل.
+
