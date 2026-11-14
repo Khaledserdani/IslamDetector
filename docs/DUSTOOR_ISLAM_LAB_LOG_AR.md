@@ -567,3 +567,14 @@
 - سبب الفشل محدد في الاختبار: استُخدم الوسيط `abs_tol` مع `unittest.TestCase.assertAlmostEqual`، بينما الواجهة الصحيحة تستخدم `delta`.
 - صُحح الاختبار إلى `delta=1e-18` في الالتزام `c318b3086d75347599ffccefb74019db3914f0bd`.
 - يجب اعتماد المرحلة فقط بعد نجاح تشغيل CI الجديد الناتج عن هذا التصحيح. فشل الاختبار كشف خللاً في الاختبار نفسه، ولا يدل على فشل المعادلة أو نموذج المجال.
+
+
+## تثبيت نتيجة CI النهائية لنواة RX الموزعة — 2026-11-14
+- اكتمل تشغيل `ISLAM LAB 3D filament kernel verification` رقم `43565851885` على الالتزام `c318b3086d75347599ffccefb74019db3914f0bd` بحالة `success`.
+- نجحت وظيفة `verify` وخطوة `Run 3D filament verification tests` بعد أن أصبح CI يشغّل الملفين `test_filament_model.py` و`test_rx_turn_flux_linkage.py` معاً.
+- بذلك أُغلق عائق الاختبار السابق: كان `assertAlmostEqual` يستقبل وسيطاً غير مدعوم `abs_tol`، وصُحح إلى `delta=1e-18`.
+- فُحص PR #8 بعد تسجيل النتيجة: ما زال `open` و`draft=true` و`merged=false`. رأس الفرع عند الفحص `6e62caed57c3f24ecf6e34cc6110994f376a8b3c`، وهو يتضمن تقرير تحقق CI المستقل. لم يُدمج PR ولم يُعدّل `main`.
+- التقرير التفصيلي: `docs/science/DD3D_CI_VERIFICATION_2026-11-14_AR.md`، أُنشئ في الالتزام `6e62caed57c3f24ecf6e34cc6110994f376a8b3c`.
+- رابط التشغيل الناجح: https://github.com/Khaledserdani/IslamDetector/actions/runs/43565851885
+- رابط التقرير: https://github.com/Khaledserdani/IslamDetector/blob/feature/islam-lab-foundation/docs/science/DD3D_CI_VERIFICATION_2026-11-14_AR.md
+- **حد الاعتماد:** هذا نجاح اختبارات برمجية/عددية محددة، لا يثبت استجابة هدف معدني واقعي موزعة، ولا هندسة DD32 المقاسة، ولا SNR أو عمق كشف أو أداء ميدانياً. لا بد من تقارب تقسيم المسارات والأسطح، ثم إدخال هندسة DD32 المقاسة وربط استجابة الهدف من حل كهرومغناطيسي عابر.
