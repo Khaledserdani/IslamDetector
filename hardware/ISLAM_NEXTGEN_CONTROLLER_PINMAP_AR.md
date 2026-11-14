@@ -153,3 +153,29 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - لذلك لا نستخدم SPI1 على PA5/PA6/PA7.
 
 يجب التحقق من alternate function الخاص بـDAC1_OUT2 على نسخة STM32G474RE LQFP64 قبل PCB النهائي.
+
+
+## 11. قنوات ADC إضافية للفحص الذاتي ومراقبة القدرة
+
+بعد مراجعة Table 12 من STM32G474 datasheet وTable 15/موصلات Morpho في UM2505، يمكن تخصيص قنوات مراقبة لا تتعارض مع PA0/PA1 أو DAC/COMP/SPI:
+
+| الوظيفة | رجل MCU | قناة ADC | موصل Nucleo | ملاحظة |
+|---|---|---|---|---|
+| تيار TX من shunt amplifier | PB1 | ADC1_IN12 | CN10 pin 23 | نفس الرجل COMP1_INP؛ حماية عتادية |
+| جهد Drain/VDS عبر divider | PB0 | ADC1_IN15 | CN6 pin 34 أو CN8 A3 | لا اتصال مباشر بالـDrain |
+| جهد البطارية | PC0 | ADC12_IN6 | CN7 pin 38 / CN8 A5 | SB36 يختار PC0 افتراضياً |
+| +12V_AFE | PC1 | ADC12_IN7 | CN7 pin 36 / CN8 A4 | SB35 يختار PC1 افتراضياً؛ PB9 غير مستخدم |
+| −12V_AFE بعد level-shift | PC2 | ADC12_IN8 | CN7 pin 35 | يجب تحويله إلى 0–3.3V |
+| حرارة MOSFET/لوحة القدرة | PC3 | ADC12_IN9 | CN7 pin 37 | NTC divider |
+| حرارة رأس البحث | PC4 | ADC2_IN5 | CN9 pin 2 / CN10 pin 33 | NTC داخل الرأس إذا أمكن |
+
+### شروط التوصيل
+- جميع قنوات المراقبة تمر عبر مقسمات/مضخمات مناسبة ومقاومات حماية؛ لا يوصل VDS أو rail سالب مباشرة إلى ADC.
+- PB1 يستخدم لمقارنة COMP1 وللقراءة الرقمية من ADC1_IN12؛ يجب ألا يحمّل مسار الشنت أو يبطئ استجابة comparator.
+- PC0/PC1 مرتبطان بجسور SB36/SB35 على لوحة Nucleo؛ تبقى إعدادات المصنع الافتراضية PC0 وPC1، ويجب التحقق منها قبل الاستخدام.
+- هذه القنوات مخصصة للمراقبة البطيئة/الحرارية والقدرة؛ لا تزاحم زوج ADC1/ADC2 السريع PA0/PA1 الخاص بإشارة PI.
+- PC4 يشارك موضع CN9 pin2 مع اختيار PA2/PC4؛ نستخدم PC4 كما في جدول الموصلات، ونتجنب USART1 على هذا الطرف.
+
+المراجع:
+- STM32G474 datasheet DS12288 Table 12: https://www.st.com/resource/en/datasheet/stm32g474re.pdf
+- UM2505 Rev.7 Tables 14–17: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf
