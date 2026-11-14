@@ -65,19 +65,23 @@ ADC1 يقرأ خرج الفرق الأساسي. ADC2 يراقب مرجع bucking
 - R ثابت في شبكة gyrator=100Ω.
 - التحكم بالسعة عبر VGA، ويمكن أن يضبط DAC1_CH1 نقطة التحكم في VGA بعد تحديد نوعها.
 
-تنفيذ رقمي مرشح بعد تثبيت gyrator: 
+تنفيذ رقمي مرشح بعد تثبيت gyrator:
 - مكثف C0G/NP0 بقيمة100pF وتفاوت1% أو أفضل.
-- مقاومة ثابتة200kΩ دقيقة.
-- MCP41HV51 digital potentiometer بقيمة100kΩ و256 خطوة، على التوالي مع المقاومة الثابتة لتوفير مجال200–300kΩ.
-- تحكم SPI من STM32G474.
-- DAC1_CH1/CH2 مرشحان للتحكم التفاضلي في VGA عبر attenuator/RC، وليس بديلاً عن VDCb أو SWb.
-- HRTIM يطلق SWb في اللحظة نفسها بالنسبة إلى TX-off.
+- مقاومة ثابتة200kΩ دقيقة (0.1% مبدئياً).
+- MCP41HV51-104E/ST: مقاومة رقمية100kΩ، 8-bit، 256 taps، SPI، حزمةTSSOP-14.
+- التغذية التناظرية للمقاومة الرقمية: V+=+12V_AFE وV−=−12V_AFE، وDGND=AGND؛ التغذية الرقمية VL=3.3V، ومتوافقة مع SPI في STM32. أطراف A/B/W تتحمل مجالاً يصل إلى±18V، لذا لا تتجاوز rails.
+- المجال الاسمي مع200kΩ ثابتة: Rvar≈200–300kΩ. خطوة المقاومة≈392Ω، وخطوة τ≈0.039µs عند C=100pF.
+- تيار طرفي MCP41HV51 الأقصى لنسخة100kΩ نحو6.5mA؛ تيار gyrator المتوقع أقل بكثير.
+- تحكم SPI من STM32G474 عبر PB13/PB15 وCS على PB6.
+- DAC1_CH1/CH2 يتحكمان في AD8336 VGA عبر attenuator/RC، وليس بديلاً عن VDCb أو SWb.
+- HRTIM يطلق SWb نسبةً إلى TX-off.
+- firmware يكتب قيمة wiper بعد استقرار ±12V و3.3V؛ لا يعتمد على POR code. تُحفظ قيمة المعايرة في Flash.
 
-MCP41HV51 يعمل على2.7–5.5V، 256 taps، 100kΩ، SPI، ومتوفر في PDIP أو SOIC وفق Microchip. لا يوجد مخزون جزائري مؤكد حتى الآن؛ يمكن تركيبه مصنعياً على PCB.
+**تسلسل الطاقة:** يجب أن تستقر V+/V− قبل تطبيق جهد على أطراف A/B/W. يبقى CS غير فعال وSHDN في الحالة الآمنة أثناء الإقلاع، ثم يُفعّل الجهاز بعد تأكيد rails.
 
-المصدر:
+المصادر:
 https://www.microchip.com/en-us/product/MCP41HV51
-https://www.microchip.com/content/dam/mchp/documents/OTH/ProductDocuments/DataSheets/11195c.pdf
+https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments/DataSheets/MCP41HVX1-Data-Sheet-20005207.pdf
 
 ## 5. حماية مدخل AFE
 
