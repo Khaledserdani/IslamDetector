@@ -355,3 +355,26 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - فصل GPOS/GNEG وVCOM عن عقدة TX والـgate drive.
 - إضافة نقاط اختبار GPOS/GNEG وVOUT وPRAO وVGAI و±12V.
 - لا تضع AD8336 قرب MOSFET أو حلقة flyback؛ يثبت في منطقة AFE النظيفة.
+
+
+## 18. توافق AD8336 مع OPA1612 على ±12V — هامش الدخل
+
+تم تدقيق حدود common-mode لـOPA1612 من داتا شيت TI:
+- مجال common-mode هو من (V_-+2V) إلى (V_+-2V).
+- عند ±12V يصبح المجال الخطي تقريباً −10V إلى+10V.
+- خرج AD8336 عند ±12V يمكن أن يصل تقريباً إلى ±9.75V مع حمل1kΩ أو أكبر.
+
+لذلك **لا نوصل خرج AD8336 مباشرة إلى مدخل OPA1612 differential stage**؛ هامش common-mode سيكون ضيقاً جداً عند القمم. نضيف attenuator/matched input network قبل differential stage ليبقى دخل OPA1612 ضمن مجال أوسع (مرجع تصميم أولي ±8V أو أقل)، ثم نختار كسب differential stage لتعويض التوهين دون clipping.
+
+يجب اختيار قيم شبكة التوهين والمقاومات المتطابقة بعد حساب:
+- خرج AD8336 الأقصى عند كل gain.
+- offset output عند gain العالي.
+- الضجيج الحراري لشبكة المقاومات.
+- CMRR الناتج عن mismatch.
+- زمن settling والتحميل على AD8336.
+
+المراجع:
+- OPA1612 TI datasheet: https://www.ti.com/lit/ds/symlink/opa1612.pdf
+- AD8336 Rev.G: https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
+
+هذه إضافة headroom إلزامية؛ لا يُعتمد توصيل مباشر ولا schematic نهائي قبل محاكاتها.
