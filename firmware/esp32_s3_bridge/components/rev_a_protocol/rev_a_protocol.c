@@ -103,6 +103,40 @@ bool rev_a_encode_command(
     return true;
 }
 
+bool rev_a_decode_command(
+    const uint8_t *frame,
+    size_t frame_length,
+    rev_a_command_t *command) {
+    if (frame == NULL || command == NULL || frame_length < 8u ||
+        frame[0] != REV_A_SYNC_BYTE_0 || frame[1] != REV_A_SYNC_BYTE_1 ||
+        frame[2] != REV_A_PROTOCOL_VERSION) {
+        return false;
+    }
+
+    const uint8_t type = frame[3];
+    const uint16_t body_length = read_le16(&frame[4]);
+    const bool no_payload =
+        type == REV_A_TYPE_HELLO || type == REV_A_TYPE_GET_INFO ||
+        type == REV_A_TYPE_START || type == REV_A_TYPE_STOP ||
+        type == REV_A_TYPE_SELF_TEST;
+    const bool set_profile = type == REV_A_TYPE_SET_PROFILE;
+    const uint16_t expected_body_length = set_profile ? 5u : 4u;
+
+    if ((!no_payload && !set_profile) || body_length != expected_body_length ||
+        frame_length != (size_t)body_length + 4u) {
+        return false;
+    }
+
+    const uint16_t received_crc = read_le16(&frame[frame_length - 2u]);
+    if (rev_a_crc16_ccitt_false(&frame[2], body_length) != received_crc) {
+        return false;
+    }
+
+    command->type = type;
+    command->profile_id = set_profile ? frame[6] : 0u;
+    return true;
+}
+
 uint16_t rev_a_crc16_ccitt_false(const uint8_t *data, size_t length) {
     uint16_t crc = 0xFFFFu;
     if (data == NULL && length != 0u) {
