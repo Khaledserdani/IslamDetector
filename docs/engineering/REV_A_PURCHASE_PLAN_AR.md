@@ -141,3 +141,10 @@
 
 ### تثبيت مرجعي من ورقة TI الرسمية
 ورقة ADS8861 الرسمية SBAS557A، جدول Timing Requirements لوضع 3-Wire (الصفحة 5)، تسجل: `t_CONV` من 500ns typical إلى 710ns max، و`t_ACQ` لا يقل عن 290ns، و`t_wh-CNV` لا يقل عن 10ns. يشرح قسم Digital Interface في وضع 3-wire CS أن CONVST يبقى HIGH حتى انقضاء أقصى زمن تحويل؛ ثم يؤدي هبوطه إلى إظهار MSB. لذلك مدة 864ns الناتجة عن التعليمات الحالية تتجاوز 710ns، لكن يجب مراجعة زمن الاستحواذ بين التحويلات وتوقيت قراءة 16 بت كاملاً، لا الاكتفاء بتصحيح عرض النبضة. المرجع: https://www.ti.com/lit/ds/symlink/ads8861.pdf
+
+
+## 12. تثبيت تنسيق خرج ADS8861 — مراجعة ورقة البيانات
+
+تم التحقق من قسم ADC Transfer Function في ورقة TI SBAS557A (الشكل 49): خرج ADS8861 هو two's-complement، وتكون الشيفرة 0x8000 عند الطرف السالب، 0x0000 عند فرق دخل صفري، و0x7FFF قرب الطرف الموجب. لذلك تعريف REV_A_SAMPLE_TWOS_COMPLEMENT في البروتوكول متوافق مع ADS8861؛ لا تغيّره إلى unsigned أو offset-binary.
+
+مدى الدخل التفاضلي هو ±VREF، وقيمة LSB = 2 × VREF / 65536. عند VREF=4.096V يكون LSB النظري 125µV، بشرط أن يثبت المرجع فعلياً عند 4.096V وأن يكون مسار الدخل ضمن حدود common-mode وabsolute maximum في الداتا شيت. هذا حساب نظري وليس دقة فعلية مضمونة للنظام. المرجع الرسمي: https://www.ti.com/lit/ds/symlink/ads8861.pdf — قسم ADC TRANSFER FUNCTION، الشكل 49.
