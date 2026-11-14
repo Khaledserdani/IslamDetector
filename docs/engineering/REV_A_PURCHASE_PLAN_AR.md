@@ -162,3 +162,21 @@
 5. اختبار end-to-end ببيانات ADC صناعية معروفة أولاً، ثم ADC حقيقي على طاولة آمنة، ثم قياس ملف دون تشغيل TX عالي الطاقة.
 
 **الحالة:** فجوة برمجية مؤكدة من مراجعة المصدر؛ لا توجد بعد نتيجة اختبار end-to-end ولا يمكن وصف الجهاز بأنه متصل من الملف إلى التطبيق.
+
+
+## 14. لقطة توريد دولية أولية — 2026-11-14
+
+هذه لقطة أسعار/مخزون منشورة وقت البحث وليست عرض سعر نهائياً ولا تأكيداً للشحن إلى الجزائر:
+
+| القطعة | خيار طلب صغير منشور | المخزون الظاهر وقت البحث | القرار |
+|---|---|---:|---|
+| ADS8861IDGS (TI، VSSOP-10، أنبوب) | Mouser: نحو 25.21 USD للقطعة | 56 | موجودة، لكن السعر مرتفع؛ تحقق من ADS8861IDGSR cut-tape قبل الطلب |
+| ADS8861IDGSR (TI، VSSOP-10، شريط) | Mouser: نحو 19.71 USD للقطعة | 2,442 | أفضل مرشح توريد للقطعة المفردة إذا أكد checkout التوفر والتوصيل |
+| THS4521IDGKR (TI، VSSOP-8) | Mouser: نحو 5.18 USD للقطعة | 6,014 في نتيجة البحث؛ قد يختلف المخزون حسب صفحة/منطقة Mouser | مرشح مقارنة فقط؛ لا شراء قبل حسم AFE للملف الواحد |
+| ADR4540BRZ (ADI، SOIC-8) | DigiKey: صفحة المنتج تظهر نفاد المخزون/backorder | 0 | لا تعتمد عليه كقطعة شراء فورية؛ المرجع ما زال غير محسوم |
+
+المراجع: Mouser ADS8861IDGS https://www.mouser.com/en/ProductDetail/Texas-Instruments/ADS8861IDGS ؛ Mouser ADS8861IDGSR https://www.mouser.com/en/ProductDetail/Texas-Instruments/ADS8861IDGSR ؛ Mouser THS4521 series https://www.mouser.com/en/c/semiconductors/amplifier-ics/?series=THS4521 ؛ DigiKey ADR4540BRZ https://www.digikey.com/en/products/detail/analog-devices-inc/ADR4540BRZ/3340526 .
+
+**الشحن:** DigiKey يذكر أنه يشحن دولياً إلى مئات البلدان، لكن صفحة الأسعار العامة لا تثبت السعر أو أهلية الشحن للجزائر دون اختيار الجزائر في صفحة checkout. لذلك لم نحسب الشحن أو الجمارك ولم نعد القطع قابلة للطلب المحلي بعد. المرجع: https://www.digikey.com/en/help-support/delivery-information/international-shipping-rates .
+
+**قرار هذه المرحلة:** لا نطلب ADS8861 أو THS4521 الآن قبل إغلاق تصميم single-coil T/R ومرجع REF وقيادة ADC؛ نستخدم الأسعار فقط لتخطيط الميزانية ونمنع شراء قطعة قد لا تدخل التصميم النهائي.
