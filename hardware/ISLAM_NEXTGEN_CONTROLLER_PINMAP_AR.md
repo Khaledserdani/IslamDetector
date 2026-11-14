@@ -147,7 +147,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 بعد إضافة AD8336:
 - PA4 / DAC1_OUT1 / Arduino A2 / CN8 pin3 = DAC control 1.
 - PA5 / DAC1_OUT2 / Arduino D13 / CN5 pin6 = DAC control 2.
-- يذهب الخرجان إلى buffer/level-shift لتوليد GPOS/GNEG وفق common-mode في داتا شيت AD8336.
+- يذهب الخرجان عبر resistor attenuators وRC إلى GPOS/GNEG ضمن0–0.6V وفق common-mode في داتا شيت AD8336.
 - PA7 يبقى COMP2 envelope recovery.
 - SPI2 PB13/PB15 وCS PB6 يبقى للمقاومة الرقمية MCP41100 الخاصة بـRvar.
 - لذلك لا نستخدم SPI1 على PA5/PA6/PA7.
