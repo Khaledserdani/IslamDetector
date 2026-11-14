@@ -52,7 +52,7 @@ https://ietresearch.onlinelibrary.wiley.com/doi/full/10.1049/el.2014.3895
 - لا يحتاج لف RX bifilar متطابقاً أو قيادة معزولة لأربعة مفاتيح.
 - يعالج التشبع في المسار التناظري قبل ADC، وهي نقطة لا يحلها الطرح الرقمي وحده.
 - لديه مقارنة مختبرية منشورة مع جهاز تقليدي.
-- يمكن ضبطه برمجياً من وحدة STM32G474 عبر DAC/مقاومة رقمية أو شبكة مقاومات، مع إبقاء مسار مراقبة خام.
+- يمكن ضبطه برمجياً من وحدة STM32G474 عبر DAC/مقاومة رقمية عالية الجهد أو شبكة مقاومات، مع إبقاء مسار مراقبة خام.
 
 ## 5. ما الذي لا ننسخه حرفياً؟
 
@@ -146,7 +146,7 @@ L_{var}=R_{var}RC,quad \tau_b=R_{var}C
 - OPA1612: gyrator + coil preamp + differential subtraction + buffer/monitor.
 - AD8336: bucking VGA.
 - DAC1_CH1/CH2: تحكم gain differential.
-- MCP41100: Rvar gyrator فقط إذا احتجنا ضبطه رقمياً.
+- MCP41HV51: Rvar gyrator فقط إذا احتجنا ضبطه رقمياً.
 
 المراجع:
 https://www.analog.com/en/products/ad8336.html
