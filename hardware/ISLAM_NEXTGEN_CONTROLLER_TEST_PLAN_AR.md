@@ -94,3 +94,11 @@
 - إرسال رمز عطل واضح إلى تطبيق Android.
 
 الهدف أن يقتصر دور المستخدم اليومي على توصيل الرأس والطاقة وتشغيل التطبيق؛ لا يطلب منه استخدام راسم إشارة أو ضبط مقاومات أو قياس جهود داخلية. راجع `hardware/ISLAM_NEXTGEN_SELF_TEST_AND_TELEMETRY_AR.md`.
+
+
+## تحقق خاص بمفتاحي TMUX6219
+- PB7/AFE_SWITCH_EN يبقى منخفضاً عند reset؛ pull-down10kΩ يضمن ذلك قبل تشغيل Firmware.
+- بعد استقرار ±12V و3.3V فقط يرفع Firmware PB7.
+- PA9/PA10 لا يبدلان SEL قبل تفعيل PB7.
+- COMP1 fault أو watchdog يهبط PB7 لتعطيل المسارين، مع إطفاء TX عبر HRTIM.
+- يختبر أن مدخل high-gain لا يطفو أثناء blanking وأن عقدة gyrator لها مسار bleed.
