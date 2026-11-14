@@ -531,3 +531,10 @@ https://ww1.microchip.com/downloads/aemDocuments/documents/MSLD/ProductDocuments
 - POR code=0x7F؛ يعطي نحو49.8kΩ من pot، فينتج Rvar≈249.8kΩ مع200kΩ ثابتة.
 
 يجب تثبيت اختيار P0W/P0B في schematic النهائي بعد مراجعة Fig.3 gyrator، مع تجنب وضع الجهد على أطراف pot خارج V+ وV−.
+
+
+### كود البداية الرقمي
+مع Rfixed=200kΩ وRpot=100kΩ:
+- POR=0x7F يعطي تقريباً Rvar=249.8kΩ، وτ الفعلي≈24.5µs بعد RON النموذجي للمفتاح.
+- كود wiper=0x8C (140 decimal) يعطي Rvar≈254.9kΩ، وτ الفعلي≈25.0µs.
+- Firmware يبدأ بكود0x8C بعد اكتمال فحص rails، ثم يسمح بمعايرة صغيرة حوله؛ لا يجري sweep كاملاً عند وجود هدف.
