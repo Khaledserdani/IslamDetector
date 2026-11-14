@@ -7,7 +7,7 @@ Run from repository root:
 
 import unittest
 
-from pi_frontend_sanity import bucking_gyrator, coil_current, time_to_current
+from pi_frontend_sanity import bucking_decay, bucking_gyrator, coil_current, time_to_current
 from pi_tx_clamp_model import simulate
 
 
@@ -21,6 +21,20 @@ class FrontendSanityTests(unittest.TestCase):
         t400 = time_to_current(12.0, 1.5, 400e-6, 5.0)
         self.assertAlmostEqual(t180 * 1e6, 117.7, delta=0.5)
         self.assertAlmostEqual(t400 * 1e6, 261.6, delta=0.5)
+
+
+    def test_9v_bucking_baseline_includes_switch_resistance(self):
+        l_var, i0, tau, energy = bucking_decay(
+            vdc_b=9.0,
+            r_ohm=100.0,
+            switch_ron_ohm=2.1,
+            r_var_ohm=255e3,
+            c_f=100e-12,
+        )
+        self.assertAlmostEqual(l_var * 1e3, 2.55, places=6)
+        self.assertAlmostEqual(i0 * 1e3, 88.15, delta=0.1)
+        self.assertAlmostEqual(tau * 1e6, 24.98, delta=0.1)
+        self.assertAlmostEqual(energy * 1e6, 9.9, delta=0.1)
 
     def test_published_gyrator_reference_values(self):
         lvar, tau = bucking_gyrator(250e3, 100.0, 100e-12)
