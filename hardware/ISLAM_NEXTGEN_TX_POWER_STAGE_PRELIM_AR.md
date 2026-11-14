@@ -64,3 +64,38 @@ https://www.digikey.com/en/products/detail/littelfuse-inc/5KP58A/556577
 - لا نعتمد SMBJ58A كـmain flyback absorber.
 - المرحلة التالية هي رسم طوبولوجيا TX/clamp وحساب VDS/Ipeak/Epulse/Pavg وSOA قبل قفل MOSFET وTVS والمقاومات والمكثفات.
 
+
+
+## 6. طوبولوجيا clamp مرشحة بعد تدقيق مسار التيار — 2026-11-14
+
+تم تحديد طوبولوجيا أكثر عملية للدراسة:
+- ملف TX بين +12V وعقدة Drain للـMOSFET low-side.
+- TVS bidirectional على طرفي ملف TX (من Drain إلى +12V)، بحيث لا تعمل أثناء نبضة 12V العادية، وتحد flyback عند الإطفاء.
+- فرع مقاومة قدرة + دايود سريع على التوالي، على طرفي الملف وبقطبية تسمح بمرور تيار flyback من Drain إلى +12V فقط. يمنع الدايود وجود مسار DC عبر المقاومة أثناء تشغيل MOSFET.
+- MOSFET يرى تقريباً Vbattery + Vclamp، ويجب احتساب overshoot الطفيلي أيضاً.
+
+**ممنوع وضع مقاومة التفريغ وحدها عبر Drain-Source** في هذا التكوين؛ لأنها قد تنشئ مسار تيار مستمر من البطارية عبر الملف والمقاومة عندما يكون MOSFET مطفأ. فرع R+D يجب أن يكون على طرفي الملف وباتجاه flyback الصحيح.
+
+### مرشحات محلية ظهرت
+- 1.5KE39CA bidirectional TVS: متجر Power Lab يعرض 50 دج و565 قطعة ظاهرة. الداتا شيت النموذجية للسلسلة: VRWM=33.3V، VCL=53.9V عند 28.2A، 1500W peak 10/1000µs، و6.5W steady-state على heat sink لا نهائي. المخزون المحلي لا يثبت الشركة المصنعة أو أصالة القطعة؛ يلزم تأكيد العلامة والدفعة.
+- مقاومة قدرة 22Ω / 20W: BinaryTech يعرض 380 دج و8 قطع ظاهرة. يجب تأكيد أنها غير حثية أو معرفة pulse-overload curve قبل اعتمادها.
+- STTH112U: دايود ultrafast 1200V، reverse recovery 75ns، 1A average، وsurge 18A حسب حزمة STTH112. BinaryTech يعرض 89 قطعة ظاهرة. في نموذجنا النبضي هو فرع قصير منخفض متوسط التيار، لكن يجب التحقق من peak pulse current والحرارة في الدارة النهائية.
+
+المراجع:
+- Power Lab 1.5KE39CA: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/diodes/
+- ST 1.5KE39CA datasheet: https://www.st.com/resource/en/datasheet/1-5ke39ca.pdf
+- BinaryTech resistor/diode catalogue: https://binarytech-dz.com/category/composants
+- STTH112 datasheet: https://www.st.com/resource/en/datasheet/stth112.pdf
+
+### تحقق تحليلي أولي فقط
+باستخدام حالة افتراضية L=180µH، I0=5A، Rcoil=1.5Ω، Rclamp=22Ω، Vf=1.5V، وTVS clamp افتراضي 54V:
+- الطاقة المخزنة أول الإطفاء: 2.25mJ.
+- نموذج piecewise مثالي يوزعها تقريباً إلى 1.45mJ في مقاومة 22Ω، و0.55mJ في TVS، و0.05mJ في الدايود، و0.20mJ في مقاومة الملف.
+- عند 1kHz تعادل هذه تقريباً 1.45W للمقاومة و0.55W للـTVS قبل فواقد الطفيليات.
+
+هذا نموذج تحليلي مبسط وليس SPICE أو قياساً. يتغير توزيع الطاقة مع منحنى TVS الحقيقي، ومقاومة الملف، والدايود، وL الفعلية، وتردد النبض. لا نعتمد القيم ولا نشتري القطع قبل transient simulation والتحقق من SOA والحرارة.
+
+## 7. وضع القطع
+- IRFP260N + TC4420CPA: مرشحا TX switch/driver محليان.
+- 1.5KE39CA + 22Ω/20W + STTH112U: مرشح clamp محلي للدراسة.
+- **لا يوجد BOM معتمد بعد**؛ يجب إنهاء محاكاة transient واختيار قيم الملف والتيار أولاً.
