@@ -7,11 +7,20 @@ Run from repository root:
 
 import unittest
 
-from pi_frontend_sanity import bucking_decay, bucking_gyrator, coil_current, time_to_current
+from pi_frontend_sanity import bucking_decay, bucking_gyrator, coil_current, coil_copper_ramp_energy, time_to_current
 from pi_tx_clamp_model import simulate
 
 
 class FrontendSanityTests(unittest.TestCase):
+    def test_selected_single_spiral_coil_ramp_profile(self):
+        # One 35x35cm, 13-turn spiral: theoretical L=175.8uH, R=1.04ohm.
+        t5, e5 = coil_copper_ramp_energy(12.0, 1.04, 175.8e-6, 5.0)
+        t6, e6 = coil_copper_ramp_energy(12.0, 1.04, 175.8e-6, 6.0)
+        self.assertAlmostEqual(t5 * 1e6, 96.01, delta=0.1)
+        self.assertAlmostEqual(t6 * 1e6, 124.07, delta=0.1)
+        self.assertAlmostEqual(e5 * 1e3, 0.954, delta=0.01)
+        self.assertAlmostEqual(e6 * 1e3, 1.844, delta=0.01)
+
     def test_300us_pulse_exceeds_5a_for_shorter_coils(self):
         self.assertGreater(coil_current(12.0, 1.5, 180e-6, 300e-6), 7.3)
         self.assertGreater(coil_current(12.0, 1.5, 400e-6, 300e-6), 5.3)
@@ -43,6 +52,11 @@ class FrontendSanityTests(unittest.TestCase):
 
 
 class ClampModelTests(unittest.TestCase):
+    def test_selected_spiral_6a_clamp_energy_balance(self):
+        result = simulate(inductance_uH=175.8, current_A=6.0, coil_resistance_ohm=1.04)
+        self.assertAlmostEqual(result.initial_energy_mJ, 3.1644, delta=0.001)
+        self.assertLess(abs(result.energy_error_percent), 0.2)
+
     def test_conservative_vbrmax_clamp_estimate(self):
         r5 = simulate(inductance_uH=300.0, current_A=5.0)
         r6 = simulate(inductance_uH=300.0, current_A=6.0)
