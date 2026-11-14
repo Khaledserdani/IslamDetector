@@ -24,6 +24,27 @@ def time_to_current(v_supply: float, r_coil: float, l_h: float, target_a: float)
     return -(l_h / r_coil) * log(1.0 - target_a / i_inf)
 
 
+
+def coil_copper_ramp_energy(
+    v_supply: float, r_coil: float, l_h: float, target_a: float
+) -> tuple[float, float]:
+    """Return time and I²R copper energy during an ideal RL current ramp.
+
+    Excludes flyback/turn-off decay, switching, and parasitic losses.
+    """
+    t = time_to_current(v_supply, r_coil, l_h, target_a)
+    if not (t > 0.0 and t < float("inf")):
+        raise ValueError("target current must be reachable and positive")
+    tau = l_h / r_coil
+    i_inf = v_supply / r_coil
+    decay = exp(-t / tau)
+    integral_i2 = i_inf**2 * (
+        t - 2.0 * tau * (1.0 - decay)
+        + 0.5 * tau * (1.0 - decay**2)
+    )
+    return t, r_coil * integral_i2
+
+
 def bucking_gyrator(r_var_ohm: float, r_ohm: float, c_f: float) -> tuple[float, float]:
     """Return equivalent inductance and exponential time constant."""
     return r_var_ohm * r_ohm * c_f, r_var_ohm * c_f
