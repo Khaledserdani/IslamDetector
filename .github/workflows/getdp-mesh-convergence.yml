@@ -13,6 +13,8 @@ on:
       - 'simulation/getdp/sum_rx_turn_flux_linkage.py'
       - 'simulation/getdp/test_sum_rx_turn_flux_linkage.py'
       - 'simulation/getdp/test_derive_rx_voltage.py'
+      - 'simulation/getdp/derive_rx_linkage_voltage.py'
+      - 'simulation/getdp/test_derive_rx_linkage_voltage.py'
       - 'simulation/elmer/pi_pulse_separate_coil.geo'
   workflow_dispatch:
 permissions:
