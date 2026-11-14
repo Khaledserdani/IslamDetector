@@ -19,7 +19,7 @@
 | OPA2365 SOIC-8 | 1 | buffer/driver لقناتي ADC على3.3V | لم يثبت محلياً | مرشح واجهة ADC |
 | TMUX6219 | 2 | SWb + high-gain blanking/enable على ±12V | لا مخزون جزائري مؤكد | مرشح محدد، غير معتمد |
 | منظم 9V منخفض الضجيج | 1 | توليد VDCb=9V من +12V_AFE | لم يحدد النوع | غير محسوم |
-| MCP41HV51 100kΩ | 1 | ضبط Rvar في gyrator فقط | لم يثبت محلياً | مرشح؛ يلزم تحقق مدى Rvar |
+| MCP41HV51-104E/ST | 1 | digital pot 100kΩ، 8-bit/256 taps، SPI، أطراف ±18V، TSSOP-14 لضبط Rvar مع200kΩ ثابتة | لم يثبت محلياً؛ Microchip In Production | مرشح محدد، غير معتمد حتى محاكاة terminal voltage والتسلسل |
 | TEN8-1222 | 1 | تحويل 12V إلى ±12V معزولين | TME/DigiKey دولي؛ لم يظهر محلياً | مرشح تغذية متوافق مع AD8336 |
 | مرجع 1.65V + buffer | 1 | level-shift إلى ADC | لم يحدد رقم القطعة | غير محسوم |
 | شبكة مقاومات matched 0.01% | حسب التصميم | differential subtraction/attenuator | لم تحدد القيم | غير محسومة |
