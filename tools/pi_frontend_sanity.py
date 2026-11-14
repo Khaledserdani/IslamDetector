@@ -29,6 +29,27 @@ def bucking_gyrator(r_var_ohm: float, r_ohm: float, c_f: float) -> tuple[float, 
     return r_var_ohm * r_ohm * c_f, r_var_ohm * c_f
 
 
+
+def bucking_decay(
+    vdc_b: float,
+    r_ohm: float,
+    switch_ron_ohm: float,
+    r_var_ohm: float,
+    c_f: float,
+) -> tuple[float, float, float, float]:
+    """Return Lvar, initial current, actual decay tau, and stored energy.
+
+    The switch RON is included in the discharge resistance. This is still a
+    first-order RL approximation, not a nonlinear gyrator/SPICE model.
+    """
+    l_var = r_var_ohm * r_ohm * c_f
+    r_total = r_ohm + switch_ron_ohm
+    i_initial = vdc_b / r_total
+    tau_actual = l_var / r_total
+    energy_j = 0.5 * l_var * i_initial**2
+    return l_var, i_initial, tau_actual, energy_j
+
+
 def main() -> None:
     v = 12.0
     r = 1.5
