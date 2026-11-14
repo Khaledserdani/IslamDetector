@@ -191,3 +191,15 @@ F. اختبار ميداني أعمى وتكراري بعد نجاح المخت�
 - HRTIM يفرض dead-time ويفتح high-gain path ثم يطلق ADC1/ADC2.
 
 الهدف منع تشبع preamp قبل عملية bucking. راجع `hardware/ISLAM_NEXTGEN_AFE_DESIGN_AR.md` و`hardware/ISLAM_NEXTGEN_CONTROLLER_PINMAP_AR.md`.
+
+
+## 18. تقسيم المعالجات والاتصال النهائي
+
+لأن المستخدم لا يملك معالجاً جاهزاً، لا يفترض التصميم وجود أي لوحة سابقة. وحدة النظام تتكون من:
+- NUCLEO-G474RE / STM32G474RE للنبضة والقياس والحماية وAFE timing.
+- ESP32-S3 N16R8 DevKitC-1 كجسر Wi-Fi/WebServer وتحديث Firmware.
+- Android ISLAM DETECTOR كواجهة تحكم وتسجيل.
+
+USART3 PB10/PB11 يربط المتحكمين. ESP32-S3 يستخدم GPIO17/18 للـUART، وGPIO16/15 للتحكم الاحتياطي بـBOOT0/NRST. PB8/BOOT0 على STM32 محجوز للتحديث، وNRST يدار open-drain. ROM bootloader على STM32G47 يدعم USART3 PB10/PB11 وفق AN2606، مما يتيح تحديث Firmware من الهاتف دون الاعتماد على كمبيوتر أو ST-LINK بعد تركيب الجسر.
+
+راجع `hardware/ISLAM_NEXTGEN_WIFI_AND_FIRMWARE_BRIDGE_AR.md`.
