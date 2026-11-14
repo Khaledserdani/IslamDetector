@@ -65,8 +65,8 @@
 | الوظيفة | منفذ MCU | موصل اللوحة | الملاحظة |
 |---|---|---|---|
 | DAC1_CH1 للتحكم التفاضلي في AD8336 | PA4 / DAC1_OUT1 | Arduino A2 / CN8 pin 3 | عبر attenuator/RC إلى GPOS/GNEG |
-| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 29 | MCP41100 |
-| SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 25 | MCP41100؛ لا يحتاج MISO |
+| SPI clock للمقاومة الرقمية | PB13 / SPI2_SCK | CN10 pin 29 | MCP41HV51 |
+| SPI data إلى المقاومة الرقمية | PB15 / SPI2_MOSI | CN10 pin 25 | MCP41HV51؛ لا يحتاج MISO |
 | CS للمقاومة الرقمية | PB6 / GPIO | CN5 pin 3 / D10 | Chip select |
 | ADC1 إشارة الفرق | PA0 / ADC1_IN1 | A0 / CN8 pin 1 | القناة الأساسية |
 | ADC2 مراقبة bucking | PA1 / ADC2_IN2 | A1 / CN8 pin 2 | متزامنة مع ADC1 |
@@ -92,7 +92,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - **COMP2**: مدخل موجب PA7 لقياس envelope في مسار الاستقبال منخفض الكسب، ومدخل سالب DAC3_CH2 الداخلي كعتبة recovery. خرجه يربط بحدث HRTIM خارجي داخلياً.
 - **DAC1_CH1 على PA4/A2**: ضبط سعة مرجع bucking.
 - **DAC3_CH1 وDAC3_CH2**: عتبتا COMP1/COMP2 داخلياً، ولا تحتاجان أرجل GPIO.
-- **SPI2** للمقاومة الرقمية MCP41100: PB13=SCK على CN10 pin 29، PB15=MOSI على CN10 pin 25، وPB6=CS على D10/CN5 pin3. لا يحتاج MCP41100 خط MISO.
+- **SPI2** للمقاومة الرقمية MCP41HV51: PB13=SCK على CN10 pin 29، PB15=MOSI على CN10 pin 25، وPB6=CS على D10/CN5 pin3. لا يحتاج MCP41HV51 خط MISO.
 - **PA12 / CN10 pin11**: مدخل زر إيقاف/Interlock خارجي مستقل، إضافة إلى مسار المقارن الداخلي.
 
 هذا يترك PA3 حراً ولا يتعارض مع LPUART1/VCP المدمج على اللوحة. ويترك PA5/PA6/PA7 خارج SPI1؛ PA7 مستخدم الآن كمدخل COMP2 فقط.
@@ -149,7 +149,7 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - PA5 / DAC1_OUT2 / Arduino D13 / CN5 pin6 = DAC control 2.
 - يذهب الخرجان عبر resistor attenuators وRC إلى GPOS/GNEG ضمن0–0.6V وفق common-mode في داتا شيت AD8336.
 - PA7 يبقى COMP2 envelope recovery.
-- SPI2 PB13/PB15 وCS PB6 يبقى للمقاومة الرقمية MCP41100 الخاصة بـRvar.
+- SPI2 PB13/PB15 وCS PB6 يبقى للمقاومة الرقمية MCP41HV51 الخاصة بـRvar.
 - لذلك لا نستخدم SPI1 على PA5/PA6/PA7.
 
 يجب التحقق من alternate function الخاص بـDAC1_OUT2 على نسخة STM32G474RE LQFP64 قبل PCB النهائي.
