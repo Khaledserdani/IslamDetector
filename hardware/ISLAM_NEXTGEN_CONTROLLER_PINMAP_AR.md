@@ -199,3 +199,16 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 المراجع:
 - STM32G474 datasheet Table12: https://www.st.com/resource/en/datasheet/stm32g474re.pdf
 - UM2505 Rev.7 Table15: https://www.st.com/resource/en/user_manual/dm00556337-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf
+
+
+## 13. أرجل التحكم الثابتة لـMCP41HV51
+
+لا نستهلك GPIO إضافية:
+- VL=3.3V، V+=+12V_AFE، V−=−12V_AFE، DGND=AGND.
+- WLAT يربط DGND (منخفض) لأن تحديثات wiper ليست متزامنة مع zero-crossing.
+- SHDN يربط VL عبر10kΩ (غير فعال).
+- SDO غير موصول؛ نستخدم write-only SPI.
+- POR code=0x7F يعطي قرابة49.8kΩ، ومع200kΩ ثابتة يحقق baseline Rvar≈249.8kΩ/τ≈25µs.
+- SPI2: PB13=SCK، PB15=SDI، PB6=CS.
+
+المصدر: MCP41HVX1 datasheet DS20005207C §§4.2–4.3 و6.1.
