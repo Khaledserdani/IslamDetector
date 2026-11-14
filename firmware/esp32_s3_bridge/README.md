@@ -29,3 +29,14 @@ The decoder validates SYNC, protocol version, body length, sample count, valid m
 The C tests cover the CRC known vector, valid measurement and DEVICE_INFO frames, rejected inconsistent ADC metadata, 16-bit and 14-bit signed conversion, fragmented input, concatenated frames, noise and recovery after a corrupt frame. The session tests reject measurements before DEVICE_INFO, preserve raw invalid windows, snapshot metadata, and require a fresh DEVICE_INFO after session invalidation.
 
 The CI compiles with strict warnings and executes the test. This proves the portable decoder on the CI host only. ESP-IDF UART integration, FreeRTOS task behavior, UART loopback, Wi-Fi load, and the physical RP2040-to-ESP32 link remain untested.
+
+
+## ESP-IDF project and UART task
+
+This directory contains a standalone ESP-IDF project for ESP32-S3. The rev_a_uart_bridge component owns UART events, RX/TX ring buffers, parser/session integration, DEVICE_INFO retry, and a bounded measurement queue.
+
+UART defaults to disabled and TX/RX GPIO -1. No development-board pins are assumed. Enable UART1 or UART2 only after checking the exact board schematic and setting both GPIOs in idf.py menuconfig. UART0 remains reserved for the console.
+
+Default transport: 921600 baud, 8N1. The bridge sends HELLO/GET_INFO, retries GET_INFO until valid DEVICE_INFO arrives, invalidates metadata after UART faults or parser rejection, and exposes measurement snapshots through a FreeRTOS queue.
+
+This is not yet complete detector firmware: ACK parsing, RP2040 command receiver/DEVICE_INFO transmitter, Wi-Fi/WebServer JSON endpoints, Android integration, and physical UART loopback remain outstanding. A successful build does not prove a physical connection.

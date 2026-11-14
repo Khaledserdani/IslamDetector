@@ -883,3 +883,20 @@ THS4521: قيمة overdrive recovery المنشورة 80ns هي typical عند �
 - 2df2113be3993ccedf967f33e4072168ea138b61 — إضافة read_le16 المفقودة في اختبارات C بعد أن كشفها CI #1026.
 - CI #1026 (ID 43433668209) كشف فشل تجميع الاختبار فقط؛ Python tests نجحت، لكن C compile توقف بسبب implicit declaration لـread_le16. لم يكن الفشل في encoder نفسه.
 - CI #1028 (ID 43433785109) على commit 2df2113: protocol-tests Success وandroid-app Success؛ كان rp2040-firmware في خطوة تثبيت ARM toolchain عند آخر فحص. لا نسجل UF2 لهذا الرأس حتى تنجح build وverify وupload.
+
+
+## 20.6 تنفيذ ESP32-S3 UART bridge — 2026-11-14
+
+أضيف مشروع ESP-IDF مستقل في firmware/esp32_s3_bridge ومكوّن rev_a_uart_bridge:
+- UART1/2 قابل للاختيار، وUART0 محفوظ للـconsole.
+- RX ring buffer وTX ring buffer وevent queue وFreeRTOS task.
+- parser/session يربط DEVICE_INFO بالقياسات؛ لا تقبل MEASUREMENT قبل metadata صحيحة.
+- GET_INFO retry، إبطال metadata عند overflow أو framing/parity/break أو parser rejection، وqueue محدودة للقياسات مع عداد drop.
+- API لإرسال أوامر protocol v0.1 واستلام measurement snapshots.
+- لم تُثبت GPIOs؛ الإعداد الافتراضي disabled وTX/RX=-1 حتى مراجعة مخطط لوحة التطوير.
+
+أضيف CI job لبناء ESP32-S3 باستخدام ESP-IDF release-v5.4. لم نسجل نجاح هذا البناء حتى تظهر نتيجة GitHub Actions على commit التغيير.
+
+الملفات: firmware/esp32_s3_bridge/CMakeLists.txt، Kconfig.projbuild، main/app_main.c، components/rev_a_uart_bridge/، docs/engineering/REV_A_ESP32_UART_INTEGRATION_AR.md.
+
+حدود الإثبات: لم يختبر UART loopback أو توصيل اللوحتين؛ لا يوجد RP2040 command receiver/ACK/DEVICE_INFO transmitter ولا Wi-Fi server/Android JSON bridge. لا يوجد TX power أو MOSFET أو ملف بحث ضمن هذا البرنامج.
