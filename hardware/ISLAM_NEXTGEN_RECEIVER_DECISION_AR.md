@@ -139,7 +139,7 @@ L_{var}=R_{var}RC,quad \tau_b=R_{var}C
 ## 13. تحديث مكونات VGA وتغذية AFE
 
 بدلاً من ترك كلمة VGA ككتلة غير محددة، ظهر مرشح حقيقي:
-- **AD8336**: VGA DC-coupled، 3nV/√Hz، 115MHz، مدى كسب60dB، تحكم50dB/V، يعمل على ±3V إلى±12V. يستخدم في مسار bucking لضبط سعة المرجع. تحكمه تفاضلي GPOS/GNEG؛ لا يوصل DAC مباشرة قبل buffer/level-shift وحساب common-mode.
+- **AD8336**: VGA DC-coupled، 3nV/√Hz، 115MHz، مدى كسب60dB، تحكم50dB/V، يعمل على ±3V إلى±12V. يستخدم في مسار bucking لضبط سعة المرجع. تحكمه تفاضلي GPOS/GNEG؛ يوصّل DAC1_CH1/CH2 عبر attenuator/RC محدد إلى0–0.6V مع مراعاة common-mode.
 - **TEN8-1222**: محول معزول من دخل9–18V إلى ±12V، 335mA لكل rail، 8W؛ مناسب مبدئياً لتغذية OPA1612 وAD8336 من بطارية12V. يحتاج post-filter لأن ripple/noise النموذجي50mVpp.
 
 التوزيع الأولي:
