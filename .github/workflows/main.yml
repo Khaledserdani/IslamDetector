@@ -1,12 +1,87 @@
-name: Validate Islam Detector apps on pull requests
+name: Validate Islam Detector app and Rev A firmware
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - '.github/workflows/main.yml'
+      - 'tools/**'
+      - 'firmware/rp2040_timing_test/**'
+      - 'firmware/esp32_s3_bridge/**'
+      - 'app/**'
+      - 'pro/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle/**'
 permissions:
   contents: read
+concurrency:
+  group: rev-a-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  protocol-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Rev A telemetry protocol
+        run: python3 -m unittest discover -s tools -p 'test_*.py' -v
+      - name: Build and test portable ESP32-S3 protocol decoder
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic -Ifirmware/esp32_s3_bridge/components/rev_a_protocol/include firmware/esp32_s3_bridge/components/rev_a_protocol/rev_a_protocol.c firmware/esp32_s3_bridge/components/rev_a_protocol/rev_a_session.c firmware/esp32_s3_bridge/tests/test_rev_a_protocol.c -o /tmp/rev_a_protocol_test
+          /tmp/rev_a_protocol_test
+
+  rp2040-firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout Raspberry Pi Pico SDK 2.3.1
+        uses: actions/checkout@v4
+        with:
+          repository: raspberrypi/pico-sdk
+          ref: 2.3.1
+          path: pico-sdk
+          submodules: false
+      - name: Initialize TinyUSB submodule
+        run: git -C pico-sdk submodule update --init lib/tinyusb
+      - name: Install ARM embedded toolchain (retry transient mirror DNS failures)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if sudo DEBIAN_FRONTEND=noninteractive apt-get \
+              -o Acquire::Retries=5 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30 \
+              install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          exit 1
+      - name: Build RP2040 logic timing firmware
+        run: |
+          cmake -S firmware/rp2040_timing_test -B build/rp2040 \
+            -DPICO_SDK_PATH="$GITHUB_WORKSPACE/pico-sdk" \
+            -DPICO_BOARD=pico
+          cmake --build build/rp2040 --parallel 2
+      - name: Verify RP2040 UF2 structure and family ID
+        run: |
+          set -euo pipefail
+          python3 tools/verify_uf2.py build/rp2040/islam_rev_a_timing_test.uf2 --family-id 0xE48BFF56
+          sha256sum build/rp2040/islam_rev_a_timing_test.uf2
+      - name: Upload RP2040 timing firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslamDetector-RevA-RP2040-Timing-Test-UF2
+          path: build/rp2040/islam_rev_a_timing_test.uf2
+          retention-days: 30
+
+  android-app:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -16,27 +91,33 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both APKs
-        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug
-      - name: Verify APKs
+      - name: Build original Android app
+        run: gradle --no-daemon clean :app:assembleDebug
+      - name: Verify APK
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk; do
-            test -f "$APK"
-            test "$(stat -c%s "$APK")" -gt 20000
-            unzip -t "$APK"
-            sha256sum "$APK"
-          done
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          test "$(stat -c%s "$APK")" -gt 20000
+          unzip -t "$APK"
+          sha256sum "$APK"
       - name: Upload original app
         uses: actions/upload-artifact@v4
         with:
           name: IslamDetector-Original-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-      - name: Upload Pro app
-        uses: actions/upload-artifact@v4
+
+
+  esp32-s3-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ESP32-S3 UART bridge with ESP-IDF release-v5.4
+        uses: espressif/esp-idf-ci-action@v1
         with:
-          name: IslamDetector-Pro-APK
-          path: pro/build/outputs/apk/debug/pro-debug.apk
-          retention-days: 30
+          esp_idf_version: release-v5.4
+          target: esp32s3
+          path: firmware/esp32_s3_bridge

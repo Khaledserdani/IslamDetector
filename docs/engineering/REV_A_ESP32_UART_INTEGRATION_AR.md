@@ -1,0 +1,72 @@
+# تنفيذ جسر UART على ESP32-S3 — Rev A
+
+**الحالة:** مكوّن ESP-IDF أضيف واكتمل compile/link في CI #1319 باستخدام ESP-IDF release-v5.4. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
+
+## ما أضيف
+- مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
+- المكوّن rev_a_uart_bridge يستخدم UART driver الرسمي وFreeRTOS event queue وRX ring buffer.
+- Task استقبال يقرأ البيانات على دفعات ثم يغذي parser بايتاً بايتاً، حتى يكتشف CRC/header failure قبل معالجة البايت التالي.
+- تمر DEVICE_INFO وMEASUREMENT إلى rev_a_session_accept_frame(). لا تدخل MEASUREMENT إلى queue إلا بعد DEVICE_INFO صحيح.
+- queue القياسات تحفظ raw16 وصيغة ADC والدقة وVREF وmetadata generation والقيم المفسرة للنوافذ الصالحة.
+- إرسال HELLO وGET_INFO عند البدء، ثم إعادة GET_INFO كل ثانية حتى وصول DEVICE_INFO صالح.
+- عند FIFO overflow أو ring-buffer full أو framing/parity/break error: تفريغ RX وإعادة parser وإبطال DEVICE_INFO ثم طلبه مجدداً.
+- queue القياسات محدودة؛ عند امتلائها تسقط العينة الجديدة وتزيد dropped_measurements بدلاً من حجب UART task.
+- API لإرسال أوامر البروتوكول وقراءة الحالة واستلام القياسات.
+
+## إعداد الأرجل
+لا يوجد رقم GPIO مثبت في المصدر. الجسر معطل افتراضياً، وTX/RX=-1، وUART1 هو الافتراضي مع إبقاء UART0 للـconsole.
+بعد مطابقة رقم لوحة ESP32-S3 ومخططها الفعلي فقط:
+1. شغّل idf.py set-target esp32s3.
+2. شغّل idf.py menuconfig.
+3. فعّل الجسر واختر UART1 أو UART2 وأدخل TX/RX GPIO الصحيحين.
+4. لا تفعّل الجسر إذا بقي GPIO على -1؛ المشروع يرفض البناء.
+5. شغّل idf.py build.
+التوصيل المنطقي لاحقاً: ESP32 TX إلى RP2040 RX والعكس، مع GND مشترك ومنطق 3.3V فقط. لا 5V إلى GPIO. لا تختَر GPIO بالتخمين.
+
+## إعداد النقل
+UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛ TX buffer 512؛ event queue 16؛ measurement queue 8؛ قراءة chunks من 128 byte؛ GET_INFO retry كل 1000ms.
+هذه إعدادات Firmware وليست قياساً لمعدل نقل فعلي أو ضماناً لعدم فقد البيانات. يلزم قياس throughput تحت حمل Wi-Fi لاحقاً.
+
+## الحدود
+- لا يوجد ACK decoder أو RP2040 command receiver/DEVICE_INFO transmitter بعد.
+- لا يوجد Wi-Fi/WebServer/JSON endpoint أو ربط Android.
+- لا يوجد UART loopback أو قياس فعلي بين اللوحتين.
+- لا يوجد TX power أو MOSFET أو ملف بحث ضمن هذا البرنامج.
+
+## بوابة القبول التالية
+1. نجاح ESP-IDF build في CI.
+2. تثبيت GPIO بعد مراجعة مخطط لوحة التطوير.
+3. UART loopback منخفض الجهد ثم ربط اللوحتين بمنطق 3.3V.
+4. إثبات HELLO/GET_INFO/DEVICE_INFO وقياس throughput والفقد.
+5. إضافة RP2040 ACK/command receiver وDEVICE_INFO transmitter.
+6. بعد ذلك ربط القياسات بخادم Wi-Fi.
+
+
+## نتيجة البناء الآلي
+
+اكتمل CI #1315 على commit f3d2516 بنجاح في الوظائف الأربع. ESP-IDF release-v5.4 ترجم rev_a_uart_bridge وrev_a_protocol وapp_main وربط مشروع ESP32-S3 وأنتج BIN. هذا يثبت compile/link فقط، وليس flashing أو تشغيل UART على لوحة فعلية.
+
+بعد هذا التشغيل عولجت ملكية retry state ووقف FreeRTOS task في commits 621e283 وa39fbaa. تحقق الكود الأحدث جارٍ في CI #1318؛ لا تسجل هذه التعديلات نجاحاً حتى تنتهي الوظائف الأربع.
+
+
+## تحقق محدث — 2026-11-14
+
+- CI #1319 / run ID `43604013988` اكتمل Success في الوظائف الأربع: `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge`.
+- سجل ESP-IDF يؤكد إنشاء صورة ESP32-S3 واكتمال Project build. هذا يثبت compile/link فقط؛ لم يحدث flash أو تشغيل على لوحة.
+- تعديلا ملكية GET_INFO retry وإيقاف FreeRTOS task في commits `621e283` و`a39fbaa` دخلا في البناء الناجح #1319.
+- الإعدادات لا تزال آمنة افتراضياً: `CONFIG_REV_A_UART_ENABLE=n)، وTX/RX GPIO=-1، وUART1 افتراضي وUART0 محفوظ للـconsole.
+- CI #1320 على commit `61ab603`: عند آخر تحقق نجح protocol-tests (45 اختبار Python + C strict compile) وAndroid build/verify/upload؛ كان RP2040 وESP-IDF قيد التنفيذ. لا يعتمد هذا كنجاح كامل قبل اكتمال الوظيفتين.
+- RP2040 لا يرسل DEVICE_INFO بعد؛ لذلك GET_INFO من ESP32 لا يحقق handshake حالياً. لا يوجد ACK decoder أو command receiver حتى الآن.
+- لا تُفعّل UART حتى تثبيت أرقام الأرجل من مخطط اللوحة الفعلية. لا يوجد UART loopback أو اختبار throughput/fault recovery على العتاد.
+
+
+## نتيجة CI النهائية — 2026-11-14
+
+اكتمل CI #1320 / run ID `43607459283` على commit `61ab603` بنجاح في الوظائف الأربع:
+- `esp32-s3-bridge`: ESP-IDF release-v5.4 compile/link Success.
+- `rp2040-firmware`: build + `verify_uf2.py` + upload Success.
+- `protocol-tests`: 45 اختبار Python وC strict compile/test Success.
+- `android-app`: Gradle build + APK ZIP verification + upload Success.
+
+هذا يثبت البناء الآلي فقط. يبقى الجسر معطلاً افتراضياً، وTX/RX GPIO=-1. لا يوجد RP2040 command receiver أو DEVICE_INFO transmitter أو ACK decoder، ولا يوجد UART loopback أو Flash أو اختبار Wi-Fi/Android end-to-end.
+
