@@ -222,7 +222,7 @@ I(t)=\frac{V}{R}\left(1-e^{-tR/L}\right)
 بعد رفع clamp model إلى VBRmax، أصبحت ذروة VDS النظرية 138–140V قبل parasitic overshoot. لذلك لم يعد IRFP260N (200V) الاختيار الأول؛ يبقى مرشحاً فقط إذا أثبت قياس/محاكاة أن overshoot محدود بما يكفي.
 
 ### مرشح محلي أقوى: IRFP264
-Power Lab يعرض IRFP264 (250V / 38A) بسعر ظاهر 380 دج ومخزون ظاهر 67 قطعة وقت البحث.
+Power Lab يعرض IRFP264PBF (250V / 38A) بسعر ظاهر 380 دج ومخزون ظاهر 67 قطعة وقت البحث.
 الداتا شيت Vishay للقطعة:
 - VDS=250V.
 - RDS(on) max=75mΩ عند VGS=10V وID=23A.
@@ -232,11 +232,22 @@ Power Lab يعرض IRFP264 (250V / 38A) بسعر ظاهر 380 دج ومخزون 
 
 المراجع:
 - Power Lab: https://powerlab.dz/product-category/composants-eletroniques/composants-actifs/
-- Vishay datasheet: https://www.mouser.com/datasheet/2/427/irfp264-1768569.pdf
+- Vishay datasheet: https://www.vishay.com/docs/91217/irfp264pbf.pdf
 
-هذا يجعل IRFP264 مرشحاً أولياً أفضل من IRFP260N من ناحية تحمل الجهد، لكنه **ليس اعتماداً نهائياً ولا طلب شراء**. يجب التأكد من أصالة القطعة، وفحص SOA مع موجة flyback، وحساب gate-drive وحرارة التبديل.
+هذا يجعل IRFP264PBF مرشحاً أولياً أفضل من IRFP260N من ناحية تحمل الجهد، لكنه **ليس اعتماداً نهائياً ولا طلب شراء**. إذا لم يؤكد المورد المحلي suffix PBF والعلامة الأصلية، نطلب القطعة من موزع معتمد ولا نشتري القائمة المحلية المجهولة. يجب التأكد من أصالة القطعة، وفحص SOA مع موجة flyback، وحساب gate-drive وحرارة التبديل.
 
 ### ملاحظات الاستبعاد
 - IXFB100N30P المدرج محلياً كـ300V/100A/49mΩ له بيانات متضاربة في نتائج البحث ولا يوجد لدينا داتا شيت مصنع مؤكدة لنفس suffix؛ لا يدخل shortlist حتى يثبت رقم القطعة ومصدرها.
 - IRFP460 (500V/20A) متوفر محلياً، لكن RDS(on) المنشور يقارب0.27Ω، ما يسبب فقداً أعلى عند 5A؛ لا يتقدم على IRFP264 حالياً.
 - معيار الاختيار النهائي: VDS≥250V، RDS(on) مناسب، Qg مقبول، SOA مضمون عند turn-off، وتوفر أصلي موثوق. لا نختار على تيار 100A المعلن وحده.
+
+
+### تدقيق حالة المنتج
+- IRFP264 الأصلي ذي terminations المحتوية على الرصاص أصبح Obsolete لدى بعض الموزعين.
+- **IRFP264PBF** هو النسخة lead-free المدرجة Active/Production، رقم الطلب من Vishay.
+- لذلك listing المحلي باسم IRFP264 وحده لا يكفي؛ يجب أن يظهر suffix PBF/علامة Vishay والدفعة قبل الشراء.
+- SOA datasheet يوضح حدود single-pulse؛ تشغيلنا لا يعتمد على avalanche للـMOSFET، لكن يجب أن يبقى turn-off transition داخل SOA مع VDS transient المقاس.
+
+المراجع:
+https://www.digikey.com/en/products/detail/vishay-siliconix/IRFP264PBF/811617
+https://www.vishay.com/docs/91217/irfp264pbf.pdf
