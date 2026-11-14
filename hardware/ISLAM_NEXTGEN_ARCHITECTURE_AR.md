@@ -203,3 +203,25 @@ F. اختبار ميداني أعمى وتكراري بعد نجاح المخت�
 USART3 PB10/PB11 يربط المتحكمين. ESP32-S3 يستخدم GPIO17/18 للـUART، وGPIO16/15 للتحكم الاحتياطي بـBOOT0/NRST. PB8/BOOT0 على STM32 محجوز للتحديث، وNRST يدار open-drain. ROM bootloader على STM32G47 يدعم USART3 PB10/PB11 وفق AN2606، مما يتيح تحديث Firmware من الهاتف دون الاعتماد على كمبيوتر أو ST-LINK بعد تركيب الجسر.
 
 راجع `hardware/ISLAM_NEXTGEN_WIFI_AND_FIRMWARE_BRIDGE_AR.md`.
+
+
+## 19. تصحيح تنفيذ bucking والقدرة — 2026-11-14
+
+الورقة المرجعية الأصلية تصف bucking branch مستقلاً: مصدر VDCb + مفتاح SWb + gyrator يحاكي L/R + VGA، ثم differential amplifier. لا يكفي DAC أو إشارة برمجية بديلة. القيم المنشورة R=100Ω وC=100pF وRvar=200–300kΩ تقابل Lvar=2–3mH وτ=20–30µs. راجع `hardware/ISLAM_NEXTGEN_AFE_DESIGN_AR.md`.
+
+يُعاد تقييم OPA2365 على 3.3V؛ مرشح OPA1612 مع rails تناظرية منفصلة صار أقوى مبدئياً، دون اعتماد نهائي.
+
+كما يُلغى نسخ عرض 300µs كقيمة ثابتة: عند 12V وR=1.5Ω، تيار 300µs في نموذج RL يتراوح 5.40–7.34A عبر L=400–180µH. يحدد TX بحد تيار hardware comparator مبدئي 5A، مع HRTIM trip وزمن أقصى، ويُضبط عرض النبضة وفق L/R. راجع `hardware/ISLAM_NEXTGEN_TX_POWER_STAGE_PRELIM_AR.md`.
+
+## 20. خريطة الموصلات المصححة
+
+تم تصحيح أرقام موصلات NUCLEO-G474RE وفق UM2505 Rev.7:
+- PA8 = CN9-8، PA9 = CN5-1.
+- PB10 = CN9-7، PB11 = CN10-17.
+- PA12 = CN10-11.
+- PB8/BOOT0 = CN7-7، NRST = CN6-14.
+- PB13 = CN10-29، PB15 = CN10-25.
+- PB6 = CN5-3، PA4 = CN8-A2-3.
+- PA0/PA1 = CN8-A0/A1.
+
+لا يُفترض أن PB8 يختار ROM bootloader تلقائياً؛ BOOT0 غير موصول افتراضياً لدائرة boot ويحتاج ضبط option bytes/JP7، أو نعتمد jump-to-system-memory من التطبيق. المرجع: UM2505 Rev.7.
