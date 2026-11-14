@@ -17,7 +17,8 @@
 | OPA1612 SOIC-8 | 2 | gyrator + coil preamp + differential + monitor | لم يثبت محلياً | مرشح أولي، غير معتمد |
 | AD8336 LFCSP16 | 1 | bucking VGA DC-coupled | لا مخزون جزائري مؤكد؛ استيراد/تجميع مصنع | مرشح محدد، غير معتمد |
 | OPA2365 SOIC-8 | 1 | buffer/driver لقناتي ADC على3.3V | لم يثبت محلياً | مرشح واجهة ADC |
-| TMUX1134 | 1 | high-gain blanking/enable | لم يثبت محلياً | مرشح حماية/تبديل |
+| TMUX6219 | 2 | SWb + high-gain blanking/enable على ±12V | لا مخزون جزائري مؤكد | مرشح محدد، غير معتمد |
+| منظم 9V منخفض الضجيج | 1 | توليد VDCb=9V من +12V_AFE | لم يحدد النوع | غير محسوم |
 | MCP41100 100kΩ | 1 | ضبط Rvar في gyrator فقط | لم يثبت محلياً | مرشح؛ يلزم تحقق مدى Rvar |
 | TEN8-1222 | 1 | تحويل 12V إلى ±12V معزولين | TME/DigiKey دولي؛ لم يظهر محلياً | مرشح تغذية متوافق مع AD8336 |
 | مرجع 1.65V + buffer | 1 | level-shift إلى ADC | لم يحدد رقم القطعة | غير محسوم |
