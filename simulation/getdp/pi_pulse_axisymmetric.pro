@@ -82,6 +82,14 @@ PostProcessing {
             In Vol_C_Mag; Jacobian Vol; Integration Int;}
         }
       }
+      // A_phi at the centreline of a concentric one-turn RX surrogate.
+      // For an axisymmetric circular turn: Phi_per_turn = 2*pi*r*A_phi.
+      // This is NOT a DD32 receiver model; it is a coaxial-loop field probe.
+      { Name az;
+        Value {
+          Local {[CompZ[{a}]]; In Vol_Mag; Jacobian Vol;}
+        }
+      }
     }
   }
 }
@@ -90,6 +98,8 @@ PostOperation {
     Operation {
       // Compact scalar time history only; field maps are disabled to prevent multi-GB artifacts.
       Print[J2[Vol_C_Mag], OnGlobal, Format TimeTable, File "j2.txt"];
+      Print[az, OnPoint {0.145, 0.045, 0}, Format TimeTable,
+        File "az_rx_point.txt"];
     }
   }
 }
