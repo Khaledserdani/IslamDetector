@@ -13,13 +13,13 @@ from pi_tx_clamp_model import simulate
 
 class FrontendSanityTests(unittest.TestCase):
     def test_selected_single_spiral_coil_ramp_profile(self):
-        # One 35x35cm, 13-turn spiral: theoretical L=175.8uH, R=1.04ohm.
-        t5, e5 = coil_copper_ramp_energy(12.0, 1.04, 175.8e-6, 5.0)
-        t6, e6 = coil_copper_ramp_energy(12.0, 1.04, 175.8e-6, 6.0)
-        self.assertAlmostEqual(t5 * 1e6, 96.01, delta=0.1)
-        self.assertAlmostEqual(t6 * 1e6, 124.07, delta=0.1)
-        self.assertAlmostEqual(e5 * 1e3, 0.954, delta=0.01)
-        self.assertAlmostEqual(e6 * 1e3, 1.844, delta=0.01)
+        # One 35x35cm, 13-turn spiral: theoretical L=175.8uH, R=1.064ohm.
+        t5, e5 = coil_copper_ramp_energy(12.0, 1.064, 175.8e-6, 5.0)
+        t6, e6 = coil_copper_ramp_energy(12.0, 1.064, 175.8e-6, 6.0)
+        self.assertAlmostEqual(t5 * 1e6, 96.78, delta=0.1)
+        self.assertAlmostEqual(t6 * 1e6, 125.45, delta=0.1)
+        self.assertAlmostEqual(e5 * 1e3, 0.988, delta=0.01)
+        self.assertAlmostEqual(e6 * 1e3, 1.918, delta=0.01)
 
     def test_300us_pulse_exceeds_5a_for_shorter_coils(self):
         self.assertGreater(coil_current(12.0, 1.5, 180e-6, 300e-6), 7.3)
