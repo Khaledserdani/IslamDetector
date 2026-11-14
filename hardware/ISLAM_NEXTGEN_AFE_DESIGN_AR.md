@@ -289,7 +289,7 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
 - مسار coil: OPA1612 كـpreamp ثابت الكسب (مرجع الدراسة25V/V).
 - مسار bucking: gyrator OPA1612 ثم AD8336 لضبط سعة المرجع عبر VGA.
 - بعد VGA: differential amplifier OPA1612 يطرح مرجع bucking من مسار الملف.
-- DAC1_CH1/CH2 من STM32G474 يقدمان فرق تحكم إلى GPOS/GNEG عبر buffer/level-shift مضبوط حسب common-mode المحدد في داتا شيت AD8336.
+- DAC1_CH1/CH2 من STM32G474 يقدمان GPOS/GNEG عبر مقسمات مقاومة وRC attenuation مضبوطة؛ لا حاجة إلى buffer افتراضياً لأن gain pins واجهة تحكم عالية الممانعة، ويضاف buffer فقط إذا أثبت القياس الحاجة. كلا الخرجين يحددان ضمن0–0.6V.
 - لا نربط DAC مباشرة قبل حساب مجال common-mode وabsolute maximum للـGAIN pins.
 
 هذا يزيل الحاجة إلى MCP41100 في مسار VGA؛ يبقى MCP41100 فقط مرشحاً لضبط Rvar في gyrator.
