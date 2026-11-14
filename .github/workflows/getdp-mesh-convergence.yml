@@ -10,8 +10,9 @@ on:
       - 'simulation/getdp/derive_rx_voltage.py'
       - 'simulation/getdp/convert_rx_probe_to_flux.py'
       - 'simulation/getdp/test_convert_rx_probe_to_flux.py'
+      - 'simulation/getdp/sum_rx_turn_flux_linkage.py'
+      - 'simulation/getdp/test_sum_rx_turn_flux_linkage.py'
       - 'simulation/getdp/test_derive_rx_voltage.py'
-      - 'simulation/getdp/pi_pulse_axisymmetric.pro'
       - 'simulation/elmer/pi_pulse_separate_coil.geo'
   workflow_dispatch:
 permissions:
