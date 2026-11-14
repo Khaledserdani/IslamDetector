@@ -45,7 +45,7 @@ class RxTurnFluxTests(unittest.TestCase):
                          [("RX-01", 0.0), ("RX-02", 0.0),
                           ("RX-01", 1e-6), ("RX-02", 1e-6),
                           ("RX-01", 2e-6), ("RX-02", 2e-6)])
-        self.assertAlmostEqual(float(rows[0]["flux_per_turn_Wb"]), 0.0, abs_tol=1e-18)
+        self.assertAlmostEqual(float(rows[0]["flux_per_turn_Wb"]), 0.0, delta=1e-18)
 
     def test_reversing_one_turn_reverses_its_signed_flux_only(self):
         forward = self._run(False)
