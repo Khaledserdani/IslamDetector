@@ -225,3 +225,11 @@ https://www.st.com/resource/en/user_manual/dm00556337.pdf
 - عند fault، يعيد Firmware PB7 إلى low، مع بقاء COMP1/HRTIM hardware fault هو مسار إيقاف TX الفوري.
 
 هذا يمنع توصيل مفاتيح ±12V قبل استقرار rails ويجعل حالة الإقلاع آمنة افتراضياً.
+
+
+## 15. إغلاق قطبية تمكين مفاتيح AFE
+TMUX6219 EN فعّال HIGH وفق داتا شيت TI: LOW = جميع المسارات مفتوحة، HIGH = SEL يختار S1 أو S2. لذلك PB7 مع pull-down 10kΩ إلى DGND هو default-off المقصود؛ لا تعكس هذه القطبية في firmware أو schematic. افحص أن أي boot/debug strap أو pull-up على لوحة التحكم لا يرفع PB7 قبل استقرار ±AFE و3.3V.
+المصدر: https://www.ti.com/lit/ds/symlink/tmux6219.pdf
+
+## 16. بوابة إصدار PCB
+الخريطة هنا baseline فقط. لا تُصدر PCB أو harness نهائي حتى يتم ERC/DRC على schematic KiCad، وتأكيد alternate functions وsolder bridges للوحة NUCLEO revision المشتراة، والتحقق من مسارات COMP1/COMP2/HRTIM والـfault polarity على pin-level.
