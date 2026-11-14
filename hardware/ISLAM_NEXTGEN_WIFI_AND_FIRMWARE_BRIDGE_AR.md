@@ -68,16 +68,19 @@ https://www.st.com/resource/en/application_note/an2606-introduction-to-stm32-mic
 
 - PB10/PB11 محجوزان حصرياً للربط UART بين المعالجين؛ PB10 على CN9 pin 7 وPB11 على CN10 pin 17.
 - PB8 خيار BOOT0 على CN7 pin 7، لكنه غير موصول افتراضياً إلى دائرة اختيار boot؛ لا نعتمد عليه لمسار التحديث العادي، ويُخصص فقط لمسار الاسترداد بعد تهيئة option bytes/JP7.
-- 5V من Power Bank يغذي Nucleo وESP32-S3 عبر توزيع طاقة محمي، مع 3.3V مستقلة/مفلترة للـAFE.
-- 12V بطارية مستقلة لمسار TX؛ لا تُغذى قدرة TX من Power Bank.
-- لا بد من أرضي مشترك منظم ومسارات منفصلة لعودة تيار TX عن AFE وWi-Fi.
+- **مصدر الطاقة النهائي واحد:** بطارية 4S LiFePO4، 12.8V اسمي، 6Ah، BMS لا يقل عن10A مستمر و15A peak.
+- البطارية تغذي TX مباشرة عبر fuse/current protection.
+- DC/DC buck 5V/3A يغذي NUCLEO-G474RE وESP32-S3 عبر مدخلي5V الموثقين لكل لوحة.
+- TEN8-1222 يحول البطارية إلى±12V_AFE معزولة؛ 9V VDCb يشتق من +12V_AFE عبر regulator منخفض الضجيج.
+- Power Bank الموجود يبقى مصدر bench/backup أثناء التطوير، وليس بطارية الوحدة النهائية.
+- أرضي قدرة TX يعود مباشرة إلى shunt/بطارية، بينما AFE له star-ground ومسار رجوع منفصل عن Wi-Fi.
 
 ## 6. حالة الاعتماد
 
 - **معتمد معمارياً:** STM32G474 للقياس/التوقيت + ESP32-S3 N16R8 للاتصال والتحديث + Android للواجهة.
 - **مرشح شراء محلي:** ESP32-S3 N16R8 مع headers ملحومة مسبقاً من TIKNO.
 - **مرشح شراء غير محلي مؤكد:** NUCLEO-G474RE؛ لا يوجد مخزون جزائري مؤكد حتى الآن.
-- **غير معتمد بعد:** كابل/موصل UART النهائي، GPIOs النهائية بعد مراجعة لوحة DevKit المختارة، دائرة BOOT0/NRST، توزيع 5V، وبروتوكول التحديث.
+- **غير معتمد بعد:** رقم DC/DC 5V/3A، منظم9V VDCb، موصلات الطاقة النهائية، وملف البطارية/الشاحن المحدد.
 
 
 ## 7. تدقيق GPIO لوحة ESP32-S3 DevKitC-1 N16R8
@@ -105,3 +108,13 @@ https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devk
 - PB8/BOOT0 لا يختار ROM bootloader بمجرد توصيله؛ يوضح UM2505 أن BOOT0 غير موصول افتراضياً وأن option bytes تتحكم بالوظيفة. لذلك تحديث الهاتف يعتمد أساساً على jump-to-system-memory من Firmware سليم، بينما recovery الكامل بعد تلف Firmware يحتاج ST-LINK/مسار صيانة موثق، إلا إذا تم تهيئة option bytes ومسار JP7 بشكل صحيح.
 
 تم إلغاء أي رقم موصل سابق يخالف هذه الخريطة.
+
+
+## 9. مواصفة البطارية النهائية المبدئية
+
+- كيمياء: LiFePO4، 4S، جهد اسمي12.8V، جهد شحن كامل14.6V.
+- السعة:6Ah (≈76.8Wh).
+- BMS:10A continuous minimum، و15A peak minimum، مع حماية over-current/under-voltage/over-temperature.
+- firmware low-voltage cutoff:10.5V تحت الحمل، مع hysteresis.
+- الشاحن: CC/CV مخصص 14.6V لبطارية4S LiFePO4.
+- لا نستخدم بطارية سيارة أو رصاص ثقيلة.
