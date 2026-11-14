@@ -568,3 +568,12 @@ https://www.ti.com/lit/ds/symlink/tmux6219.pdf
 - لا ترفع تغذية AD8336 فوق ±12V، ولا تفترض أن وصول التغذية إلى الحد الأقصى يعطي أفضل أداء.
 
 المصدر الرسمي: https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf (Rev.G، قسم POWER SUPPLY / Absolute Maximum Ratings).
+
+
+## 12. إغلاق المراجعة — قطبية TMUX6219 وحدود rail
+هذا القسم يتقدم على أي وصف سابق غير متوافق:
+- EN في TMUX6219 فعّال HIGH: HIGH يتيح اختيار S1/S2 عبر SEL، وLOW يفصل المسارين كليهما. لذلك PB7 مع pull-down خارجي 10kΩ إلى DGND يضمن OFF عند reset إذا لم يوجد مصدر آخر يرفع EN.
+- لا يوصل D/S1/S2 إلى Drain أو عقدة flyback؛ مدى الإشارة هو VSS..VDD فقط.
+- AD8336 عند ±10V أو أقل يحافظ على مجال حرارة التشغيل المنشور حتى +125°C؛ فوق ±10V حتى ±12V ينخفض الحد إلى +85°C. TEN8-1222 ±12V ليس rail معتمداً. rail أقل، مثل ±5V، هو اتجاه الدراسة لتقليل العبء الحراري، لكن لا يعتمد حتى إغلاق power budget والـheadroom والـnoise.
+- تبقى قيم الحماية والكسب والـVDCb وRvar والـRC غير معتمدة حتى schematic ومحاكاة كاملة.
+المراجع: https://www.ti.com/lit/ds/symlink/tmux6219.pdf ، https://www.analog.com/media/en/technical-documentation/data-sheets/ad8336.pdf
