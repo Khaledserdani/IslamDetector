@@ -103,3 +103,28 @@ https://www.ti.com/lit/ds/symlink/ads8860.pdf
 
 ### قرار محدث
 **الـbaseline الرقمي هو ADC1+ADC2 الداخليان في regular simultaneous mode، مع HRTIM trigger وDMA.** يبقى AD7380 خيار ترقية فقط إذا أثبتت قياسات المنصة أن المسار الداخلي لا يحقق ENOB/SNR أو التوقيت المطلوب. هذا يقلل التكلفة والمكونات ويجنب شريحة LFCSP إضافية ولحامها على لوحة مخصصة في النسخة الأولى.
+
+
+## 7. تدقيق الأرجل على NUCLEO-G474RE — زوج سريع قابل للتوصيل
+
+بعد مطابقة جدول أرجل STM32G474 مع دليل لوحة Nucleo، ظهر زوج أفضل من الاقتراح العام السابق:
+- **ADC1_IN1 على PA0** — يخرج إلى Arduino A0، الموصل CN8 pin 1.
+- **ADC2_IN2 على PA1** — يخرج إلى Arduino A1، الموصل CN8 pin 2.
+- كلاهما ضمن قنوات ADC السريعة IN1 إلى IN5 بحسب تعريف ST، وليس أحدهما قناة بطيئة مثل ADC2_IN17 على PA4.
+
+يمكن ضبط ADC1 كـmaster على القناة 1، وADC2 كـslave على القناة 2، في regular simultaneous mode. ثم يطلق HRTIM التحويل ويجمع DMA العينتين وفق إعداد dual ADC. هذا يتيح إدخال إشارة الملف على A0 وإشارة المراقبة/مرجع التعويض على A1 في اللحظة نفسها، بشرط أن تكون دوائر التكييف والحماية مستقلة ومتماثلة بالقدر اللازم.
+
+المراجع:
+- ST STM32G474 datasheet، pin definitions لـPA0/PA1 وتعريف fast channels: https://www.st.com/resource/en/datasheet/stm32g474mb.pdf
+- ST NUCLEO-G474RE user manual، Table 15: CN8-1=A0/PA0 وCN8-2=A1/PA1: https://www.st.com/resource/en/user_manual/dm00556337.pdf
+- ST RM0440، Dual ADC modes وDMA: https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+
+**ملاحظة ضبط:** لا نستخدم PA4 كقناة سريعة؛ هي ADC2_IN17 وتصنف ضمن slow channels لأن ST تعرف القنوات السريعة بأنها ADCx_IN1 إلى ADCx_IN5. كذلك لا نعتبر قيم ENOB المنشورة في شروط multi-ADC الخاصة بحزمة LQFP100 قياساً مطابقاً للوحة NUCLEO-G474RE ذات STM32G474RE LQFP64. يلزم قياس أداء المسار النهائي بعد بناء AFE واللوحة.
+
+### تعيين أولي للقنوات
+| الوظيفة | مدخل اللوحة | قناة المتحكم | الحالة |
+|---|---|---|---|
+| إشارة الملف بعد حماية/تكييف | A0 / PA0 / CN8-1 | ADC1_IN1 | مرشح أول |
+| إشارة مرجع التعويض أو قناة مراقبة | A1 / PA1 / CN8-2 | ADC2_IN2 | مرشح أول |
+
+هذا تعيين أولي وظيفي، وليس pinout كاملاً. لا يوصل أي منهما مباشرة بالملف أو مسار القدرة.
