@@ -19,6 +19,11 @@ pico_sdk_init()
 add_executable(islam_rev_a_timing_test
     src/main.c
     src/ads8861_capture.c
+    ../esp32_s3_bridge/components/rev_a_protocol/rev_a_protocol.c
+)
+
+target_include_directories(islam_rev_a_timing_test PRIVATE
+    ../esp32_s3_bridge/components/rev_a_protocol/include
 )
 
 pico_generate_pio_header(islam_rev_a_timing_test
