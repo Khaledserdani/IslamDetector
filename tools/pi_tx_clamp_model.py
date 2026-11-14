@@ -37,7 +37,7 @@ def simulate(
     clamp_resistance_ohm: float = 47.0,
     diode_forward_V: float = 1.5,
     tvs_count: int = 3,
-    tvs_vbr_single_V: float = 37.1,
+    tvs_vbr_single_V: float = 41.0,
     tvs_vclamp_single_V: float = 53.9,
     tvs_ipp_A: float = 28.2,
     battery_V: float = 12.0,
