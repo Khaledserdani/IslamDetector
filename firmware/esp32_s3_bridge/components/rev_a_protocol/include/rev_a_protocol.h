@@ -22,6 +22,7 @@ extern "C" {
 #define REV_A_TYPE_MEASUREMENT        0x10u
 #define REV_A_TYPE_DEVICE_INFO        0x82u
 #define REV_A_MAX_COMMAND_FRAME_SIZE  9u
+#define REV_A_MAX_ACK_FRAME_SIZE      11u
 #define REV_A_MAX_SAMPLES             8u
 #define REV_A_MAX_FRAME_SIZE          49u
 #define REV_A_PARSER_CAPACITY         64u
@@ -29,14 +30,17 @@ extern "C" {
 #define REV_A_INVALID_CURRENT_MA      0xFFFFu
 #define REV_A_INVALID_TEMPERATURE     0x7FFF
 
+#define REV_A_ADC_NONE                0x00u
 #define REV_A_ADC_ADS8861             0x01u
 #define REV_A_ADC_ADS8860             0x02u
 #define REV_A_ADC_ADS7054             0x03u
 #define REV_A_ADC_AD7980              0x04u
 
+#define REV_A_SAMPLE_UNKNOWN          0x00u
 #define REV_A_SAMPLE_TWOS_COMPLEMENT  0x01u
 #define REV_A_SAMPLE_UNSIGNED         0x02u
 
+#define REV_A_INPUT_UNKNOWN           0x00u
 #define REV_A_INPUT_DIFFERENTIAL      0x01u
 #define REV_A_INPUT_SINGLE_ENDED      0x02u
 #define REV_A_INPUT_PSEUDO_DIFFERENTIAL 0x03u
@@ -45,6 +49,23 @@ typedef struct {
     uint8_t type;
     uint8_t profile_id; /* Meaningful only for SET_PROFILE. */
 } rev_a_command_t;
+
+#define REV_A_ACK_STATUS_OK           0x00u
+#define REV_A_ACK_STATUS_REJECTED     0x01u
+#define REV_A_ACK_STATUS_BUSY         0x02u
+#define REV_A_ACK_STATUS_UNSUPPORTED  0x03u
+#define REV_A_ACK_REASON_NONE                  0x00u
+#define REV_A_ACK_REASON_TX_NOT_ARMED          0x01u
+#define REV_A_ACK_REASON_ADC_NOT_PRESENT       0x02u
+#define REV_A_ACK_REASON_PROFILE_UNKNOWN       0x03u
+#define REV_A_ACK_REASON_SELF_TEST_UNAVAILABLE 0x04u
+#define REV_A_ACK_REASON_COMMAND_UNSUPPORTED   0x05u
+
+typedef struct {
+    uint8_t command_type;
+    uint8_t status;
+    uint8_t reason;
+} rev_a_ack_t;
 
 typedef struct {
     uint32_t sequence;
@@ -80,6 +101,8 @@ typedef struct {
 typedef struct {
     uint8_t type;
     union {
+        rev_a_command_t command;
+        rev_a_ack_t ack;
         rev_a_measurement_t measurement;
         rev_a_device_info_t device_info;
     } value;
@@ -111,6 +134,15 @@ bool rev_a_decode_command(
     const uint8_t *frame,
     size_t frame_length,
     rev_a_command_t *command);
+bool rev_a_encode_ack(
+    const rev_a_ack_t *ack,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length);
+bool rev_a_decode_ack(
+    const uint8_t *frame,
+    size_t frame_length,
+    rev_a_ack_t *ack);
 
 /* Encode a measurement or DEVICE_INFO frame using the Rev A v1 wire format. */
 bool rev_a_encode_measurement(
@@ -147,9 +179,9 @@ bool rev_a_interpret_sample(
 void rev_a_parser_init(rev_a_parser_t *parser);
 
 /*
- * Feed arbitrary UART byte fragments. Complete, CRC-valid MEASUREMENT and
- * DEVICE_INFO frames are delivered synchronously through callback.
- * The callback must copy any data it needs after it returns and must not block.
+ * Feed arbitrary UART byte fragments. Complete, CRC-valid command, ACK,
+ * MEASUREMENT and DEVICE_INFO frames are delivered synchronously through callback.
+ * The callback must copy any data it needs after it returns and should not block.
  * Unknown types, malformed headers and bad CRCs are discarded with SYNC recovery.
  * The return value is the number of accepted frames in this call.
  */
