@@ -161,15 +161,15 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 
 ### 8.1 محلل تدفق UART في المرجع البرمجي
 
-أضيف إلى `tools/rev_a_protocol.py` محلل تدريجي `MeasurementStreamDecoder` لمعالجة استقبال UART الحقيقي:
-- يقبل أجزاء الإطار حتى لو قُسمت بين عدة قراءات UART.
-- يعالج عدة إطارات متتابعة في buffer واحد.
+أضيف إلى `tools/rev_a_protocol.py` محلل تدريجي `ProtocolStreamDecoder` (والاسم القديم `MeasurementStreamDecoder` محفوظ للتوافق) لمعالجة كل أنواع الإطارات في Rev A:
+- MEASUREMENT وDEVICE_INFO وACK وأوامر HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST.
+- يقبل أجزاء الإطار حتى لو قُسمت بين عدة قراءات UART، ويعالج عدة إطارات متتابعة في buffer واحد.
 - يتجاوز الضجيج قبل SYNC ويحافظ على بايت SYNC منفرد إذا وصل وحده في نهاية دفعة.
 - يتحقق من VERSION وTYPE وطول الجسم قبل انتظار كامل الإطار، ثم يفحص CRC.
 - عند تلف إطار يتقدم بايتاً واحداً ويبحث عن SYNC صالح لاحقاً بدلاً من إسقاط كامل buffer.
 - يسجل عدد البايتات المهملة والإطارات المرفوضة للتشخيص.
 
-اختبارات الوحدة تغطي fragmentation وconcatenation والضجيج وفساد CRC واستعادة الإطار السليم التالي. يبقى هذا مرجع Python الذهبي للمقارنة؛ لا يمثل UART driver على ESP32.
+يدعم المرجع أيضاً ADC_NONE كحالة صحيحة معلنة: sample format وinput mode غير متاحين، resolution=0 وVREF=0؛ ويرفض أي VREF غير صفري مع ADC_NONE. اختبارات الوحدة تغطي fragmentation وconcatenation والضجيج وفساد CRC واستعادة الإطار السليم التالي والأوامر وACK وADC_NONE. هذا مرجع برمجي ذهبي، ولا يمثل UART driver أو اتصالاً مادياً على ESP32.
 
 ### 8.2 محلل C محمول لجهة ESP32-S3
 
@@ -236,3 +236,12 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - DEVICE_INFO الحالي يعلن ADC_NONE بوضوح، لأن ADC غير مركب. لا توجد قياسات ترسل من هذا البرنامج. START مرفوض بسبب غياب مرحلة TX وقفل أمان عتادي، وSELF_TEST غير مدعوم دون ADC.
 - CRC32 للجدول profile 1 معرف على ثمانية تأخيرات ns بصيغة uint32 little-endian ويساوي 0x71E6D9DD.
 - هذه نقطة تكامل برمجية قابلة للبناء؛ لا تثبت UART loopback أو صحة GP0/GP1 أو وجود ADC أو أداء تناظري.
+
+## 9.1 توحيد مرجع Python مع رسائل التحكم — 2026-11-15
+
+- أضيفت `encode_command/decode_command` لأوامر HELLO وGET_INFO وSTART وSTOP وSET_PROFILE وSELF_TEST، مع فحص طول payload وCRC16.
+- أضيفت `encode_ack/decode_ack` بحمولة ثابتة3 بايت: COMMAND_TYPE وSTATUS وREASON؛ ويُفرض أن OK يقترن بـNONE، وأن الرفض/الانشغال/عدم الدعم له سبب غير صفري.
+- أصبح `ProtocolStreamDecoder` يقبل أوامر وACK بالإضافة إلى DEVICE_INFO وMEASUREMENT، ويحتفظ باسم `MeasurementStreamDecoder` كاسم توافق قديم.
+- أضيفت ADC_NONE إلى جدول metadata المرجعي؛ يمنع تفسير أي sample عند عدم وجود ADC، ويشترط VREF=0.
+- CI #1365 (run ID `43724254180`) اجتاز وظيفة `protocol-tests`: 50 اختبار Python ثم C parser/session build/test مع `-Wall -Wextra -Werror -pedantic`. كانت وظائف Android وESP32-S3 وRP2040 قيد التنفيذ وقت التوثيق؛ لا تسجل نجاح CI الكامل قبل اكتمالها.
+- لا يثبت هذا اختبار UART loopback أو board-to-board أو وجود ADC مركب.
