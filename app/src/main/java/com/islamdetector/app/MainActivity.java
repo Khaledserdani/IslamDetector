@@ -408,8 +408,9 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (destroyed) return;
-                    detectButton.setEnabled(true); calibrateButton.setEnabled(true);
-                    toast("الجهاز لم يقبل الأمر. تحقق من إصدار ESP32");
+                    detectButton.setEnabled(connected);
+                    calibrateButton.setEnabled(connected);
+                    toast("الجهاز لم يقبل الأمر. تحقق من الاتصال وإصدار ESP32");
                 });
             }
         });
