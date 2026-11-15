@@ -11,6 +11,8 @@ This is an executable timing prototype for the Rev A acquisition controller. The
 | GP4 | TX_TEST | 20 µs logic pulse at 100 Hz; logic-only output |
 | GP5 | SAMPLE_MARKER | Edge occurs at TX pulse width + one delay from the 8-point profile |
 | GP6 | PIO_ECHO | 128 ns PIO response pulse after GP5 test-marker falling edge |
+| GP0 | UART0 TX | 921600 baud, 8N1; provisional board pin assignment |
+| GP1 | UART0 RX | 921600 baud, 8N1; provisional board pin assignment |
 | USB-C | USB CDC console | Send R, S, I, or ? |
 
 GP4 and GP5 are PWM channels A/B of the same RP2040 PWM slice (slice 2), so both use the same counter. GP5's compare value changes at PWM wrap to step through the eight delay points. The test PIO program watches GP5 and emits the response pulse on GP6. The separate ADS8861 capture PIO watches GP4 TX falling edge and captures the eight windows within that same pulse.
@@ -51,3 +53,11 @@ One falling edge on GP4 starts a complete eight-window decay capture within the 
 - ENABLE_ADS8861_CAPTURE=0 until the physical ADC, analog protection, supplies and wiring are installed and reviewed. Do not enable against floating pins or without the physical ADC.
 - PIO capture is stopped before GP4 is forced low, preventing a STOP command from being mistaken for a new TX falling edge.
 - This is a firmware compile milestone only; no hardware loopback, analog accuracy, timing jitter or ADC performance has yet been measured.
+
+
+## Rev A binary UART command responder (software-only)
+- UART0 is initialized on GP0 TX / GP1 RX at 921600 baud, 8N1. Confirm the exact RP2040-Zero board revision and pin continuity before wiring it to ESP32-S3; this assignment is provisional.
+- HELLO receives ACK. GET_INFO receives ACK followed by DEVICE_INFO. STOP forces the logic-test output off. SET_PROFILE accepts profile ID 1 only.
+- START is deliberately rejected with TX_NOT_ARMED. This firmware has no MOSFET, coil, power stage, or independent hardware interlock. SELF_TEST is unsupported until a real ADC is fitted.
+- DEVICE_INFO reports ADC_MODEL_ID=NONE and zero sample metadata because no ADC is installed. It must not be interpreted as ADS8861 support or a valid measurement source.
+- No UART loopback or board-to-board link has yet been measured. CI proves compilation and protocol tests only.
