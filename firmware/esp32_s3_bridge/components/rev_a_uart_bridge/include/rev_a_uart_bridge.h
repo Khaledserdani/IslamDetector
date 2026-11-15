@@ -31,9 +31,13 @@ typedef struct {
     uint32_t rx_bytes;
     uint32_t parser_rejections;
     uint32_t parser_discarded_bytes;
+    uint32_t accepted_acks;
+    bool last_ack_valid;
+    rev_a_ack_t last_ack;
     uint32_t accepted_device_info;
     uint32_t accepted_measurements;
     uint32_t rejected_measurements_without_info;
+    uint32_t rejected_measurements_without_adc;
     uint32_t dropped_measurements;
     uint32_t uart_fifo_overflows;
     uint32_t uart_buffer_full_events;
