@@ -1,45 +1,44 @@
-# ESP32-S3 Rev A bridge — protocol core
+# ESP32-S3 Rev A — UART bridge
 
-**Status:** portable C frame decoder and DEVICE_INFO-gated session layer implemented and host-tested. This directory is not yet a complete ESP-IDF application and does not yet configure the ESP32-S3 UART peripheral, FreeRTOS RX ring buffer, Wi-Fi server, or Android JSON endpoints.
+**الحالة عند 2026-11-15:** تنفيذ برمجي أولي مكتمل البناء على CI #1371؛ لا يوجد بعد اتصال فعلي بين اللوحتين، ولا Wi-Fi/WebServer، ولا Flash على لوحة ESP32-S3.
 
-## Component
+## مكونات البرنامج
 
-`components/rev_a_protocol` is an ESP-IDF-compatible component with no dependency on ESP-IDF headers. It can also be compiled with a host C compiler. It accepts arbitrary UART byte fragments and recognizes:
+### محلل البروتوكول والجلسة
+- `components/rev_a_protocol` محلل C11 محمول، يتحقق من SYNC/version/length/CRC16 ويستعيد التزامن بعد الضجيج أو الإطار التالف.
+- يدعم ACK وDEVICE_INFO وMEASUREMENT، مع فحص ADC metadata وsample count وVALID_MASK وSweep flags.
+- يحافظ على raw16؛ لا يفسر الكلمات إلا بعد DEVICE_INFO مطابق. ADS8861 = signed 16-bit two's-complement، وADS7054 = signed 14-bit two's-complement.
+- `rev_a_session` يمنع قبول MEASUREMENT قبل DEVICE_INFO، ويرفض القياسات عند ADC_NONE، ويأخذ metadata snapshot لكل سجل.
+- encoder الأوامر يرسل HELLO وGET_INFO وSTART وSTOP وSET_PROFILE وSELF_TEST. ACK v0.1 payload ثابت من 3 bytes: COMMAND_TYPE/STATUS/REASON.
 
-- `MEASUREMENT` (type `0x10`), including one-to-eight raw 16-bit samples.
-- `DEVICE_INFO` (type `0x82`), including ADC model, sample format, resolution, input mode, VREF, active profile and profile CRC32.
+### UART task على ESP32-S3
+- `rev_a_uart_bridge` يستخدم ESP-IDF UART driver وRX ring buffer وevent queue وFreeRTOS task.
+- عند البدء يرسل HELLO ثم يكرر GET_INFO حتى DEVICE_INFO صالح.
+- عند UART overflow أو buffer-full أو framing/parity/break error يفرغ stream ويعيد parser ويبطل metadata ويطلب DEVICE_INFO من جديد.
+- القياسات المقبولة توضع في queue محدودة؛ عند امتلائها تسقط العينة الجديدة وتزيد عداد dropped_measurements بدلاً من حجب task.
+- UART0 محفوظ للـconsole. UART1 هو المنفذ الافتراضي، لكن GPIO TX/RX غير معينة.
 
-The decoder validates SYNC, protocol version, body length, sample count, valid mask, sweep-complete flag, non-zero pulse rate, CRC-16/CCITT-FALSE and the supported ADC metadata combinations. It preserves raw sample words. `rev_a_interpret_sample()` converts a raw word only when the DEVICE_INFO format and resolution are supplied; ADS8861 is signed 16-bit two's-complement, while ADS7054 is right-justified signed 14-bit.
+### الطرف المقابل RP2040
+- UART0 GP0=TX وGP1=RX بسرعة 921600/8N1 إعداد مؤقت فقط؛ تحقق من طراز اللوحة وcontinuity قبل التوصيل.
+- يستقبل HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST ويرد ACK.
+- GET_INFO يرسل DEVICE_INFO مع ADC_NONE وVREF=0 لأن ADC غير مركب.
+- START مرفوض بسبب TX_NOT_ARMED؛ STOP يوقف اختبار التوقيت المنطقي فقط؛ SET_PROFILE يقبل profile 1، وSELF_TEST غير مدعوم.
 
-## Command frame encoder
+## إعداد الأمان
+- `CONFIG_REV_A_UART_ENABLE` افتراضياً `n`.
+- `CONFIG_REV_A_UART_TX_GPIO` و`CONFIG_REV_A_UART_RX_GPIO` افتراضياً `-1`.
+- يرفض البناء عند تفعيل UART دون GPIO محددة؛ لا تختر الأرجل من اسم الشريحة وحده.
+- لا توصل GP4=TX_TEST إلى MOSFET أو ملف أو 12V. لا توجد مرحلة TX أو interlock عتادي.
 
-`rev_a_encode_command()` builds CRC-protected HELLO, GET_INFO, START, STOP and SELF_TEST frames with no payload, plus SET_PROFILE with exactly one profile-ID byte. The encoder does not decide which profile IDs are safe; the RP2040 firmware must enforce its own allowlist. ACK generation/handling and the RP2040 command receiver are not implemented yet.
+## ADC وواجهة الهاتف
+- ADS8861 PIO/DMA capture driver موجود في مشروع RP2040 ويُجمع في CI، لكنه `ENABLE_ADS8861_CAPTURE=0` افتراضياً؛ لا توجد قراءة ADC فعلية.
+- لا توجد Wi-Fi AP أو WebServer JSON endpoints على ESP32-S3 بعد. تطبيق Android الحالي يتوقع `GET /status` و`POST /control`؛ لذلك لا يوجد تكامل هاتف↔جهاز حتى الآن.
 
-## Integration contract
+## التحقق الآلي
+- CI #1371 / run ID `43725575113` على commit `e37fde414924eed0344285e642b43982158f52eb`: كل الوظائف الأربع Success.
+- 50 اختبار Python واختبار C parser/session صارم نجحا.
+- ESP-IDF release-v5.4 compile/link نجح.
+- RP2040 UF2 اجتاز فحص البنية وFamily ID `0xE48BFF56` ورفع كـartifact ID `14166064302`.
+- رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43725575113
 
-1. Create one `rev_a_parser_t` per UART stream and call `rev_a_parser_feed()` for every byte block returned by the ESP-IDF UART driver.
-2. Pass each decoded frame to `rev_a_session_accept_frame()` from the parser callback.
-3. A valid `DEVICE_INFO` opens/refreshes the session; `MEASUREMENT` is rejected until metadata is valid. Each accepted record carries a metadata snapshot and generation number.
-4. Call `rev_a_session_invalidate_device_info()` after UART overflow, reconnect, framing loss or RP2040 reset; request DEVICE_INFO again before accepting measurements.
-5. Copy callback/session output into a bounded queue; the parser callback runs synchronously and must not block.
-6. Preserve raw words, sequence, timestamp, profile, validity mask and metadata. Interpret only VALID_MASK bits; never replace invalid windows with zero.
-
-## Host tests
-
-The C tests cover the CRC known vector, valid measurement and DEVICE_INFO frames, rejected inconsistent ADC metadata, 16-bit and 14-bit signed conversion, fragmented input, concatenated frames, noise and recovery after a corrupt frame. The session tests reject measurements before DEVICE_INFO, preserve raw invalid windows, snapshot metadata, and require a fresh DEVICE_INFO after session invalidation.
-
-The CI compiles with strict warnings and executes the test. This proves the portable decoder on the CI host only. ESP-IDF UART integration, FreeRTOS task behavior, UART loopback, Wi-Fi load, and the physical RP2040-to-ESP32 link remain untested.
-
-
-## ESP-IDF project and UART task
-
-This directory contains a standalone ESP-IDF project for ESP32-S3. The rev_a_uart_bridge component owns UART events, RX/TX ring buffers, parser/session integration, DEVICE_INFO retry, and a bounded measurement queue.
-
-UART defaults to disabled and TX/RX GPIO -1. No development-board pins are assumed. Enable UART1 or UART2 only after checking the exact board schematic and setting both GPIOs in idf.py menuconfig. UART0 remains reserved for the console.
-
-Default transport: 921600 baud, 8N1. The bridge sends HELLO/GET_INFO, retries GET_INFO until valid DEVICE_INFO arrives, invalidates metadata after UART faults or parser rejection, and exposes measurement snapshots through a FreeRTOS queue.
-
-This is not yet complete detector firmware: ACK parsing, RP2040 command receiver/DEVICE_INFO transmitter, Wi-Fi/WebServer JSON endpoints, Android integration, and physical UART loopback remain outstanding. A successful build does not prove a physical connection.
-
-
-Build checkpoint: CI #1315 completed successfully for ESP-IDF release-v5.4, including compilation and linking of the ESP32-S3 bridge project. Later FreeRTOS lifecycle/retry-state fixes are being revalidated by CI #1318. No board flash or UART loopback has been performed.
+**حدود الإثبات:** نجاح CI يثبت البناء واختبارات المضيف فقط. لا يثبت UART loopback أو pin mux أو التوقيت الفعلي أو ADC/AFE أو القياس التناظري أو أداء الكشف. لا توجد قيم حماية TX/RX أو BOM/PCB نهائية.

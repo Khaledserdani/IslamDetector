@@ -328,3 +328,17 @@ CI #1315: protocol وAndroid وRP2040 build/UF2 verify نجحت؛ ESP-IDF build 
 أضيفت حالة ADC_NONE إلى metadata في Python، مع اشتراط VREF=0 ومنع تفسير العينات عند عدم وجود ADC. هذا يمنع اختلاف المرجع الذهبي عن firmware الحالي الذي يعلن ADC_NONE فعلياً.
 
 CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Python واختبار C صارم)؛ بقيت وظائف Android وESP32-S3 وRP2040 قيد التنفيذ وقت كتابة المذكرة. لا يثبت ذلك UART loopback أو ADC capture أو التوقيت الفعلي على اللوحة. لا تزال واجهة Wi-Fi/Android غير موصولة بمسار UART.
+
+
+## 19. تحقق التكامل البرمجي — CI #1371 (2026-11-15)
+
+- نجحت الوظائف الأربع على HEAD `e37fde414924eed0344285e642b43982158f52eb`: اختبارات البروتوكول، بناء ESP-IDF للـESP32-S3، بناء Android، وبناء RP2040 مع التحقق من UF2.
+- RP2040 command responder ينفذ HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST وACK؛ GET_INFO يعيد DEVICE_INFO بقيمة ADC_NONE. START يظل مرفوضاً، ولا توجد مرحلة قدرة TX.
+- ESP32-S3 UART task يرسل HELLO ويعيد GET_INFO كل ثانية حتى DEVICE_INFO صالح، ويعالج ACK وDEVICE_INFO وMEASUREMENT عبر parser/session ويضع القياسات المقبولة في queue محدودة. Kconfig يبقي الجسر disabled وGPIO غير معينة.
+- ADS8861 PIO/DMA driver يجمع بنجاح؛ الحسابات من 125MHz هي CONVST=768ns، تأخير أول SCLK=120ns، SCLK≈8.929MHz، و8 نوافذ في sweep واحد. هذه أرقام تحليل كود/تعليمات وليست قياسات.
+- `ENABLE_ADS8861_CAPTURE=0`؛ لا ADC فعلي ولا قراءة تناظرية ولا تأكيد timing/jitter على لوحة. لا توصل GP4 إلى MOSFET أو ملف.
+- تطبيق Android الفعلي يستخدم source set `app/src/main`، لكنه يتوقع `/status` و`/control` بينما لا توجد بعد Wi-Fi/WebServer JSON API على ESP32-S3.
+- PR #6 مغلق Draft وغير مدمج، وPR #7 هو المفتوح Draft على الفرع نفسه. لا دمج ولا تعديل لـ`main`.
+
+### بوابة الانتقال التالية
+تأكيد طراز/مخطط اللوحتين وcontinuity، ثم UART loopback منخفض الجهد. بعد ذلك اختبار ADS8861 الفعلي وقياس نوافذ PIO. لا يعتمد pin-level أو AFE أو KiCad قبل حسم طوبولوجيا TX/RX وقياس الملف والـtransient والـclip-release.

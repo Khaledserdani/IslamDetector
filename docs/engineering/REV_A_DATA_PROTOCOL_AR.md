@@ -245,3 +245,14 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - أضيفت ADC_NONE إلى جدول metadata المرجعي؛ يمنع تفسير أي sample عند عدم وجود ADC، ويشترط VREF=0.
 - CI #1365 (run ID `43724254180`) اجتاز وظيفة `protocol-tests`: 50 اختبار Python ثم C parser/session build/test مع `-Wall -Wextra -Werror -pedantic`. كانت وظائف Android وESP32-S3 وRP2040 قيد التنفيذ وقت التوثيق؛ لا تسجل نجاح CI الكامل قبل اكتمالها.
 - لا يثبت هذا اختبار UART loopback أو board-to-board أو وجود ADC مركب.
+
+
+## 9.2 حالة التنفيذ بعد CI #1371 — 2026-11-15
+
+- ACK v0.1 مثبت بحمولة 3 بايتات: `COMMAND_TYPE` و`STATUS` و`REASON`. يقبل parser تراكيب status/reason المتوافقة فقط؛ OK يتطلب NONE، وأي رفض/انشغال/عدم دعم يتطلب سبباً غير صفري.
+- RP2040 يستقبل HELLO وGET_INFO وSTART وSTOP وSET_PROFILE وSELF_TEST على UART0/GP0/GP1 بسرعة921600/8N1 (الأرجل مؤقتة). يرد ACK؛ GET_INFO يرسل DEVICE_INFO بعده.
+- DEVICE_INFO الحالي يعلن ADC_NONE مع SAMPLE_FORMAT_UNKNOWN وresolution=0 وinput=UNKNOWN وVREF=0. لذلك لا تقبل session أي MEASUREMENT حتى يعلن ADC مركباً وmetadata صحيحة.
+- START مرفوض بسبب TX_NOT_ARMED؛ لا MOSFET ولا ملف ولا interlock عتادي في هذا firmware. STOP يوقف اختبار التوقيت المنطقي فقط.
+- ESP32-S3 parser/session وUART task بُنيا على ESP-IDF release-v5.4. الجسر يرسل HELLO ثم GET_INFO ويعيد الطلب حتى وصول DEVICE_INFO، ويعالج ACK ويضع القياسات المقبولة في queue محدودة. UART bridge معطل افتراضياً وGPIO=-1.
+- CI #1371 / run ID `43725575113`: 50 اختبار Python ناجح، واختبار C صارم ناجح، وبناء ESP32-S3 وRP2040 وAndroid ناجح. لا يثبت ذلك UART loopback أو الاتصال الفعلي بين اللوحتين.
+- لا توجد بعد عينات MEASUREMENT من ADC حقيقي، ولا Wi-Fi/WebServer API. Android يتوقع `GET /status` و`POST /control`؛ الربط بين واجهة الهاتف والجسر لم ينفذ بعد.

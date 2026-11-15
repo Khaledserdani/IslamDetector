@@ -79,3 +79,12 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - ADC_NONE يمنع ادعاء أن ADS8861 مركب؛ أي MEASUREMENT قبل تركيب ADC يرفضه session gate.
 - START يظل مرفوضاً لأن هذا firmware لا يملك TX stage أو interlock؛ لا يوصل GP4 إلى MOSFET أو ملف.
 - الأرجل GP0/GP1 إعداد أولي فقط؛ يلزم مراجعة مخطط اللوحة الفعلية وUART loopback منخفض الجهد قبل اعتمادها.
+
+
+## تحديث التحقق — CI #1371 (2026-11-15)
+- HEAD `e37fde414924eed0344285e642b43982158f52eb` اجتاز الوظائف الأربع: `protocol-tests` و`esp32-s3-bridge` و`android-app` و`rp2040-firmware`.
+- وظيفة البروتوكول شغلت 50 اختبار Python ثم C parser/session مع تحذيرات صارمة؛ كلاهما Success.
+- RP2040 firmware يستقبل أوامر التحكم ويرسل ACK/DEVICE_INFO في منطق البرنامج؛ DEVICE_INFO يعلن ADC_NONE. لا يوجد قياس فعلي ولا UART loopback.
+- ESP32-S3 UART task وparser/session compile/link ناجحان في ESP-IDF release-v5.4. إعداد Kconfig ما زال disabled وGPIO=-1؛ لا يتم تفعيل UART على لوحة غير محددة.
+- RP2040 UF2 artifact ID `14166064302` اجتاز فحص 155 كتلة وFamily ID `0xE48BFF56`. هذا اختبار GP4/GP5/GP6 المنطقي؛ ADC capture driver مضمّن في البناء لكنه disabled افتراضياً.
+- لا يوجد Wi-Fi/WebServer أو JSON API؛ تطبيق Android ينتظر `GET /status` و`POST /control`. الخطوة التالية UART loopback آمن ثم Wi-Fi API بعد اعتماد pinout.

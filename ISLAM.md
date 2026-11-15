@@ -1086,3 +1086,44 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - هذا UF2 اختبار timing logic فقط؛ لا يقود MOSFET ولا يقرأ ADC، ولم يُفلش أو يُختبر على لوحة فعلية.
 - تم تصحيح سجل المواصفات: DD32 هو baseline المقارنة الحالي؛ قيم TX/RX أهداف فقط، ومرشح الحلزوني35×35/13لفة يبقى بديلاً مفتوحاً. ESP32-S3-N16R8 موجودة؛ نسخة اللوحة وpinout غير مثبتين، وRP2040-Zero لا يزال مرشحاً غير مؤكد التوفر.
 - لا يوجد KiCad نهائي أو BOM أو PCB/PCBA أو قياسات ملف/AFE/حماية TX. لا تزال حزمة التصنيع غير جاهزة.
+
+
+## 21.16 متابعة Rev A — CI #1371 واكتمال التكامل البرمجي الأولي — 2026-11-15
+
+### حالة GitHub الفعلية
+- الفرع: `hardware/rev-a-measurement-design`.
+- HEAD عند بدء هذا التحديث: `e37fde414924eed0344285e642b43982158f52eb`، ورسالة commit: `docs(islam): align baseline, inventory and CI 1370`.
+- **PR #6 مغلق Draft وغير مدمج** منذ 2026-11-11. لم نعد فتحه لأن PR #7 هو طلب المراجعة النشط على الفرع نفسه.
+- **PR #7 مفتوح Draft وغير مدمج**، head على الفرع نفسه، ولا يُدمج. لم يتغير `main`.
+- لذلك فإن وصف PR #6 بأنه مفتوح لا يطابق حالة GitHub الحالية؛ الطلب النشط هو PR #7.
+
+### نتيجة CI #1371
+- Run ID: `43725575113`، على HEAD أعلاه، اكتمل في 2026-11-15 الساعة 14:42:35 UTC بنتيجة **Success**.
+- الوظائف الأربع نجحت: `protocol-tests`، `esp32-s3-bridge`، `android-app`، `rp2040-firmware`.
+- اختبارات Python: **50 اختباراً ناجحاً**؛ كما نجح تجميع واختبار C المحمول مع `-Wall -Wextra -Werror -pedantic`.
+- ESP-IDF `release-v5.4`: compile/link ناجح لمشروع ESP32-S3، ولم يحدث Flash على لوحة فعلية.
+- Android: Gradle build وAPK ZIP verification نجحا. Artifact APK ID `14166480208`، الاسم `IslamDetector-Original-APK`، حجم الأرشيف 21,038 bytes. SHA-256 للـAPK الداخلي: `40ecfbf391a05ca4a4ca117c38ff36fc7b912659b2f5c19f2868f1f56ba9ea6e`.
+- RP2040: build وPIO assembly وUF2 verification ورفع artifact نجحت. Artifact ID `14166064302`، الاسم `IslamDetector-RevA-RP2040-Timing-Test-UF2`، حجم ZIP=31,285 bytes. UF2 الخام: 155 كتلة، payload=39,680 bytes، Family ID=`0xE48BFF56`، العناوين `0x10000000..0x10009B00`، الحجم الخام=79,360 bytes، SHA-256=`3f22107c0acc52006df4fbf4f747d858a5f96e1ebfca85134b4a88008032c0b5`.
+- روابط التحقق: https://github.com/Khaledserdani/IslamDetector/actions/runs/43725575113 و https://github.com/Khaledserdani/IslamDetector/pull/7
+
+### ما أصبح منفذاً برمجياً
+- RP2040 UART0 يستقبل HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST بسرعة 921600 و8N1، ويرد ACK بحمولة 3 بايتات: COMMAND_TYPE/STATUS/REASON.
+- GET_INFO يرسل ACK ثم DEVICE_INFO. الهوية الحالية تعلن `ADC_NONE` وVREF=0؛ هذا وصف صحيح لغياب ADC وليس إعلاناً عن ADS8861.
+- START مرفوض عمداً بسبب غياب مرحلة TX وقفل أمان عتادي؛ STOP يوقف اختبار التوقيت المنطقي، وSET_PROFILE يقبل profile 1 فقط، وSELF_TEST غير مدعوم.
+- ESP32-S3 لديه C parser/session وUART event task وRX ring buffer وACK/DEVICE_INFO handling وGET_INFO retry وqueue محدودة للقياسات. الجسر يبقى معطلاً افتراضياً؛ UART1 هو الافتراضي وGPIO TX/RX=-1 حتى مراجعة مخطط لوحة ESP32-S3 الفعلية.
+- PIO ADS8861 capture driver موجود في CMake ويُجمع مع PIO assembly. حساباته في المصدر: CONVST=768ns، أول SCLK بعد120ns، SCLK≈8.929MHz، وثماني نوافذ. لكنه `ENABLE_ADS8861_CAPTURE=0` افتراضياً، ولم يقرأ ADC فعلياً.
+- Android source الفعلي الذي يبنيه Gradle هو `app/src/main/java/com/islamdetector/app/MainActivity.java` (529 سطراً)، مع Manifest في `app/src/main/AndroidManifest.xml`. يستخدم INTERNET وACCESS_NETWORK_STATE، ويدعم RTL، ويشغل الشبكة على Executor منفصل مع مهلات 2.5s، ويشغل SQLite والتاريخ وCSV على Executor تخزين منفصل. تصدير CSV الحالي عبر Sharesheet كنص، وليس ملفاً محفوظاً في Downloads.
+- يوجد مسار قديم متداخل `app/app/src/main/` يحوي نسخة شاشة أبسط؛ ليس ضمن source set الذي يستخدمه Gradle، فلا نخلطه مع التطبيق الفعلي.
+
+### ما لم يثبت بعد
+- لا UART loopback ولا اتصال RP2040↔ESP32 فعلي؛ GP0/GP1 على RP2040 مؤقتتان، وأرجل ESP32 غير معينة.
+- لا Wi-Fi AP/WebServer على ESP32 يحقق `GET /status` و`POST /control` اللذين يتوقعهما Android؛ لذلك لا يوجد اتصال هاتف↔جهاز end-to-end.
+- لا ADC مركب ولا عينات MEASUREMENT فعلية؛ PIO capture لم يُفعّل ولم يُختبر على ADS8861.
+- لا قياس فعلي لتوقيت PIO أو jitter أو DCR/L/Q/قطبية/اقتران الملف أو RX transient/clip-release.
+- لا حسم نهائي لطوبولوجيا الملف الكهربائي داخل رأس البحث الواحد، ولا حماية TX/RX محسوبة، ولا KiCad/BOM/PCB/PCBA.
+
+### الخطوة التالية
+1. تدقيق C parser/session وACK/DEVICE_INFO مع اختبار UART loopback منخفض الجهد بعد مطابقة مخطط اللوحتين وقياس continuity؛ لا تخمين GPIO.
+2. تثبيت PIO capture على طاولة اختبار بعد وجود ADS8861 والحماية والتغذية المرجعية الفعلية، وقياس CONVST/SCLK/DOUT والنوافذ بمحلل منطقي/راسم مناسب.
+3. حسم هندسة الرأس وقياس الملف وRX recovery قبل تثبيت AFE وpin map وKiCad.
+4. بعد ذلك فقط ربط Wi-Fi/JSON API بالتطبيق ثم حساب TX والحماية وBOM والتصنيع.
