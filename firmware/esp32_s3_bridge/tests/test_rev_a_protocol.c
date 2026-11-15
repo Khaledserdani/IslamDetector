@@ -198,6 +198,8 @@ int main(void) {
     CHECK(decoded_ack.reason == REV_A_ACK_REASON_TX_NOT_ARMED);
     ack.reason = REV_A_ACK_REASON_NONE;
     CHECK(!rev_a_encode_ack(&ack, ack_frame, sizeof(ack_frame), &ack_length));
+    ack.reason = REV_A_ACK_REASON_TX_NOT_ARMED;
+    CHECK(rev_a_encode_ack(&ack, ack_frame, sizeof(ack_frame), &ack_length));
 
     uint8_t measurement_bytes[REV_A_MAX_FRAME_SIZE];
     const size_t measurement_length = make_measurement(measurement_bytes);
