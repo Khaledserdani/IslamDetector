@@ -181,3 +181,10 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - ADC capture يبقى معطلاً افتراضياً؛ لا توجد قراءة فعلية من ADS8861.
 - لا يتحول هذا الملف إلى مخطط نهائي قبل تأكيد طراز اللوحتين ومخططاتهما، ثم قياس continuity وUART loopback وCONVST/SCLK/DOUT على الطاولة.
 
+
+
+## 12. UART protocol prototype — 2026-11-15
+- Firmware RP2040 يهيئ UART0: GP0=TX وGP1=RX بسرعة921600/8N1. هذه أرجل مرشحة للوحة RP2040-Zero وليست pin map نهائية؛ طابق مخطط نسخة اللوحة وقس الاستمرارية قبل التوصيل.
+- ESP32-S3 TX/RX ما زالت غير محددة، والجسر disabled افتراضياً حتى اعتماد مخطط لوحة N16R8 الفعلية.
+- لا توجد أرجل ADS8861 موصولة؛ GP8/GP9/GP10 تظل مقترحة فقط، وADC capture disabled.
+- DEVICE_INFO يعلن ADC_NONE في firmware الحالي؛ لا تفسر أي raw sample على أنها قراءة ADC.
