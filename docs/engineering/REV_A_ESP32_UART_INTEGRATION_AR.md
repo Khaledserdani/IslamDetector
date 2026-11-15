@@ -1,6 +1,6 @@
 # تنفيذ جسر UART على ESP32-S3 — Rev A
 
-**الحالة:** مكوّن ESP-IDF أضيف واكتمل compile/link في CI #1350 باستخدام ESP-IDF release-v5.4. نواة parser/session وUART task تقبل ACK وDEVICE_INFO، ومستقبل RP2040 يرسل تعريفاً صادقاً ADC_NONE. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
+**الحالة (2026-11-15):** مكوّن ESP-IDF وparser/session وUART task ومقابل RP2040 command responder/ACK/DEVICE_INFO منفذة برمجياً، واكتمل build على CI #1371 و#1372. لا يوجد توصيل عتادي أو UART loopback، وDEVICE_INFO يعلن ADC_NONE لأن ADC غير مركب.
 
 ## ما أضيف
 - مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
@@ -27,19 +27,20 @@
 UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛ TX buffer 512؛ event queue 16؛ measurement queue 8؛ قراءة chunks من 128 byte؛ GET_INFO retry كل 1000ms.
 هذه إعدادات Firmware وليست قياساً لمعدل نقل فعلي أو ضماناً لعدم فقد البيانات. يلزم قياس throughput تحت حمل Wi-Fi لاحقاً.
 
-## الحدود
-- لا يوجد ACK decoder أو RP2040 command receiver/DEVICE_INFO transmitter بعد.
-- لا يوجد Wi-Fi/WebServer/JSON endpoint أو ربط Android.
-- لا يوجد UART loopback أو قياس فعلي بين اللوحتين.
-- لا يوجد TX power أو MOSFET أو ملف بحث ضمن هذا البرنامج.
+## الحدود الحالية
+- ACK decoder وRP2040 command receiver وDEVICE_INFO transmitter أصبحت منفذة برمجياً؛ لا يعني ذلك أن الاتصال اختبر على اللوحتين.
+- لا يوجد UART loopback أو قياس فعلي بين ESP32-S3 وRP2040.
+- لا يوجد Wi-Fi AP أو WebServer أو JSON endpoint أو ربط Android end-to-end.
+- لا يوجد ADC مركب أو MEASUREMENT producer فعلي؛ DEVICE_INFO يعلن ADC_NONE.
+- لا توجد مرحلة TX أو MOSFET أو ملف بحث أو interlock ضمن هذا البرنامج.
 
 ## بوابة القبول التالية
-1. نجاح ESP-IDF build في CI.
-2. تثبيت GPIO بعد مراجعة مخطط لوحة التطوير.
-3. UART loopback منخفض الجهد ثم ربط اللوحتين بمنطق 3.3V.
-4. إثبات HELLO/GET_INFO/DEVICE_INFO وقياس throughput والفقد.
-5. إضافة RP2040 ACK/command receiver وDEVICE_INFO transmitter.
-6. بعد ذلك ربط القياسات بخادم Wi-Fi.
+1. تحديد طراز ومراجعة مخطط كل لوحة، ثم قياس continuity للأرجل المختارة وهي مفصولة عن التغذية.
+2. تنفيذ UART loopback منخفض الجهد وفق الإجراء في `REV_A_BENCH_TEST_PLAN_AR.md`: TX/RX متقاطعتان، GND مشترك، منطق3.3V فقط، دون ربط VCC بين اللوحتين.
+3. إثبات HELLO ثم GET_INFO؛ المتوقع ACK صالح وDEVICE_INFO يعلن ADC_NONE، مع CRC صحيح وعدم وجود framing/overflow errors.
+4. بعد تركيب ADS8861 والحماية والمرجع فعلياً، تفعيل PIO capture في نسخة اختبار منفصلة وقياس CONVST/SCLK/DOUT والنوافذ قبل قبول أي timing.
+5. إضافة MEASUREMENT producer فقط بعد ADC metadata صحيحة وقراءات raw متحققة؛ ثم ربط queue بخادم Wi-Fi وJSON API.
+6. تبقى START مرفوضة ولا توصل GP4 إلى MOSFET/ملف حتى اكتمال حساب الطاقة والارتداد والحماية وقفل الأمان.
 
 
 ## نتيجة البناء الآلي

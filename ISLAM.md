@@ -1127,3 +1127,17 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 2. تثبيت PIO capture على طاولة اختبار بعد وجود ADS8861 والحماية والتغذية المرجعية الفعلية، وقياس CONVST/SCLK/DOUT والنوافذ بمحلل منطقي/راسم مناسب.
 3. حسم هندسة الرأس وقياس الملف وRX recovery قبل تثبيت AFE وpin map وKiCad.
 4. بعد ذلك فقط ربط Wi-Fi/JSON API بالتطبيق ثم حساب TX والحماية وBOM والتصنيع.
+
+
+## 21.17 تثبيت سجل CI #1372 وخطوة القياس الآمنة التالية — 2026-11-15
+
+- HEAD الذي أعيد التحقق منه قبل هذا التحديث: `ddc5d3ce81708bfe430333149958964664719337` على `hardware/rev-a-measurement-design`.
+- CI #1372 / run ID `43727336141` على هذا HEAD اكتمل **Success** في 2026-11-15 الساعة 15:01:59 UTC؛ الوظائف الأربع كلها Success: `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge`.
+- البروتوكول: 50 اختبار Python واختبار C الصارم ناجحان. Android build وAPK verification ناجحان. ESP-IDF release-v5.4 compile/link ناجح. RP2040 build وPIO assembly وUF2 verification ناجحة.
+- Artifact UF2 ID `14167410728`، ZIP=31,285 bytes، وUF2 الخام ما زال 155 كتلة / 39,680 payload bytes / Family ID `0xE48BFF56` / SHA-256 `3f22107c0acc52006df4fbf4f747d858a5f96e1ebfca85134b4a88008032c0b5`.
+- Artifact APK ID `14166603621`، ZIP=21,041 bytes. كلا الأرشيفين غير منتهيي الصلاحية وقت التحقق.
+- روابط: https://github.com/Khaledserdani/IslamDetector/actions/runs/43727336141 و https://github.com/Khaledserdani/IslamDetector/pull/7
+- لا يوجد تغيير Firmware في هذا التشغيل؛ التحديث السابق ددّث README والوثائق، وCI #1372 تحقق من الرأس الجديد. لا يزال UF2 اختبار timing منطقي فقط ولم يُفلش على لوحة فعلية.
+- مقارنة الفرع بـ`main`: الفرع متباعد، متقدم377 commit ومتأخر6 commits؛ رأس `main` هو `0d69de64679bfc9123054959dcb167890c1286bc`. لا rebase ولا merge ولا تعديل لـ`main` في هذا التشغيل.
+- أضيف إجراء UART loopback منخفض الجهد إلى `REV_A_BENCH_TEST_PLAN_AR.md`، وصُححت حدود وثيقة ESP32 UART حتى لا تستمر عبارات تاريخية توحي بأن ACK أو RP2040 command responder غير منفذين.
+- الحالة النهائية لم تتغير: لا اتصال لوحتين فعلي، ولا Wi-Fi API، ولا ADC فعلي أو MEASUREMENT producer، ولا قياس PIO/coil/RX recovery، ولا KiCad/BOM/PCB/PCBA. حزمة التصنيع غير جاهزة.
