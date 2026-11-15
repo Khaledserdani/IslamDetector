@@ -178,7 +178,7 @@ static void protocol_command_callback(void *context, const rev_a_frame_t *frame)
             break;
         case REV_A_TYPE_SELF_TEST:
             protocol_send_ack(command->type, REV_A_ACK_STATUS_UNSUPPORTED,
-                              REV_A_ACK_REASON_ADC_NOT_PRESENT);
+                              REV_A_ACK_REASON_SELF_TEST_UNAVAILABLE);
             break;
         default:
             protocol_send_ack(command->type, REV_A_ACK_STATUS_UNSUPPORTED,
