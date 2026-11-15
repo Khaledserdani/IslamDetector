@@ -37,6 +37,7 @@ pico_generate_pio_header(islam_rev_a_timing_test
 target_link_libraries(islam_rev_a_timing_test
     pico_stdlib
     hardware_pwm
+    hardware_uart
     hardware_irq
     hardware_pio
     hardware_clocks
