@@ -209,7 +209,8 @@ bool rev_a_encode_ack(
     size_t *frame_length) {
     if (frame_length == NULL) return false;
     *frame_length = 0u;
-    if (ack == NULL || frame == NULL || !command_type_valid(ack->command_type)
+    if (ack == NULL || frame == NULL || frame_capacity < REV_A_MAX_ACK_FRAME_SIZE
+        || !command_type_valid(ack->command_type)
         || !valid_ack_status_reason(ack->status, ack->reason)) return false;
     frame[0] = REV_A_SYNC_BYTE_0;
     frame[1] = REV_A_SYNC_BYTE_1;
