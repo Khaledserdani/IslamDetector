@@ -319,3 +319,12 @@ CI #1315: protocol وAndroid وRP2040 build/UF2 verify نجحت؛ ESP-IDF build 
 - START مرفوض عمداً حتى اكتمال حساب طاقة TX والارتداد والحماية وقفل أمان عتادي مستقل. STOP يوقف اختبار التوقيت المنطقي فقط.
 - RP2040 UART0 GP0/GP1 إعداد مؤقت يحتاج مراجعة لوحة RP2040-Zero وقياس continuity. أرجل ESP32-S3 UART لم تثبت بعد، والجسر يبقى disabled افتراضياً.
 - لا يوجد حتى الآن Wi-Fi/WebServer على ESP32-S3 يطابق JSON endpoints التي يتوقعها Android، ولا يوجد UART loopback أو اختبار board-to-board؛ لذلك التطبيق لا يتصل بجهاز Rev A فعلي بعد.
+
+
+## 14. توحيد مرجع البروتوكول — 2026-11-15
+
+أصبح مرجع Python في `tools/rev_a_protocol.py` متوافقاً مع رسائل التحكم التي ينفذها RP2040 ومحلل ESP32-S3: HELLO وGET_INFO وSTART وSTOP وSET_PROFILE وSELF_TEST، ورسائل ACK، إلى جانب DEVICE_INFO وMEASUREMENT. يدعم stream decoder التجزئة والتجميع والضجيج واستعادة SYNC بعد CRC غير صحيح.
+
+أضيفت حالة ADC_NONE إلى metadata في Python، مع اشتراط VREF=0 ومنع تفسير العينات عند عدم وجود ADC. هذا يمنع اختلاف المرجع الذهبي عن firmware الحالي الذي يعلن ADC_NONE فعلياً.
+
+CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Python واختبار C صارم)؛ بقيت وظائف Android وESP32-S3 وRP2040 قيد التنفيذ وقت كتابة المذكرة. لا يثبت ذلك UART loopback أو ADC capture أو التوقيت الفعلي على اللوحة. لا تزال واجهة Wi-Fi/Android غير موصولة بمسار UART.
