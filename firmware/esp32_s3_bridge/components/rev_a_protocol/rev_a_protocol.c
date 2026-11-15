@@ -7,6 +7,7 @@
 #define MEASUREMENT_MAX_BODY_LENGTH   (MEASUREMENT_FIXED_BODY_LENGTH + 2u * REV_A_MAX_SAMPLES)
 #define DEVICE_INFO_BODY_LENGTH       21u
 #define DEVICE_INFO_PAYLOAD_LENGTH    17u
+#define ACK_BODY_LENGTH                7u
 
 static uint16_t read_le16(const uint8_t *p) {
     return (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
@@ -19,12 +20,30 @@ static uint32_t read_le32(const uint8_t *p) {
         | ((uint32_t)p[3] << 24);
 }
 
+static bool command_type_valid(uint8_t type) {
+    return type == REV_A_TYPE_HELLO || type == REV_A_TYPE_GET_INFO
+        || type == REV_A_TYPE_START || type == REV_A_TYPE_STOP
+        || type == REV_A_TYPE_SET_PROFILE || type == REV_A_TYPE_SELF_TEST;
+}
+
+static bool valid_ack_status_reason(uint8_t status, uint8_t reason) {
+    if (status > REV_A_ACK_STATUS_UNSUPPORTED
+        || reason > REV_A_ACK_REASON_COMMAND_UNSUPPORTED) return false;
+    return status == REV_A_ACK_STATUS_OK
+        ? reason == REV_A_ACK_REASON_NONE
+        : reason != REV_A_ACK_REASON_NONE;
+}
+
 static bool valid_adc_metadata(
     uint8_t model,
     uint8_t sample_format,
     uint8_t resolution,
     uint8_t input_mode) {
     switch (model) {
+        case REV_A_ADC_NONE:
+            return sample_format == REV_A_SAMPLE_UNKNOWN
+                && resolution == 0u
+                && input_mode == REV_A_INPUT_UNKNOWN;
         case REV_A_ADC_ADS8861:
             return sample_format == REV_A_SAMPLE_TWOS_COMPLEMENT
                 && resolution == 16u
@@ -183,6 +202,26 @@ static bool finish_encoded_frame(
     return true;
 }
 
+bool rev_a_encode_ack(
+    const rev_a_ack_t *ack,
+    uint8_t *frame,
+    size_t frame_capacity,
+    size_t *frame_length) {
+    if (frame_length == NULL) return false;
+    *frame_length = 0u;
+    if (ack == NULL || frame == NULL || !command_type_valid(ack->command_type)
+        || !valid_ack_status_reason(ack->status, ack->reason)) return false;
+    frame[0] = REV_A_SYNC_BYTE_0;
+    frame[1] = REV_A_SYNC_BYTE_1;
+    frame[2] = REV_A_PROTOCOL_VERSION;
+    frame[3] = REV_A_TYPE_ACK;
+    frame[6] = ack->command_type;
+    frame[7] = ack->status;
+    frame[8] = ack->reason;
+    return finish_encoded_frame(frame, ACK_BODY_LENGTH,
+                                frame_capacity, frame_length);
+}
+
 bool rev_a_encode_measurement(
     const rev_a_measurement_t *m,
     uint8_t *frame,
@@ -277,6 +316,21 @@ static bool frame_envelope_valid(
     return rev_a_crc16_ccitt_false(&frame[2], body_length) == received_crc;
 }
 
+bool rev_a_decode_ack(
+    const uint8_t *frame,
+    size_t frame_length,
+    rev_a_ack_t *ack) {
+    if (ack == NULL || frame_length != REV_A_MAX_ACK_FRAME_SIZE
+        || !frame_envelope_valid(frame, frame_length, REV_A_TYPE_ACK, ACK_BODY_LENGTH)) {
+        return false;
+    }
+    rev_a_ack_t decoded = { frame[6], frame[7], frame[8] };
+    if (!command_type_valid(decoded.command_type)
+        || !valid_ack_status_reason(decoded.status, decoded.reason)) return false;
+    *ack = decoded;
+    return true;
+}
+
 bool rev_a_decode_measurement(
     const uint8_t *frame,
     size_t frame_length,
@@ -348,14 +402,13 @@ bool rev_a_decode_measurement(
 
 
 bool rev_a_device_info_valid(const rev_a_device_info_t *device_info) {
-    if (device_info == NULL) {
-        return false;
-    }
-    return valid_adc_metadata(
-        device_info->adc_model_id,
-        device_info->sample_format_id,
-        device_info->adc_resolution_bits,
-        device_info->adc_input_mode_id);
+    if (device_info == NULL || !valid_adc_metadata(
+            device_info->adc_model_id,
+            device_info->sample_format_id,
+            device_info->adc_resolution_bits,
+            device_info->adc_input_mode_id)) return false;
+    return device_info->adc_model_id != REV_A_ADC_NONE
+        || device_info->adc_vref_uv == 0u;
 }
 
 bool rev_a_decode_device_info(
@@ -446,6 +499,11 @@ static bool measurement_length_valid(uint16_t length) {
         && length <= MEASUREMENT_MAX_BODY_LENGTH;
 }
 
+static bool command_length_valid(uint8_t type, uint16_t length) {
+    if (!command_type_valid(type)) return false;
+    return type == REV_A_TYPE_SET_PROFILE ? length == 5u : length == 4u;
+}
+
 static size_t parse_available(
     rev_a_parser_t *parser,
     rev_a_frame_callback_t callback,
@@ -478,7 +536,9 @@ static size_t parse_available(
         const uint16_t body_length = read_le16(&parser->buffer[4]);
         const bool length_valid =
             (type == REV_A_TYPE_MEASUREMENT && measurement_length_valid(body_length))
-            || (type == REV_A_TYPE_DEVICE_INFO && body_length == DEVICE_INFO_BODY_LENGTH);
+            || (type == REV_A_TYPE_DEVICE_INFO && body_length == DEVICE_INFO_BODY_LENGTH)
+            || (type == REV_A_TYPE_ACK && body_length == ACK_BODY_LENGTH)
+            || command_length_valid(type, body_length);
 
         if (version != REV_A_PROTOCOL_VERSION || !length_valid) {
             discard_prefix(parser, 1u);
@@ -496,9 +556,13 @@ static size_t parse_available(
         if (type == REV_A_TYPE_MEASUREMENT) {
             valid = rev_a_decode_measurement(
                 parser->buffer, frame_length, &decoded.value.measurement);
-        } else {
+        } else if (type == REV_A_TYPE_DEVICE_INFO) {
             valid = rev_a_decode_device_info(
                 parser->buffer, frame_length, &decoded.value.device_info);
+        } else if (type == REV_A_TYPE_ACK) {
+            valid = rev_a_decode_ack(parser->buffer, frame_length, &decoded.value.ack);
+        } else {
+            valid = rev_a_decode_command(parser->buffer, frame_length, &decoded.value.command);
         }
 
         if (!valid) {
