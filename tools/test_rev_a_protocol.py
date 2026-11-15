@@ -5,14 +5,30 @@ from rev_a_protocol import (
     INVALID_CURRENT_MA,
     INVALID_TEMPERATURE_CENTI_C,
     MeasurementStreamDecoder,
+    SAMPLE_FORMAT_UNKNOWN,
     SAMPLE_FORMAT_TWOS_COMPLEMENT,
     SAMPLE_FORMAT_UNSIGNED,
+    ADC_MODEL_NONE,
     ADC_MODEL_ADS8861,
+    ADC_INPUT_UNKNOWN,
     ADC_INPUT_DIFFERENTIAL,
     TYPE_DEVICE_INFO,
+    TYPE_ACK,
+    TYPE_HELLO,
+    TYPE_GET_INFO,
+    TYPE_SET_PROFILE,
+    TYPE_STOP,
+    ACK_STATUS_OK,
+    ACK_STATUS_REJECTED,
+    ACK_REASON_NONE,
+    ACK_REASON_TX_NOT_ARMED,
     ProtocolStreamDecoder,
     encode_device_info,
     decode_device_info,
+    encode_command,
+    decode_command,
+    encode_ack,
+    decode_ack,
     interpret_sample,
     ProtocolError,
     crc16_ccitt_false,
@@ -219,6 +235,95 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(parser.discarded_bytes, 0)
         self.assertEqual(parser.rejected_frames, 0)
         self.assertEqual(parser.feed(frame), [decode_measurement(frame)])
+
+
+    def test_adc_none_device_info_round_trip(self):
+        frame = encode_device_info(
+            hw_rev=0, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_NONE,
+            sample_format_id=SAMPLE_FORMAT_UNKNOWN,
+            adc_resolution_bits=0,
+            adc_input_mode_id=ADC_INPUT_UNKNOWN,
+            adc_vref_uv=0,
+            active_profile_id=1,
+            profile_crc32=0x71E6D9DD,
+        )
+        decoded = decode_device_info(frame)
+        self.assertEqual(decoded["adc_model_id"], ADC_MODEL_NONE)
+        self.assertEqual(decoded["sample_format_id"], SAMPLE_FORMAT_UNKNOWN)
+        self.assertEqual(decoded["adc_resolution_bits"], 0)
+        self.assertEqual(decoded["adc_input_mode_id"], ADC_INPUT_UNKNOWN)
+        self.assertEqual(decoded["adc_vref_uv"], 0)
+
+    def test_adc_none_rejects_nonzero_vref(self):
+        with self.assertRaises(ProtocolError):
+            encode_device_info(
+                hw_rev=0, fw_major=0, fw_minor=1, fw_patch=0,
+                adc_model_id=ADC_MODEL_NONE,
+                sample_format_id=SAMPLE_FORMAT_UNKNOWN,
+                adc_resolution_bits=0,
+                adc_input_mode_id=ADC_INPUT_UNKNOWN,
+                adc_vref_uv=3300000,
+                active_profile_id=1,
+                profile_crc32=0x71E6D9DD,
+            )
+
+    def test_command_round_trip_and_payload_contract(self):
+        for command_type in (TYPE_HELLO, TYPE_GET_INFO, TYPE_STOP):
+            frame = encode_command(command_type)
+            self.assertEqual(len(frame), 8)
+            self.assertEqual(decode_command(frame)["type"], command_type)
+        profile = encode_command(TYPE_SET_PROFILE, profile_id=1)
+        self.assertEqual(len(profile), 9)
+        self.assertEqual(decode_command(profile)["profile_id"], 1)
+        with self.assertRaises(ProtocolError):
+            encode_command(TYPE_HELLO, profile_id=1)
+        with self.assertRaises(ProtocolError):
+            encode_command(TYPE_SET_PROFILE)
+        with self.assertRaises(ProtocolError):
+            decode_command(encode_command(TYPE_HELLO)[:-1])
+
+    def test_ack_round_trip_and_status_reason_contract(self):
+        frame = encode_ack(TYPE_START, ACK_STATUS_REJECTED, ACK_REASON_TX_NOT_ARMED)
+        self.assertEqual(len(frame), 11)
+        decoded = decode_ack(frame)
+        self.assertEqual(decoded["type"], TYPE_ACK)
+        self.assertEqual(decoded["command_type"], 0x03)
+        self.assertEqual(decoded["status"], ACK_STATUS_REJECTED)
+        self.assertEqual(decoded["reason"], ACK_REASON_TX_NOT_ARMED)
+        self.assertEqual(
+            decode_ack(encode_ack(TYPE_STOP, ACK_STATUS_OK, ACK_REASON_NONE))["status"],
+            ACK_STATUS_OK,
+        )
+        with self.assertRaises(ProtocolError):
+            encode_ack(TYPE_STOP, ACK_STATUS_OK, ACK_REASON_TX_NOT_ARMED)
+        with self.assertRaises(ProtocolError):
+            encode_ack(TYPE_STOP, ACK_STATUS_REJECTED, ACK_REASON_NONE)
+
+    def test_stream_decoder_accepts_commands_ack_and_adc_none(self):
+        command = encode_command(TYPE_GET_INFO)
+        ack = encode_ack(TYPE_GET_INFO, ACK_STATUS_OK, ACK_REASON_NONE)
+        info = encode_device_info(
+            hw_rev=0, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_NONE,
+            sample_format_id=SAMPLE_FORMAT_UNKNOWN,
+            adc_resolution_bits=0,
+            adc_input_mode_id=ADC_INPUT_UNKNOWN,
+            adc_vref_uv=0,
+            active_profile_id=1,
+            profile_crc32=0x71E6D9DD,
+        )
+        measurement = self.sample_frame()
+        parser = ProtocolStreamDecoder()
+        decoded = parser.feed(b"noise" + command[:4])
+        self.assertEqual(decoded, [])
+        decoded = parser.feed(command[4:] + ack + info + measurement)
+        self.assertEqual(
+            [item["type"] for item in decoded],
+            [TYPE_GET_INFO, TYPE_ACK, TYPE_DEVICE_INFO, 0x10],
+        )
+        self.assertEqual(decoded[2]["adc_model_id"], ADC_MODEL_NONE)
+        self.assertEqual(decoded[1]["command_type"], TYPE_GET_INFO)
 
     def test_invalid_mask_is_rejected(self):
         with self.assertRaises(ProtocolError):
