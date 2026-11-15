@@ -188,3 +188,13 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - ESP32-S3 TX/RX ما زالت غير محددة، والجسر disabled افتراضياً حتى اعتماد مخطط لوحة N16R8 الفعلية.
 - لا توجد أرجل ADS8861 موصولة؛ GP8/GP9/GP10 تظل مقترحة فقط، وADC capture disabled.
 - DEVICE_INFO يعلن ADC_NONE في firmware الحالي؛ لا تفسر أي raw sample على أنها قراءة ADC.
+
+
+## 13. تحديث UART والهوية — 2026-11-15
+
+- RP2040 firmware يهيئ UART0 بسرعة921600/8N1 على GP0=TX وGP1=RX، ويستقبل HELLO وGET_INFO وSTOP وSET_PROFILE؛ هذه الأرجل مؤقتة وتحتاج مراجعة مخطط RP2040-Zero وقياس continuity قبل التوصيل.
+- GET_INFO يرسل ACK ثم DEVICE_INFO يعلن ADC_NONE. START مرفوض، وSELF_TEST غير مدعوم؛ لا توجد عينات ADC ترسل حالياً.
+- ESP32-S3 UART bridge يبقى disabled افتراضياً، وGPIO TX/RX غير معينة. لا تستخدم أي أرجل ESP32 بالتخمين.
+- CI #1362 بنى RP2040 ورفع UF2 صالح البنية، لكن هذا UF2 اختبار منطقي فقط ولا يثبت UART أو PIO/ADC أو pin mux على لوحة فعلية.
+- CI #1365 اجتاز protocol-tests فقط حتى وقت هذا التحديث؛ لا تعتمد UF2 جديداً لهذا HEAD قبل اكتمال وظيفة RP2040-firmware والتحقق ورفع artifact.
+- لا توصل GP4 ببوابة MOSFET أو ملف، ولا توصل ADC قبل استكمال الحماية والتغذية والقياسات.
