@@ -179,6 +179,26 @@ int main(void) {
     command_frame[3] = 0x7Fu;
     CHECK(!rev_a_decode_command(command_frame, command_length, &decoded_command));
 
+    rev_a_ack_t ack = { REV_A_TYPE_GET_INFO, REV_A_ACK_STATUS_OK, REV_A_ACK_REASON_NONE };
+    uint8_t ack_frame[REV_A_MAX_ACK_FRAME_SIZE];
+    size_t ack_length = 0u;
+    CHECK(rev_a_encode_ack(&ack, ack_frame, sizeof(ack_frame), &ack_length));
+    CHECK(ack_length == REV_A_MAX_ACK_FRAME_SIZE);
+    CHECK(read_le16(&ack_frame[4]) == 7u);
+    rev_a_ack_t decoded_ack;
+    CHECK(rev_a_decode_ack(ack_frame, ack_length, &decoded_ack));
+    CHECK(decoded_ack.command_type == REV_A_TYPE_GET_INFO);
+    CHECK(decoded_ack.status == REV_A_ACK_STATUS_OK);
+    CHECK(decoded_ack.reason == REV_A_ACK_REASON_NONE);
+    ack.status = REV_A_ACK_STATUS_REJECTED;
+    ack.reason = REV_A_ACK_REASON_TX_NOT_ARMED;
+    CHECK(rev_a_encode_ack(&ack, ack_frame, sizeof(ack_frame), &ack_length));
+    CHECK(rev_a_decode_ack(ack_frame, ack_length, &decoded_ack));
+    CHECK(decoded_ack.status == REV_A_ACK_STATUS_REJECTED);
+    CHECK(decoded_ack.reason == REV_A_ACK_REASON_TX_NOT_ARMED);
+    ack.reason = REV_A_ACK_REASON_NONE;
+    CHECK(!rev_a_encode_ack(&ack, ack_frame, sizeof(ack_frame), &ack_length));
+
     uint8_t measurement_bytes[REV_A_MAX_FRAME_SIZE];
     const size_t measurement_length = make_measurement(measurement_bytes);
     rev_a_measurement_t measurement;
@@ -269,6 +289,22 @@ int main(void) {
     CHECK(sink.count == 2u);
     CHECK(sink.frames[0].type == REV_A_TYPE_DEVICE_INFO);
     CHECK(sink.frames[1].type == REV_A_TYPE_MEASUREMENT);
+
+    /* The shared stream parser accepts fragmented commands and ACK replies. */
+    rev_a_parser_init(&parser);
+    memset(&sink, 0, sizeof(sink));
+    CHECK(rev_a_encode_command(REV_A_TYPE_GET_INFO, NULL, 0u,
+                               command_frame, sizeof(command_frame), &command_length));
+    CHECK(rev_a_parser_feed(&parser, command_frame, 3u, collect_frame, &sink) == 0u);
+    CHECK(rev_a_parser_feed(&parser, &command_frame[3], command_length - 3u,
+                            collect_frame, &sink) == 1u);
+    CHECK(sink.count == 1u);
+    CHECK(sink.frames[0].type == REV_A_TYPE_GET_INFO);
+    CHECK(sink.frames[0].value.command.type == REV_A_TYPE_GET_INFO);
+    CHECK(rev_a_parser_feed(&parser, ack_frame, ack_length, collect_frame, &sink) == 1u);
+    CHECK(sink.count == 2u);
+    CHECK(sink.frames[1].type == REV_A_TYPE_ACK);
+    CHECK(sink.frames[1].value.ack.status == REV_A_ACK_STATUS_REJECTED);
 
     rev_a_parser_init(&parser);
     memset(&sink, 0, sizeof(sink));
@@ -367,6 +403,38 @@ int main(void) {
         &session, &session_frame, &session_measurement)
         == REV_A_SESSION_UNSUPPORTED_FRAME);
 
-    puts("PASS: Rev A parser CRC, DEVICE_INFO, metadata-gated sessions, raw preservation, signed ADC formats and SYNC recovery");
+    /* A prototype with no fitted ADC reports explicit NONE metadata. */
+    rev_a_device_info_t no_adc;
+    memset(&no_adc, 0, sizeof(no_adc));
+    no_adc.fw_minor = 1u;
+    no_adc.adc_model_id = REV_A_ADC_NONE;
+    no_adc.sample_format_id = REV_A_SAMPLE_UNKNOWN;
+    no_adc.adc_resolution_bits = 0u;
+    no_adc.adc_input_mode_id = REV_A_INPUT_UNKNOWN;
+    no_adc.active_profile_id = 1u;
+    no_adc.profile_crc32 = 0x71E6D9DDu;
+    CHECK(rev_a_device_info_valid(&no_adc));
+    uint8_t no_adc_frame[25];
+    size_t no_adc_length = 0u;
+    CHECK(rev_a_encode_device_info(&no_adc, no_adc_frame, sizeof(no_adc_frame), &no_adc_length));
+    CHECK(no_adc_length == sizeof(no_adc_frame));
+    CHECK(rev_a_decode_device_info(no_adc_frame, no_adc_length, &info));
+    CHECK(info.adc_model_id == REV_A_ADC_NONE);
+    CHECK(info.adc_vref_uv == 0u);
+    no_adc.adc_vref_uv = 3300000u;
+    CHECK(!rev_a_device_info_valid(&no_adc));
+
+    rev_a_session_reset(&session);
+    session_frame.type = REV_A_TYPE_DEVICE_INFO;
+    session_frame.value.device_info = info;
+    CHECK(rev_a_session_accept_frame(&session, &session_frame, NULL)
+          == REV_A_SESSION_DEVICE_INFO_ACCEPTED);
+    session_frame.type = REV_A_TYPE_MEASUREMENT;
+    session_frame.value.measurement = measurement;
+    CHECK(rev_a_session_accept_frame(&session, &session_frame, &session_measurement)
+          == REV_A_SESSION_ADC_NOT_READY);
+    CHECK(session.rejected_measurements_without_adc == 1u);
+
+    puts("PASS: Rev A command/ACK stream, CRC, DEVICE_INFO, ADC metadata gates, raw preservation, signed formats and SYNC recovery");
     return 0;
 }
