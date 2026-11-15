@@ -1,6 +1,6 @@
 # بروتوكول القياس بين RP2040 وESP32-S3 — Rev A
 
-**الحالة:** عقد بيانات v0.1؛ مرجع Python ومحلل C محمول منفذان ومختبران على CI، لكن ESP-IDF UART task والربط الفيزيائي لم ينفذا بعد.  
+**الحالة:** عقد بيانات v0.1؛ مرجع Python ومحلل C محمول، وESP-IDF UART task ومستقبل أوامر RP2040/ACK منفذة برمجياً وتُبنى على CI. لم ينفذ UART loopback أو اختبار اللوحتين فعلياً بعد.  
 **التاريخ:** 2026-11-11
 
 ## 1. الهدف
@@ -94,15 +94,15 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 |---|---:|---|
 | HW_REV | 1 | مراجعة لوحة القياس |
 | FW_MAJOR/MINOR/PATCH | 3 | إصدار Firmware |
-| ADC_MODEL_ID | 1 | 0x01 ADS8861؛ 0x02 ADS8860؛ 0x03 ADS7054؛ 0x04 AD7980 |
-| SAMPLE_FORMAT_ID | 1 | 0x01 two's-complement؛ 0x02 unsigned straight-binary |
-| ADC_RESOLUTION_BITS | 1 | 16 أو14 |
-| ADC_INPUT_MODE_ID | 1 | 0x01 differential؛ 0x02 single-ended؛ 0x03 pseudo-differential |
+| ADC_MODEL_ID | 1 | 0x00 لا يوجد ADC مركب؛ 0x01 ADS8861؛ 0x02 ADS8860؛ 0x03 ADS7054؛ 0x04 AD7980 |
+| SAMPLE_FORMAT_ID | 1 | 0x00 غير متاح عند ADC_NONE؛ 0x01 two's-complement؛ 0x02 unsigned straight-binary |
+| ADC_RESOLUTION_BITS | 1 | 16 أو14؛ صفر فقط عند ADC_NONE |
+| ADC_INPUT_MODE_ID | 1 | 0x00 غير متاح عند ADC_NONE؛ 0x01 differential؛ 0x02 single-ended؛ 0x03 pseudo-differential |
 | ADC_VREF_UV | 4 | قيمة المرجع الاسمية بالميكروفولت؛ ADS8861 مع ADR4540B=4096000؛ القيمة0 تعني أن قيمة المرجع لم تُقَس/لم تُحدَّد |
 | ACTIVE_PROFILE_ID | 1 | جدول التأخيرات النشط |
 | PROFILE_CRC32 | 4 | CRC32/ISO-HDLC لجدول الملف |
 
-مرجع Python ومحلل C يدعمان MEASUREMENT وDEVICE_INFO. أضيف في C encoder لإطارات HELLO وGET_INFO وSTART وSTOP وSELF_TEST دون payload، وSET_PROFILE مع بايت واحد لمعرف الملف. هذا لا ينفذ مستقبل الأوامر في RP2040 ولا ACK حتى الآن؛ كما أن قائمة profile IDs المسموحة يجب أن يفرضها Firmware ولا يختارها encoder.
+مرجع Python ومحلل C يدعمان MEASUREMENT وDEVICE_INFO وأوامر التحكم وACK. أضيف parser تدريجي مشترك يقبل fragmented/concatenated/noisy command وACK frames، مع CRC وSYNC recovery. يفرض Firmware قائمة profile IDs المسموحة؛ encoder لا يثبت أن الأمر آمن.
 
 يجب على ESP32-S3 طلب DEVICE_INFO عند الاتصال أو إعادة الاتصال، وحفظ هذه البيانات مع جلسة القياس. عند ADS8861، يحول التطبيق raw16 إلى signed int16 وفق SAMPLE_FORMAT_ID=0x01، مع الاحتفاظ بالـraw الأصلي. إذا تغير ADC_MODEL_ID أو SAMPLE_FORMAT_ID، لا تخلط البيانات مع جلسة قديمة. تركيبات metadata المقبولة: ADS8861=(two's-complement,16,differential)، ADS8860=(unsigned,16,single-ended)، ADS7054=(two's-complement,14,differential)، AD7980=(unsigned,16,pseudo-differential). في ADS7054 يحفظ Firmware كود14-bit right-justified داخل حاوية16-bit، وتكون البتات العليا صفراً؛ يطبق التطبيق sign-extension من bit13 وفق ADC_RESOLUTION_BITS=14.
 
@@ -113,7 +113,23 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - SET_PROFILE: بايت واحد فقط لمعرف الملف، LENGTH=5، والإطار9 بايت.
 - ترفض الدالة أنواع الأوامر غير المعروفة وأطوال payload غير المطابقة والسعة غير الكافية.
 - لا تعتمد الدالة profile ID ولا تثبت أنه آمن؛ يجب أن يتحقق RP2040 من allowlist ثابتة قبل تنفيذ SET_PROFILE.
-- ACK ومتلقي الأوامر على RP2040، وربط GET_INFO بالـUART task على ESP32، لم تنفذ بعد.
+- مستقبل RP2040 الحالي يقبل HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST عبر UART0؛ ويرد ACK بصيغة موحدة. GET_INFO يرسل ACK ثم DEVICE_INFO.
+- في Firmware الاختبار الحالي: START مرفوض دائماً لأن مرحلة TX وقفل الأمان غير موجودين؛ STOP آمن ومتكرر؛ SET_PROFILE يقبل المعرف1 فقط؛ SELF_TEST غير مدعوم حتى تركيب ADC.
+
+### 5.3 صيغة ACK v0.1
+بعد SYNC والرأس المشترك، يحتوي ACK على payload ثابت من3 بايتات، لذلك LENGTH=7 وإجمالي الإطار11 بايت:
+| الحقل | الحجم | المعنى |
+|---|---:|---|
+| COMMAND_TYPE | 1 | نوع الأمر الذي يرد عليه ACK |
+| STATUS | 1 | 0=OK، 1=REJECTED، 2=BUSY، 3=UNSUPPORTED |
+| REASON | 1 | 0=NONE؛ 1=TX_NOT_ARMED؛ 2=ADC_NOT_PRESENT؛ 3=PROFILE_UNKNOWN؛ 4=SELF_TEST_UNAVAILABLE؛ 5=COMMAND_UNSUPPORTED |
+
+قاعدة التحقق: STATUS=OK يتطلب REASON=NONE؛ وكل حالة غير OK تتطلب سبباً غير صفري. لا يوجد command sequence في v0.1، لذلك يجب تسلسل الأوامر وعدم إرسال أوامر متزامنة متعددة قبل معالجة ACK السابق. CRC16 يحسب بالطريقة نفسها من VERSION إلى آخر payload.
+
+### 5.4 ADC_NONE ومنع القياسات الوهمية
+- ADC_MODEL_ID=0x00 يعني أن المتحكم متصل لكن لا يوجد ADC مركب/معروف. عندها يجب أن تكون SAMPLE_FORMAT_ID=0 وADC_RESOLUTION_BITS=0 وADC_INPUT_MODE_ID=0 وADC_VREF_UV=0.
+- يقبل parser/session هذه DEVICE_INFO كتعريف صادق لحالة اللوحة، لكنه يرفض كل MEASUREMENT ويرفع عداد rejected_measurements_without_adc. لا ترسل metadata ADS8861 المرشحة قبل تركيب ADC وتهيئته وقياس مرجعه.
+- PROFILE_CRC32 في هذا الإصدار هو CRC32/ISO-HDLC على ثمانية أعداد delay_ns، كل منها uint32 Little Endian. profile 1 = 8000/12000/16000/24000/36000/52000/72000/100000ns، وقيمته 0x71E6D9DD. هذه هوية جدول التوقيت البرمجي وليست توقيتاً مقاساً على اللوحة.
 
 ## 6. سلوك الأمان
 
@@ -212,3 +228,11 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 
 اكتملت الوظائف الأربع في CI #1320 على commit `61ab603` بنجاح؛ شملت 45 اختبار Python، واختبار C الصارم للـparser/session، وبناء ESP-IDF، وبناء RP2040 مع UF2 verification. لا يغير ذلك حدود البروتوكول: RP2040 لم ينفذ بعد command receiver أو DEVICE_INFO transmitter، وACK payload غير معرف. لذلك لا يوجد handshake فعلي بين المتحكمين، ولا يجوز اعتبار القياسات متاحة قبل DEVICE_INFO صحيحة من العتاد الحقيقي.
 
+
+## 9. تنفيذ مستقبل RP2040 وACK — 2026-11-15
+- أضيف استقبال UART0 بسرعة921600/8N1 على GP0=TX وGP1=RX في firmware الاختباري؛ اختيار الأرجل مؤقت ويحتاج مطابقة لوحة RP2040-Zero الفعلية وقياس continuity قبل التوصيل.
+- يستعمل RP2040 نفس rev_a_parser_feed() المشترك لاستقبال fragmented/noisy commands مع CRC16 وSYNC recovery.
+- HELLO وGET_INFO وSTOP وSET_PROFILE(profile 1) لها ACK؛ GET_INFO يرسل DEVICE_INFO بعد ACK.
+- DEVICE_INFO الحالي يعلن ADC_NONE بوضوح، لأن ADC غير مركب. لا توجد قياسات ترسل من هذا البرنامج. START مرفوض بسبب غياب مرحلة TX وقفل أمان عتادي، وSELF_TEST غير مدعوم دون ADC.
+- CRC32 للجدول profile 1 معرف على ثمانية تأخيرات ns بصيغة uint32 little-endian ويساوي 0x71E6D9DD.
+- هذه نقطة تكامل برمجية قابلة للبناء؛ لا تثبت UART loopback أو صحة GP0/GP1 أو وجود ADC أو أداء تناظري.
