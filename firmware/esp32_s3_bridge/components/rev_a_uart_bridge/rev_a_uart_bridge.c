@@ -42,12 +42,21 @@ static void status_set_parser_counters(void) {
     s_status.parser_rejections = s_parser.rejected_frames;
     s_status.parser_discarded_bytes = s_parser.discarded_bytes;
     s_status.rejected_measurements_without_info = s_session.rejected_measurements_without_info;
+    s_status.rejected_measurements_without_adc = s_session.rejected_measurements_without_adc;
     portEXIT_CRITICAL(&s_status_mux);
 }
 static void status_set_device_info(const rev_a_device_info_t *info) {
     portENTER_CRITICAL(&s_status_mux);
     if (info != NULL) { s_status.device_info = *info; s_status.device_info_valid = true; }
     else { memset(&s_status.device_info, 0, sizeof(s_status.device_info)); s_status.device_info_valid = false; }
+    portEXIT_CRITICAL(&s_status_mux);
+}
+static void status_set_ack(const rev_a_ack_t *ack) {
+    if (ack == NULL) return;
+    portENTER_CRITICAL(&s_status_mux);
+    s_status.last_ack = *ack;
+    s_status.last_ack_valid = true;
+    ++s_status.accepted_acks;
     portEXIT_CRITICAL(&s_status_mux);
 }
 
@@ -83,18 +92,30 @@ static void request_device_info(void) {
 static void parser_frame_callback(void *ctx, const rev_a_frame_t *frame) {
     (void)ctx;
     if (frame == NULL) return;
+    if (frame->type == REV_A_TYPE_ACK) {
+        status_set_ack(&frame->value.ack);
+        ESP_LOGI(TAG, "ACK command=0x%02X status=%u reason=%u",
+            (unsigned)frame->value.ack.command_type,
+            (unsigned)frame->value.ack.status,
+            (unsigned)frame->value.ack.reason);
+        return;
+    }
     if (frame->type == REV_A_TYPE_DEVICE_INFO) {
         const rev_a_session_result_t result = rev_a_session_accept_frame(&s_session, frame, NULL);
         if (result == REV_A_SESSION_DEVICE_INFO_ACCEPTED) {
             s_info_request_sent = true;
             status_set_device_info(&s_session.device_info);
             status_add(&s_status.accepted_device_info, 1u);
-            ESP_LOGI(TAG, "DEVICE_INFO accepted: ADC=%u format=%u resolution=%u input=%u VREF=%lu uV",
-                (unsigned)s_session.device_info.adc_model_id,
-                (unsigned)s_session.device_info.sample_format_id,
-                (unsigned)s_session.device_info.adc_resolution_bits,
-                (unsigned)s_session.device_info.adc_input_mode_id,
-                (unsigned long)s_session.device_info.adc_vref_uv);
+            if (s_session.device_info.adc_model_id == REV_A_ADC_NONE) {
+                ESP_LOGW(TAG, "DEVICE_INFO accepted: link alive, but no ADC is installed; measurements remain gated");
+            } else {
+                ESP_LOGI(TAG, "DEVICE_INFO accepted: ADC=%u format=%u resolution=%u input=%u VREF=%lu uV",
+                    (unsigned)s_session.device_info.adc_model_id,
+                    (unsigned)s_session.device_info.sample_format_id,
+                    (unsigned)s_session.device_info.adc_resolution_bits,
+                    (unsigned)s_session.device_info.adc_input_mode_id,
+                    (unsigned long)s_session.device_info.adc_vref_uv);
+            }
         }
         return;
     }
