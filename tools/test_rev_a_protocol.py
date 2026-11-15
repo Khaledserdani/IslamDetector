@@ -16,6 +16,7 @@ from rev_a_protocol import (
     TYPE_ACK,
     TYPE_HELLO,
     TYPE_GET_INFO,
+    TYPE_START,
     TYPE_SET_PROFILE,
     TYPE_STOP,
     ACK_STATUS_OK,
