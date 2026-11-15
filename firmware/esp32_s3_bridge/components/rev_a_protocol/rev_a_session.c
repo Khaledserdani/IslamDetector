@@ -66,6 +66,10 @@ rev_a_session_result_t rev_a_session_accept_frame(
         ++session->rejected_measurements_without_info;
         return REV_A_SESSION_WAITING_FOR_DEVICE_INFO;
     }
+    if (session->device_info.adc_model_id == REV_A_ADC_NONE) {
+        ++session->rejected_measurements_without_adc;
+        return REV_A_SESSION_ADC_NOT_READY;
+    }
     if (measurement_out == NULL) {
         return REV_A_SESSION_INVALID_ARGUMENT;
     }
