@@ -14,6 +14,7 @@ typedef enum {
     REV_A_SESSION_WAITING_FOR_DEVICE_INFO,
     REV_A_SESSION_INVALID_DEVICE_INFO,
     REV_A_SESSION_INVALID_MEASUREMENT,
+    REV_A_SESSION_ADC_NOT_READY,
     REV_A_SESSION_UNSUPPORTED_FRAME
 } rev_a_session_result_t;
 
@@ -23,6 +24,7 @@ typedef struct {
     uint32_t info_generation;
     uint32_t accepted_measurements;
     uint32_t rejected_measurements_without_info;
+    uint32_t rejected_measurements_without_adc;
 } rev_a_session_t;
 
 /*
