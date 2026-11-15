@@ -1,7 +1,7 @@
-"""Reference encoder/decoder for Islam Detector Rev A telemetry v1.
+"""Golden reference for Islam Detector Rev A binary protocol v0.1 (wire version 1).
 
-This module is the protocol golden reference for RP2040 firmware and ESP32-S3
-receiver implementations. It uses only the Python standard library.
+Implements measurement, DEVICE_INFO, command and ACK frames plus an incremental
+UART stream decoder. Uses only the Python standard library.
 """
 from __future__ import annotations
 
@@ -11,7 +11,30 @@ from typing import Any
 SYNC = b"IS"
 VERSION = 1
 TYPE_MEASUREMENT = 0x10
+TYPE_ACK = 0x80
 TYPE_DEVICE_INFO = 0x82
+
+TYPE_HELLO = 0x01
+TYPE_GET_INFO = 0x02
+TYPE_START = 0x03
+TYPE_STOP = 0x04
+TYPE_SET_PROFILE = 0x05
+TYPE_SELF_TEST = 0x06
+COMMAND_TYPES = frozenset({
+    TYPE_HELLO, TYPE_GET_INFO, TYPE_START, TYPE_STOP, TYPE_SET_PROFILE, TYPE_SELF_TEST
+})
+
+ACK_STATUS_OK = 0x00
+ACK_STATUS_REJECTED = 0x01
+ACK_STATUS_BUSY = 0x02
+ACK_STATUS_UNSUPPORTED = 0x03
+ACK_REASON_NONE = 0x00
+ACK_REASON_TX_NOT_ARMED = 0x01
+ACK_REASON_ADC_NOT_PRESENT = 0x02
+ACK_REASON_PROFILE_UNKNOWN = 0x03
+ACK_REASON_SELF_TEST_UNAVAILABLE = 0x04
+ACK_REASON_COMMAND_UNSUPPORTED = 0x05
+
 MAX_SAMPLES = 8
 INVALID_CURRENT_MA = 0xFFFF
 INVALID_TEMPERATURE_CENTI_C = 0x7FFF
@@ -152,19 +175,23 @@ def decode_measurement(frame: bytes) -> dict[str, Any]:
     }
 
 
+ADC_MODEL_NONE = 0x00
 ADC_MODEL_ADS8861 = 0x01
 ADC_MODEL_ADS8860 = 0x02
 ADC_MODEL_ADS7054 = 0x03
 ADC_MODEL_AD7980 = 0x04
 
+SAMPLE_FORMAT_UNKNOWN = 0x00
 SAMPLE_FORMAT_TWOS_COMPLEMENT = 0x01
 SAMPLE_FORMAT_UNSIGNED = 0x02
 
+ADC_INPUT_UNKNOWN = 0x00
 ADC_INPUT_DIFFERENTIAL = 0x01
 ADC_INPUT_SINGLE_ENDED = 0x02
 ADC_INPUT_PSEUDO_DIFFERENTIAL = 0x03
 
 _ADC_METADATA = {
+    ADC_MODEL_NONE: (SAMPLE_FORMAT_UNKNOWN, 0, ADC_INPUT_UNKNOWN),
     ADC_MODEL_ADS8861: (SAMPLE_FORMAT_TWOS_COMPLEMENT, 16, ADC_INPUT_DIFFERENTIAL),
     ADC_MODEL_ADS8860: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_SINGLE_ENDED),
     ADC_MODEL_ADS7054: (SAMPLE_FORMAT_TWOS_COMPLEMENT, 14, ADC_INPUT_DIFFERENTIAL),
@@ -195,19 +222,11 @@ def encode_device_info(
     profile_crc32: int,
 ) -> bytes:
     """Encode DEVICE_INFO (TYPE 0x82) using the fixed v1 metadata payload."""
-    if adc_model_id not in (ADC_MODEL_ADS8861, ADC_MODEL_ADS8860, ADC_MODEL_ADS7054, ADC_MODEL_AD7980):
-        raise ProtocolError("unsupported adc_model_id")
-    if sample_format_id not in (SAMPLE_FORMAT_TWOS_COMPLEMENT, SAMPLE_FORMAT_UNSIGNED):
-        raise ProtocolError("unsupported sample_format_id")
-    if adc_resolution_bits not in (14, 16):
-        raise ProtocolError("adc_resolution_bits must be 14 or 16")
-    if adc_input_mode_id not in (
-        ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
-    ):
-        raise ProtocolError("unsupported adc_input_mode_id")
     _validate_adc_metadata(
         adc_model_id, sample_format_id, adc_resolution_bits, adc_input_mode_id
     )
+    if adc_model_id == ADC_MODEL_NONE and adc_vref_uv != 0:
+        raise ProtocolError("ADC_NONE requires adc_vref_uv=0")
 
     payload = _DEVICE_INFO.pack(
         _bounded(hw_rev, 0, 255, "hw_rev"),
@@ -251,28 +270,100 @@ def decode_device_info(frame: bytes) -> dict[str, int]:
     result = dict(zip(keys, fields))
     result["version"] = version
     result["type"] = msg_type
-    if result["adc_model_id"] not in (
-        ADC_MODEL_ADS8861, ADC_MODEL_ADS8860, ADC_MODEL_ADS7054, ADC_MODEL_AD7980
-    ):
-        raise ProtocolError("unsupported adc_model_id")
-    if result["sample_format_id"] not in (
-        SAMPLE_FORMAT_TWOS_COMPLEMENT, SAMPLE_FORMAT_UNSIGNED
-    ):
-        raise ProtocolError("unsupported sample_format_id")
-    if result["adc_resolution_bits"] not in (14, 16):
-        raise ProtocolError("invalid ADC resolution")
-    if result["adc_input_mode_id"] not in (
-        ADC_INPUT_DIFFERENTIAL, ADC_INPUT_SINGLE_ENDED, ADC_INPUT_PSEUDO_DIFFERENTIAL
-    ):
-        raise ProtocolError("unsupported ADC input mode")
     _validate_adc_metadata(
         result["adc_model_id"], result["sample_format_id"],
         result["adc_resolution_bits"], result["adc_input_mode_id"]
     )
+    if result["adc_model_id"] == ADC_MODEL_NONE and result["adc_vref_uv"] != 0:
+        raise ProtocolError("ADC_NONE requires adc_vref_uv=0")
     return result
 
 
-SAMPLE_FORMAT_UNSIGNED = 0x02
+def _encode_control_frame(msg_type: int, payload: bytes) -> bytes:
+    body_length = _CONTROL_HEADER.size + len(payload)
+    body = _CONTROL_HEADER.pack(VERSION, msg_type, body_length) + payload
+    return SYNC + body + _U16.pack(crc16_ccitt_false(body))
+
+
+def _decode_control_frame(frame: bytes, expected_type: int, expected_body_length: int) -> bytes:
+    if len(frame) != 2 + expected_body_length + 2:
+        raise ProtocolError("control frame length mismatch")
+    if frame[:2] != SYNC:
+        raise ProtocolError("bad sync word")
+    body = frame[2:-2]
+    if crc16_ccitt_false(body) != _U16.unpack(frame[-2:])[0]:
+        raise ProtocolError("CRC mismatch")
+    version, msg_type, length = _CONTROL_HEADER.unpack(body[:_CONTROL_HEADER.size])
+    if version != VERSION or msg_type != expected_type:
+        raise ProtocolError("unexpected control frame type or version")
+    if length != len(body):
+        raise ProtocolError("declared control-frame length mismatch")
+    return body[_CONTROL_HEADER.size:]
+
+
+def encode_command(command_type: int, profile_id: int | None = None) -> bytes:
+    """Encode HELLO/GET_INFO/START/STOP/SELF_TEST or SET_PROFILE."""
+    if command_type not in COMMAND_TYPES:
+        raise ProtocolError("unsupported command type")
+    if command_type == TYPE_SET_PROFILE:
+        payload = bytes((_bounded(profile_id, 0, 255, "profile_id"),))
+    else:
+        if profile_id is not None:
+            raise ProtocolError("profile_id is only valid for SET_PROFILE")
+        payload = b""
+    return _encode_control_frame(command_type, payload)
+
+
+def decode_command(frame: bytes) -> dict[str, int]:
+    """Validate and decode one complete command frame."""
+    if len(frame) < 8 or frame[:2] != SYNC:
+        raise ProtocolError("command frame is too short or has bad sync")
+    command_type = frame[3]
+    if command_type not in COMMAND_TYPES:
+        raise ProtocolError("unsupported command type")
+    expected_body_length = 5 if command_type == TYPE_SET_PROFILE else 4
+    payload = _decode_control_frame(frame, command_type, expected_body_length)
+    result = {"version": VERSION, "type": command_type}
+    if command_type == TYPE_SET_PROFILE:
+        result["profile_id"] = payload[0]
+    return result
+
+
+def _validate_ack(command_type: int, status: int, reason: int) -> None:
+    if command_type not in COMMAND_TYPES:
+        raise ProtocolError("ACK command_type is unsupported")
+    if status not in (
+        ACK_STATUS_OK, ACK_STATUS_REJECTED, ACK_STATUS_BUSY, ACK_STATUS_UNSUPPORTED
+    ):
+        raise ProtocolError("ACK status is unsupported")
+    if reason not in (
+        ACK_REASON_NONE, ACK_REASON_TX_NOT_ARMED, ACK_REASON_ADC_NOT_PRESENT,
+        ACK_REASON_PROFILE_UNKNOWN, ACK_REASON_SELF_TEST_UNAVAILABLE,
+        ACK_REASON_COMMAND_UNSUPPORTED,
+    ):
+        raise ProtocolError("ACK reason is unsupported")
+    if (status == ACK_STATUS_OK) != (reason == ACK_REASON_NONE):
+        raise ProtocolError("ACK status and reason are inconsistent")
+
+
+def encode_ack(command_type: int, status: int, reason: int) -> bytes:
+    """Encode the fixed v0.1 ACK payload (command, status, reason)."""
+    _validate_ack(command_type, status, reason)
+    return _encode_control_frame(TYPE_ACK, bytes((command_type, status, reason)))
+
+
+def decode_ack(frame: bytes) -> dict[str, int]:
+    """Validate and decode one complete ACK frame."""
+    payload = _decode_control_frame(frame, TYPE_ACK, 7)
+    command_type, status, reason = payload
+    _validate_ack(command_type, status, reason)
+    return {
+        "version": VERSION,
+        "type": TYPE_ACK,
+        "command_type": command_type,
+        "status": status,
+        "reason": reason,
+    }
 
 
 def interpret_sample(
@@ -338,6 +429,10 @@ class ProtocolStreamDecoder:
                 length_ok = self.MIN_BODY_LENGTH <= body_length <= self.MAX_BODY_LENGTH
             elif msg_type == TYPE_DEVICE_INFO:
                 length_ok = body_length == _CONTROL_HEADER.size + _DEVICE_INFO.size
+            elif msg_type == TYPE_ACK:
+                length_ok = body_length == 7
+            elif msg_type in COMMAND_TYPES:
+                length_ok = body_length == (5 if msg_type == TYPE_SET_PROFILE else 4)
             else:
                 length_ok = False
             if not length_ok:
@@ -352,11 +447,14 @@ class ProtocolStreamDecoder:
 
             candidate = bytes(self._buffer[:frame_length])
             try:
-                item = (
-                    decode_measurement(candidate)
-                    if msg_type == TYPE_MEASUREMENT
-                    else decode_device_info(candidate)
-                )
+                if msg_type == TYPE_MEASUREMENT:
+                    item = decode_measurement(candidate)
+                elif msg_type == TYPE_DEVICE_INFO:
+                    item = decode_device_info(candidate)
+                elif msg_type == TYPE_ACK:
+                    item = decode_ack(candidate)
+                else:
+                    item = decode_command(candidate)
             except ProtocolError:
                 # Advance one byte, not a whole claimed frame: a valid SYNC
                 # may occur later in the buffered stream after corruption.
