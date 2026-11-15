@@ -7,6 +7,8 @@
 #include "hardware/irq.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
+#include "hardware/uart.h"
+#include "rev_a_protocol.h"
 
 #include "sample_marker_echo.pio.h"
 #include "ads8861_capture.h"
@@ -14,6 +16,11 @@
 #define TX_TEST_PIN       4u
 #define SAMPLE_MARKER_PIN 5u
 #define PIO_ECHO_PIN      6u
+#define PROTOCOL_UART     uart0
+#define PROTOCOL_UART_TX_PIN 0u
+#define PROTOCOL_UART_RX_PIN 1u
+#define PROTOCOL_UART_BAUD 921600u
+#define REV_A_ACTIVE_PROFILE_ID 1u
 
 // Enable only after ADS8861 hardware and analog protection are fitted.
 #define ENABLE_ADS8861_CAPTURE 0
@@ -26,6 +33,7 @@ static const uint16_t sample_delays_us[8] = {
     8u, 12u, 16u, 24u, 36u, 52u, 72u, 100u
 };
 
+static rev_a_parser_t command_parser;
 static uint slice_num;
 static float pwm_divider;
 static uint16_t pulse_ticks;
@@ -82,6 +90,110 @@ static void timing_outputs_stop(void) {
     gpio_put(SAMPLE_MARKER_PIN, 1);
 
     printf("STOP: TX_TEST_PIN forced LOW; sample marker idle HIGH.\n");
+}
+
+static uint32_t crc32_iso_hdlc(const uint8_t *data, size_t length) {
+    uint32_t crc = 0xFFFFFFFFu;
+    for (size_t i = 0u; i < length; ++i) {
+        crc ^= data[i];
+        for (uint8_t bit = 0u; bit < 8u; ++bit) {
+            crc = (crc & 1u) != 0u ? (crc >> 1u) ^ 0xEDB88320u : crc >> 1u;
+        }
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+static uint32_t active_profile_crc32(void) {
+    uint8_t bytes[32];
+    for (size_t i = 0u; i < 8u; ++i) {
+        const uint32_t delay_ns = (uint32_t)sample_delays_us[i] * 1000u;
+        bytes[i * 4u] = (uint8_t)(delay_ns & 0xFFu);
+        bytes[i * 4u + 1u] = (uint8_t)((delay_ns >> 8u) & 0xFFu);
+        bytes[i * 4u + 2u] = (uint8_t)((delay_ns >> 16u) & 0xFFu);
+        bytes[i * 4u + 3u] = (uint8_t)(delay_ns >> 24u);
+    }
+    return crc32_iso_hdlc(bytes, sizeof(bytes));
+}
+
+static void protocol_send_ack(uint8_t command_type, uint8_t status, uint8_t reason) {
+    const rev_a_ack_t ack = { command_type, status, reason };
+    uint8_t frame[REV_A_MAX_ACK_FRAME_SIZE];
+    size_t frame_length = 0u;
+    if (rev_a_encode_ack(&ack, frame, sizeof(frame), &frame_length)) {
+        uart_write_blocking(PROTOCOL_UART, frame, frame_length);
+    }
+}
+
+static void protocol_send_device_info(void) {
+    rev_a_device_info_t info = {0};
+    info.hw_rev = 0u;
+    info.fw_major = 0u;
+    info.fw_minor = 1u;
+    info.fw_patch = 0u;
+    info.adc_model_id = REV_A_ADC_NONE;
+    info.sample_format_id = REV_A_SAMPLE_UNKNOWN;
+    info.adc_resolution_bits = 0u;
+    info.adc_input_mode_id = REV_A_INPUT_UNKNOWN;
+    info.adc_vref_uv = 0u;
+    info.active_profile_id = REV_A_ACTIVE_PROFILE_ID;
+    info.profile_crc32 = active_profile_crc32();
+
+    uint8_t frame[25];
+    size_t frame_length = 0u;
+    if (rev_a_encode_device_info(&info, frame, sizeof(frame), &frame_length)) {
+        uart_write_blocking(PROTOCOL_UART, frame, frame_length);
+    }
+}
+
+static void protocol_command_callback(void *context, const rev_a_frame_t *frame) {
+    (void)context;
+    if (frame == NULL) return;
+    if (frame->type != REV_A_TYPE_HELLO && frame->type != REV_A_TYPE_GET_INFO
+        && frame->type != REV_A_TYPE_START && frame->type != REV_A_TYPE_STOP
+        && frame->type != REV_A_TYPE_SET_PROFILE && frame->type != REV_A_TYPE_SELF_TEST) return;
+    const rev_a_command_t *command = &frame->value.command;
+    switch (frame->type) {
+        case REV_A_TYPE_HELLO:
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_OK, REV_A_ACK_REASON_NONE);
+            break;
+        case REV_A_TYPE_GET_INFO:
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_OK, REV_A_ACK_REASON_NONE);
+            protocol_send_device_info();
+            break;
+        case REV_A_TYPE_STOP:
+            timing_outputs_stop();
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_OK, REV_A_ACK_REASON_NONE);
+            break;
+        case REV_A_TYPE_START:
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_REJECTED,
+                              REV_A_ACK_REASON_TX_NOT_ARMED);
+            break;
+        case REV_A_TYPE_SET_PROFILE:
+            if (command->profile_id == REV_A_ACTIVE_PROFILE_ID) {
+                protocol_send_ack(command->type, REV_A_ACK_STATUS_OK, REV_A_ACK_REASON_NONE);
+            } else {
+                protocol_send_ack(command->type, REV_A_ACK_STATUS_REJECTED,
+                                  REV_A_ACK_REASON_PROFILE_UNKNOWN);
+            }
+            break;
+        case REV_A_TYPE_SELF_TEST:
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_UNSUPPORTED,
+                              REV_A_ACK_REASON_ADC_NOT_PRESENT);
+            break;
+        default:
+            protocol_send_ack(command->type, REV_A_ACK_STATUS_UNSUPPORTED,
+                              REV_A_ACK_REASON_COMMAND_UNSUPPORTED);
+            break;
+    }
+}
+
+static void protocol_uart_init(void) {
+    rev_a_parser_init(&command_parser);
+    uart_init(PROTOCOL_UART, PROTOCOL_UART_BAUD);
+    gpio_set_function(PROTOCOL_UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(PROTOCOL_UART_RX_PIN, GPIO_FUNC_UART);
+    uart_set_format(PROTOCOL_UART, 8u, 1u, UART_PARITY_NONE);
+    uart_set_hw_flow(PROTOCOL_UART, false, false);
 }
 
 static void timing_outputs_start(void) {
@@ -175,6 +287,7 @@ static void print_help(void) {
 
 int main(void) {
     stdio_init_all();
+    protocol_uart_init();
     sleep_ms(1800);
 
     gpio_init(TX_TEST_PIN);
@@ -201,9 +314,16 @@ int main(void) {
     irq_set_enabled(PWM_IRQ_WRAP, true);
 
     printf("Safe boot: no pulse is generated until command R.\n");
+    printf("Protocol UART0: GP0=TX, GP1=RX, 921600 8N1 (provisional pin map).\n");
+    printf("GET_INFO reports ADC_NONE; START is rejected until a reviewed TX interlock exists.\n");
     print_help();
 
     while (true) {
+        while (uart_is_readable(PROTOCOL_UART)) {
+            const uint8_t byte = (uint8_t)uart_getc(PROTOCOL_UART);
+            (void)rev_a_parser_feed(&command_parser, &byte, 1u,
+                                    protocol_command_callback, NULL);
+        }
         const int ch = getchar_timeout_us(0);
         if (ch == 'R' || ch == 'r') {
             timing_outputs_start();
