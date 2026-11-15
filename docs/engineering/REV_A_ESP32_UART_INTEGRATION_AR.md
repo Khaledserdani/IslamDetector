@@ -1,6 +1,6 @@
 # تنفيذ جسر UART على ESP32-S3 — Rev A
 
-**الحالة:** مكوّن ESP-IDF أضيف واكتمل compile/link في CI #1319 باستخدام ESP-IDF release-v5.4. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
+**الحالة:** مكوّن ESP-IDF أضيف واكتمل compile/link في CI #1350 باستخدام ESP-IDF release-v5.4. نواة parser/session وUART task تقبل ACK وDEVICE_INFO، ومستقبل RP2040 يرسل تعريفاً صادقاً ADC_NONE. لا يوجد توصيل عتادي أو اختبار UART loopback بعد.
 
 ## ما أضيف
 - مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
@@ -70,3 +70,12 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 
 هذا يثبت البناء الآلي فقط. يبقى الجسر معطلاً افتراضياً، وTX/RX GPIO=-1. لا يوجد RP2040 command receiver أو DEVICE_INFO transmitter أو ACK decoder، ولا يوجد UART loopback أو Flash أو اختبار Wi-Fi/Android end-to-end.
 
+
+
+## تحديث 2026-11-15 — اكتمال الطرف البرمجي الأولي
+- أضيف ACK v0.1 payload من3 بايتات (COMMAND_TYPE/STATUS/REASON) إلى parser المشترك، مع رفض تراكيب status/reason غير المتسقة.
+- يقبل ESP32 ACK ويسجله في rev_a_uart_bridge_status_t بدلاً من اعتباره إطاراً مجهولاً يؤدي إلى إبطال DEVICE_INFO.
+- RP2040 يستقبل HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST على UART0؛ يرسل ACK، وGET_INFO يعيد DEVICE_INFO.
+- ADC_NONE يمنع ادعاء أن ADS8861 مركب؛ أي MEASUREMENT قبل تركيب ADC يرفضه session gate.
+- START يظل مرفوضاً لأن هذا firmware لا يملك TX stage أو interlock؛ لا يوصل GP4 إلى MOSFET أو ملف.
+- الأرجل GP0/GP1 إعداد أولي فقط؛ يلزم مراجعة مخطط اللوحة الفعلية وUART loopback منخفض الجهد قبل اعتمادها.
