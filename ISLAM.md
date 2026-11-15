@@ -3,7 +3,7 @@
 > **كلمة الاسترجاع:** إسلام  
 > عند كتابة المستخدم «إسلام» أو «مشروع إسلام»، ابدأ بهذا الملف ثم استرجع أحدث حالة GitHub والمتابعة والقرارات السابقة. هذا الملف هو سجل المشروع العملي، ويُحدّث بعد كل تغيير أو اختبار مؤكد.
 
-آخر مراجعة لهذا الملف: 2026-11-09  
+آخر مراجعة لهذا الملف: 2026-11-15  
 المستودع المعتمد: https://github.com/Khaledserdani/IslamDetector  
 الفرع الأساسي: `main`  
 الاسم البرمجي للتطبيق: `Islam Detector`  
@@ -1006,3 +1006,47 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - PR #7 ما زال Open Draft وغير مدمج. لم يتغير `main`.
 - الخطوة التالية ذات الأولوية: تنفيذ/اختبار encoder مشترك لإطارات MEASUREMENT وDEVICE_INFO على RP2040 باستخدام عقد `rev_a_protocol.h` ومتجهات golden tests، ثم تحديد/تنفيذ receiver للأوامر على RP2040 واختبار host قبل UART loopback. لا تُرسل ACK قبل تثبيت payload الخاص به؛ ولا تُعلن ADS8861 أو VREF مركبين في DEVICE_INFO قبل تركيبها فعلياً.
 - يظل ADC capture معطلاً، ولا توجد قياسات عتاد فعلية أو ملف/AFE/حماية TX نهائية أو BOM تصنيع.
+
+
+## 21.13 متابعة يومية — توحيد Python protocol ونتيجة CI #1365 الجزئية — 2026-11-15
+
+### حالة GitHub
+- الفرع: `hardware/rev-a-measurement-design`.
+- HEAD بعد إصلاح اختبار ACK: `10fca1ecb6acf5d147a71a4ef304a0aec6789859`.
+- PR #6 حالته الفعلية: **closed، Draft، غير مدمج** منذ 2026-11-11؛ لم نعد فتحه ولم ندمجه.
+- PR #7 هو طلب المراجعة المفتوح **Draft** على الفرع نفسه، head يتبع آخر commits أعلاه. لم يتغير `main`.
+
+### CI وملف UF2
+- CI #1362، run ID `43722796107`، على commit `d1308601a8710fa4410a0b915698daa83f333679`: الوظائف الأربع `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge` كلها Success.
+- Artifact UF2 ID `14165530847` باسم `IslamDetector-RevA-RP2040-Timing-Test-UF2`؛ الأرشيف 31,285 bytes، والملف الداخلي `islam_rev_a_timing_test.uf2` حجمه79,360 bytes.
+- فُك الأرشيف وفُحص UF2 فعلياً: 155 كتلة، payload=39,680 bytes، Family ID=`0xE48BFF56`، المجال `0x10000000..0x10009B00`. SHA-256 للملف الخام: `3f22107c0acc52006df4fbf4f747d858a5f96e1ebfca85134b4a88008032c0b5`.
+- Artifact APK ID `14164924120` باسم `IslamDetector-Original-APK`، الحجم المضغوط 21,036 bytes.
+- CI #1364 كشف خطأ اختبار فقط: نسيان استيراد `TYPE_START` في اختبار ACK؛ أُصلح في commit `10fca1e`.
+- CI #1365، run ID `43724254180`، على HEAD أعلاه: وظيفة `protocol-tests` اكتملت Success، وشغّلت 50 اختبار Python بنجاح، ثم تجميع واختبار C المحمول مع التحذيرات الصارمة بنجاح. وظائف Android وESP32-S3 وRP2040 كانت لا تزال قيد التنفيذ وقت كتابة هذه النقطة؛ لا تسجل CI كاملاً أو UF2 جديداً لهذا HEAD قبل اكتمالها.
+
+### توحيد مرجع Python
+- `tools/rev_a_protocol.py` أصبح يدعم ADC_NONE الصادق مع SAMPLE_FORMAT_UNKNOWN وresolution=0 وinput=UNKNOWN وVREF=0، ويرفض VREF غير صفري عند ADC_NONE.
+- أضيف ترميز/فك HELLO وGET_INFO وSTART وSTOP وSET_PROFILE وSELF_TEST، وACK بحمولة command/status/reason، وأصبح stream decoder يقبل أوامر وACK وDEVICE_INFO وMEASUREMENT مع fragmentation وCRC/SYNC recovery.
+- commits:
+  - `b9d6dade946c1be1a0a7fa3b42f4fceeaa414810` — توحيد مرجع Python مع ADC_NONE وإطارات التحكم.
+  - `8c70422421d01d818101419c2c0248490f13ba03` — إضافة اختبارات ADC_NONE والأوامر وACK.
+  - `10fca1ecb6acf5d147a71a4ef304a0aec6789859` — إصلاح استيراد TYPE_START في الاختبار.
+- لا يزال هذا اختبار مرجع برمجي؛ لا يثبت اتصال UART على اللوحتين.
+
+### مراجعة Android
+- Manifest: INTERNET وACCESS_NETWORK_STATE، دعم RTL، وcleartext HTTP لتوافق واجهة ESP32 المحلية.
+- Gradle: AGP 8.7.3، compileSdk 35، minSdk 23، targetSdk 35؛ CI يستخدم Java17 وGradle8.9.
+- MainActivity: الشبكة في Executor مستقل مع timeouts وdisconnect داخل finally؛ SQLite والتاريخ والتصدير على منفذ تخزين تسلسلي؛ لا ظهر خطأ مانع في المراجعة الساكنة.
+- التصدير الحالي يشارك نص CSV عبر Sharesheet، ولا ينشئ ملفاً مستقلاً في Downloads/SAF. لم يختبر التطبيق على هاتف في هذا التشغيل.
+
+### حدود العتاد
+- RP2040 يستقبل UART0 على GP0/GP1 مؤقتاً، ويجيب HELLO/GET_INFO/STOP/SET_PROFILE بـACK؛ GET_INFO يرسل DEVICE_INFO يعلن ADC_NONE. START مرفوض وSELF_TEST غير مدعوم.
+- ESP32-S3 parser/session/UART task يبنى على CI لكنه disabled افتراضياً؛ UART GPIO غير معين، ولا توجد board-to-board loopback أو Wi-Fi/WebServer/Android JSON endpoint.
+- ADS8861 PIO capture مدمج في البناء لكنه `ENABLE_ADS8861_CAPTURE=0`. لا توجد قراءة ADC فعلية أو قياس timing/jitter أو clip-release.
+- لا قياسات L/DCR/قطبية/transient للملف، ولا حماية TX/RX أو قيم MOSFET/TVS/snubber معتمدة، ولا مخطط KiCad أو BOM أو PCB/PCBA.
+
+### الخطوة التالية
+1. انتظار اكتمال CI #1365 وفحص كل الوظائف وArtifact UF2 الجديد إن ظهر.
+2. تدقيق ACK/DEVICE_INFO على UART loopback منخفض الجهد بعد مطابقة pinout الفعلي للوحتي RP2040-Zero وESP32-S3-N16R8.
+3. إضافة producer MEASUREMENT على RP2040 بعد تركيب ADC فعلي والتحقق من metadata، ثم ربط queue في ESP32 مع واجهة Wi-Fi/Android.
+4. إجراء قياسات الملف وRX recovery والحماية قبل تثبيت المخطط أو BOM. لا تشغيل TX عالي الطاقة ولا شراء قطع حماية بالتخمين.
