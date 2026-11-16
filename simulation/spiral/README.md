@@ -31,6 +31,14 @@ ran 15 tests successfully in GitHub Actions (commit
 not trigger the simulation workflow.
 
 The disk model is a reduced-order axisymmetric approximation, not 3-D FEM.
-The target values in tests are synthetic fixtures, not selected field targets.
-No detection depth, metal classification, soil performance or hardware safety
-claim follows from these tests.
+It uses equal-area annuli and currently rejects more than 8 target rings because
+higher refinement produced a numerically unreliable response in the present
+thin-ring approximation. The target values in tests are synthetic fixtures,
+not selected field targets. No detection depth, metal classification, soil
+performance or hardware safety claim follows from these tests.
+
+The latest validated run passed 16 unit tests and completed separate angular
+and radial sensitivity sweeps. The angular sweep changed by about 0.063% from
+96 to 128 segments per ring, while the radial sweep still changed by about
+0.676% from 7 to 8 rings; radial convergence is therefore not established.
+See `docs/science/MONO_SPIRAL_DISK_SURROGATE_CONVERGENCE_AR.md`.
