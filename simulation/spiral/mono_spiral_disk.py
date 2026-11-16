@@ -186,6 +186,9 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
                 lower[i][j] = math.sqrt(value)
             else:
                 lower[i][j] = value/lower[j][j]
+    diagonal = [lower[i][i] for i in range(n)]
+    if min(diagonal)/max(diagonal) < 1e-4:
+        raise ValueError("inductance matrix is ill-conditioned for this ring discretization")
     return L, R, radii
 
 
