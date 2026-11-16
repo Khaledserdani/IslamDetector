@@ -37,8 +37,11 @@ thin-ring approximation. The target values in tests are synthetic fixtures,
 not selected field targets. No detection depth, metal classification, soil
 performance or hardware safety claim follows from these tests.
 
-The latest validated run passed 16 unit tests and completed separate angular
-and radial sensitivity sweeps. The angular sweep changed by about 0.063% from
-96 to 128 segments per ring, while the radial sweep still changed by about
-0.676% from 7 to 8 rings; radial convergence is therefore not established.
-See `docs/science/MONO_SPIRAL_DISK_SURROGATE_CONVERGENCE_AR.md`.
+The latest validated run passed 19 unit tests and completed angular, radial
+and time-step sensitivity sweeps. The angular sweep changed by about 0.063%
+from 96 to 128 segments per ring. The radial sweep still changed by about
+0.676% from 7 to 8 rings, so radial convergence is not established. Reducing
+the time step from 0.125 to 0.0625 us changed the receive peak by about
+0.094-0.096% for 4, 6 and 8 rings; this supports time integration stability
+at the finer step for these fixtures only. See
+`docs/science/MONO_SPIRAL_DISK_SURROGATE_CONVERGENCE_AR.md`.
