@@ -1,4 +1,4 @@
-"""Run independent angular and radial sensitivity sweeps for disk surrogate."""
+"""Run independent angular and refined radial sensitivity sweeps."""
 from __future__ import annotations
 
 import csv
@@ -24,7 +24,8 @@ def main() -> None:
     rows = []
     sweeps = [
         ("angular", [(6, 48), (6, 64), (6, 96), (6, 128)]),
-        ("radial", [(3, 96), (4, 96), (6, 96), (8, 96)]),
+        ("radial", [(4, 96), (5, 96), (6, 96), (7, 96),
+                    (8, 96), (9, 96), (10, 96), (12, 96)]),
     ]
     for sweep_name, cases in sweeps:
         previous = None
