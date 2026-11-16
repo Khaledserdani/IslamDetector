@@ -17,3 +17,20 @@ Limitations:
 - No PI switching waveform, target eddy currents, soil, receiver input loading,
   clamp or analogue front end is included.
 - This is a geometry and field-kernel baseline, not a detection-depth model.
+
+## Additional transient and target models
+
+- `mono_spiral_transient.py`: first-order coupled primary/target RL model.
+- `mono_spiral_disk.py`: multi-ring conducting-disk surrogate with mutual
+  inductance between the square winding and concentric eddy-current loops.
+- `test_mono_spiral_disk.py`: target-surrogate regression tests.
+
+Run all tests with `python -m unittest -v`. The latest validated revision
+ran 15 tests successfully in GitHub Actions (commit
+`f0931762eef1e365d2952dba3a4797bf3eebec35`). Documentation-only commits may
+not trigger the simulation workflow.
+
+The disk model is a reduced-order axisymmetric approximation, not 3-D FEM.
+The target values in tests are synthetic fixtures, not selected field targets.
+No detection depth, metal classification, soil performance or hardware safety
+claim follows from these tests.
