@@ -21,7 +21,7 @@ def main() -> None:
             depth_m=0.04,
             rings=ring_count,
         )
-        for dt_us in (2.0, 1.0, 0.5, 0.25, 0.125):
+        for dt_us in (1.0, 0.5, 0.25, 0.125, 0.0625):
             pulse = Pulse(time_step_s=dt_us * 1e-6)
             peak = receive_peak(simulate(Coil(), disk, pulse, ring_segments=96))
             rows.append({
