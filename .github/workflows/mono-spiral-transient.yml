@@ -1,0 +1,29 @@
+name: ISLAM LAB Mono Spiral transient model tests
+
+on:
+  push:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - "simulation/spiral/**"
+      - ".github/workflows/mono-spiral-transient.yml"
+  pull_request:
+    paths:
+      - "simulation/spiral/**"
+      - ".github/workflows/mono-spiral-transient.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transient-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run all Mono Spiral tests
+        working-directory: simulation/spiral
+        run: python -m unittest -v
