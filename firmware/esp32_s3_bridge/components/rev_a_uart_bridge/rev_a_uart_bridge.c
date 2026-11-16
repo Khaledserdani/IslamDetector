@@ -116,6 +116,15 @@ static void parser_frame_callback(void *ctx, const rev_a_frame_t *frame) {
                     (unsigned)s_session.device_info.adc_input_mode_id,
                     (unsigned long)s_session.device_info.adc_vref_uv);
             }
+        } else if (result == REV_A_SESSION_INVALID_DEVICE_INFO) {
+            // The session layer invalidates its metadata on this path. Mirror
+            // that state in the public status snapshot and retry immediately;
+            // otherwise callers could observe stale ADC identity after a bad frame.
+            status_set_device_info(NULL);
+            status_set_parser_counters();
+            s_info_request_sent = false;
+            s_last_info_request_tick = 0;
+            ESP_LOGW(TAG, "Rejected invalid DEVICE_INFO; cleared cached ADC metadata and will retry GET_INFO");
         }
         return;
     }
