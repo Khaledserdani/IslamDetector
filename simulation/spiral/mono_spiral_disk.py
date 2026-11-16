@@ -103,6 +103,8 @@ def _coaxial_loop_mutual(radius_a: float, radius_b: float, axial_gap: float = 0.
         raise ValueError("loop radii must be positive and axial gap non-negative")
     if radius_a == radius_b and axial_gap == 0:
         raise ValueError("self inductance requires finite conductor cross-section")
+    if integration_steps < 2 or integration_steps % 2:
+        raise ValueError("Simpson integration_steps must be an even integer >= 2")
     m = 4.0*radius_a*radius_b/((radius_a+radius_b)**2+axial_gap**2)
     m = min(max(m,0.0),1.0-1e-15)
     h = (math.pi/2.0)/integration_steps
