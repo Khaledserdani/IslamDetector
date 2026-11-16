@@ -42,3 +42,7 @@
 - رابط التشغيل: https://github.com/Khaledserdani/IslamDetector/actions/runs/43725575113
 
 **حدود الإثبات:** نجاح CI يثبت البناء واختبارات المضيف فقط. لا يثبت UART loopback أو pin mux أو التوقيت الفعلي أو ADC/AFE أو القياس التناظري أو أداء الكشف. لا توجد قيم حماية TX/RX أو BOM/PCB نهائية.
+
+
+### Invalid DEVICE_INFO recovery
+A syntactically valid frame with inconsistent ADC metadata invalidates the session. The bridge now clears its mirrored public status snapshot and immediately retries GET_INFO, so stale ADC identity is not exposed after the session gate closes. This is host-code behavior pending fresh CI and hardware fault-injection/loopback; it is not a hardware test result.
