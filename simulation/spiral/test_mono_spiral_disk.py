@@ -1,6 +1,7 @@
 import unittest
 
-from mono_spiral_disk import Coil, ConductiveDisk, Pulse, build_disk_model, receive_peak, simulate
+from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
+    _coaxial_loop_mutual, build_disk_model, receive_peak, simulate)
 
 
 class ConductiveDiskModelTests(unittest.TestCase):
@@ -39,6 +40,22 @@ class ConductiveDiskModelTests(unittest.TestCase):
             conductivity_s_m=35e6,depth_m=0.04,rings=9)
         with self.assertRaises(ValueError):
             build_disk_model(self.coil,disk,ring_segments=96)
+
+    def test_coaxial_mutual_inductance_obeys_reciprocity(self):
+        mab=_coaxial_loop_mutual(0.010,0.020,0.030,512)
+        mba=_coaxial_loop_mutual(0.020,0.010,0.030,512)
+        self.assertAlmostEqual(mab,mba,places=15)
+        self.assertGreater(mab,0.0)
+
+    def test_coaxial_mutual_inductance_matches_far_field_dipole_limit(self):
+        a,b,z=0.010,0.015,1.5
+        actual=_coaxial_loop_mutual(a,b,z,2048)
+        expected=MU0*3.141592653589793*a*a*b*b/(2*z**3)
+        self.assertLess(abs(actual-expected)/expected,0.002)
+
+    def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
+        with self.assertRaises(ValueError):
+            _coaxial_loop_mutual(0.010,0.020,0.030,511)
 
     def test_invalid_disk_is_rejected(self):
         bad=ConductiveDisk(radius_m=0.0,thickness_m=0.001,
