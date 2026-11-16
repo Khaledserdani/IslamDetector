@@ -36,6 +36,8 @@ class ConductiveDisk:
             raise ValueError("disk radius, thickness, conductivity and depth must be positive")
         if self.rings < 1:
             raise ValueError("rings must be at least one")
+        if self.rings > 8:
+            raise ValueError("more than 8 target rings are unsupported until the reduced-order model is revalidated")
 
 
 @dataclass(frozen=True)
