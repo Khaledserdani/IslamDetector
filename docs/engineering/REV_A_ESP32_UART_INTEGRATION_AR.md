@@ -89,3 +89,11 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - ESP32-S3 UART task وparser/session compile/link ناجحان في ESP-IDF release-v5.4. إعداد Kconfig ما زال disabled وGPIO=-1؛ لا يتم تفعيل UART على لوحة غير محددة.
 - RP2040 UF2 artifact ID `14166064302` اجتاز فحص 155 كتلة وFamily ID `0xE48BFF56`. هذا اختبار GP4/GP5/GP6 المنطقي؛ ADC capture driver مضمّن في البناء لكنه disabled افتراضياً.
 - لا يوجد Wi-Fi/WebServer أو JSON API؛ تطبيق Android ينتظر `GET /status` و`POST /control`. الخطوة التالية UART loopback آمن ثم Wi-Fi API بعد اعتماد pinout.
+
+
+## معالجة DEVICE_INFO غير الصالح — 2026-11-16
+
+- إذا كان إطار DEVICE_INFO سليماً من ناحية SYNC/length/CRC لكنه يحمل ADC metadata غير متوافقة، ترفضه طبقة session وتبطل metadata السابقة.
+- يزامن جسر ESP32 الآن حالة status العامة مع الإبطال، ويمسح نسخة ADC القديمة من الحالة المنشورة، ويصفّر مهلة الطلب لإعادة GET_INFO فوراً.
+- يمنع ذلك ظهور `device_info_valid=true` أو هوية ADC قديمة في status بعد أن تكون طبقة session قد أغلقت بوابة القياس.
+- هذا إصلاح برمجي محافظ؛ يلزم CI جديد ثم اختبار fault-injection/loopback فعلي لاحقاً. لا يثبت اتصال UART على اللوحات.
