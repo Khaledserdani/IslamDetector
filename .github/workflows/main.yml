@@ -65,7 +65,7 @@ jobs:
         run: |
           cmake -S firmware/rp2040_timing_test -B build/rp2040 \
             -DPICO_SDK_PATH="$GITHUB_WORKSPACE/pico-sdk" \
-            -DPICO_BOARD=pico
+            -DPICO_BOARD=waveshare_rp2040_zero
           cmake --build build/rp2040 --parallel 2
       - name: Verify RP2040 UF2 structure and family ID
         run: |
