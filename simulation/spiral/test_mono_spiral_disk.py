@@ -34,6 +34,12 @@ class ConductiveDiskModelTests(unittest.TestCase):
         p_far=receive_peak(simulate(self.coil,far,self.pulse,ring_segments=48))
         self.assertGreater(p_near,p_far)
 
+    def test_over_refined_ring_model_is_rejected_when_ill_conditioned(self):
+        disk=ConductiveDisk(radius_m=0.012,thickness_m=0.001,
+            conductivity_s_m=35e6,depth_m=0.04,rings=9)
+        with self.assertRaises(ValueError):
+            build_disk_model(self.coil,disk,ring_segments=96)
+
     def test_invalid_disk_is_rejected(self):
         bad=ConductiveDisk(radius_m=0.0,thickness_m=0.001,
             conductivity_s_m=35e6,depth_m=0.04)
