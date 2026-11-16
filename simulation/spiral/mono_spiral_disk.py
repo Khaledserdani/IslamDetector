@@ -144,8 +144,11 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
     disk.validate()
     if ring_segments < 24:
         raise ValueError("ring_segments must be at least 24")
-    dr = disk.radius_m / disk.rings
-    radii = [(i+0.5)*dr for i in range(disk.rings)]
+    # Equal-area annuli avoid an unrealistically wide first ring around r=0.
+    # Each ring's radial width is retained for its effective conductor section.
+    edges = [disk.radius_m*math.sqrt(i/disk.rings) for i in range(disk.rings+1)]
+    radii = [disk.radius_m*math.sqrt((i+0.5)/disk.rings) for i in range(disk.rings)]
+    widths = [edges[i+1]-edges[i] for i in range(disk.rings)]
     coil_segments = _segments_square(coil)
     target_segments = [
         _segments_ring(r,disk.depth_m,disk.x_offset_m,disk.y_offset_m,ring_segments)
@@ -155,13 +158,13 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
     n = disk.rings + 1
     L = [[0.0]*n for _ in range(n)]
     R = [coil.resistance_ohm] + [
-        2*math.pi*r/(disk.conductivity_s_m*dr*disk.thickness_m)
-        for r in radii
+        2*math.pi*r/(disk.conductivity_s_m*widths[i]*disk.thickness_m)
+        for i,r in enumerate(radii)
     ]
     L[0][0] = coil.inductance_h
     for i in range(disk.rings):
         r = radii[i]
-        area = dr*disk.thickness_m
+        area = widths[i]*disk.thickness_m
         equivalent_wire_radius = math.sqrt(area/math.pi)
         L[i+1][i+1] = MU0*r*(math.log(8*r/equivalent_wire_radius)-2.0)
         L[0][i+1] = L[i+1][0] = _mutual_neumann(coil_segments,target_segments[i])
