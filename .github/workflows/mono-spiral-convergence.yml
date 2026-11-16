@@ -30,8 +30,13 @@ jobs:
       - name: Run disk surrogate convergence sweep
         working-directory: simulation/spiral
         run: python run_disk_convergence.py
-      - name: Upload convergence CSV
+      - name: Run disk surrogate time-step sensitivity sweep
+        working-directory: simulation/spiral
+        run: python run_disk_timestep_sensitivity.py
+      - name: Upload convergence CSVs
         uses: actions/upload-artifact@v4
         with:
-          name: mono-spiral-disk-convergence
-          path: simulation/spiral/disk_surrogate_convergence.csv
+          name: mono-spiral-disk-numerical-sensitivity
+          path: |
+            simulation/spiral/disk_surrogate_convergence.csv
+            simulation/spiral/disk_surrogate_timestep_sensitivity.csv
