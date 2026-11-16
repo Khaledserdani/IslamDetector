@@ -1151,3 +1151,56 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - المقارنة الحالية مع `main`: الفرع متباعد، Ahead=378 وBehind=6؛ رأس `main` هو `0d69de64679bfc9123054959dcb167890c1286bc`. لا rebase ولا merge في هذا التشغيل.
 - أضيف إجراء UART loopback آمن إلى خطة الاختبار، وصُححت وثيقة تكامل ESP32 UART لتعرض المنفذ فعلياً وتفصل بوضوح بين البناء والاختبار الفيزيائي.
 - لا تزال الخطوة الميدانية التالية تتطلب تحديد نسختي اللوحتين ومخططهما وقياس continuity قبل أي سلك UART. لا توصل VCC بين اللوحتين، ولا تستخدم 5V/12V على GPIO، ولا ترسل START أو توصل GP4 بمرحلة TX.
+
+
+## 21.19 متابعة يومية — إصلاح حالة DEVICE_INFO ومطابقة RP2040-Zero — 2026-11-16
+
+### حالة الفرع وطلبات المراجعة
+- الفرع: `hardware/rev-a-measurement-design`.
+- HEAD الحالي وقت كتابة هذا السجل: `b98f982e547b41de0406f055266cafd212cb85f5`.
+- PR #6 حالته الفعلية **Closed / Draft / غير مدمج**؛ لم يُفتح مجدداً ولم يُدمج.
+- PR #7 هو الطلب النشط **Open / Draft / غير مدمج** على الفرع نفسه. لا دمج ولا تعديل لـ`main`.
+- المقارنة: Ahead=384 وBehind=6؛ رأس `main` هو `0d69de64679bfc9123054959dcb167890c1286bc`. لم ننفذ rebase أو merge.
+
+### تدقيق CI قبل التعديلات
+- CI #1374 / run ID `43727824763` على HEAD السابق `dd99a4b045c3aa88c17cbe1a1c75096c7c1e3713` اكتمل Success في الوظائف الأربع: protocol-tests وRP2040 firmware وAndroid وESP32-S3 bridge.
+- البروتوكول: 50 اختبار Python ناجح، واختبار C مع `-Wall -Wextra -Werror -pedantic` ناجح.
+- Android: `BUILD SUCCESSFUL`، وفحص ZIP للـAPK دون أخطاء؛ SHA-256 الداخلي `25c81c6592533c87d9813ef675ff89859e90330cf6f4bea1ad3557fddfb60625`.
+- ESP32-S3: ESP-IDF release-v5.4 compile/link ناجح، وأُنتج BIN؛ لم يحدث Flash.
+- RP2040: build وPIO assembly وUF2 verify ناجحة. UF2 الخام 79,360 بايت، 155 كتلة، payload=39,680 بايت، Family ID=`0xE48BFF56`، المجال `0x10000000..0x10009B00`، SHA-256 `3f22107c0acc52006df4fbf4f747d858a5f96e1ebfca85134b4a88008032c0b5`. Artifact ID `14167221886`، ZIP=31,285 بايت. APK artifact ID `14166659459`، ZIP=21,042 بايت.
+- هذا UF2 هو timing/logic test؛ لا يقود MOSFET ولا يقرأ ADC، ولم يُفلش على لوحة فعلية.
+
+### إصلاح ESP32 DEVICE_INFO
+- أثناء مراجعة `rev_a_uart_bridge.c` ظهر خلل: إذا وصل إطار DEVICE_INFO صحيح CRC لكنه يحمل metadata غير متوافقة، فإن session تبطل metadata السابقة، لكن status snapshot العامة كانت قد تبقى تعرض ADC القديم على أنه صالح.
+- أُصلح ذلك في commit `46a4ec91ba39fd6c575674aa6df57089900e4fda`: مسح DEVICE_INFO من status العامة، وتحديث عدادات الجلسة، وفرض إعادة GET_INFO فوراً.
+- توثيق الإصلاح في `REV_A_ESP32_UART_INTEGRATION_AR.md` commit `0aa1d4cac8dc99db10ee06b43d62f1d979e48a75`، وREADME commit `ba09d578d8bf085a410771af0dfec929c0a8e4a7`.
+- هذا إصلاح كود/حالة برمجية؛ لا يثبت fault-injection على UART حقيقي.
+
+### مطابقة تعريف RP2040-Zero
+- راجعت تعريف اللوحة الرسمي في Pico SDK 2.3.1: `src/boards/include/boards/waveshare_rp2040_zero.h`.
+- التعريف يؤكد اسم الهدف `waveshare_rp2040_zero` ويحدد UART0 الافتراضي TX=GP0 وRX=GP1، بما يطابق Firmware المرشح.
+- GP10 هو SPI1 SCK الافتراضي في تعريف اللوحة، وهو أيضاً DOUT المرشح لـADS8861؛ لا يستخدم Firmware SPI1 حالياً، لكن يبقى تعارض موارد محتملاً عند التوسع.
+- تم تغيير CI من `PICO_BOARD=pico` إلى `PICO_BOARD=waveshare_rp2040_zero` في commit `62625e6c0b3d6c7734486110cd3dec7f82a93a1a`، وتوثيق ذلك في pin map commit `b98f982e547b41de0406f055266cafd212cb85f5`.
+- مطابقة تعريف SDK لا تثبت أن اللوحة الفعلية هي نفس المراجعة؛ لا يزال يلزم فحصها وقياس continuity قبل التوصيل.
+
+### CI بعد التعديلات
+- CI #1376 / run ID `43884345353`: protocol-tests نجحت، ثم ألغيت وظائف Android وRP2040 وESP32 عند وصول تحديثات أحدث إلى PR؛ لا يُحسب نجاحاً كاملاً.
+- CI #1377 / run ID `43884467541`: ألغيت وظائف البناء الثلاث بعد تحديث الفرع؛ لم يكتمل كتشغيل كامل.
+- CI #1378 / run ID `43884519871` على HEAD `b98f982e547b41de0406f055266cafd212cb85f5` كانت حالته Pending ولم تظهر وظائفها بعد عند آخر فحص. لا تدّعِ نجاح بناء هدف Waveshare قبل ظهور نتيجة RP2040 وUF2 artifact.
+
+### مراجعة Android الحالية
+- المصدر الفعلي المبني: `app/src/main/java/com/islamdetector/app/MainActivity.java`؛ Manifest وGradle وصلاحيات INTERNET/ACCESS_NETWORK_STATE ودعم RTL متوافقة مع البناء.
+- الشبكة على Executor مستقل بمهلات 2.5s، وSQLite/التاريخ/CSV على Executor تخزين مستقل. لم أغير واجهة الأزرار أو WindowInsets لعدم وجود خطأ مثبت في تطبيق Islam Detector.
+- التصدير الحالي يشارك CSV كنص عبر Sharesheet ولا ينشئ ملفاً مستقلاً في Downloads؛ التطبيق لم يُختبر على هاتف فعلي في هذا التشغيل.
+
+### ما بقي غير مختبر
+- UART loopback بين ESP32-S3 وRP2040-Zero؛ أرجل ESP32 ما زالت غير محددة وUART bridge disabled افتراضياً.
+- ADC capture ما زال `ENABLE_ADS8861_CAPTURE=0`، ولا يوجد ADS8861 مركب أو MEASUREMENT producer.
+- لا قياس فعلي لتوقيت PIO/jitter أو DCR/L/Q/قطبية الملف أو RX transient/clip-release.
+- لا مخطط KiCad نهائي أو حماية TX/RX محسوبة أو BOM/PCB/PCBA.
+
+### الخطوة التالية
+1. انتظار CI #1378 وفحص أن بناء Waveshare RP2040-Zero وUF2 verification/artifact نجحت فعلياً.
+2. مطابقة نسخ اللوحتين، ثم continuity وUART loopback منخفض الجهد فقط؛ لا VCC بين اللوحتين ولا 5V/12V على GPIO.
+3. بعد وجود ADS8861 والحماية والمرجع الفعليين: قياس CONVST/SCLK/DOUT والنوافذ وDMA، ثم بناء MEASUREMENT producer.
+4. بعدها فقط استكمال Wi-Fi/JSON API، قياسات الملف وRX recovery، حساب TX والحماية، ثم KiCad/BOM والتصنيع.
