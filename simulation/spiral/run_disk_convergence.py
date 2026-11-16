@@ -25,7 +25,7 @@ def main() -> None:
     sweeps = [
         ("angular", [(6, 48), (6, 64), (6, 96), (6, 128)]),
         ("radial", [(3, 96), (4, 96), (5, 96), (6, 96),
-                    (7, 96), (8, 96), (9, 96)]),
+                    (7, 96), (8, 96)]),
     ]
     for sweep_name, cases in sweeps:
         previous = None
