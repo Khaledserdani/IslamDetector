@@ -93,6 +93,32 @@ def _mutual_neumann(seg_a, seg_b) -> float:
     return MU0/(4.0*math.pi)*total
 
 
+
+def _coaxial_loop_mutual(radius_a: float, radius_b: float, axial_gap: float = 0.0,
+                        integration_steps: int = 2048) -> float:
+    """Mutual inductance of coaxial circular filaments via elliptic-integral quadrature."""
+    if min(radius_a, radius_b) <= 0 or axial_gap < 0:
+        raise ValueError("loop radii must be positive and axial gap non-negative")
+    if radius_a == radius_b and axial_gap == 0:
+        raise ValueError("self inductance requires finite conductor cross-section")
+    m = 4.0*radius_a*radius_b/((radius_a+radius_b)**2+axial_gap**2)
+    m = min(max(m,0.0),1.0-1e-15)
+    h = (math.pi/2.0)/integration_steps
+    sum_k = 0.0
+    sum_e = 0.0
+    for i in range(integration_steps+1):
+        theta=i*h
+        q=1.0-m*math.sin(theta)**2
+        weight=1 if i in (0,integration_steps) else (4 if i%2 else 2)
+        root=math.sqrt(q)
+        sum_k += weight/root
+        sum_e += weight*root
+    K=sum_k*h/3.0
+    E=sum_e*h/3.0
+    k=math.sqrt(m)
+    return MU0*math.sqrt(radius_a*radius_b)*(((2.0-m)*K-2.0*E)/k)
+
+
 def _solve(matrix, rhs):
     """Gaussian elimination with partial pivoting."""
     a = [list(row) + [rhs[i]] for i,row in enumerate(matrix)]
@@ -141,7 +167,9 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
         L[0][i+1] = L[i+1][0] = _mutual_neumann(coil_segments,target_segments[i])
     for i in range(disk.rings):
         for j in range(i+1,disk.rings):
-            m = _mutual_neumann(target_segments[i],target_segments[j])
+            # Exact coaxial-loop mutual inductance avoids loss of matrix
+            # positive-definiteness from coarse polygon midpoint quadrature.
+            m = _coaxial_loop_mutual(radii[i],radii[j],0.0)
             L[i+1][j+1] = L[j+1][i+1] = m
 
     # Cholesky positive-definiteness check; reject invalid surrogate matrices.
