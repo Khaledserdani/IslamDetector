@@ -1,0 +1,37 @@
+name: ISLAM LAB Mono Spiral disk surrogate convergence
+
+on:
+  push:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - "simulation/spiral/**"
+      - ".github/workflows/mono-spiral-convergence.yml"
+  pull_request:
+    paths:
+      - "simulation/spiral/**"
+      - ".github/workflows/mono-spiral-convergence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  convergence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run all unit tests
+        working-directory: simulation/spiral
+        run: python -m unittest -v
+      - name: Run disk surrogate convergence sweep
+        working-directory: simulation/spiral
+        run: python run_disk_convergence.py
+      - name: Upload convergence CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: mono-spiral-disk-convergence
+          path: simulation/spiral/disk_surrogate_convergence.csv
