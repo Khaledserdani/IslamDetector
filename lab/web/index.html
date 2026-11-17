@@ -28,7 +28,7 @@ R1 in coil 1.5
 L1 coil 0 180u
 .tran 0.2u 100u
 .end</textarea>
-<button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="message" class="status" aria-live="polite"></p></section>
+<button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="simStatus" class="muted" aria-live="polite">محرك SPICE لم يُختبر بعد في هذا المتصفح.</p><div id="simResults"></div><canvas id="plot" width="900" height="260" style="width:100%;max-width:100%;background:#08111e;border-radius:9px;display:none"></canvas><p id="message" class="status" aria-live="polite"></p></section>
 <section class="panel"><h2>ملفات المختبر</h2><p class="muted">يمكنك الاحتفاظ بملف المشروع ونتائج CSV وnetlist على جهازك. لا تُرسل البيانات إلى خادم.</p><input id="open" type="file" accept=".cir,.txt,.json" /></section>
 <section class="panel"><h2>خطة دمج المحرك</h2><ol><li>دمج ngspice WebAssembly بترخيص متوافق.</li><li>تشغيل المحرك داخل Web Worker.</li><li>قراءة نتائج التحليل وعرض الموجات.</li><li>إضافة واجهة MCP اختيارية بعد تجهيز الأمان والمصادقة.</li></ol></section>
 <footer class="muted">ISLAM LAB • Prototype • لا يمثل نتائج قياس عتادي</footer>
