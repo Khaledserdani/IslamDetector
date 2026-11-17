@@ -1,0 +1,26 @@
+name: ISLAM LAB environment probe
+on:
+  push:
+    branches:
+      - lab/islam-spice-platform-foundation
+    paths:
+      - ".github/workflows/islam-lab-environment-probe.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm prerequisite job
+        run: echo "prepare job succeeded"
+  environment-check:
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment:
+      name: github-pages
+    steps:
+      - name: Confirm deployment environment job starts
+        run: |
+          echo "github-pages environment job started"
+          echo "No deployment action is executed"
