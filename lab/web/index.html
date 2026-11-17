@@ -19,7 +19,7 @@ button.secondary{background:#26364c;color:var(--text)}pre{white-space:pre-wrap;o
 <body><header><h1>ISLAM LAB</h1><p>مختبر الدارات الإلكترونية — نسخة تأسيسية محلية</p></header>
 <main>
 <section class="panel"><span class="tag">مجاني • يعمل محلياً</span><h2 style="margin-top:10px">مساحة العمل</h2>
-<p>هذه النسخة هي واجهة تأسيسية لحفظ ملفات التجارب وفتحها. محرك SPICE الحقيقي لم يُدمج بعد؛ لن نصف الحسابات الأولية بأنها محاكاة SPICE.</p>
+<p>هذه النسخة هي واجهة تأسيسية لحفظ ملفات التجارب وفتحها. محرك ngspice WASM مضمّن في نسخة المختبر ويجري التحقق من تشغيله محلياً؛ لا تُعتمد النتائج هندسياً قبل اجتياز الاختبارات المرجعية.</p>
 <div class="grid"><div><b>المشروع</b><p class="muted">ISLAM 2 — Mono Spiral PI</p></div><div><b>حالة المحرك</b><p class="status">قيد الدمج والاختبار</p></div><div><b>الاتصال الخارجي</b><p class="muted">غير مطلوب للتشغيل المحلي</p></div></div></section>
 <section class="panel"><h2>ملف تجربة SPICE</h2><p class="muted">اكتب أو الصق netlist واحفظه محلياً بصيغة .cir. تشغيله سيُفعّل بعد دمج محرك ngspice WASM.</p>
 <textarea id="netlist" spellcheck="false">* ISLAM LAB - sample RLC netlist
@@ -28,8 +28,8 @@ R1 in coil 1.5
 L1 coil 0 180u
 .tran 0.2u 100u
 .end</textarea>
-<button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="simStatus" class="muted" aria-live="polite">محرك SPICE لم يُختبر بعد في هذا المتصفح.</p><div id="simResults"></div><canvas id="plot" width="900" height="260" style="width:100%;max-width:100%;background:#08111e;border-radius:9px;display:none"></canvas><p id="message" class="status" aria-live="polite"></p></section>
+<button id="run">تشغيل محاكاة SPICE</button><button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="simStatus" class="muted" aria-live="polite">محرك SPICE لم يُختبر بعد في هذا المتصفح.</p><div id="simResults"></div><canvas id="plot" width="900" height="260" style="width:100%;max-width:100%;background:#08111e;border-radius:9px;display:none"></canvas><p id="message" class="status" aria-live="polite"></p></section>
 <section class="panel"><h2>ملفات المختبر</h2><p class="muted">يمكنك الاحتفاظ بملف المشروع ونتائج CSV وnetlist على جهازك. لا تُرسل البيانات إلى خادم.</p><input id="open" type="file" accept=".cir,.txt,.json" /></section>
 <section class="panel"><h2>خطة دمج المحرك</h2><ol><li>دمج ngspice WebAssembly بترخيص متوافق.</li><li>تشغيل المحرك داخل Web Worker.</li><li>قراءة نتائج التحليل وعرض الموجات.</li><li>إضافة واجهة MCP اختيارية بعد تجهيز الأمان والمصادقة.</li></ol></section>
 <footer class="muted">ISLAM LAB • Prototype • لا يمثل نتائج قياس عتادي</footer>
-</main><script src="./app.js"></script></body></html>
+</main><script type="module" src="./app.js"></script></body></html>
