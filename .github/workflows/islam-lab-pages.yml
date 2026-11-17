@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        run: node --check lab/web/app.js
       - name: Prepare static site
         run: |
           mkdir -p _site
