@@ -49,3 +49,21 @@ Numerical energy balance closes to < 1e-8 mJ for each row: initial magnetic ener
 
 ## Engineering disposition
 Keep 50 us / 10 Hz / current-limited supply as the **first low-energy bench starting point only**, not as a final operating setting. Do not raise pulse width or repetition rate until VDS, VGS, coil current and component temperature are captured on the bench. Next simulation must use vendor models for the MOSFET and TVS, then include parasitic L/C and the shared-coil RX protection path.
+
+
+## Coil tolerance sensitivity at 50 us
+A small corner sweep was also calculated for L = 162/180/198 uH (±10%) and total series R = 1.35/1.50/1.65 ohm (±10%). This is an ideal ON-state RL calculation; it does not include clamp behavior.
+
+| L (uH) | R (ohm) | Ipeak (A) | Ecoil (mJ) |
+|---:|---:|---:|---:|
+| 162 | 1.35 | 3.029 | 0.743 |
+| 162 | 1.50 | 2.965 | 0.712 |
+| 162 | 1.65 | 2.902 | 0.682 |
+| 180 | 1.35 | 2.780 | 0.695 |
+| 180 | 1.50 | 2.726 | 0.669 |
+| 180 | 1.65 | 2.674 | 0.643 |
+| 198 | 1.35 | 2.568 | 0.653 |
+| 198 | 1.50 | 2.522 | 0.630 |
+| 198 | 1.65 | 2.478 | 0.608 |
+
+Across these corners, peak current ranges from 2.478 A to 3.029 A and stored energy from 0.608 mJ to 0.743 mJ. This confirms that coil tolerance materially changes current and energy; bench measurement of the built coil's L and R is required before selecting a fixed pulse width.
