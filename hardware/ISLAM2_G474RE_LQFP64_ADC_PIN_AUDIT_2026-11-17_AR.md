@@ -64,3 +64,22 @@ https://www.st.com/resource/en/datasheet/stm32g474re.pdf
 https://www.st.com/resource/en/reference_manual/dm00355726-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
 3. ST NUCLEO-G474RE ADC example:
 https://github.com/STMicroelectronics/STM32CubeG4/blob/master/Projects/NUCLEO-G474RE/Examples_MIX/ADC/ADC_SingleConversion_TriggerSW_IT/ADC_SingleConversion_TriggerSW_IT.ioc
+
+
+## 9. نتيجة حاسمة من RM0440 Rev 9 — HRTIM إلى ADC
+تمت مراجعة Table 67 (Interconnect 19) وجدول محفزات ADC3/4/5 في RM0440 Rev 9:
+- بالنسبة إلى ADC3/4/5 في **Injected group**:
+  - HRTIM ADC trigger 1 يقع عند JEXTSEL = 27 (ثنائي 11011).
+  - HRTIM ADC trigger 3 يقع عند JEXTSEL = 28 (ثنائي 11100).
+- بالنسبة إلى ADC3/4/5 في **Regular group**:
+  - HRTIM ADC trigger 1 يقع عند EXTSEL = 21 (ثنائي 10101).
+  - HRTIM ADC trigger 3 يقع عند EXTSEL = 22 (ثنائي 10110).
+- لا تخلط بين أرقام HRTIM ADC trigger وبين أرقام JEXTSEL/EXTSEL؛ فهما شيئان مختلفان.
+- يوضح RM0440 أن HRTIM ADC triggers 1 و3 يمكن تكوينهما من مصادر مثل Master compare/period وبعض أحداث Timer A–F. اختيار المصدر الدقيق يحدده توقيت نبضة TX والنافذة المراد أخذ العينة فيها.
+- تسلسل injected لا يجوز إطلاقه من جديد قبل انتهاء تسلسل التحويل السابق؛ يذكر RM0440 ضرورة أن تكون المسافة بين المحفزات أطول من زمن تسلسل injected.
+
+**الاستنتاج:** يوجد مسار توقيت داخلي موثق من HRTIM إلى injected ADC3/4/5، وهذا يدعم اختيار G474RE لالتقاط عينات مرتبطة بدقة بحدث إطفاء TX. لكنه لا يثبت بعد الأداء التناظري أو SNR أو DMA setup أو نجاح التزامن على لوحة إسلام.
+
+المصدر الرسمي:
+https://www.st.com/resource/en/reference_manual/dm00355726-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+RM0440 Rev 9, Table 67 and ADC3/4/5 injected trigger table, plus HRTIM ADC trigger configuration section.
