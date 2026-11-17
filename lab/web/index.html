@@ -13,7 +13,7 @@ h2{font-size:17px;margin:0 0 10px}.status{color:var(--accent);font-size:13px}
 textarea{width:100%;min-height:230px;resize:vertical;background:#08111e;color:#d9f3e9;border:1px solid var(--line);border-radius:9px;padding:12px;direction:ltr;text-align:left;font:13px ui-monospace,monospace}
 button{border:0;border-radius:9px;padding:11px 15px;background:var(--accent);color:#06251d;font-weight:700;margin:5px 4px 0 0}
 button.secondary{background:#26364c;color:var(--text)}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#c9d8ea;direction:ltr;text-align:left}
-small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.error{color:#ff9b9b}small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .tag{display:inline-block;padding:4px 8px;border-radius:20px;background:#183c37;color:#9ef0d4;font-size:12px}
 </style></head>
 <body><header><h1>ISLAM LAB</h1><p>مختبر الدارات الإلكترونية — نسخة تأسيسية محلية</p></header>
@@ -28,7 +28,7 @@ R1 in coil 1.5
 L1 coil 0 180u
 .tran 0.2u 100u
 .end</textarea>
-<button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><p id="message" class="status" aria-live="polite"></p></section>
+<button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="message" class="status" aria-live="polite"></p></section>
 <section class="panel"><h2>ملفات المختبر</h2><p class="muted">يمكنك الاحتفاظ بملف المشروع ونتائج CSV وnetlist على جهازك. لا تُرسل البيانات إلى خادم.</p><input id="open" type="file" accept=".cir,.txt,.json" /></section>
 <section class="panel"><h2>خطة دمج المحرك</h2><ol><li>دمج ngspice WebAssembly بترخيص متوافق.</li><li>تشغيل المحرك داخل Web Worker.</li><li>قراءة نتائج التحليل وعرض الموجات.</li><li>إضافة واجهة MCP اختيارية بعد تجهيز الأمان والمصادقة.</li></ol></section>
 <footer class="muted">ISLAM LAB • Prototype • لا يمثل نتائج قياس عتادي</footer>
