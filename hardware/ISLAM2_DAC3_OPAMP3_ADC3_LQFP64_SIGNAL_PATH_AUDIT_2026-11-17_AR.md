@@ -188,3 +188,30 @@ Vout = Vbias + Stemplate − Scoil
 VDAC = Vbias + (Stemplate/2)
 وليس VDAC=(Vbias+Stemplate)/2.
 الصيغة القديمة كانت ستلغي مستوى الانحياز وتضع الخرج حول الصفر، وقد تجعل الخرج السالب أو المنخفض غير ممكن على تغذية أحادية. هذا تصحيح رياضي للمثال، وليس اعتماداً لمستوى Vbias أو سعة Stemplate أو قيم المقاومات؛ يجب اختيارها ضمن مجال DAC وcommon-mode وoutput swing الفعلي وقياسها.
+
+
+## 15) إغلاق مسار طلبات DMA من جدول DMAMUX الرسمي
+راجعت Table 93 في RM0440 Rev 9:
+- DMAMUX request input ID 103 = DAC3_CH2.
+- DMAMUX request input ID 37 = ADC3.
+- HRTIM DMA requests لها IDs مستقلة: 95 للـMaster و96..101 للمؤقتات A..F.
+هذا يعني أن تحديث قالب DAC يمكن أن يستخدم طلب DAC3_CH2 نفسه (ID 103) لنقل القيمة التالية من الذاكرة إلى DAC3_DHR12R2 بعد كل trigger DAC، إذا تم تفعيل DAC DMA request. وفي الوقت نفسه يملك ADC3 طلب DMA مستقل ID 37 لتفريغ نتائج التحويل إلى buffer.
+المصدر:
+RM0440 Rev 9, Table 93:
+https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+
+### مخطط تدفق البيانات المقترح
+- HRTIM DAC trigger 3 -> trigger DAC3_CH2.
+- DAC3_CH2 update event -> DMA request DAC3_CH2 (DMAMUX ID 103) -> نقل sample التالي من قالب RAM إلى DAC3_DHR12R2.
+- HRTIM ADC trigger 1 أو 3 (يُختار بعد phase plan) -> ADC3 injected conversion.
+- ADC3 conversion complete -> DMA request ADC3 (DMAMUX ID 37) -> حفظ sample في raw/result buffer.
+- HRTIM timer DMA request ليس بديلاً تلقائياً عن DAC request؛ لا نستخدم IDs 95..101 إلا لو احتجنا تحديثاً مستقلاً من أحداث HRTIM بدلاً من طلب DAC.
+
+### قيود لا تزال تحتاج مراجعة قبل firmware
+1. يجب تفعيل DMAEN الخاص بـDAC3_CH2 وضبط trigger source في DAC3_CR بصورة متوافقة.
+2. يجب اختيار DMA channel عبر DMAMUX وعدم تكرار DMA request ID على قناتين تعملان معاً.
+3. يجب أن تكون ذاكرة القالب في SRAM يمكن لـDMA الوصول إليها؛ لا نضع buffer في CCM SRAM غير المتاح لـDMA.
+4. يجب تحديد circular/double-buffer strategy، طول القالب، عدد نقاطه، ومتى يعاد المؤشر إلى البداية.
+5. يجب قياس DAC underrun flag وADC overrun وDMA transfer errors أثناء حمل متزامن.
+6. يجب التأكد من ترتيب trigger: حدث DAC يحدّث الكود التالي، ثم settling للخرج والـOPAMP، ثم حدث ADC في الطور المناسب. لا نأخذ ADC عند نفس الحافة بلا قياس.
+7. لا يعني توفر IDs 103 و37 أن أي معدل DMA مضمون؛ arbitration وAHB load وADC sample/conversion time يجب اختبارها.
