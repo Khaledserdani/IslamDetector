@@ -36,7 +36,7 @@ Vout = 2 × VDAC - VRX
 لذلك إذا كان جهد RX المكيّف:
 VRX = Vbias + Scoil
 وكان قالب DAC:
-VDAC = (Vbias + Stemplate) / 2
+VDAC = Vbias + (Stemplate / 2)
 فإن:
 Vout = Vbias + Stemplate - Scoil
 
@@ -176,3 +176,15 @@ HRTIM DAC trigger 3 -> DAC3_CH2 update event
 HRTIM ADC trigger 1 أو 3 -> ADC3 injected conversion بعد مراجعة جدول ADC trigger selection وإعداد توقيت مستقل عن DAC.
 
 تنبيه: لا يعني توافق multiplexer أن OPAMP3 standalone circuit والـexternal feedback network جاهزان كهربائياً؛ يلزم التحقق من common-mode, output swing, resistor loading, stability, slew, overload recovery, ADC sample time, DMA request mapping والـtrigger phase في firmware والقياس.
+
+
+## 14) تصحيح جبري مهم لمستوى الانحياز في معادلة الطرح
+أعيد تدقيق اشتقاق معادلة الطرح في القسم 3، وصُححت صيغة VDAC:
+عند Rf=Rin:
+Vout = 2×VDAC − VRX
+إذا كان VRX = Vbias + Scoil، والخرج المطلوب متمركزاً حول Vbias:
+Vout = Vbias + Stemplate − Scoil
+فإن الاختيار الصحيح هو:
+VDAC = Vbias + (Stemplate/2)
+وليس VDAC=(Vbias+Stemplate)/2.
+الصيغة القديمة كانت ستلغي مستوى الانحياز وتضع الخرج حول الصفر، وقد تجعل الخرج السالب أو المنخفض غير ممكن على تغذية أحادية. هذا تصحيح رياضي للمثال، وليس اعتماداً لمستوى Vbias أو سعة Stemplate أو قيم المقاومات؛ يجب اختيارها ضمن مجال DAC وcommon-mode وoutput swing الفعلي وقياسها.
