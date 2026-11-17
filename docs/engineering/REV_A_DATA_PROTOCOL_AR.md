@@ -256,3 +256,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - ESP32-S3 parser/session وUART task بُنيا على ESP-IDF release-v5.4. الجسر يرسل HELLO ثم GET_INFO ويعيد الطلب حتى وصول DEVICE_INFO، ويعالج ACK ويضع القياسات المقبولة في queue محدودة. UART bridge معطل افتراضياً وGPIO=-1.
 - CI #1371 / run ID `43725575113`: 50 اختبار Python ناجح، واختبار C صارم ناجح، وبناء ESP32-S3 وRP2040 وAndroid ناجح. لا يثبت ذلك UART loopback أو الاتصال الفعلي بين اللوحتين.
 - لا توجد بعد عينات MEASUREMENT من ADC حقيقي، ولا Wi-Fi/WebServer API. Android يتوقع `GET /status` و`POST /control`؛ الربط بين واجهة الهاتف والجسر لم ينفذ بعد.
+
+
+## 9.3 تحقق CI #1379 وحدود مسار القياس — 2026-11-17
+
+- CI #1379 / run ID `43884818868` نجح على HEAD `e68714446555172c92f67d81f8132ff66743cd38`؛ 50 اختبار Python نجحت، كما نجح بناء واختبار C parser/session مع التحذيرات الصارمة.
+- اختبارات البروتوكول تغطي fragmented/concatenated/noisy/corrupt frames وSYNC recovery، أوامر HELLO/GET_INFO/START/STOP/SET_PROFILE/SELF_TEST، ACK status/reason، وDEVICE_INFO/ADC metadata.
+- ESP32-S3 UART task يقبل ACK وDEVICE_INFO وMEASUREMENT عبر parser/session، ويبطل metadata ويعيد GET_INFO بعد أخطاء stream أو DEVICE_INFO غير صالح. قبول MEASUREMENT مشروط بـDEVICE_INFO صالحة وADC غير NONE؛ raw16 محفوظ مع interpreted values محكومة بالـmetadata وVALID_MASK.
+- RP2040 يرسل ACK وDEVICE_INFO=ADC_NONE حالياً؛ لذلك لا يرسل MEASUREMENT حقيقية. لا توجد ADS8861 مركبة أو عينات ADC فعلية، ولا UART loopback على لوحتين.
+- لا يُغيّر CI الناجح هذه الحدود: build host/compile ليس إثبات baud أو framing أو queue behavior على العتاد، ولا يثبت Wi-Fi أو Android endpoint.
+- الخطوة التالية بعد loopback: تركيب ADC والمرجع والحماية المقاسة، ثم MEASUREMENT producer مع sequence/timestamp/profile/flags وraw16، واختبار round-trip عبر C/Python قبل تمريرها إلى Android.

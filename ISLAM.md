@@ -1204,3 +1204,47 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 2. مطابقة نسخ اللوحتين، ثم continuity وUART loopback منخفض الجهد فقط؛ لا VCC بين اللوحتين ولا 5V/12V على GPIO.
 3. بعد وجود ADS8861 والحماية والمرجع الفعليين: قياس CONVST/SCLK/DOUT والنوافذ وDMA، ثم بناء MEASUREMENT producer.
 4. بعدها فقط استكمال Wi-Fi/JSON API، قياسات الملف وRX recovery، حساب TX والحماية، ثم KiCad/BOM والتصنيع.
+
+
+## 21.20 متابعة Rev A — اكتمال CI #1379 والتحقق من Artifacts — 2026-11-17
+
+### حالة GitHub والفرع
+- الفرع: `hardware/rev-a-measurement-design`؛ HEAD قبل هذا التحديث: `e68714446555172c92f67d81f8132ff66743cd38`.
+- مقارنة GitHub مع `main`: Ahead=385 وBehind=6؛ حالة المقارنة diverged. لم ننفذ merge أو rebase ولم نعدل `main`.
+- **تصحيح مهم لحالة PR:** GitHub REST يؤكد أن PR #6 مغلق منذ 2026-11-11، Draft وغير مدمج. PR #7 هو المفتوح Draft على الفرع نفسه ويحمل HEAD الحالي. لم أغيّر حالة أي طلب ولم أدمج شيئاً؛ إعادة فتح #6 دون حسم دور #7 قد تخلق ازدواجية مراجعة على الفرع نفسه.
+
+### CI #1379 — نجاح كامل على HEAD الحالي
+- Run ID: `43884818868`، النتيجة Success، على commit `e68714446555172c92f67d81f8132ff66743cd38`، PR #7.
+- الوظائف الأربع نجحت: `protocol-tests` و`esp32-s3-bridge` و`android-app` و`rp2040-firmware`.
+- اختبارات Python: 50/50 ناجحة. اختبار C للـparser/session نجح مع `-Wall -Wextra -Werror -pedantic`.
+- ESP32-S3: بناء ESP-IDF release-v5.4 اكتمل؛ هذا compile/link فقط، ولم يحدث Flash أو UART loopback.
+
+### التحقق المستقل من Artifact UF2
+- Artifact ID: `14233363411`، الاسم `IslamDetector-RevA-RP2040-Timing-Test-UF2`.
+- الملف الداخلي: `islam_rev_a_timing_test.uf2`، الحجم 76,288 بايت، 149 كتلة، payload=38,144 بايت.
+- Family ID=`0xE48BFF56`، مجال العناوين `0x10000000..0x10009500`، دون كتل مكررة أو تداخل عناوين أو أخطاء magic.
+- SHA-256 للـUF2 الخام: `cda631c9f3fc6c19a0efa059232707fe703cd42ac6767f61e513e303bc851770`.
+- تحقق GitHub Actions وجرى تنزيل ZIP وفحص بنية UF2 داخله مستقلاً. هذا UF2 اختبار توقيت منطقي لـRP2040-Zero؛ لا يقود MOSFET ولا يقرأ ADC في الإعداد الافتراضي، ولم يُفلش على لوحة فعلية.
+
+### التحقق من APK
+- Artifact ID: `14234745892`، الاسم `IslamDetector-Original-APK`.
+- ZIP الخارجي 21,035 بايت؛ APK الداخلي 24,398 بايت، واحتوى 8 entries واجتاز اختبار ZIP الداخلي.
+- SHA-256 للـAPK الخام: `d2e651e69063738b01a729b66f988c95416980543ccd2cf879819fca40e7fa15`.
+- هذا Debug APK؛ البناء لا يثبت التثبيت أو التشغيل على هاتف فعلي أو الاتصال بلوحة حقيقية.
+
+### تدقيق Android والملفات الفعلية
+- Gradle يبني `app/src/main/java/com/islamdetector/app/MainActivity.java` مع `app/src/main/AndroidManifest.xml` و`app/build.gradle`؛ الصلاحيات INTERNET/ACCESS_NETWORK_STATE وRTL موجودة.
+- الشبكة تعمل عبر Executor مستقل بمهلات 2.5s، وSQLite/التاريخ/CSV عبر Executor تخزين مستقل. التصدير الحالي يشارك CSV كنص عبر Sharesheet ولا ينشئ ملفاً مستقلاً في Downloads.
+- رُصدت ملفات قديمة متداخلة تحت `app/app/src/main/...` ومنها MainActivity وManifest وworkflow داخل مسار Java؛ لا تدخل في module `:app` أو مسار GitHub Actions الفعلي. تُركت دون حذف أو نقل لأنها غير مؤثرة على البناء الحالي وقد تكون أرشيفاً مقصوداً.
+
+### الحالة التقنية التي لا تزال مفتوحة
+- ESP32 parser/session وDEVICE_INFO/ACK وUART task موجودة ومبنية؛ UART bridge معطل افتراضياً وأرجل ESP32 TX/RX تظل `-1` حتى توثيق لوحة N16R8 الفعلية. لا يوجد Wi-Fi AP أو `/status` و`/control` بعد.
+- RP2040 يستقبل HELLO/GET_INFO ويرسل ACK وDEVICE_INFO بقيمة ADC_NONE؛ START مرفوض بسبب TX_NOT_ARMED.
+- ADS8861 PIO/DMA driver يترجم ويبنى، لكن `ENABLE_ADS8861_CAPTURE=0`. لا يوجد ADC مركب، ولا MEASUREMENT producer يرسل عينات عبر UART؛ المسار الاختباري يطبع RAW16 عبر USB فقط عند تفعيله.
+- لا UART loopback، ولا قياس فعلي لـPIO timing/jitter، ولا قياسات L/DCR/Q/قطبية أو RX transient/clip-release، ولا KiCad/ERC/DRC أو حماية TX/RX/BOM/PCB/PCBA نهائية.
+
+### الخطوة التالية
+1. تثبيت نسخة لوحة ESP32-S3-N16R8 الفعلية ومخططها، ثم تحديد UART1 GPIOs بقياس continuity قبل تفعيل الجسر.
+2. تنفيذ UART loopback منخفض الجهد 3.3V فقط، ثم التحقق من HELLO/GET_INFO/ACK/DEVICE_INFO.
+3. بعد تركيب ADS8861 والمرجع والحماية الموثقة، قياس CONVST/SCLK/DOUT والنوافذ وDMA على محلل منطقي، ثم إضافة MEASUREMENT producer مشروطاً بوجود ADC وmetadata مقاسة.
+4. بعدها Wi-Fi/JSON API، قياسات الملف وRX recovery، الحسابات الآمنة لـTX، ثم KiCad/BOM/PCB/PCBA. لا تشغيل قدرة TX قبل إغلاق الارتداد والحماية.

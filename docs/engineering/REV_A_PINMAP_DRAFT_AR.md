@@ -219,3 +219,13 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - المرجع الرسمي: https://github.com/raspberrypi/pico-sdk/blob/2.3.1/src/boards/include/boards/waveshare_rp2040_zero.h
 
 **الحالة:** مطابقة تعريف SDK موثقة؛ pin-level الفيزيائي لا يزال مسودة حتى فحص اللوحة وقياس الاستمرارية.
+
+
+## 16. نتيجة بناء Waveshare RP2040-Zero — CI #1379 — 2026-11-17
+
+- CI #1379 / run ID `43884818868` بنى firmware باستخدام `PICO_BOARD=waveshare_rp2040_zero` ونجح في UF2 verification.
+- Artifact ID `14233363411`: UF2 خام 76,288 بايت، 149 كتلة، payload=38,144 بايت، Family ID `0xE48BFF56`، المجال `0x10000000..0x10009500`، SHA-256 `cda631c9f3fc6c19a0efa059232707fe703cd42ac6767f61e513e303bc851770`. هذا فحص بنيوي للصورة فقط، وليس flash أو قياس أرجل.
+- GP0/GP1 UART0 الافتراضيان في تعريف SDK يظلان اقتراحاً يحتاج قياس continuity على مراجعة RP2040-Zero الفعلية. GP10 هو SPI1 SCK الافتراضي وDOUT المرشح للـADS8861؛ لا تستخدم SPI1 ما دام GP10 محجوزاً له.
+- GP8/GP9/GP10 (CONVST/SCLK/DOUT) في PIO code؛ ADC capture disabled افتراضياً. GP4/GP5/GP6 اختبار منطقي فقط.
+- ESP32-S3 UART1 محدد كمنفذ مرشح، لكن TX GPIO/RX GPIO كلاهما غير معينين افتراضياً، والجسر disabled. لا تختَر أرجل N16R8 من اسم الشريحة وحده.
+- لا يتحول هذا الملف إلى pin map نهائي قبل مطابقة نسخ اللوحات، continuity، 3.3V loopback، ثم قياس CONVST/SCLK/DOUT فعلياً.

@@ -342,3 +342,15 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 
 ### بوابة الانتقال التالية
 تأكيد طراز/مخطط اللوحتين وcontinuity، ثم UART loopback منخفض الجهد. بعد ذلك اختبار ADS8861 الفعلي وقياس نوافذ PIO. لا يعتمد pin-level أو AFE أو KiCad قبل حسم طوبولوجيا TX/RX وقياس الملف والـtransient والـclip-release.
+
+
+## تحديث تكامل Rev A — CI #1379 — 2026-11-17
+
+- CI #1379 / run ID `43884818868` نجح على HEAD `e68714446555172c92f67d81f8132ff66743cd38`: protocol-tests وESP32-S3 ESP-IDF release-v5.4 وAndroid Debug APK وRP2040-Zero firmware.
+- 50 اختبار Python واختبار C parser/session صارم نجحت. ESP32-S3 bridge compile/link فقط؛ لم يُفلش ولم يُختبر UART على لوحتين.
+- RP2040-Zero بُني باستخدام `PICO_BOARD=waveshare_rp2040_zero`. UF2 artifact ID `14233363411`، 149 كتلة و38,144 بايت payload، Family ID `0xE48BFF56`، SHA-256 الخام `cda631c9f3fc6c19a0efa059232707fe703cd42ac6767f61e513e303bc851770`. تم تنزيل الملف وفحص كتل UF2 فعلياً؛ لا يعني ذلك flash أو اختباراً فيزيائياً.
+- RP2040 command responder يجيب HELLO/GET_INFO بـACK ويرسل DEVICE_INFO بقيمة ADC_NONE. START يبقى مرفوضاً بسبب TX_NOT_ARMED.
+- ADS8861 PIO/DMA driver مدمج ويُبنى، لكن `ENABLE_ADS8861_CAPTURE=0`. لا توجد عينة تناظرية أو MEASUREMENT producer على UART؛ RAW16 يطبع عبر USB فقط عند تفعيل capture.
+- ESP32 UART bridge يبقى disabled افتراضياً، وGPIO TX/RX غير معينين؛ لا توجد Wi-Fi AP أو HTTP JSON endpoints التي يتوقعها Android.
+- لا تزال البوابة التالية: مطابقة لوحة ESP32 الفعلية، UART loopback منخفض الجهد، ثم ADC فعلي وقياس PIO/settling. لا تنتقل إلى TX عالي الطاقة أو KiCad/BOM نهائي قبل إغلاق حماية RX وTX والقياسات.
+- حالة المراجعة: PR #6 مغلق Draft وغير مدمج وفق GitHub؛ PR #7 مفتوح Draft على الفرع الحالي. لا دمج ولا تعديل لـmain.
