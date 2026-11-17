@@ -10,8 +10,7 @@ function renderResult(r){const box=q("#simResults");box.innerHTML="";const p=doc
 q("#run").onclick=()=>{if(pending)return;const v=validateNetlist(q("#netlist").value);if(v.errors.length){showValidation();simStatus("أصلح أخطاء بنية netlist أولاً");return}pending=true;q("#run").disabled=true;simStatus("جارٍ تشغيل ngspice...");worker.postMessage({type:"run",netlist:q("#netlist").value})};
 function download(name,data,type){const a=document.createElement("a");const u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function validateNetlist(source){
- const lines=source.split(/\r?
-/),errors=[],warnings=[],names=new Set();let endCount=0,active=0;
+ const lines=source.split(/\r?\n/),errors=[],warnings=[],names=new Set();let endCount=0,active=0;
  lines.forEach((raw,i)=>{const s=raw.trim();if(!s||s.startsWith("*"))return;const n=i+1,parts=s.split(/\s+/),head=parts[0].toLowerCase();
  if(head===".end"){endCount++;if(parts.length>1)warnings.push("السطر "+n+": نص زائد بعد .end");return}
  if(head.startsWith(".")){if(![".tran",".ac",".dc",".op",".end"].includes(head))warnings.push("السطر "+n+": أمر غير مدعوم في الفاحص الأولي: "+parts[0]);return}
