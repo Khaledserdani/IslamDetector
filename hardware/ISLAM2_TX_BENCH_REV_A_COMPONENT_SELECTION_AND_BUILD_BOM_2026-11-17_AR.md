@@ -77,7 +77,7 @@ E_L=0.5×L×Ipeak²
 - STP110N10F7: https://www.st.com/resource/en/datasheet/stp110n10f7.pdf
 - UCC27511A: https://www.ti.com/product/UCC27511A
 - UCC27511: https://www.ti.com/lit/ds/symlink/ucc27511.pdf
-- 5KP33A: راجع داتا شيت الشركة المصنّعة/المورد قبل الشراء للتحقق من breakdown, clamp, pulse waveform, derating.
+- 5KP33A Littelfuse official datasheet: https://www.littelfuse.com/assetdocs/littelfuse_tvs_diode_5kp_datasheet.pdf?assetguid=b1ddd6a2-fccb-4327-bea1-7d77c0793479 (5KP series; 33V standoff, 36.7–40.6V breakdown, 53.3V maximum clamp at 95.7A, 5kW at the specified 10/1000µs pulse).
 - NUCLEO-G474RE: https://www.st.com/en/evaluation-tools/nucleo-g474re
 
 ## 8. تحقق التنفيذ
