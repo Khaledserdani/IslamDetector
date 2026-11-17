@@ -143,3 +143,36 @@ https://www.st.com/resource/en/schematic_pack/mb1367-g474re-c05_schematic.pdf
 5. عدم توصيل ملف TX أو flyback مباشرة إلى PB2 أو PB1؛ لوحة Nucleo ليست واجهة حماية للملف.
 
 لا نعتبر اللوحة مشتراة أو متوفرة لدى المستخدم. هذه منصة اختبار مقترحة إذا استطعنا الحصول عليها، وليست جزءاً من BOM النهائي. كما أن الاختبار على Nucleo لا يثبت أداء PCB النهائي بسبب اختلاف layout والتأريض والضجيج.
+
+
+## 13) تدقيق نهائي لمحدد دخل OPAMP3 ومحفز DAC — تصحيح مهم
+بعد مراجعة RM0440 Rev 9 مباشرة:
+- في OPAMP3_CSR، الحقل VP_SEL[1:0] يختار المدخل غير العاكس الأساسي، والقيمة 11 تعني DAC3_CH2 إلى OPAMP3_VINP.
+- لا يلزم تفعيل timer-controlled secondary mux فقط لاختيار DAC3_CH2؛ هذا الاختيار موجود في VP_SEL الأساسي. حقول VPS_SEL تخص المدخل الثانوي عند تفعيل T1CM_EN/T8CM_EN/T20CM_EN.
+- PB2 هو OPAMP3_VINM0 في LQFP64، ويمكن استخدامه كدخل عاكس خارجي في standalone mode.
+- PB1 هو OPAMP3_VOUT وADC3_IN1 في LQFP64.
+- لذلك يبقى تصور الطرح بمقاومة دخل إلى PB2 ومقاومة feedback من PB1 إلى PB2، مع DAC3_CH2 على الطرف غير العاكس، متوافقاً من حيث اختيار المداخل. يجب إعداد OPAMP3 standalone mode المناسب لاختيار VINM0، وليس PGA/follower الداخلي إذا كانت شبكة feedback خارجية.
+المصدر:
+RM0440 Rev 9, OPAMP3_CSR and OPAMP3_TCMR:
+https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+
+### تصحيح HRTIM DAC trigger
+جدول 229 في RM0440 Rev 9 يبين:
+- hrtim_dac_trig1 متصل بـDAC1_CH1/CH2 وDAC4_CH1/CH2.
+- hrtim_dac_trig2 متصل بـDAC2_CH1.
+- hrtim_dac_trig3 متصل بـDAC3_CH1/CH2.
+- hrtim_dac_reset_trg1 وhrtim_dac_step_trg1 لهما توصيلات أوسع تشمل DAC3.
+إذن اختيار DAC3_CH2 للتحديث الدوري يجب أن يراعي HRTIM DAC trigger 3، لا أن نفترض أن trigger 1 يصل إليه. يمكن أن تكون reset/step triggers مساراً منفصلاً إذا استُخدمت خصائص sawtooth، لكن لا نخلطها مع تحديث قالب DMA الاعتيادي.
+المصدر:
+RM0440 Rev 9, Table 229:
+https://www.st.com/resource/en/reference_manual/dm00355726.pdf
+
+### نتيجة تدقيق التوصيل
+المسار الوظيفي المؤكد على مستوى اختيار الأرجل/المبدلات:
+DAC3_CH2 -> OPAMP3 VINP (VP_SEL=11)
+RX conditioning -> PB2 / OPAMP3 VINM0
+OPAMP3 output -> PB1 / ADC3_IN1
+HRTIM DAC trigger 3 -> DAC3_CH2 update event
+HRTIM ADC trigger 1 أو 3 -> ADC3 injected conversion بعد مراجعة جدول ADC trigger selection وإعداد توقيت مستقل عن DAC.
+
+تنبيه: لا يعني توافق multiplexer أن OPAMP3 standalone circuit والـexternal feedback network جاهزان كهربائياً؛ يلزم التحقق من common-mode, output swing, resistor loading, stability, slew, overload recovery, ADC sample time, DMA request mapping والـtrigger phase في firmware والقياس.
