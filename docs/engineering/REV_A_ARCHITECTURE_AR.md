@@ -394,3 +394,12 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 - Rg قيم اختبار bench فقط4.7/10/15Ω؛ لا قيمة نهائية قبل قياس VGS/VDS والـringing وfalse turn-on.
 - مرشح CSD لا يعتمد قبل قياس VDS peak على حمل بديل والتحقق من SOA/thermal وmargin. حد80V للمراجعة الأولية على جهاز100V ليس مواصفة نهائية.
 - لا شراء ولا توصيل ملف البحث في هذه المرحلة.
+
+
+## 25. حارس عرض نبضة TX العتادي — 2026-11-18
+- LTC6993-1 مرشح A لمؤقت non-retriggerable one-shot مستقل عن MCU.
+- إعداد مبدئي دون20µs: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، DIV divider976kΩ/102kΩ 1%؛ nominal18.88µs وأعلى تقدير مع tolerance≈19.91µs.
+- OUT يمر عبر AND hardware gating مع ARM/Power-Good/Watchdog/NOT_FAULT إلى TC4420 IN؛ fault latch يقطع قبل انتهاء one-shot.
+- startup typ0.5–8ms يتطلب startup inhibit.
+- يلزم repetition guard عتادي مستقل لمنع إعادة النبضة قبل10ms؛ LTC6993-1 وحده لا يضمن100Hz.
+- لا اعتماد/شراء قبل schematic كامل واختبار pulse width وcooldown/fault على bench.
