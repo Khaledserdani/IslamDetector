@@ -38,5 +38,5 @@ jobs:
         with:
           name: mono-spiral-disk-numerical-sensitivity
           path: |
-            simulation/spiral/disk_surrogate_convergence.csv
+            simulation/spiral/disk_surrogate_convergence_corrected.csv
             simulation/spiral/disk_surrogate_timestep_sensitivity.csv
