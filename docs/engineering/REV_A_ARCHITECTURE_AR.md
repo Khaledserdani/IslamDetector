@@ -390,7 +390,7 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 
 ## 24. اختيار MOSFET وقيادة البوابة — تحديث 2026-11-18
 - CSD19531KCS (100V TO-220، Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V) هو مرشح A للدراسة؛ IRFP260NPbF (200V TO-247، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ) مرشح B لهامش جهد أعلى.
-- TC4420 متوافق مبدئياً مع دخل3.3V (VIH min2.4V)، ويعمل بتغذية4.5–18V، 6A peak، delay55ns typ وrise/fall25ns typ عند2500pF. لا يحتوي Enable؛ one-shot/fault latch يفرضان LOW على IN.
+- TC4420 متوافق مبدئياً مع دخل3.3V (VIH min2.4V)، ويعمل بتغذية4.5–18V؛ 6A peak typical عندVDD18V وليس minimum مضموناً. تأخير الانتشار55ns typ/75ns max عند25°C، وحتى100ns max عبر نطاق الحرارة؛ rise/fall25ns typ/35ns max عند2500pF، وحتى60ns max عبر الحرارة. مقاومة الخرج عند10mA وVDD18V: high2.1Ω typ/2.8Ω max وlow1.5Ω typ/2.5Ω max. لا يحتوي Enable؛ one-shot/fault latch يفرضان LOW على IN.
 - Rg قيم اختبار bench فقط4.7/10/15Ω؛ لا قيمة نهائية قبل قياس VGS/VDS والـringing وfalse turn-on.
 - مرشح CSD لا يعتمد قبل قياس VDS peak على حمل بديل والتحقق من SOA/thermal وmargin. حد80V للمراجعة الأولية على جهاز100V ليس مواصفة نهائية.
 - لا شراء ولا توصيل ملف البحث في هذه المرحلة.
