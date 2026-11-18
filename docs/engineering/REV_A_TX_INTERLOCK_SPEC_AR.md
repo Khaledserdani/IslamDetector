@@ -164,3 +164,11 @@ flowchart TD
 - كل محاولة أثناء cooldown تُحجب؛ الحافة الهابطة لـSHOT_WINDOW تعيد تشغيل U4 وتبقي القفل10ms بعد آخر محاولة.
 - ما زال fail-safe عند فشل U4 أو AND gate مفتوحاً؛ يجب أن يؤدي فقد صلاحية/تغذية U4 إلى TX OFF. startup inhibit لكل المؤقتات مطلوب.
 - هذه بنية مقترحة لتحمل عطل stuck-high منفرد في U3A أو U3B فقط، وليست ضماناً ضد فشل مزدوج أو فشل بوابة القيادة. لا تشغيل/شراء قبل مراجعة fault injection والقياس.
+
+
+## 15. Fault latch وPOR — 2026-11-18
+- مرشح A: SN74LVC2G74؛ PRE/CLR active-low asynchronous. PRE_N LOW يثبت Q=FAULT، CLR_N LOW يمسح فقط بعد شروط STOP/manual reset/no-overcurrent/Power-Good.
+- TPS3808 supervisor (G01 adjustable أو G33 threshold3.07V بعد التحقق) يولد RESET_N active-low أثناء POR/brownout. OC_FAULT من TLV3201 يمر عبر SN74LVC1G04 (5.5V tolerant input at3.3V) ثم SN74LVC1G08 ليشارك RESET_N في PRE_N.
+- Qbar=NOT_FAULT يدخل AND gate النهائي؛ MCU يقرأ Q فقط ولا يملك مسح latch أو تجاوز الحماية.
+- يمنع PRE_N وCLR_N من LOW معاً. لا reset أثناء TX أو مع OC_FAULT.
+- لا يزال اختيار supervisor threshold ومنطق reset/stop واختبارات power-up/brownout/fault injection مفتوحاً. انظر REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md.
