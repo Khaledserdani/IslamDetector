@@ -146,3 +146,12 @@ flowchart TD
 أضيفت وثيقة `REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md` لتقييم TLV3201 من TI: 40ns typical/55ns max propagation في شروط الداتا شيت، offset max4mV عبر−40..125°C، common-mode يمتد200mV خارج القضبان، وتغذية2.7–5.5V. تمت مقارنته بـTLV3501 الأسرع4.5ns لكن offset max6.5mV واستهلاك أعلى؛ TLV3201 أفضل مبدئياً لعتبة تيار منخفضة لأن offset أهم من عدة نانوثوانٍ إضافية.
 
 مثال دراسة فقط: 50mΩ low-side Kelvin shunt وعتبة150mV عند3A. مع offset±4mV وشنت±1% يصبح trip النظري نحو2.89–3.11A قبل ضوضاء المرجع والـlayout. لا يعتمد comparator أو الشنت بعد؛ يجب مراجعة source bounce وزمن latch/driver وقياس الاستجابة الكاملة.
+
+
+## 13. مرشح one-shot مستقل — LTC6993-1 — 2026-11-18
+
+أضيفت REV_A_TX_ONESHOT_CANDIDATES_AR.md. مرشح A هو LTC6993-1 rising-edge non-retriggerable. إعداد أولي: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، ومقسم DIV من976kΩ/102kΩ 1%. المعادلة تعطي18.88µs nominal؛ مع±4.4% max للدائرة و±1% للمقاومة، أعلى تقدير≈19.91µs، دون سقف20µs.
+
+خرج المؤقت لا يقود Gate؛ يمر عبر AND gating إلى TC4420 IN مع ARM_OK وPOWER_GOOD وWATCHDOG_OK وNOT_FAULT. Fault latch يجب أن يقطع فوراً. تأخير بدء تشغيل المؤقت typ0.5–8ms ويجب حجب ARM حتى استقرار المؤقت.
+
+**قيد مفتوح:** LTC6993-1 لا يضمن وحده فترة تكرار10ms؛ يلزم hardware repetition guard مستقل قبل السماح بنبضة جديدة. لا شراء أو تشغيل قبل إغلاق هذا القفل واختبار عرض النبضة.
