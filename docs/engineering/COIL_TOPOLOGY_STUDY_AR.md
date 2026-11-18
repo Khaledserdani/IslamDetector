@@ -278,3 +278,29 @@ t_{decay}\approx\frac{L(I_0-I_{min})}{V_{clamp}}
 المراجع:
 - Mohan et al., “Simple Accurate Expressions for Planar Spiral Inductances”, IEEE JSSC 34(10), 1999: https://web.stanford.edu/~boyd/papers/inductance_expressions.html
 - شرح معادلات modified Wheeler وcurrent-sheet للملف المربع: https://www.mdpi.com/2079-9292/13/15/3009
+
+
+### 7.11 مراجعة مراجع T/R ومفاتيح الحماية — نتيجة أولية
+
+تؤكد مراجع PI المنشورة أن استخدام اللفة متعددة اللفات نفسها للإرسال والاستقبال ممكن من حيث المبدأ، لكنه يتطلب حماية مدخل الاستقبال من flyback؛ كما أن فصل RX يعطي عزلاً ومرونة أكبر لكنه يغير هندسة الرأس. هذا يثبت أن فرضية الملف المشترك ليست خطأً مبدئياً، ولا يثبت أن دائرة بعينها ستناسب ملفنا.
+
+**الخيارات التي أضيفت إلى المقارنة:**
+
+| المسار | ما يقدمه المرجع | ما يمنع اعتماده الآن |
+|---|---|---|
+| عزل ذاتي الاستجابة للـflyback | براءة US10181720B1 تصف مبدأ عزل RX تلقائياً مع flyback وتذكر damping وRCD snubber في مثالها | البراءة تعرض دائرة محددة؛ لا ننسخها. يلزم تصميم مستقل وحساب diode reverse recovery/leakage/capacitance والطاقة والـdamping، والتحقق من حدود الجهد |
+| مفتاح HV يعمل من5V | MAX14866: نطاق إشارة حتى±105V في شروط AC، RON نموذجي7Ω، C_OFF قرابة7.7–11pF، QCH أقل من100pC، وtON/tOFF حتى4µs | charge injection مرتفع نسبياً لعقدة استقبال حساسة، وزمن التحويل قد يستهلك جزءاً كبيراً من أول نافذة8µs؛ ليس اختياراً نهائياً ولا حماية أولية مستقلة |
+| مفتاح fault-protected بعد clamp | ADG5412F يحمي مداخل المصدر حتى±55V ويملك RON≈10Ω؛ fault response≈460ns وrecovery≈720ns في ظروف الداتا شيت المذكورة | يحتاج تغذية أحادية8–44V أو ثنائية±5–±22V؛ لا يتحمل flyback غير المحدود أو الذي يتجاوز±55V، ولا يُوصل مباشرة بالملف. يمكن دراسته كطبقة ثانوية فقط إذا حُصر transient قبله ضمن المجال |
+| مفتاح منخفض الشحنة مثل ADG5204 | Qinj≈−0.6pC، C_OFF source≈3pF/drain≈26pF | تغذيته الأحادية تبدأ من9V؛ ليس مناسباً مباشرة لخط5V، كما أن مجال الإشارة مقيد بقضبان التغذية ولا يحمي من flyback عالي الجهد |
+
+**قرار هذه الجولة:** لا نختار MAX14866 أو ADG5412F أو ADG5204 كقطعة T/R نهائية. الاتجاه الأقوى للدراسة هو مقارنة (1) عزل أولي سلبي/ذاتي الاستجابة بعد clamp قدرة محسوب، مع (2) مفتاح fault-protected ثانوي بعد خفض transient، مقابل (3) blanking نشط. يجب أن يحقق أي مسار: حماية أولية مستقلة، عدم تعريض AFE للـflyback، charge-kick محدود، زمن استعادة موثق، وحالة آمنة عند فقد التغذية/Reset.
+
+**ملاحظة سلامة مهمة:** ±55V في ADG5412F حد حماية للدخل وليس تصنيفاً لامتصاص طاقة الملف؛ لا يُسمح بتوصيله على طرف الملف مباشرة. كما أن 210Vpp أو±105V في MAX14866 لا تعني أن الشريحة تتحمل طاقة inductive flyback أو تيار الملف بلا قيود؛ يجب الالتزام بكل قيود النبضة والحرارة والـSOA في الداتا شيت.
+
+المراجع:
+- براءة PI ذات ملف TX/RX مشترك وحماية flyback: https://patents.google.com/patent/US20050104594A1/en
+- براءة عزل تلقائي للـflyback في PI، مع مثال ملف مشترك: https://patents.google.com/patent/US10181720B1/en
+- MAX14866 datasheet: https://www.analog.com/media/en/technical-documentation/data-sheets/MAX14866.pdf
+- ADG5412F datasheet: https://www.analog.com/media/en/technical-documentation/data-sheets/ADG5412F_5413F.pdf
+- ADG5204 product/datasheet page: https://www.analog.com/en/products/adg5204.html
+- ADI note on switch charge injection and parasitic effects: https://www.analog.com/en/resources/design-notes/selecting-the-right-cmos-analog-switch.html
