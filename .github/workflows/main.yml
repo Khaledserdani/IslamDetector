@@ -1,5 +1,21 @@
 name: Validate Islam Detector app and Rev A firmware
 on:
+  # Run from the working branch itself; PR events may evaluate the base-branch workflow.
+  push:
+    branches:
+      - hardware/rev-a-measurement-design
+    paths:
+      - '.github/workflows/main.yml'
+      - 'ISLAM.md'
+      - 'README.md'
+      - 'docs/**'
+      - 'tools/**'
+      - 'firmware/**'
+      - 'app/**'
+      - 'pro/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -12,6 +28,7 @@ on:
       - 'build.gradle*'
       - 'settings.gradle*'
       - 'gradle/**'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
