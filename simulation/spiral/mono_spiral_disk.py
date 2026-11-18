@@ -19,8 +19,10 @@ class Coil:
     """Nominal simulation fixture, not a measured coil characterization.
 
     Resistance is the geometry-based 20 C copper estimate. The 175.8 uH
-    inductance is a provisional model input and has not yet been validated
-    against a field measurement or an independent inductance calculation.
+    inductance is a provisional current-sheet planar-spiral estimate, not a
+    measured value. A modified-Wheeler estimate for the same nominal geometry
+    is about 149 uH; the spread and the large scale difference from the
+    published micro-inductor validation domain require independent checking.
     """
     resistance_ohm: float = 1.0641
     inductance_h: float = 175.8e-6
