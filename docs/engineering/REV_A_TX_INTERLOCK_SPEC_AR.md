@@ -152,7 +152,7 @@ flowchart TD
 
 أضيفت REV_A_TX_ONESHOT_CANDIDATES_AR.md. مرشح A هو LTC6993-1 rising-edge non-retriggerable. إعداد أولي: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، ومقسم DIV من976kΩ/102kΩ 1%. المعادلة تعطي18.88µs nominal؛ مع±4.4% max للدائرة و±1% للمقاومة، أعلى تقدير≈19.91µs، دون سقف20µs.
 
-خرج المؤقت لا يقود Gate؛ يمر عبر AND gating إلى TC4420 IN مع ARM_OK وPOWER_GOOD وWATCHDOG_OK وNOT_FAULT. Fault latch يجب أن يقطع فوراً. تأخير بدء تشغيل المؤقت typ0.5–8ms ويجب حجب ARM حتى استقرار المؤقت.
+خرج المؤقت لا يقود Gate؛ SHOT_WINDOW من U3A/U3B يمر عبر AND نهائية إلى TC4420 IN مع NOT_COOLDOWN وARM_OK وPOWER_GOOD وWATCHDOG_OK وOC_CLEAR_N (قطع comparator المباشر) وNOT_FAULT (fault latch). Fault latch يجب أن يقطع فوراً. تأخير بدء تشغيل المؤقت typ0.5–8ms ويجب حجب ARM حتى استقرار المؤقت.
 
 **تحديث:** المؤقت المنفرد LTC6993-1 لا يضمن فترة10ms. البنية المقترحة الآن U3A/U3B مزدوجة لتحديد SHOT_WINDOW، وU4 LTC6993-4 كـcooldown retriggerable10.4ms بعد نهاية النافذة. تبقى fail-safe عند فقد U4/AND gate واختبارات fault injection مفتوحة؛ لا شراء أو تشغيل قبل إغلاقها.
 
