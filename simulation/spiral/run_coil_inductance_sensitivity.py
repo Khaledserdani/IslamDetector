@@ -41,11 +41,14 @@ def main() -> None:
         receive_start_s = next(
             row["time_s"] for row in trace if row["phase"] == 2.0
         )
+        peak_primary_current_a = max(
+            abs(row["coil_current_a"]) for row in trace
+        )
         rows.append({
             "inductance_method": method,
             "coil_inductance_uH": f"{inductance_h * 1e6:.6f}",
             "receive_peak_v": f"{receive_peak(trace):.12e}",
-            "peak_primary_current_a": f"{max(abs(row['coil_current_a']) for row in trace):.9g}",
+            "peak_primary_current_a": f"{peak_primary_current_a:.9g}",
             "receive_phase_start_us": f"{receive_start_s * 1e6:.6f}",
             "inductance_matrix_condition_inf": f"{matrix_condition_inf(matrix):.8g}",
             "fixture_only": "true",
