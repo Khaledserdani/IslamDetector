@@ -416,3 +416,12 @@
 - يقارن بـIRFP260NPbF: 200V، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، TO-247AC.
 - CSD19531KCS يقلل Qg بنحو4.8× وQgd بنحو14.7×، لكن تصنيف100V أقل. عند VDS المثالي~35V يملك هامشاً نظرياً2.86× فقط؛ لا يعتمد قبل قياس overshoot وSOA.
 - قرار مؤقت: CSD19531KCS مرشح A من ناحية drive/الحجم، وIRFP260NPbF مرشح B لهامش جهد أعلى. لا شراء/تشغيل قبل قياس القمة الفعلية والتحقق من التوفر والأصالة.
+
+
+## 5.7 اختيار MOSFET ومرحلة gate drive — 2026-11-18
+- مرشح A: TI CSD19531KCS، 100V TO-220، Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V، RθJC0.7°C/W.
+- مرشح B: Infineon IRFP260NPbF، 200V TO-247، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، RθJC0.5°C/W.
+- CSD أفضل من حيث شحنة البوابة ومقاومة التشغيل والحجم؛ IRFP يمنح هامش VDS أعلى. لا تعتمد أي قطعة قبل قياس peak VDS/overshoot وSOA والحرارة والتحقق من الأصالة.
+- TC4420 مرشح driver: 4.5–18V supply، VIH min2.4V (3.3V logic compatible)، 6A peak، 55ns typ delay و25ns typ rise/fall عند2500pF. لا Enable؛ يتطلب hardware input inhibit + fault latch + one-shot.
+- قيم Rg=4.7/10/15Ω نقاط اختبار فقط وليست قائمة شراء؛ يجب مقارنة VGS/VDS/ringing/turn-off على حمل بديل.
+- لا تشتر MOSFET أو driver أو مقاومات بوابة قبل إغلاق الاختبار والـlayout.
