@@ -52,6 +52,17 @@ class ConductiveDiskModelTests(unittest.TestCase):
         self.assertGreater(peak,0.0)
         self.assertLess(peak,float("inf"))
 
+    def test_receive_peak_window_is_relative_to_rx_phase_start(self):
+        rows = [
+            {"time_s": 200e-6, "phase": 1.0, "rx_voltage_v": 0.0},
+            {"time_s": 300e-6, "phase": 2.0, "rx_voltage_v": 1.0e-3},
+            {"time_s": 700e-6, "phase": 2.0, "rx_voltage_v": 4.0e-3},
+            {"time_s": 850e-6, "phase": 2.0, "rx_voltage_v": 9.0e-3},
+        ]
+        # 700 us absolute is 400 us after RX begins; 850 us is outside
+        # the 500 us receive window and must not be selected.
+        self.assertAlmostEqual(receive_peak(rows), 4.0e-3)
+
     def test_greater_depth_reduces_coupling_response(self):
         near=ConductiveDisk(radius_m=0.012,thickness_m=0.001,
             conductivity_s_m=35e6,depth_m=0.04,rings=4)
