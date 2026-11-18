@@ -112,6 +112,13 @@ class MonoSpiralModelTests(unittest.TestCase):
     def test_square_spiral_axis_field_zero_current_is_zero(self):
         self.assertEqual(square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 0.0, 0.1), 0.0)
 
+    def test_clamp_decay_sensitivity_for_conservative_coil_scenario(self):
+        slow = clamp_decay_time(180e-6, 0.9, 30.0, 3.0, 0.05)
+        fast = clamp_decay_time(180e-6, 0.9, 60.0, 3.0, 0.05)
+        self.assertAlmostEqual(slow * 1e6, 16.94, places=2)
+        self.assertAlmostEqual(fast * 1e6, 8.65, places=2)
+        self.assertGreater(slow, fast)
+
 
 if __name__ == "__main__":
     unittest.main()
