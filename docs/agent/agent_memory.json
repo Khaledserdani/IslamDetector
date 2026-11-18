@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "project": "ISLAM DETECTOR / ISLAM LAB",
+  "updated_at": "2026-11-18",
+  "active_branch": "feature/islam-lab-searchcoil-redesign",
+  "active_pull_request": 12,
+  "active_engineering_track": "Mono Spiral PI 35x35 cm",
+  "historical_tracks": [
+    "DD32 TX/RX is a separate historical design and must not be mixed into the active Mono Spiral track."
+  ],
+  "known_constraints": [
+    "Do not modify main directly or merge pull requests automatically.",
+    "Do not claim tests or simulations passed unless a run result proves it.",
+    "Synthetic fixtures are not physical measurements or field-performance evidence.",
+    "Do not treat the 175.8 uH current-sheet estimate as a measured final inductance.",
+    "Evaluate an independent Greenhouse-style segment inductance method before choosing final coil inductance.",
+    "Include the 12 radial transition connectors and correct current directions in any segment-based coil inductance model.",
+    "Do not expose secrets in source files, reports, or logs.",
+    "Free-only: no paid API, subscription, hosted service, or paid runner."
+  ],
+  "current_evidence": {
+    "geometry_model": "continuous 13-turn square spiral with 12 radial connectors; software model only",
+    "coil_inductance": "Mohan current-sheet estimate about 175.8 uH and modified Wheeler estimate about 149.2 uH; methods disagree and original paper validation dimensions are far smaller",
+    "disk_model": "reduced-order axisymmetric conductive-disk surrogate; not 3D FEM and not field validated",
+    "github_actions": "run 44409681812 completed with startup_failure and zero jobs; no Python test execution evidence"
+  },
+  "next_tasks": [
+    {
+      "id": "agent-001",
+      "title": "Stabilize deterministic audit runner",
+      "status": "in_progress",
+      "acceptance": "Workflow obtains a real runner; audit report records test exit code and clearly distinguishes not-run from passed."
+    },
+    {
+      "id": "agent-002",
+      "title": "Implement Greenhouse-style coil inductance study",
+      "status": "pending",
+      "acceptance": "Document algorithm, finite conductor/self-term treatment, adjacent segment handling, connector directions, and segmentation convergence before changing Coil defaults."
+    },
+    {
+      "id": "agent-003",
+      "title": "Build local Ollama integration design",
+      "status": "pending",
+      "acceptance": "Optional local model integration with no paid API dependency and strict tool permissions."
+    }
+  ]
+}
