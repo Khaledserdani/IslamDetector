@@ -105,6 +105,10 @@
 - هذه الأرقام تثبت قابلية الزوج للدراسة فقط؛ لا تُصدر BOM أو شراء. يجب إضافة interlock عتادي على دخل driver، وGate pulldown، وتحديد Rg وVGS clamp بعد محاكاة/قياس الحافة.
 - تفاصيل المقارنة والحسابات في `REV_A_TX_POWER_STAGE_CANDIDATES_AR.md`.
 
+### 5.2.2 حساب زمن قطع overcurrent
+
+لا نحدد comparator/shunt من قيمة I_LIMIT فقط. يجب حساب زمن عبور العتبة، ثم إضافة تأخير comparator وfault latch وgate-driver turn-off، وحساب التيار الفعلي عند انطفاء MOSFET. في سيناريو12V/L50µH/R0.9Ω، عتبة3A تُبلغ بعد14.16µs، ويصل التيار إلى3.184A بعد تأخير1µs وإلى3.889A بعد5µs. one-shot مستقل يظل حداً زمنياً أعلى ولا يعوض سرعة comparator في حالة fault. النموذج والتفاصيل في `REV_A_TX_INTERLOCK_SPEC_AR.md`.
+
 ## 5.3 قفل TX العتادي المستقل — متطلب إلزامي
 
 المواصفة الوظيفية الكاملة في `REV_A_TX_INTERLOCK_SPEC_AR.md`. لا تعتمد BOM القدرة حتى يتوفر: hardware one-shot، comparator سريع لحد التيار، fault latch، repetition guard، Power-Good/UVLO، watchdog مستقل، Gate pulldown، وإيقاف غير متزامن. كل عناصر السماح يجب أن تكون fail-safe OFF عند reset أو فقد التغذية.
