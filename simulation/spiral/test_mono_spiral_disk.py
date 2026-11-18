@@ -1,7 +1,7 @@
 import unittest
 
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
-    _coaxial_loop_mutual, build_disk_model, receive_peak, simulate)
+    _coaxial_loop_mutual, _segments_coil_path, build_disk_model, receive_peak, simulate)
 
 
 class ConductiveDiskModelTests(unittest.TestCase):
@@ -19,6 +19,13 @@ class ConductiveDiskModelTests(unittest.TestCase):
             for j in range(len(L)):
                 self.assertAlmostEqual(L[i][j],L[j][i],places=15)
         self.assertTrue(all(v>0 for v in R))
+
+    def test_disk_coupling_uses_one_continuous_spiral_path(self):
+        segments = _segments_coil_path(self.coil, subdivisions=3)
+        expected_base_segments = 4 * self.coil.turns + self.coil.turns - 1
+        self.assertEqual(len(segments), expected_base_segments * 3)
+        for first, second in zip(segments, segments[1:]):
+            self.assertEqual(first[1], second[0])
 
     def test_model_produces_finite_receive_signal(self):
         rows=simulate(self.coil,self.disk,self.pulse,ring_segments=48)
