@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Safe, deterministic audit runner for the ISLAM project.
 
-It validates the versioned project memory and runs selected unit tests.
+It validates project memory and runs engineering plus agent unit tests.
 It never edits project source files and never merges changes.
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SPIRAL_DIR = ROOT / "simulation" / "spiral"
+AGENT_DIR = ROOT / "tools" / "islam_agent"
 MEMORY_FILE = ROOT / "docs" / "agent" / "agent_memory.json"
 REQUIRED_FILES = (
     SPIRAL_DIR / "mono_spiral_geometry.py",
@@ -25,8 +26,9 @@ REQUIRED_FILES = (
     SPIRAL_DIR / "test_mono_spiral_geometry.py",
     SPIRAL_DIR / "test_mono_spiral_disk.py",
     MEMORY_FILE,
+    AGENT_DIR / "task_queue.py",
+    AGENT_DIR / "test_task_queue.py",
 )
-TEST_MODULES = ("test_mono_spiral_geometry", "test_mono_spiral_disk")
 
 
 def load_memory() -> tuple[dict | None, str | None]:
@@ -34,24 +36,36 @@ def load_memory() -> tuple[dict | None, str | None]:
         memory = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return None, f"Cannot read valid JSON: {exc}"
-    if not isinstance(memory, dict):
-        return None, "Memory root must be a JSON object."
-    if memory.get("schema_version") != 1:
-        return None, "Unsupported or missing schema_version (expected 1)."
+    if not isinstance(memory, dict) or memory.get("schema_version") != 1:
+        return None, "Invalid memory object or unsupported schema_version (expected 1)."
     for key in ("project", "updated_at", "known_constraints", "next_tasks"):
         if key not in memory:
             return None, f"Missing required memory key: {key}"
     if not isinstance(memory["known_constraints"], list) or not isinstance(memory["next_tasks"], list):
         return None, "known_constraints and next_tasks must be lists."
+    seen = set()
     for index, task in enumerate(memory["next_tasks"]):
         if not isinstance(task, dict) or not all(k in task for k in ("id", "title", "status", "acceptance")):
             return None, f"Invalid task entry at index {index}."
+        if task["id"] in seen:
+            return None, f"Duplicate task id: {task['id']}"
+        seen.add(task["id"])
     return memory, None
 
 
 def run_tests() -> subprocess.CompletedProcess[str]:
-    command = [sys.executable, "-m", "unittest", "-v", *TEST_MODULES]
-    return subprocess.run(command, cwd=SPIRAL_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+    commands = (
+        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk"]),
+        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue"]),
+    )
+    outputs = []
+    exit_code = 0
+    for cwd, command in commands:
+        result = subprocess.run(command, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+        outputs.append(f"$ {' '.join(command)}\n{result.stdout.rstrip()}")
+        if result.returncode != 0 and exit_code == 0:
+            exit_code = result.returncode
+    return subprocess.CompletedProcess(args=["ISLAM test suites"], returncode=exit_code, stdout="\n\n".join(outputs))
 
 
 def main() -> int:
@@ -100,8 +114,8 @@ def main() -> int:
         "", "## حدود هذا التقرير", "",
         "هذا تدقيق برمجي محدود. نجاح الاختبارات لا يثبت صحة النموذج الفيزيائي، "
         "ولا يثبت محاثة الملف أو عمق الكشف أو الأداء الميداني. لم تُشغّل مسوحات "
-        "التقارب أو الحساسية في هذا الإصدار. الذاكرة ملف محفوظ في Git؛ لا تُحدّث "
-        "تلقائياً بواسطة هذا الـWorkflow ذي صلاحية القراءة فقط.",
+        "التقارب أو الحساسية في هذا الإصدار. أداة الطابور تعدّل ملف الذاكرة محلياً "
+        "فقط عند استدعائها؛ لا يكتب هذا الـWorkflow إلى المستودع.",
         "", f"## النتيجة النهائية: {'PASS' if passed else 'FAIL'}", "",
     ])
     report_path = Path(args.report)
