@@ -422,6 +422,6 @@
 - مرشح A: TI CSD19531KCS، 100V TO-220، Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V، RθJC0.7°C/W.
 - مرشح B: Infineon IRFP260NPbF، 200V TO-247، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، RθJC0.5°C/W.
 - CSD أفضل من حيث شحنة البوابة ومقاومة التشغيل والحجم؛ IRFP يمنح هامش VDS أعلى. لا تعتمد أي قطعة قبل قياس peak VDS/overshoot وSOA والحرارة والتحقق من الأصالة.
-- TC4420 مرشح driver: 4.5–18V supply، VIH min2.4V (3.3V logic compatible)، 6A peak، 55ns typ/75ns max delay عند25°C (حتى100ns max عبر نطاق الحرارة)، و25ns typ/35ns max rise/fall عند2500pF (حتى60ns max عبر نطاق الحرارة). لا Enable؛ يتطلب hardware input inhibit + fault latch + one-shot.
+- TC4420 مرشح driver: 4.5–18V supply، VIH min2.4V (3.3V logic compatible)، 6A peak typical عندVDD18V وليس minimum مضموناً، 55ns typ/75ns max delay عند25°C (حتى100ns max عبر نطاق الحرارة)، و25ns typ/35ns max rise/fall عند2500pF (حتى60ns max عبر نطاق الحرارة). ROH=2.1Ω typ/2.8Ω max وROL=1.5Ω typ/2.5Ω max عند10mA وVDD18V فقط. لا Enable؛ يتطلب hardware input inhibit + fault latch + one-shot.
 - قيم Rg=4.7/10/15Ω نقاط اختبار فقط وليست قائمة شراء؛ يجب مقارنة VGS/VDS/ringing/turn-off على حمل بديل.
 - لا تشتر MOSFET أو driver أو مقاومات بوابة قبل إغلاق الاختبار والـlayout.
