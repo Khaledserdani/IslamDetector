@@ -55,3 +55,7 @@
 
 - TI TLV3201/TLV3202 datasheet SBOS561C: https://www.ti.com/lit/ds/symlink/tlv3201.pdf
 - TI TLV3501 datasheet SBOS321E: https://www.ti.com/lit/ds/symlink/tlv3501.pdf
+
+
+## 8. Fault latch مرشح A — SN74LVC2G74
+أضيفت REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md. المرشح SN74LVC2G74 بمدخلي PRE/CLR غير متزامنين active-low؛ PRE_N منخفض يثبت Q=FAULT، وCLR_N منخفض يمسح فقط بعد تحقق RESET_REQUEST + STOP_OK + OC_CLEAR_N + RESET_N. TPS3808 supervisor يفرض POR/brownout إلى PRE_N، وTLV3201 OC عبر SN74LVC1G04 وSN74LVC1G08 يثبت fault. Qbar=NOT_FAULT يدخل بوابة TX النهائية. لا يجوز reset تلقائي أو reset أثناء overcurrent. ما زال threshold supervisor وreset gating والـfault injection مفتوحاً.
