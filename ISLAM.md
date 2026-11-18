@@ -1605,3 +1605,25 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - أطراف Kelvin فقط إلى comparator، وأطراف القدرة فقط في مسار Q1 source→PGND. لا اعتماد شراء قبل إثبات threshold وnoise/thermal/current cutoff.
 - أضيفت النتائج إلى REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md ومخطط TX وخطة الشراء.
 - المصدر: Littelfuse L4CL-A datasheet https://www.littelfuse.com/assetdocs/littelfuse-resistor-l4cl-a-datasheet?assetguid=a57275e4-80b6-41b0-ab69-386df0e05ecf.
+
+
+## 45. تثبيت نقطة التوقف وخطة الاستكمال — 2026-11-18
+
+### ما تم تثبيته في هذه النقطة
+- حارس نافذة الإرسال المرشح: U3A/U3B وحدتا LTC6993-1 مستقلتان، وSHOT_WINDOW ناتج AND بين الخرجين؛ nominal18.88µs وmax حسابي≈19.91µs وفق قيم RSET/DIV الموثقة في REV_A_TX_ONESHOT_CANDIDATES_AR.md.
+- حارس التكرار المرشح: U4 LTC6993-4 falling-edge retriggerable بعد نهاية SHOT_WINDOW؛ cooldown nominal10.40384ms وmin حسابي≈10.06ms. لا يزال fail-safe عند عطل U4/AND gate غير مغلق.
+- مسار overcurrent: TLV3201 يوفّر OC_CLEAR_N كقطع مباشر في AND النهائية، بالتوازي مع NOT_FAULT من SN74LVC2G74 حتى يبقى العطل مثبتاً بعد زوال التجاوز.
+- POR/brownout مرشح عبر TPS3808؛ reset يدوي فقط مع STOP وغياب OC وصلاحية rail. اختيار threshold ومنطق reset النهائي واختبارات fault injection مفتوحة.
+- RS1 مرشح A: Littelfuse L4CL2512LR050FYR-A، 50mΩ±1%،1W، أربع أطراف Kelvin؛ 150mV و0.45W عند3A. لا شراء قبل إثبات الضوضاء والعتبة والـovershoot.
+- لم يعتمد MOSFET أو TVS أو clamp/snubber أو gate network أو AFE نهائياً. لا توصيل لملف TX عالي الطاقة.
+- لا توجد نتيجة CI ناجحة مثبتة في هذه النقطة؛ آخر فحص workflow run أظهر startup_failure قبل jobs ولا artifacts. لا UF2/APK جديد مؤكد.
+
+### الحالة الإدارية
+- المستودع: Khaledserdani/IslamDetector
+- الفرع: hardware/rev-a-measurement-design
+- HEAD المرجعي عند كتابة هذا التثبيت: 0e39f451f9963a4af4fa9818f3e425089e7267c8 (ثم يتقدم commit هذا التحديث).
+- PR #7 يبقى Draft ومفتوحاً؛ لا دمج إلى main دون موافقة صريحة.
+- لا تُشترى القطع المقترحة حتى تغلق مراجعة datasheets، fail-safe U4/AND، اختيار clamp/snubber، VDS/SOA/thermal، واختبارات fault injection.
+
+### الخطوة التالية الملزمة
+حل fail-safe لحارس U4 والبوابة النهائية بحيث يكون فقد تغذية/صلاحية أي عنصر تحكم سبباً مضموناً لـTX OFF، ثم مراجعة fault injection، وبعدها استكمال clamp/snubber وحساب MOSFET قبل BOM وKiCad.
