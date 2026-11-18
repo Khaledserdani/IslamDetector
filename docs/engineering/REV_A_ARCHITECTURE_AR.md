@@ -403,3 +403,11 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 - startup typ0.5–8ms يتطلب startup inhibit.
 - يلزم repetition guard عتادي مستقل لمنع إعادة النبضة قبل10ms؛ LTC6993-1 وحده لا يضمن100Hz.
 - لا اعتماد/شراء قبل schematic كامل واختبار pulse width وcooldown/fault على bench.
+
+
+## 26. بنية توقيت TX ذات قفل تكرار — 2026-11-18
+- U3A/U3B: وحدتان LTC6993-1 non-retriggerable، كل واحدة18.88µs nominal (118kΩ1%، DIVCODE1/NDIV8، divider976kΩ/102kΩ1%). SHOT_WINDOW = OUT_A AND OUT_B، ما يحد stuck-high المنفرد في إحدى الوحدتين.
+- U4: LTC6993-4 falling-edge retriggerable على الحافة الهابطة لـSHOT_WINDOW، COOLDOWN_OUT high نحو10.40384ms nominal (127kΩ1%، DIVCODE4/NDIV4096، divider1MΩ/392kΩ1%)، minimum حسابي≈10.06ms.
+- TX_DRIVER_IN = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT.
+- كل محاولة جديدة خلال cooldown محجوبة وتعيد تشغيل cooldown عند نهاية SHOT_WINDOW.
+- ما زال fail-safe عند فشل U4/بوابة AND وstartup inhibit/fault injection مطلوباً قبل KiCad. هذه بنية مرشحة لا اعتماد نهائي.
