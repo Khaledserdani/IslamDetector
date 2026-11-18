@@ -399,7 +399,7 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 ## 25. حارس عرض نبضة TX العتادي — 2026-11-18
 - LTC6993-1 مرشح A لمؤقت non-retriggerable one-shot مستقل عن MCU.
 - إعداد مبدئي دون20µs: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، DIV divider976kΩ/102kΩ 1%؛ nominal18.88µs وأعلى تقدير مع tolerance≈19.91µs.
-- OUT يمر عبر AND hardware gating مع ARM/Power-Good/Watchdog/NOT_FAULT إلى TC4420 IN؛ fault latch يقطع قبل انتهاء one-shot.
+- SHOT_WINDOW يمر عبر AND hardware gating مع NOT_COOLDOWN وARM/Power-Good/Watchdog/OC_CLEAR_N (قطع comparator المباشر)/NOT_FAULT (fault latch) إلى TC4420 IN.
 - startup typ0.5–8ms يتطلب startup inhibit.
 - حارس التكرار المقترح U4 LTC6993-4 retriggerable10.4ms يعمل بعد نهاية SHOT_WINDOW من U3A/U3B؛ لا يزال fail-safe عند عطل U4/AND gate مطلوباً.
 - لا اعتماد/شراء قبل schematic كامل واختبار pulse width وcooldown/fault على bench.
