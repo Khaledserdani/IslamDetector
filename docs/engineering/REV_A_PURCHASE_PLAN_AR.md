@@ -445,3 +445,9 @@
 - مرشح A: SN74LVC2G74 (PRE/CLR active-low asynchronous) + TPS3808 supervisor + SN74LVC1G04 + SN74LVC1G08.
 - overcurrent يثبت Q=FAULT؛ brownout/POR يثبت FAULT أيضاً؛ المسح يدوي فقط مع STOP وعدم وجود OC وPower-Good.
 - لا شراء قبل اختيار supervisor threshold حسب rail regulator وإثبات عدم تزامن PRE/CLR واختبارات fault injection.
+
+
+## 5.11 مرشح شنت RS1
+- Littelfuse L4CL2512LR050FYR-A: 50mΩ±1%،1W،±30ppm/°C،2512، أربع أطراف Kelvin؛ عند3A drop150mV وP0.45W.
+- 30mΩ بديل أقل فقداً لكنه يضاعف تقريباً خطأ offset المكافئ؛ 100mΩ يرفع الفقد إلى0.9W عند3A. 50mΩ أفضل توازن مبدئي.
+- لا شراء قبل تثبيت I_LIMIT_REF والعتبة الفعلية بعد offset/temperature/noise، واختبار current cutoff/overshoot ضمن Lmin/Rmin.
