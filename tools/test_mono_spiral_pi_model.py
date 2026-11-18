@@ -8,6 +8,7 @@ from mono_spiral_pi_model import (
     rc_recovery_time,
     serial_recovery_budget,
     stored_energy,
+    valid_window_mask,
 )
 
 
@@ -61,6 +62,20 @@ class MonoSpiralModelTests(unittest.TestCase):
     def test_recovery_budget_rejects_negative_stage(self):
         with self.assertRaises(ValueError):
             serial_recovery_budget(1e-6, -1e-6, 0.0, 0.0, 0.0)
+
+
+    def test_valid_window_mask_skips_windows_before_recovery_budget(self):
+        delays = [8e-6, 12e-6, 16e-6, 24e-6, 36e-6, 52e-6, 72e-6, 100e-6]
+        self.assertEqual(valid_window_mask(delays, 8.1e-6), 0xFE)
+        self.assertEqual(valid_window_mask(delays, 24e-6), 0xF8)
+
+    def test_valid_window_mask_rejects_unsorted_delays(self):
+        with self.assertRaises(ValueError):
+            valid_window_mask([8e-6, 16e-6, 12e-6], 8e-6)
+
+    def test_valid_window_mask_rejects_empty_windows(self):
+        with self.assertRaises(ValueError):
+            valid_window_mask([], 8e-6)
 
 
 if __name__ == "__main__":
