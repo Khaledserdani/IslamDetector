@@ -139,3 +139,10 @@ flowchart TD
 يصل التيار إلى3A بعد نحو14.16µs. إذا طال تأخير comparator+logic+driver، يستمر التيار بالصعود؛ وإذا انتهى one-shot عند20µs أولاً، فإنه يقطع مستقلاً. في حالة L=180µH/R=0.9Ω لا تصل النبضة12V/20µs إلى3A أصلاً (نحو1.27A فقط)، لذا يجب ألا تفسر هذه الحالة على أنها عتبة حماية مناسبة للملف النهائي قبل قياس L وتحديد أسوأ حالة قصر/تغير.
 
 **متطلبات التصميم:** زمن الاستجابة الكلي يجب أن يثبت بالـdatasheets والقياس، ويُحسب overshoot الناتج عنه. لا نختار comparator أو shunt من عتبة3A فقط؛ يجب إدخال offset، noise, blanking، propagation delay، gate turn-off، وتفاوت L/R. هذا نموذج RL لا يشمل L الأسلاك والـdi/dt الطفيلي.
+
+
+## 12. مرشح comparator والشنت — TLV3201
+
+أضيفت وثيقة `REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md` لتقييم TLV3201 من TI: 40ns typical/55ns max propagation في شروط الداتا شيت، offset max4mV عبر−40..125°C، common-mode يمتد200mV خارج القضبان، وتغذية2.7–5.5V. تمت مقارنته بـTLV3501 الأسرع4.5ns لكن offset max6.5mV واستهلاك أعلى؛ TLV3201 أفضل مبدئياً لعتبة تيار منخفضة لأن offset أهم من عدة نانوثوانٍ إضافية.
+
+مثال دراسة فقط: 50mΩ low-side Kelvin shunt وعتبة150mV عند3A. مع offset±4mV وشنت±1% يصبح trip النظري نحو2.89–3.11A قبل ضوضاء المرجع والـlayout. لا يعتمد comparator أو الشنت بعد؛ يجب مراجعة source bounce وزمن latch/driver وقياس الاستجابة الكاملة.
