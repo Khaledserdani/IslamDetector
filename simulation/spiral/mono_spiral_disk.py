@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
+from mono_spiral_geometry import MonoSpiral
+
 MU0 = 4.0 * math.pi * 1e-7
 
 
@@ -54,18 +56,27 @@ class Pulse:
             raise ValueError("time_step_s must be positive")
 
 
-def _segments_square(coil: Coil, subdivisions: int = 16):
+def _segments_coil_path(coil: Coil, subdivisions: int = 16):
+    """Discretize the same continuous spiral used by the geometry model.
+
+    Each straight section, including all radial inter-turn connectors, is
+    subdivided uniformly. This prevents the target-coupling model from silently
+    reverting to electrically disconnected concentric square loops.
+    """
+    if subdivisions < 1:
+        raise ValueError("subdivisions must be positive")
+    geometry = MonoSpiral(
+        outer_side_m=coil.outer_side_m,
+        turns=coil.turns,
+        pitch_m=coil.pitch_m,
+    )
     segments = []
-    for k in range(coil.turns):
-        side = coil.outer_side_m - 2.0 * coil.pitch_m * k
-        h = side / 2.0
-        corners = [(-h,-h,0.0),(h,-h,0.0),(h,h,0.0),(-h,h,0.0),(-h,-h,0.0)]
-        for a,b in zip(corners[:-1], corners[1:]):
-            for q in range(subdivisions):
-                f0, f1 = q/subdivisions, (q+1)/subdivisions
-                p0 = tuple(a[i] + (b[i]-a[i])*f0 for i in range(3))
-                p1 = tuple(a[i] + (b[i]-a[i])*f1 for i in range(3))
-                segments.append((p0,p1))
+    for a, b in geometry.continuous_spiral_segments():
+        for q in range(subdivisions):
+            f0, f1 = q / subdivisions, (q + 1) / subdivisions
+            p0 = tuple(a[i] + (b[i] - a[i]) * f0 for i in range(3))
+            p1 = tuple(a[i] + (b[i] - a[i]) * f1 for i in range(3))
+            segments.append((p0, p1))
     return segments
 
 
@@ -153,7 +164,7 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
     edges = [disk.radius_m*math.sqrt(i/disk.rings) for i in range(disk.rings+1)]
     radii = [disk.radius_m*math.sqrt((i+0.5)/disk.rings) for i in range(disk.rings)]
     widths = [edges[i+1]-edges[i] for i in range(disk.rings)]
-    coil_segments = _segments_square(coil)
+    coil_segments = _segments_coil_path(coil)
     target_segments = [
         _segments_ring(r,disk.depth_m,disk.x_offset_m,disk.y_offset_m,ring_segments)
         for r in radii
