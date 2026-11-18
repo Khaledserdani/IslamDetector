@@ -3,6 +3,7 @@
   "project": "ISLAM DETECTOR / ISLAM LAB",
   "updated_at": "2026-11-18",
   "active_branch": "feature/islam-lab-searchcoil-redesign",
+  "agent_branch": "feature/islam-free-agent-foundation",
   "active_pull_request": 12,
   "active_engineering_track": "Mono Spiral PI 35x35 cm",
   "historical_tracks": [
@@ -16,18 +17,20 @@
     "Evaluate an independent Greenhouse-style segment inductance method before choosing final coil inductance.",
     "Include the 12 radial transition connectors and correct current directions in any segment-based coil inductance model.",
     "Do not expose secrets in source files, reports, or logs.",
-    "Free-only: no paid API, subscription, hosted service, or paid runner."
+    "Free-only: no paid API, subscription, hosted service, or paid runner.",
+    "The local task queue edits the JSON memory file only; it does not push commits or call remote services."
   ],
   "current_evidence": {
     "geometry_model": "continuous 13-turn square spiral with 12 radial connectors; software model only",
     "coil_inductance": "Mohan current-sheet estimate about 175.8 uH and modified Wheeler estimate about 149.2 uH; methods disagree and original paper validation dimensions are far smaller",
     "disk_model": "reduced-order axisymmetric conductive-disk surrogate; not 3D FEM and not field validated",
-    "github_actions": "run 44409681812 completed with startup_failure and zero jobs; no Python test execution evidence"
+    "github_actions": "run 44410506137 completed with startup_failure and zero jobs; no Python test execution evidence",
+    "agent_task_queue": "task_queue.py and test_task_queue.py added; tests are not yet confirmed executed"
   },
   "next_tasks": [
     {
       "id": "agent-001",
-      "title": "Stabilize deterministic audit runner",
+      "title": "Stabilize GitHub Actions audit startup",
       "status": "in_progress",
       "acceptance": "Workflow obtains a real runner; audit report records test exit code and clearly distinguishes not-run from passed."
     },
@@ -42,6 +45,12 @@
       "title": "Build local Ollama integration design",
       "status": "pending",
       "acceptance": "Optional local model integration with no paid API dependency and strict tool permissions."
+    },
+    {
+      "id": "agent-004",
+      "title": "Implement local persistent task queue",
+      "status": "in_progress",
+      "acceptance": "Task listing, next pending task selection, guarded status transitions, atomic memory writes, and unit tests pass."
     }
   ]
 }
