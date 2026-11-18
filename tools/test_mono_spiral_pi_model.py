@@ -11,6 +11,7 @@ from mono_spiral_pi_model import (
     valid_window_mask,
     square_spiral_estimate,
     square_spiral_axis_field,
+    low_side_clamp_stress,
 )
 
 
@@ -118,6 +119,31 @@ class MonoSpiralModelTests(unittest.TestCase):
         self.assertAlmostEqual(slow * 1e6, 16.94, places=2)
         self.assertAlmostEqual(fast * 1e6, 8.65, places=2)
         self.assertGreater(slow, fast)
+
+
+    def test_low_side_clamp_stress_energy_balance(self):
+        result = low_side_clamp_stress(12.0, 85e-6, 0.9, 2.5445991387, 30.0, 100.0)
+        self.assertAlmostEqual(result["initial_magnetic_energy_j"] * 1e3, 0.275187, places=5)
+        self.assertAlmostEqual(result["clamp_energy_per_pulse_j"] * 1e3, 0.261938, places=5)
+        self.assertAlmostEqual(result["coil_resistive_loss_per_pulse_j"] * 1e3, 0.013249, places=5)
+        self.assertAlmostEqual(result["clamp_energy_per_pulse_j"] + result["coil_resistive_loss_per_pulse_j"], result["released_magnetic_energy_j"], places=12)
+
+    def test_low_side_clamp_stress_predicts_ideal_vds_and_rate_power(self):
+        one_hundred = low_side_clamp_stress(12.0, 85e-6, 0.9, 2.5445991387, 30.0, 100.0)
+        one_thousand = low_side_clamp_stress(12.0, 85e-6, 0.9, 2.5445991387, 30.0, 1000.0)
+        self.assertEqual(one_hundred["ideal_mosfet_vds_v"], 42.0)
+        self.assertAlmostEqual(one_thousand["clamp_average_power_w"], 10.0 * one_hundred["clamp_average_power_w"], places=12)
+
+    def test_low_side_clamp_stress_zero_coil_resistance(self):
+        result = low_side_clamp_stress(12.0, 100e-6, 0.0, 2.0, 40.0, 100.0)
+        self.assertAlmostEqual(result["clamp_energy_per_pulse_j"], 0.5 * 100e-6 * 4.0, places=12)
+        self.assertEqual(result["coil_resistive_loss_per_pulse_j"], 0.0)
+
+    def test_low_side_clamp_stress_rejects_invalid_current_or_rate(self):
+        with self.assertRaises(ValueError):
+            low_side_clamp_stress(12.0, 100e-6, 0.9, 1.0, 30.0, 100.0, 1.0)
+        with self.assertRaises(ValueError):
+            low_side_clamp_stress(12.0, 100e-6, 0.9, 1.0, 30.0, 0.0)
 
 
 if __name__ == "__main__":
