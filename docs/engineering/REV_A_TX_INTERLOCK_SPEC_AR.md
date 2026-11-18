@@ -120,3 +120,22 @@ flowchart TD
 - Nexperia AN11158: Understanding power MOSFET data sheet parameters and SOA.
 - TI SNVAA45: Driving inductive loads and clamp-voltage trade-off.
 - روابط المصادر مثبتة في `COIL_TOPOLOGY_STUDY_AR.md` القسم7.14.
+
+
+## 11. زمن استجابة overcurrent وovershoot — تحليل أولي
+
+أضيفت `current_limit_response()` إلى النموذج لحساب زمن وصول التيار إلى عتبة comparator ثم الزيادة الإضافية خلال زمن comparator + latch + gate-driver turn-off. يبقى one-shot مستقلاً ويقطع عند الحد الأقصى حتى لو تأخر comparator.
+
+**مثال حسابي فقط:** مصدر12V، L=50µH، R=0.9Ω، عتبة3A، أقصى نبضة20µs:
+
+| تأخير القطع بعد العتبة | التيار النظري عند القطع |
+|---:|---:|
+| 0.1µs | 3.019A |
+| 0.5µs | 3.093A |
+| 1µs | 3.184A |
+| 2µs | 3.365A |
+| 5µs | 3.889A |
+
+يصل التيار إلى3A بعد نحو14.16µs. إذا طال تأخير comparator+logic+driver، يستمر التيار بالصعود؛ وإذا انتهى one-shot عند20µs أولاً، فإنه يقطع مستقلاً. في حالة L=180µH/R=0.9Ω لا تصل النبضة12V/20µs إلى3A أصلاً (نحو1.27A فقط)، لذا يجب ألا تفسر هذه الحالة على أنها عتبة حماية مناسبة للملف النهائي قبل قياس L وتحديد أسوأ حالة قصر/تغير.
+
+**متطلبات التصميم:** زمن الاستجابة الكلي يجب أن يثبت بالـdatasheets والقياس، ويُحسب overshoot الناتج عنه. لا نختار comparator أو shunt من عتبة3A فقط؛ يجب إدخال offset، noise, blanking، propagation delay، gate turn-off، وتفاوت L/R. هذا نموذج RL لا يشمل L الأسلاك والـdi/dt الطفيلي.
