@@ -179,8 +179,8 @@ def square_spiral_estimate(
     wire = _positive_finite("wire_diameter_m", wire_diameter_m)
     gap = _positive_finite("gap_m", gap_m, allow_zero=True)
     copper = _positive_finite("copper_diameter_m", copper_diameter_m)
-    if not isinstance(turns, int) or isinstance(turns, bool) or turns < 1:
-        raise ValueError("turns must be a positive integer")
+    if not isinstance(turns, int) or isinstance(turns, bool) or turns < 2:
+        raise ValueError("turns must be an integer of at least two for a spiral")
     if copper > wire:
         raise ValueError("copper_diameter_m cannot exceed wire_diameter_m")
 
