@@ -1,0 +1,20 @@
+name: Rev A action smoke
+on:
+  push:
+    branches:
+      - hardware/rev-a-measurement-design
+permissions:
+  contents: read
+jobs:
+  action-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm action execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "actions/checkout is available"
+          test -f .github/workflows/main.yml
+          echo "checkout complete"
