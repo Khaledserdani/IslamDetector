@@ -54,7 +54,8 @@ flowchart TD
 | GATE_RAW | خرج TC4420 عبر RG إلى Gate Q1 | RG غير محدد |
 | GATE_SOURCE | مقاومة pulldown بين Gate وSource Q1 | القيمة غير محددة |
 | SHUNT_SENSE_P | طرف RS1 العلوي عند Source Q1، إلى U2 IN+ | Kelvin trace |
-| SHUNT_SENSE_N | طرف RS1 السفلي عند PGND، إلى U2 IN− أو شبكة مرجع القياس | Kelvin trace |
+| SHUNT_SENSE_N | طرف RS1 السفلي عند PGND؛ مرجع أرضي قياس الشنت وI_LIMIT_REF | Kelvin trace |
+| I_LIMIT_REF | جهد العتبة المنظم (مثال150mV فقط)، إلى U2 IN− | القيمة/المرجع غير محددين |
 | I_LIMIT_REF | مرجع threshold منظم إلى U2 input المقابل | القيمة/المرجع غير محددين |
 | OC_FAULT | خرج U2 إلى asynchronous set في fault latch | polarity/logic غير محددين |
 | TX_PERMIT | AND hardware: one-shot AND ARM_OK AND NOT_FAULT AND POWER_GOOD | LOW افتراضياً |
