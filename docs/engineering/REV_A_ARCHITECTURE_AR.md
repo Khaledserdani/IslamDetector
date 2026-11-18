@@ -369,3 +369,8 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 أضيفت الوثيقة `REV_A_TX_INTERLOCK_SPEC_AR.md` لتثبيت متطلبات قفل عتادي مستقل عن ESP32/RP2040: one-shot يحدد أقصى عرض النبضة، comparator يقطع التيار بصورة غير متزامنة، fault latch يمنع إعادة التشغيل التلقائية، repetition guard، Power-Good/UVLO، watchdog مستقل، وGate OFF افتراضي عند Reset أو فقد التغذية. GP4 يبقى خرج اختبار منطقي فقط، وSTART يبقى مرفوضاً في Firmware إلى أن يثبت interlock على مستوى الدارة.
 
 هذه مواصفة وظيفية وليست schematic أو BOM أو عتاداً مختبراً. قيم12V/20µs/100Hz/3A حدود سيناريو أولي للمراجعة وليست إعدادات معتمدة. لا توصيل للملف حتى يكتمل تصميم clamp والـinterlock واختبار الحمل البديل وقياس VGS/VDS/التيار.
+
+
+## 21. مرشحو مرحلة TX — IRFP260NPbF وTC4420 — 2026-11-18
+
+أضيفت `REV_A_TX_POWER_STAGE_CANDIDATES_AR.md` لمراجعة زوج مرشح: IRFP260NPbF (200V، RDS(on) max40mΩ عندVGS=10V، Qg max234nC، TO-247AC) مع TC4420 (4.5–18V supply، VIH min2.4V، 6A peak). الزوج متوافق مبدئياً من ناحية 3.3V logic إلى driver و10V gate drive، لكن لا يعتمد كاختيار نهائي قبل قياس/محاكاة VDS overshoot، SOA، Zth، VGS ringing، وضبط Rg وclamp. TC4420 لا يوفر حماية overcurrent أو thermal أو Enable مخصصاً؛ يجب أن يسبق دخله hardware one-shot وfault latch. لا BOM نهائي حتى الآن.
