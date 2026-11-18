@@ -25,7 +25,7 @@
     "coil_inductance": "Mohan current-sheet estimate about 175.8 uH and modified Wheeler estimate about 149.2 uH; methods disagree and original paper validation dimensions are far smaller",
     "disk_model": "reduced-order axisymmetric conductive-disk surrogate; not 3D FEM and not field validated",
     "github_actions": "run 44410506137 completed with startup_failure and zero jobs; no Python test execution evidence",
-    "agent_task_queue": "task_queue.py and test_task_queue.py added; tests are not yet confirmed executed"
+    "agent_task_queue": "Task queue validation hardened for malformed/non-string IDs, blank titles/acceptance fields, and invalid statuses; regression tests added but not executed yet. No runtime test success is claimed."
   },
   "next_tasks": [
     {
