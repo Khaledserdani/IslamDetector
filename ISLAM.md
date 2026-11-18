@@ -1535,3 +1535,12 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - أضيفت REV_A_TX_CLAMP_COMPARISON_AR.md لمقارنة bidirectional TVS وunidirectional TVS+blocking diode وRCD، وحساب نطاق 12V/20µs/100Hz مع L85–180µH وR0.9–1.3Ω.
 - النتائج التحليلية عند Vclamp22.1–29.2V: VDS مثالي34.1–41.2V قبل parasitic overshoot، زمن اضمحلال6.7–10.1µs، وطاقة clamp0.132–0.262mJ/نبضة. ليست قياسات ولا اختياراً نهائياً.
 - بوابة السلامة: لا توصيل ملف أو شراء TVS قبل قياس V-I عند التيار الفعلي، التحقق من الطاقة المتكررة والحرارة، وقياس VDS/Gate/coil-current على حمل بديل محدود التيار.
+
+
+## 37. تحسين تقدير Clamp من الداتا شيت الرسمية — 2026-11-18
+- تمت مراجعة ST DS1283 Rev.14 (April 2026)، Table2 note4: VCLmax = VCL - RD × (IPP - IPP_appli). للـSMBJ18CA: VCL29.2V عند21.5A، RD0.328Ω، VRWM18V، VBR20.0–21.1V عند1mA.
+- عند تيار الملف النظري1.24–2.55A، معادلة ST تعطي VCLmax≈22.55–22.98V (وفق شروط موجة 10/1000µs). لأن نبضة demagnetization لدينا أقصر (~8.4–9.9µs)، هذا استقراء أولي لا ضمان؛ يجب مراجعة Figure6 (RD مقابل pulse duration) وقياس V-I.
+- إعادة حساب series-RL مع VCL الثابت المستنتج: I=1.242–2.545A، VDS المثالي34.56–34.98V قبل overshoot، زمن اضمحلال8.44–9.87µs، طاقة TVS0.132–0.258mJ/نبضة، متوسط13.2–25.8mW عند100Hz. لا تمثل قياسات أو اعتماد TVS/MOSFET.
+- أضيفت الدالة tvs_clamp_voltage_from_datasheet() واختبارات تحقق المعادلة والحدود في model/tests.
+- مصدر المواصفات: ST DS1283 Rev.14 April2026، Table2 note4 وFigure6: https://www.st.com/resource/en/datasheet/smbj18ca.pdf.
+- لا شراء أو تشغيل TX قبل تأكيد موجة clamp الفعلية، VDS overshoot، تحمل النبضات المتكررة، وحماية RX.
