@@ -103,3 +103,7 @@ U3A/U3B LTC6993-1 مستقلان → AND → SHOT_WINDOW. الحافة الها�
 
 ## 9. Fault latch كتلة مقترحة
 TLV3201 OC_FAULT → LVC1G04 → OC_CLEAR_N. RESET_N من TPS3808. PRE_N = RESET_N AND OC_CLEAR_N عبر LVC1G08. SN74LVC2G74 PRE_N يثبت Q=FAULT؛ CLR_N يسمح فقط عند RESET_REQUEST AND STOP_OK AND OC_CLEAR_N AND RESET_N. Qbar=NOT_FAULT يدخل TX final AND gate. التفاصيل في REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md. لا reset تلقائي ولا مسح أثناء OC.
+
+
+## 10. مرشح RS1 بعد مراجعة الشنت
+RS1 مرشح A للدراسة Littelfuse L4CL2512LR050FYR-A، 50mΩ±1%،1W،TCR±30ppm/°C، package2512، أربع أطراف Kelvin. عند3A يعطي150mV و0.45W. طرفا Kelvin فقط إلى TLV3201، وطرفا القدرة فقط في مسار Q1 source→PGND. لا اعتماد حتى قياس الضوضاء والحرارة والـovershoot.
