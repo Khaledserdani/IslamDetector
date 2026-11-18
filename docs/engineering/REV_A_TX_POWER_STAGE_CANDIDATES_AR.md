@@ -129,7 +129,7 @@ TC4420 مناسب مبدئياً لقيادة MOSFET ذي Qg مرتفع مع ح�
 ### 10.2 مراجعة TC4420 مع مرشح CSD
 Microchip TC4420:
 - تغذية4.5–18V؛ دخل CMOS/TTL، VIH الأدنى2.4V، لذا منطق3.3V متوافق مبدئياً.
-- تيار خرج قِمّي6A؛ مقاومة خرج منخفضة تقارب2.5Ω؛ تأخير انتشار55ns typ؛ rise/fall25ns typ عند حمل2500pF.
+- تيار خرج قِمّي6A؛ مقاومة خرج منخفضة تقارب2.5Ω؛ تأخير انتشار55ns typ/75ns max عند25°C؛ rise/fall25ns typ/35ns max عند2500pF. عبر نطاق الحرارة الأوسع قد يصل تأخير الانتشار إلى100ns max وrise/fall إلى60ns max.
 - TC4420 لا يملك Enable مستقل. يجب أن يفرض fault latch/one-shot إشارة IN إلى LOW، مع pull-down، وأن يكون الإطفاء العتادي غير متزامن.
 - لا نستنتج زمن إطفاء MOSFET من 55ns وحدها؛ يجب إدخال Qgd وRg ومقاومة الخرج وcommon-source inductance وMiller plateau وقياس VGS/VDS.
 
