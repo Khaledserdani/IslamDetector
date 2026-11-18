@@ -117,3 +117,35 @@ TC4420 مناسب مبدئياً لقيادة MOSFET ذي Qg مرتفع مع ح�
 4. التأكد من حالة التوفر والأصالة والمصدر المحلي/الشحن.
 
 لا تفسر 100V على أنه موافقة تشغيل؛ لا توصيل TX قبل اكتمال الحماية والقياس.
+
+
+## 10. قرار قيادة البوابة ومقارنة MOSFET المحدثة — 2026-11-18
+
+### 10.1 تصحيح مصدر البيانات
+- TI CSD19531KCS: Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عندVGS=10V، VDS100V، TO-220، RθJC max0.7°C/W، وEAS single-pulse 180mJ عندID60A/L0.1mH/RG25Ω (شروط الاختبار مهمة ولا تُنقل كضمان لنبضتنا).
+- Infineon IRFP260NPbF: Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، VDS200V، TO-247، RθJC max0.5°C/W.
+- CSD يخفض Qg بنحو4.78× وQgd بنحو14.67×، ويقلل خسارة التوصيل النظرية عند التيار نفسه؛ لكنه يملك نصف تصنيف الجهد.
+
+### 10.2 مراجعة TC4420 مع مرشح CSD
+Microchip TC4420:
+- تغذية4.5–18V؛ دخل CMOS/TTL، VIH الأدنى2.4V، لذا منطق3.3V متوافق مبدئياً.
+- تيار خرج قِمّي6A؛ مقاومة خرج منخفضة تقارب2.5Ω؛ تأخير انتشار55ns typ؛ rise/fall25ns typ عند حمل2500pF.
+- TC4420 لا يملك Enable مستقل. يجب أن يفرض fault latch/one-shot إشارة IN إلى LOW، مع pull-down، وأن يكون الإطفاء العتادي غير متزامن.
+- لا نستنتج زمن إطفاء MOSFET من 55ns وحدها؛ يجب إدخال Qgd وRg ومقاومة الخرج وcommon-source inductance وMiller plateau وقياس VGS/VDS.
+
+### 10.3 خطة اختيار Rg — لا تثبيت قيمة قبل القياس
+- قيم البداية على منصة اختبار MOSFET وحمل بديل: Rg=4.7Ω، 10Ω، 15Ω؛ هذه نقاط اختبار وليست BOM.
+- لكل قيمة: قِس VGS عند أرجل MOSFET وVDS وdrain current، turn-off delay/fall، ringing/false turn-on، والـovershoot.
+- لا تعتمد أسرع حافة تلقائياً؛ اختر أصغر overshoot مع إطفاء سريع وبدون ringing أو إعادة تشغيل Miller.
+- Gate pulldown مستقل، ومسار Gate/Source Kelvin قصير، وdriver decoupling ملاصق.
+
+### 10.4 SOA وقرار المرشح
+- تيار نهاية النبضة النظري حتى2.55A، وزمن demagnetization قرابة9µs، لكن هذا لا يمثل تلقائياً مدة linear stress على MOSFET؛ مرحلة انتقال البوابة والـparasitics هي التي يجب قياسها.
+- TI يحدد SOA single-pulse وZθJC curves؛ لا يجوز استخدام EAS كبديل عن SOA، ولا افتراض أن تصنيف 285A pulsed current يعني صلاحية أي نقطة VDS/ID.
+- ترتيب الدراسة: CSD19531KCS مرشح A، IRFP260NPbF مرشح B. **لا اعتماد شراء** حتى قياس VDS peak على الحمل البديل، إثبات margin مع derating متفق عليه، والتحقق من SOA وحرارة الوصلة.
+- إذا تجاوز VDS peak ميزانية 80V المقترحة مبدئياً لمرشح100V، نوقف اعتماد CSD ونراجع clamp/layout أو ننتقل لفئة جهد أعلى. 80V حد مراجعة محافظ أولي وليس مواصفة تشغيل.
+
+### 10.5 المصادر
+- TI CSD19531KCS SLPS407D Rev.D: https://www.ti.com/lit/ds/symlink/csd19531kcs.pdf
+- Infineon IRFP260N Rev.2.1: https://www.infineon.com/assets/row/public/documents/24/49/infineon-irfp260n-datasheet-en.pdf
+- Microchip TC4420 DS21419D: https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf
