@@ -18,9 +18,6 @@ on:
       - 'gradle/**'
 permissions:
   contents: read
-concurrency:
-  group: rev-a-validation-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   protocol-tests:
     runs-on: ubuntu-24.04
