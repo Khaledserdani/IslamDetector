@@ -48,6 +48,24 @@ class TaskQueueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_memory(self.path)
 
+    def test_non_string_task_id_is_rejected_cleanly(self):
+        malformed = dict(self.memory)
+        malformed["next_tasks"] = [
+            {"id": ["not", "hashable"], "title": "Bad id", "status": "pending", "acceptance": "reject"}
+        ]
+        self.path.write_text(json.dumps(malformed), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "id.*string"):
+            load_memory(self.path)
+
+    def test_blank_task_title_is_rejected(self):
+        malformed = dict(self.memory)
+        malformed["next_tasks"] = [
+            {"id": "t1", "title": " ", "status": "pending", "acceptance": "reject"}
+        ]
+        self.path.write_text(json.dumps(malformed), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "title"):
+            load_memory(self.path)
+
     def test_atomic_write_round_trip(self):
         memory = load_memory(self.path)
         transition(memory, "t1", "in_progress")
