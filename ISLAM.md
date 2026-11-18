@@ -1427,3 +1427,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - في سيناريو12V/L50µH/R0.9Ω وعتبة3A: يصل التيار للعتبة بعد14.16µs؛ ويصبح نحو3.184A بعد تأخير1µs، و3.889A بعد5µs. عند L=180µH/R=0.9Ω لا يصل التيار إلى3A خلال20µs (نحو1.27A).
 - أضيفت أربعة اختبارات لنموذج current-limit؛ أصبح ملف `test_mono_spiral_pi_model.py` يحتوي32 اختباراً. أضيفت نتائج التأخير إلى مواصفة interlock وخطة الشراء ومقارنة مرحلة TX.
 - لا comparator أو shunt أو one-shot محدد. عتبة3A تظل افتراضاً لا قيمة نهائية؛ يجب قياس L/R الفعلي وإدخال offsets/noise/blanking/propagation/turn-off delay.
+
+
+## 31. مرشح comparator لحد التيار — 2026-11-18
+
+- أضيفت `REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md` لتقييم TI TLV3201 كمرشح A: 40ns typ/55ns max، offset max4mV عبر مدى الحرارة، common-mode يمتد200mV خارج القضبان، supply2.7–5.5V.
+- مقارنة TLV3501: أسرع4.5ns لكن offset max6.5mV واستهلاك أعلى؛ TLV3201 أنسب مبدئياً لدقة threshold shunt.
+- مثال حسابي 50mΩ و150mV عند3A؛ مع offset±4mV وشنت±1% ينتج trip تقريبي2.89–3.11A قبل أخطاء المرجع والضوضاء. هذا ليس BOM أو قيمة نهائية.
+- أضيفت الإحالات إلى interlock spec وpurchase plan وarchitecture. لا comparator أو shunt معتمد؛ يلزم التحقق من source bounce وKelvin sense وزمن fault latch/driver.
