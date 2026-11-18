@@ -219,3 +219,37 @@ def square_spiral_estimate(
         "inductance_wheeler_h": inductance_wheeler_h,
         "inductance_current_sheet_h": inductance_current_sheet_h,
     }
+
+
+def square_spiral_axis_field(
+    outer_side_m: float,
+    turns: int,
+    wire_diameter_m: float,
+    gap_m: float,
+    current_a: float,
+    depth_m: float = 0.0,
+) -> float:
+    """Ideal axial B-field from concentric square turns carrying equal current.
+
+    Returns tesla at a point on the normal axis, depth_m from the coil plane.
+    This is a free-space thin-wire field estimate; it excludes target coupling,
+    soil, ferrite/shielding, nearby conductors and current redistribution.
+    """
+    current = _positive_finite("current_a", current_a, allow_zero=True)
+    depth = _positive_finite("depth_m", depth_m, allow_zero=True)
+    # Reuse geometry validation and its centerline convention.
+    geometry = square_spiral_estimate(
+        outer_side_m, turns, wire_diameter_m, gap_m, wire_diameter_m
+    )
+    outer_centerline = geometry["outer_centerline_side_m"]
+    pitch = float(wire_diameter_m) + float(gap_m)
+    mu0 = 4.0 * math.pi * 1e-7
+    field_t = 0.0
+    for index in range(turns):
+        side = outer_centerline - 2.0 * index * pitch
+        radius_squared = (side / 2.0) ** 2 + depth * depth
+        field_t += (
+            mu0 * current * side * side
+            / (2.0 * math.pi * radius_squared * math.sqrt(side * side / 2.0 + depth * depth))
+        )
+    return field_t
