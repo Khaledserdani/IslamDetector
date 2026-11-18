@@ -47,7 +47,7 @@ TPS3808 RESET_N + OC_CLEAR_N → LVC1G08 → PRE_N
 
 SN74LVC2G74 Qbar (NOT_FAULT) → final TX AND gate
 
-final TX gate = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT
+final TX gate = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT
 
 - Comparator يثبت fault asynchronous.
 - Latch يمنع إعادة التشغيل عند تذبذب التيار حول العتبة.
@@ -70,3 +70,7 @@ final TX gate = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND 
 - TI TLV3201 Rev.C: https://www.ti.com/lit/ds/symlink/tlv3201.pdf
 
 **القرار:** SN74LVC2G74 + TPS3808 supervisor + LVC logic هي بنية مرشحة A للـfault latch. لا قيم نهائية ولا شراء حتى حسم منظم3.3V، reset gating، وfault-injection tests.
+
+
+## 7. مسار قطع مباشر موازٍ للـlatch
+إضافة مهمة: يجب إدخال OC_CLEAR_N نفسه مباشرة في AND gate النهائي، إلى جانب NOT_FAULT من SN74LVC2G74. بذلك يقطع comparator المسار فوراً حتى لو تأخر أو تعطل latch، بينما يبقى latch مثبتاً بعد زوال OC. المعادلة النهائية: TX_DRIVER_IN = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT. لا تجعل latch المسار الوحيد لقطع التيار.
