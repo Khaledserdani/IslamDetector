@@ -21,10 +21,12 @@ AGENT_DIR = ROOT / "tools" / "islam_agent"
 MEMORY_FILE = ROOT / "docs" / "agent" / "agent_memory.json"
 REQUIRED_FILES = (
     SPIRAL_DIR / "mono_spiral_geometry.py",
+    SPIRAL_DIR / "conductor_effects.py",
     SPIRAL_DIR / "mono_spiral_disk.py",
     SPIRAL_DIR / "run_disk_convergence.py",
     SPIRAL_DIR / "test_mono_spiral_geometry.py",
     SPIRAL_DIR / "test_mono_spiral_disk.py",
+    SPIRAL_DIR / "test_conductor_effects.py",
     MEMORY_FILE,
     AGENT_DIR / "task_queue.py",
     AGENT_DIR / "test_task_queue.py",
@@ -64,7 +66,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
-        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk"]),
+        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects"]),
         (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue"]),
     )
     outputs = []
