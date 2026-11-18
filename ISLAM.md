@@ -1584,7 +1584,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 ## 42. تحسين repetition guard وتحمل stuck-high — 2026-11-18
 - استبدلنا فكرة one-shot منفرد ببنية U3A/U3B: وحدتان LTC6993-1 non-retriggerable مستقلتان، كل واحدة RSET118kΩ1% وDIVCODE1/NDIV8 ومقسم976kΩ/102kΩ1%. كل خرج18.88µs nominal؛ SHOT_WINDOW=OUT_A AND OUT_B. فشل واحدة HIGH يترك الأخرى تحد مدة النبضة، وفشل واحدة LOW يمنع التشغيل.
 - U4: LTC6993-4 falling-edge retriggerable، يطلق على الحافة الهابطة لـSHOT_WINDOW ويولد COOLDOWN_OUT. RSET127kΩ1%، DIVCODE4/NDIV4096، divider1.00MΩ/392kΩ1%؛ tOUT nominal10.40384ms، والحد الأدنى الحسابي≈10.06ms.
-- TX_DRIVER_IN=SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT.
+- TX_DRIVER_IN=SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT.
 - المحاولات خلال cooldown محجوبة، ونهاية كل SHOT_WINDOW تعيد تشغيل U4، فيبقى القفل حتى10ms بعد آخر محاولة.
 - هذا يعالج stuck-high المنفرد في U3A أو U3B فقط؛ fail-safe عند U4 أو بوابة AND، startup inhibit، وfault-injection tests ما زالت مفتوحة. لا شراء أو تشغيل قبل إغلاقها.
 
