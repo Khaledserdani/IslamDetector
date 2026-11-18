@@ -154,7 +154,7 @@ flowchart TD
 
 خرج المؤقت لا يقود Gate؛ يمر عبر AND gating إلى TC4420 IN مع ARM_OK وPOWER_GOOD وWATCHDOG_OK وNOT_FAULT. Fault latch يجب أن يقطع فوراً. تأخير بدء تشغيل المؤقت typ0.5–8ms ويجب حجب ARM حتى استقرار المؤقت.
 
-**قيد مفتوح:** LTC6993-1 لا يضمن وحده فترة تكرار10ms؛ يلزم hardware repetition guard مستقل قبل السماح بنبضة جديدة. لا شراء أو تشغيل قبل إغلاق هذا القفل واختبار عرض النبضة.
+**تحديث:** المؤقت المنفرد LTC6993-1 لا يضمن فترة10ms. البنية المقترحة الآن U3A/U3B مزدوجة لتحديد SHOT_WINDOW، وU4 LTC6993-4 كـcooldown retriggerable10.4ms بعد نهاية النافذة. تبقى fail-safe عند فقد U4/AND gate واختبارات fault injection مفتوحة؛ لا شراء أو تشغيل قبل إغلاقها.
 
 
 ## 14. تحديث repetition guard — بنية ثلاثة مؤقتات — 2026-11-18
