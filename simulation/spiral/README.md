@@ -41,6 +41,7 @@ not a measured field map.
   inductance between the square winding and concentric eddy-current loops.
 - `test_mono_spiral_disk.py`: target-surrogate regression tests.
 - `run_disk_convergence.py`: angular and radial sensitivity sweeps.
+- `run_coil_inductance_sensitivity.py`: compares the transient response across the two provisional planar-spiral inductance estimates and their midpoint.
 
 The disk model is a reduced-order axisymmetric approximation, not 3-D FEM.
 It uses equal-area annuli and currently rejects more than 8 target rings
