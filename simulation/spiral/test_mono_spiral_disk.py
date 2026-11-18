@@ -1,6 +1,7 @@
 import unittest
 
 from mono_spiral_geometry import MonoSpiral
+from run_disk_convergence import matrix_condition_inf
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
     _coaxial_loop_mutual, _segments_coil_path, build_disk_model, receive_peak, simulate)
 
@@ -11,6 +12,12 @@ class ConductiveDiskModelTests(unittest.TestCase):
         self.pulse=Pulse(time_step_s=1.0e-6)
         self.disk=ConductiveDisk(radius_m=0.012,thickness_m=0.001,
             conductivity_s_m=35e6,depth_m=0.04,rings=4)
+
+    def test_matrix_condition_inf_for_identity_is_one(self):
+        self.assertAlmostEqual(matrix_condition_inf([[1.0, 0.0], [0.0, 1.0]]), 1.0)
+
+    def test_matrix_condition_inf_for_diagonal_matrix(self):
+        self.assertAlmostEqual(matrix_condition_inf([[2.0, 0.0], [0.0, 4.0]]), 2.0)
 
     def test_matrix_is_symmetric_and_positive_diagonal(self):
         L,R,radii=build_disk_model(self.coil,self.disk,ring_segments=48)
