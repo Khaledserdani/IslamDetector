@@ -58,7 +58,7 @@ flowchart TD
 | I_LIMIT_REF | جهد العتبة المنظم (مثال150mV فقط)، إلى U2 IN− | القيمة/المرجع غير محددين |
 | I_LIMIT_REF | مرجع threshold منظم إلى U2 input المقابل | القيمة/المرجع غير محددين |
 | OC_FAULT | خرج U2 إلى asynchronous set في fault latch | polarity/logic غير محددين |
-| TX_PERMIT | AND hardware: one-shot AND ARM_OK AND NOT_FAULT AND POWER_GOOD | LOW افتراضياً |
+| TX_PERMIT | AND hardware: SHOT_WINDOW AND NOT_COOLDOWN AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT | LOW افتراضياً |
 | DRIVER_IN | TX_PERMIT إلى TC4420 IN | لا يقاد من MCU مباشرة |
 | DRIVER_VDD | 10–12V مبدئياً بالنسبة إلى KELVIN_SOURCE | يحتاج rail/decoupling |
 | LOGIC_3V3/5V | تغذية U2 والـlatch والـone-shot حسب اختيارها | لم تُثبت |
@@ -68,7 +68,7 @@ flowchart TD
 1. U1 GND يربط Kelvin source وليس مسار PGND بعيداً؛ الهدف تقليل common-source inductance. يجب أن يبقى مسار تيار RS1 منفصلاً عن sense trace.
 2. ممنوع TVS أحادي الاتجاه مباشرة عبر الملف بهذه القطبية؛ سينحاز أمامياً عندما يكون Drain منخفضاً أثناء TX ON. استخدم bidirectional TVS بجهد stand-off أعلى من أقصى جهد الملف، أو فرع unidirectional TVS مع blocking diode متسلسل مصمم كما في مرجع TI.
 3. U2 يقيس جهد الشنت الصغير قرب الأرضي. لا توصل أي مدخل comparator إلى SW_DRAIN أو طرف الملف؛ تلك عقدة قدرة عالية الجهد.
-4. TC4420 لا يحتوي Enable مخصصاً. TX_PERMIT يجب أن يفرض LOW على IN، مع pull-down مستقل. comparator fault latch يجب أن يستطيع إسقاط TX_PERMIT دون انتظار البرنامج.
+4. TC4420 لا يحتوي Enable مخصصاً. TX_PERMIT يجب أن يفرض LOW على IN، مع pull-down مستقل. comparator OC_CLEAR_N يقطع مباشرة بالتوازي مع fault latch NOT_FAULT، وكلاهما يستطيع إسقاط TX_PERMIT دون انتظار البرنامج.
 5. TVS1 SMBJ18CA يعطي تقديراً أولياً VCLmax≈22.5–23.0V عند1.2–2.55A من معادلة ST (RD=0.328Ω، VCL=29.2V عند21.5A). لكن المعادلة مبنية على surge 10/1000µs؛ نبضتنا أقصر، لذا يجب التحقق من Figure6/قياس V-I. احسب Drain=12V+VCL الفعلي+parasitic overshoot.
 6. لا تضع TVS أو shunt أو driver على breadboard بأسلاك طويلة؛ حلقة الملف/المفتاح/clamp يجب أن تكون قصيرة جداً، والـsense/logic مفصولة عن مسار القدرة.
 7. لا يُوصل GP4 مباشرة بـU1 IN أو Gate. إشارة RP2040 تمر فقط عبر one-shot وARM/fault logic بعد اكتمالها.
