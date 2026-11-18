@@ -1411,3 +1411,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - أضيفت إحالات إلى المواصفة في معمارية Rev A وخطة الشراء، وأضيف static safety test للتأكد من وجود متطلبات القطع العتادي المستقل.
 - لا توجد قيم قطع أو schematic نهائي. RP2040/ESP32 لا يجوز أن يمددا النبضة أو يتجاوزا حماية التيار. GP4 يبقى logic-only وSTART مرفوضاً حتى إكمال interlock.
 - اختبار model file الآن28 حالة، وأضيف اختبار static إضافي لمواصفة interlock. لم تظهر نتيجة CI مؤكدة على HEAD بعد.
+
+
+## 29. مرشحا MOSFET وGate Driver — 2026-11-18
+
+- أضيفت `REV_A_TX_POWER_STAGE_CANDIDATES_AR.md` بمراجعة بيانات الداتا شيت الرسمية للزوج المرشح A: IRFP260NPbF (VDS200V، RDS(on) max40mΩ عندVGS10V، Qg max234nC، Qgd max110nC، TO-247AC) + TC4420 (4.5–18V، VIH min2.4V، peak6A).
+- التوافق المنطقي 3.3V → TC4420 مناسب من حيث VIH؛ وقيادة بوابة10V تحقق شرط RDS(on) المنشور لـIRFP260N. هذا لا يجعل الزوج نهائياً: Qg مرتفع والحزمة كبيرة، ويجب مقارنة MOSFET حديث أقل Qg مع SOA مناسب.
+- TC4420 لا يوفر Enable أو حماية تيار/حرارة مستقلة؛ يلزم gate logic/one-shot/fault latch خارجي، وGate pulldown. لا نعتمد Rg أو VGS clamp أو TVS بعد.
+- أضيفت الإحالات إلى معمارية Rev A وخطة الشراء. لا MOSFET/driver معتمد ولا BOM نهائي؛ القرار ينتظر overshoot وSOA/Zth وحرارة وتحقق العتاد.
