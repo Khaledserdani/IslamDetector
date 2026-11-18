@@ -11,6 +11,7 @@ UART_KCONFIG = ROOT / "firmware/esp32_s3_bridge/Kconfig.projbuild"
 UART_APP_MAIN = ROOT / "firmware/esp32_s3_bridge/main/app_main.c"
 UART_DRIVER = ROOT / "firmware/esp32_s3_bridge/components/rev_a_uart_bridge/rev_a_uart_bridge.c"
 TX_INTERLOCK_SPEC = ROOT / "docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md"
+TX_CURRENT_LIMIT_CANDIDATES = ROOT / "docs/engineering/REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md"
 
 
 class RevASafetyGateTests(unittest.TestCase):
@@ -23,6 +24,7 @@ class RevASafetyGateTests(unittest.TestCase):
         cls.app_main = UART_APP_MAIN.read_text(encoding="utf-8")
         cls.uart_driver = UART_DRIVER.read_text(encoding="utf-8")
         cls.tx_interlock_spec = TX_INTERLOCK_SPEC.read_text(encoding="utf-8")
+        cls.tx_current_limit_candidates = TX_CURRENT_LIMIT_CANDIDATES.read_text(encoding="utf-8")
 
     def test_ads8861_capture_is_disabled_in_default_rp2040_firmware(self):
         self.assertIn("#define ENABLE_ADS8861_CAPTURE 0", self.rp_main)
@@ -67,6 +69,12 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("Fast analog comparator", self.tx_interlock_spec)
         self.assertIn("fault latch", self.tx_interlock_spec)
         self.assertIn("Gate OFF", self.tx_interlock_spec)
+
+    def test_current_limit_candidate_records_offset_and_delay_tradeoff(self):
+        self.assertIn("TLV3201", self.tx_current_limit_candidates)
+        self.assertIn("55ns max", self.tx_current_limit_candidates)
+        self.assertIn("4mV", self.tx_current_limit_candidates)
+        self.assertIn("لا يعتمد comparator أو الشنت بعد", self.tx_current_limit_candidates)
 
 
 if __name__ == "__main__":
