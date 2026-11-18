@@ -159,6 +159,7 @@ h = |R + ρ2 - ρ1|
 
 نثبت منهج الحساب والاختبارات أعلاه كخطة تنفيذ. لا توجد حتى الآن قيمة Greenhouse محسوبة للملف 350 mm، ولا يُعتمد رقم 149.2 أو 175.8 µH كقيمة نهائية.
 
+
 ## 7.1 مصفوفة اختبار القبول الحسابي — قبل كتابة محرك Greenhouse
 
 هذه المصفوفة تفصل صحة الصيغ عن صحة تطبيقها على الملف الكامل. لا يُسمح بالانتقال إلى تجميع 52 مقطعاً قبل اجتياز الاختبارات المرجعية التالية.
@@ -197,3 +198,13 @@ h = |R + ρ2 - ρ1|
 - اجتياز هذه الاختبارات يثبت صحة التنفيذ ضمن الافتراضات، ولا يثبت وحده محاثة الملف المصنوع أو استجابته لنبضات PI.
 
 **بوابة منع التقدم:** أي فشل في G-01 إلى G-08 يوقف تجميع الملف الكامل. وأي فشل في G-09 أو G-10 يمنع إصدار قيمة Greenhouse للملف. ولا يغيّر أي اختبار قيم Coil الافتراضية أو مواصفات الملف النشط.
+
+## 8. المراجع
+
+1. H. M. Greenhouse, “Design of Planar Rectangular Microelectronic Inductors,” IEEE Transactions on Parts, Hybrids, and Packaging, vol. PHP-10, no. 2, pp. 101–109, June 1974. DOI: https://doi.org/10.1109/TPHP.1974.1134841
+2. D. Flynn, thesis discussion of Greenhouse segment summation and current-direction signs: https://www.ros.hw.ac.uk/bitstream/10399/58/1/FlynnD_0307_epsBL.pdf
+3. “Mutual inductance calculation between two coaxial planar spiral coils with an arbitrary number of sides,” Microelectronics Journal, 2019, DOI: https://doi.org/10.1016/j.mejo.2019.01.012
+
+## قرار هذه الدراسة
+
+نثبت منهج الحساب والاختبارات أعلاه كخطة تنفيذ. لا توجد حتى الآن قيمة Greenhouse محسوبة للملف 350 mm، ولا يُعتمد رقم 149.2 أو 175.8 µH كقيمة نهائية.
