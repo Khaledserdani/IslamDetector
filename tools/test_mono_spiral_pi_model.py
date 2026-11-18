@@ -156,7 +156,7 @@ class MonoSpiralModelTests(unittest.TestCase):
     def test_current_limit_response_includes_comparator_delay_overshoot(self):
         result = current_limit_response(12.0, 0.9, 50e-6, 3.0, 1e-6, 20e-6)
         self.assertAlmostEqual(result["threshold_crossing_s"] * 1e6, 14.1607, places=3)
-        self.assertAlmostEqual(result["current_at_cutoff_a"], 3.194, places=2)
+        self.assertAlmostEqual(result["current_at_cutoff_a"], 3.1843, places=3)
         self.assertTrue(result["comparator_cuts_before_timeout"])
 
     def test_current_limit_response_one_shot_remains_hard_upper_bound(self):
