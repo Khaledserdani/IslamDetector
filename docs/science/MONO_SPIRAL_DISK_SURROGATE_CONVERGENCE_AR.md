@@ -185,3 +185,19 @@ https://github.com/Khaledserdani/IslamDetector/actions/runs/43928801743
 **القرار:** نبقي 175.8 µH كمدخل مؤقت فقط للمحاكاة، ولا نختار على أساسه
 MOSFET أو clamp أو تيار النبضة أو حماية الاستقبال. يجب إضافة مقارنة
 تحليلية مستقلة للمحاثة قبل تثبيت مرحلة القدرة.
+
+أضيفت الآن الخاصيتان الحسابيتان
+`MonoSpiral.mohan_current_sheet_inductance_h` و
+`MonoSpiral.mohan_modified_wheeler_inductance_h` إلى نموذج الهندسة،
+مع اختبارات تقارن ناتجي الطريقتين وتمنع استخدامهما عند لفة واحدة حيث
+تصبح نسبة الملء صفراً. هذا يجعل فرق الطريقتين قابلاً لإعادة الحساب داخل
+المستودع بدلاً من بقائه رقماً مكتوباً في التقرير فقط.
+
+**المرجع الأساسي:** S. S. Mohan, M. del Mar Hershenson, S. P. Boyd,
+and T. H. Lee, “Simple Accurate Expressions for Planar Spiral Inductances,”
+IEEE Journal of Solid-State Circuits, 34(10), 1999.
+النص الأصلي:
+https://web.stanford.edu/~boyd/papers/pdf/inductance_expressions.pdf
+
+**حالة الاختبارات:** أضيفت اختبارات الصيغ إلى المستودع، لكن لم يتم تشغيل
+مجموعة الاختبارات الرسمية بعد؛ GitHub Actions ما زال يفشل قبل إنشاء Jobs.
