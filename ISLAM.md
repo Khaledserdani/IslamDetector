@@ -1452,3 +1452,42 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - `get_commit_combined_status` لا يعرض أي statuses على هذا commit. لذلك لا نعلن نجاح CI أو UF2/APK حديث.
 - تعذر فحص push-triggered run المستقل عبر واجهة GitHub connector المتاحة في هذه الجلسة؛ لا نخلط run PR startup_failure مع إثبات أن push workflow لم يعمل.
 - آخر PR #7 مفتوح Draft وغير مدمج؛ `main` لم يتغير. الفرع وقت آخر compare كان ahead477/behind6.
+
+
+## 34. تثبيت تقدم مرحلة TX في دستور إسلام 2 — 2026-11-18
+
+هذا القسم يجمع قرارات وتقدم الجولة الأخيرة في مرجع المشروع، ولا يحوّل المرشحين أو الحسابات النظرية إلى قطع معتمدة.
+
+### أ. ما أُضيف إلى التصميم
+- مواصفة قفل TX العتادي المستقل: `docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md`. تتطلب hardware one-shot يفرض أقصى عرض نبضة، وfast overcurrent comparator، وfault latch، وrepetition guard، وPower-Good/UVLO، وwatchdog مستقل، وGate OFF افتراضياً عند reset أو فقد التغذية، وعدم إعادة التشغيل تلقائياً بعد fault.
+- دراسة MOSFET/driver: `docs/engineering/REV_A_TX_POWER_STAGE_CANDIDATES_AR.md`. الزوج المرشح للدراسة هو IRFP260NPbF + TC4420 فقط؛ ليس اختياراً نهائياً ولا BOM. يلزم استكمال مقارنة MOSFET أقل Qg، وفحص VDS overshoot وSOA/Zth والحرارة وVGS ringing، وضبط Rg وحماية البوابة.
+- دراسة current-limit: `docs/engineering/REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md`. TLV3201 مرشح comparator أولي بسبب offset أقل؛ و50mΩ/150mV/3A مثال حسابي فقط، وليس قيمة تشغيل أو شراء معتمدة.
+- مسودة الشبكات: `docs/engineering/REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md`. توضح مسار low-side المقترح وأسماء الشبكات واتجاه clamp، لكنها ليست مخطط توصيل أو PCB صالحاً للتصنيع.
+- أضيفت `current_limit_response()` إلى نموذج الملف لحساب زمن بلوغ عتبة التيار والزيادة خلال تأخير comparator/latch/driver، مع one-shot مستقل كحد أعلى للنبضة.
+
+### ب. أرقام تحليلية لا تُعامل كقياسات
+- في مثال 12V وL=50µH وR=0.9Ω وعتبة3A: بلوغ العتبة بعد نحو14.16µs؛ التيار النظري عند القطع يقارب3.184A بعد تأخير1µs، و3.889A بعد5µs.
+- في مثال L=180µH وR=0.9Ω لا يبلغ التيار3A خلال20µs؛ لذلك لا تصلح عتبة3A كقيمة نهائية قبل تثبيت L/R وأسوأ حالات التشغيل.
+- تقدير trip لشنت50mΩ وعتبة150mV، مع offset comparator ±4mV وشنت±1%، يقارب2.89–3.11A قبل أخطاء المرجع والضوضاء والـlayout.
+- هذه نتائج نموذج/حسابات بفرضيات مبسطة؛ لا تمثل قياساً على ملف أو لوحة فعلية ولا تثبت عمق كشف.
+
+### ج. بوابات السلامة والاعتماد
+1. لا توصيل لملف البحث ولا تشغيل TX عالي الطاقة قبل إغلاق clamp/snubber وحساب VDS الفعلي مع parasitic overshoot، وطاقة النبضة والتكرار، وSOA/Zth والحرارة.
+2. لا يعتمد MOSFET أو driver أو comparator أو shunt أو TVS أو Rg أو مرجع العتبة حتى تثبت الداتا شيت والحسابات والقياسات ملاءمتها.
+3. يجب أن يكون قطع النبضة والتيار عتادياً ومستقلاً عن ESP32/RP2040؛ لا يستطيع البرنامج تمديد one-shot أو تجاوز fault latch. GP4 يظل logic-only ولا يقود MOSFET أو TC4420 مباشرة.
+4. يجب اختبار الاستجابة الكاملة من الشنت حتى إطفاء MOSFET، بما فيها propagation delay وlatch وdriver sink وMiller، على حمل بديل محدود التيار قبل توصيل الملف.
+5. لا breadboard بأسلاك طويلة لمسار القدرة أو clamp؛ يجب تقليل حلقة TX وفصل Kelvin sense ومسارات الإشارة عن تيار القدرة.
+
+### د. حالة المستودع والتحقق
+- المستودع: `Khaledserdani/IslamDetector`، الفرع: `hardware/rev-a-measurement-design`.
+- آخر commit مسجل عند تثبيت هذا القسم: `4a1c51c6e56ea34b5dfafa99dcd07347501c109d`؛ يجب إعادة قراءة HEAD عند الاستئناف.
+- المقارنة الأخيرة: الفرع ahead478 / behind6 عن `main`.
+- PR #7 مفتوح Draft وغير مدمج؛ PR #6 مغلق وغير مدمج. لا تعديل على `main` ولا دمج لأي PR دون موافقة صريحة.
+- ملف `tools/test_mono_spiral_pi_model.py` يحتوي32 اختباراً، و`tools/test_rev_a_safety_gates.py` يحتوي10 اختبارات ثابتة. عدد الاختبارات في المصدر لا يعني أنها نجحت في CI.
+- آخر PR-associated run مفحوص: #1588 / ID `44338617925`، انتهى `startup_failure` قبل إنشاء أي jobs، ودون artifacts. لا توجد commit statuses مؤكدة على HEAD المفحوص؛ لذلك لا نسجل نجاح CI ولا UF2/APK جديداً.
+- لا يوجد حتى الآن مخطط KiCad نهائي، BOM شراء نهائي، أو تحقق عتادي/ميداني لمرحلة TX.
+
+### هـ. الخطوة الهندسية التالية
+إغلاق تصميم clamp أولاً بمقارنة TVS مقابل RCD/active clamp على نطاق L/R الفعلي، ثم تثبيت جهد clamp والـVDS/الطاقة، وبعدها إكمال شبكة one-shot وfault latch وshunt/comparator وgate driver، ثم تحويل الشبكة إلى schematic KiCad قابل للمراجعة. بعد اجتياز هذه البوابات فقط تُقفل قائمة الشراء والتجميع.
+
+**قاعدة المشروع:** الهدف شراء القطع وتجميع جهاز حقيقي، وليس الامتناع عن الشراء؛ لكن لا نشتري القطع الحرجة قبل تثبيت مواصفاتها هندسياً. لا يُعلن اكتمال الجهاز قبل اختباره مادياً.
