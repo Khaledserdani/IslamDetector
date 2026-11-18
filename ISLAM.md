@@ -1587,3 +1587,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - TX_DRIVER_IN=SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT.
 - المحاولات خلال cooldown محجوبة، ونهاية كل SHOT_WINDOW تعيد تشغيل U4، فيبقى القفل حتى10ms بعد آخر محاولة.
 - هذا يعالج stuck-high المنفرد في U3A أو U3B فقط؛ fail-safe عند U4 أو بوابة AND، startup inhibit، وfault-injection tests ما زالت مفتوحة. لا شراء أو تشغيل قبل إغلاقها.
+
+
+## 43. Fault latch عتادي ومنع إعادة التشغيل — 2026-11-18
+- مرشح A: SN74LVC2G74؛ PRE_N/CLR_N asynchronous active-low. PRE_N يثبت Q=FAULT، وCLR_N يمسح فقط بشرط manual reset + STOP + no-overcurrent + Power-Good.
+- TPS3808 (G01 adjustable أو G33 threshold3.07V بعد التحقق) يفرض POR/brownout. TLV3201 OC_FAULT يمر عبر SN74LVC1G04 إلى OC_CLEAR_N، وSN74LVC1G08 يكوّن PRE_N مع RESET_N.
+- Qbar=NOT_FAULT يدخل TX final AND gate؛ ESP32 يقرأ Q للعرض فقط، ولا يملك clear/override.
+- يجب منع PRE_N وCLR_N من LOW معاً، ومنع reset أثناء TX أو مع OC. لا تزال عتبة supervisor ومنطق STOP/reset واختبارات fault injection مفتوحة.
+- أضيفت REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md. لا شراء/تشغيل قبل إغلاقها.
