@@ -1576,7 +1576,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - إعداد LTC6993-1 المقترح: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، مقسم DIV: 976kΩ/102kΩ 1%. عرض nominal18.88µs؛ أقصى تقدير مع±4.4% و±1%≈19.91µs، أقل من20µs.
 - خرج المؤقت يمر عبر AND hardware gating مع ARM_OK وPOWER_GOOD وWATCHDOG_OK وNOT_FAULT إلى TC4420 IN. fault latch يقطع فوراً؛ Gate pulldown مستقل.
 - Startup typ0.5–8ms؛ يمنع ARM حتى استقرار المؤقت.
-- LTC6993-1 لا يضمن وحده repetition period10ms؛ repetition guard عتادي مستقل ما زال مطلوباً.
+- LTC6993-1 منفرداً لا يضمن repetition period10ms؛ أضيف U4 LTC6993-4 كحارس cooldown بعد SHOT_WINDOW، لكن fail-safe عند عطل U4/AND gate ما زال مفتوحاً.
 - أضيفت REV_A_TX_ONESHOT_CANDIDATES_AR.md. لا شراء أو توصيل قبل إغلاق cooldown/fault latch والاختبار الفعلي.
 - مصادر: ADI LTC6993-1 Rev.F https://www.analog.com/media/en/technical-documentation/data-sheets/ltc6993-6993-1-6993-2-6993-3-6993-4.pdf ؛ TI SN74LVC1G123 Rev.E https://www.ti.com/lit/ds/symlink/sn74lvc1g123.pdf.
 
