@@ -1,7 +1,14 @@
 import math
 import unittest
 
-from mono_spiral_pi_model import clamp_decay_time, pulse_current, stored_energy
+from mono_spiral_pi_model import (
+    charge_injection_step,
+    clamp_decay_time,
+    pulse_current,
+    rc_recovery_time,
+    serial_recovery_budget,
+    stored_energy,
+)
 
 
 class MonoSpiralModelTests(unittest.TestCase):
@@ -33,6 +40,27 @@ class MonoSpiralModelTests(unittest.TestCase):
             pulse_current(12.0, -1.0, 300e-6, 20e-6)
         with self.assertRaises(ValueError):
             clamp_decay_time(300e-6, 1.0, 20.0, 1.0, 1.0)
+
+
+    def test_charge_injection_uses_capacitive_divider(self):
+        self.assertAlmostEqual(charge_injection_step(2e-12, 12.0, 100e-12), 0.24)
+
+    def test_zero_feedthrough_has_no_voltage_step(self):
+        self.assertEqual(charge_injection_step(0.0, 12.0, 100e-12), 0.0)
+
+    def test_rc_recovery_time_matches_logarithmic_settling(self):
+        expected = 10_000.0 * 1e-9 * math.log(1.0 / 0.001)
+        self.assertAlmostEqual(rc_recovery_time(10_000.0, 1e-9, 1.0, 0.001), expected)
+
+    def test_rc_recovery_is_zero_when_already_inside_error_band(self):
+        self.assertEqual(rc_recovery_time(10_000.0, 1e-9, 0.0005, 0.001), 0.0)
+
+    def test_serial_recovery_budget_sums_conservative_stages(self):
+        self.assertAlmostEqual(serial_recovery_budget(1e-6, 2e-6, 3e-6, 4e-6, 0.29e-6, 0.5e-6), 10.79e-6)
+
+    def test_recovery_budget_rejects_negative_stage(self):
+        with self.assertRaises(ValueError):
+            serial_recovery_budget(1e-6, -1e-6, 0.0, 0.0, 0.0)
 
 
 if __name__ == "__main__":
