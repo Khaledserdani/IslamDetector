@@ -102,6 +102,7 @@ class MonoSpiralModelTests(unittest.TestCase):
         field = square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 1.5, 0.0)
         self.assertGreater(field, 0.0)
         self.assertLess(field, 200e-6)
+        self.assertAlmostEqual(field * 1e6, 66.9013, places=3)
 
     def test_square_spiral_axis_field_decreases_with_depth(self):
         near = square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 1.5, 0.0)
