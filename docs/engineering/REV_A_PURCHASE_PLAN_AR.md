@@ -438,7 +438,7 @@
 ## 5.9 حزمة توقيت TX المقترحة
 - U3A/U3B: وحدتان LTC6993-1 مستقلتان، 118kΩ1% لكل RSET، DIVCODE1/NDIV8، divider976kΩ/102kΩ لكل وحدة؛ SHOT_WINDOW من AND بين الخرجين، nominal18.88µs وmax حسابي≈19.91µs.
 - U4: LTC6993-4، falling-edge retriggerable، RSET127kΩ1%، DIVCODE4/NDIV4096، divider1MΩ/392kΩ؛ cooldown nominal10.40384ms وmin حسابي≈10.06ms.
-- يلزم AND gating مع NOT_COOLDOWN وARM/Power-Good/Watchdog/NOT_FAULT. لا تُشترى الوحدات الثلاث قبل مراجعة fail-safe لـU4 والبوابة واختبار نبضات محجوبة/متكررة.
+- يلزم AND gating مع NOT_COOLDOWN وARM/Power-Good/Watchdog/OC_CLEAR_N (قطع comparator المباشر)/NOT_FAULT (fault latch). لا تُشترى الوحدات الثلاث قبل مراجعة fail-safe لـU4 والبوابة واختبار نبضات محجوبة/متكررة.
 
 
 ## 5.10 Fault latch وPOR
