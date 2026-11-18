@@ -12,6 +12,8 @@ UART_APP_MAIN = ROOT / "firmware/esp32_s3_bridge/main/app_main.c"
 UART_DRIVER = ROOT / "firmware/esp32_s3_bridge/components/rev_a_uart_bridge/rev_a_uart_bridge.c"
 TX_INTERLOCK_SPEC = ROOT / "docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md"
 TX_CURRENT_LIMIT_CANDIDATES = ROOT / "docs/engineering/REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md"
+TX_CLAMP_SCHEMATIC = ROOT / "docs/engineering/REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md"
+TX_CLAMP_COMPARISON = ROOT / "docs/engineering/REV_A_TX_CLAMP_COMPARISON_AR.md"
 
 
 class RevASafetyGateTests(unittest.TestCase):
@@ -25,6 +27,8 @@ class RevASafetyGateTests(unittest.TestCase):
         cls.uart_driver = UART_DRIVER.read_text(encoding="utf-8")
         cls.tx_interlock_spec = TX_INTERLOCK_SPEC.read_text(encoding="utf-8")
         cls.tx_current_limit_candidates = TX_CURRENT_LIMIT_CANDIDATES.read_text(encoding="utf-8")
+        cls.tx_clamp_schematic = TX_CLAMP_SCHEMATIC.read_text(encoding="utf-8")
+        cls.tx_clamp_comparison = TX_CLAMP_COMPARISON.read_text(encoding="utf-8")
 
     def test_ads8861_capture_is_disabled_in_default_rp2040_firmware(self):
         self.assertIn("#define ENABLE_ADS8861_CAPTURE 0", self.rp_main)
@@ -69,6 +73,12 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("Fast analog comparator", self.tx_interlock_spec)
         self.assertIn("fault latch", self.tx_interlock_spec)
         self.assertIn("Gate OFF", self.tx_interlock_spec)
+
+    def test_tx_clamp_forbids_unidirectional_tvs_directly_across_coil(self):
+        self.assertIn("TVS1 bidirectional", self.tx_clamp_schematic)
+        self.assertIn("ممنوع TVS أحادي الاتجاه مباشرة عبر الملف", self.tx_clamp_schematic)
+        self.assertIn("blocking diode", self.tx_clamp_comparison)
+        self.assertIn("SMBJ18CA", self.tx_clamp_comparison)
 
     def test_current_limit_candidate_records_offset_and_delay_tradeoff(self):
         self.assertIn("TLV3201", self.tx_current_limit_candidates)
