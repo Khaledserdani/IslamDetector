@@ -77,10 +77,10 @@ flowchart TD
 ## 5. بوابات إغلاق قبل تحويل المسودة إلى KiCad
 
 - اختيار نوع وموديل TVS أو RCD/active clamp بعد حساب VCLAMP عند التيار الفعلي ودرجة الحرارة والطاقة المتكررة.
-- اختيار Q1 بين CSD19531KCS (100V، Qg max49nC) وIRFP260NPbF (200V، Qg max234nC) بعد قياس VDS overshoot ومراجعة SOA.
+- Q1 مرشح A للدراسة CSD19531KCS (100V، Qg max49nC، Qgd typ7.5nC) ومرشح B IRFP260NPbF (200V، Qg max234nC، Qgd max110nC). لا شراء قبل قياس VDS overshoot ومراجعة SOA. Rg لا يزال غير محدد؛ اختبر4.7/10/15Ω على حمل بديل وقارن VGS/VDS/ringing.
 - اختيار shunt وthreshold reference وcomparator بعد حسم current limit وتفاوت L/R.
 - اختيار U3 one-shot/fault latch واثبات non-retriggerable timeout.
-- حساب gate resistance من Qg/Qgd وdriver output impedance، والتحقق من VGS ringing.
+- اختبار Rg=4.7/10/15Ω كقيم bench فقط، وحسابها مع Qg/Qgd وdriver output impedance، والتحقق بالراسم من VGS/VDS/ringing.
 - حساب layout parasitics وVDS overshoot وقياسها على حمل بديل.
 - إجراء ERC/DRC وthermal/SOA review قبل إصدار Gerbers/PCBA.
 
