@@ -1,0 +1,44 @@
+name: ISLAM Free Agent Audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - 'tools/islam_agent/**'
+      - 'simulation/spiral/**'
+      - '.github/workflows/islam-agent-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-agent-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safe-audit:
+    name: Safe project audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run deterministic audit
+        run: python tools/islam_agent/audit.py --report islam-agent-report.md
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: islam-agent-audit-report
+          path: islam-agent-report.md
+          if-no-files-found: warn
+          retention-days: 14
