@@ -1544,3 +1544,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - أضيفت الدالة tvs_clamp_voltage_from_datasheet() واختبارات تحقق المعادلة والحدود في model/tests.
 - مصدر المواصفات: ST DS1283 Rev.14 April2026، Table2 note4 وFigure6: https://www.st.com/resource/en/datasheet/smbj18ca.pdf.
 - لا شراء أو تشغيل TX قبل تأكيد موجة clamp الفعلية، VDS overshoot، تحمل النبضات المتكررة، وحماية RX.
+
+
+## 38. توسيع مقارنة MOSFET لمرحلة TX — 2026-11-18
+- أضيف TI CSD19531KCS (100V TO-220) كمرشح A من ناحية gate charge: Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عندVGS10V، RθJC max0.7°C/W، وفق TI SLPS407D Rev.D May2024.
+- يقارن بـInfineon IRFP260NPbF (200V TO-247AC، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V).
+- CSD19531KCS يقلل Qg≈4.8× وQgd≈14.7×، وقد يحسن زمن قيادة/إطفاء البوابة. لكن 100V يتطلب قياس VDS peak بدقة؛ VDS المثالي المحسوب≈35V لا يشمل overshoot.
+- ترتيب المرشحين الحالي للمقارنة فقط: CSD19531KCS A بسبب الشحنة والحجم؛ IRFP260NPbF B بسبب تصنيف الجهد الأعلى. لا اعتماد نهائي قبل قياس overshoot وSOA والحرارة والتوفر/الأصالة.
+- مصدر TI: https://www.ti.com/lit/ds/symlink/csd19531kcs.pdf. مصدر Infineon: https://www.infineon.com/assets/row/public/documents/24/49/infineon-irfp260n-datasheet-en.pdf.
