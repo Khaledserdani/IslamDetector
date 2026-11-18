@@ -266,3 +266,11 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - RP2040 يرسل ACK وDEVICE_INFO=ADC_NONE حالياً؛ لذلك لا يرسل MEASUREMENT حقيقية. لا توجد ADS8861 مركبة أو عينات ADC فعلية، ولا UART loopback على لوحتين.
 - لا يُغيّر CI الناجح هذه الحدود: build host/compile ليس إثبات baud أو framing أو queue behavior على العتاد، ولا يثبت Wi-Fi أو Android endpoint.
 - الخطوة التالية بعد loopback: تركيب ADC والمرجع والحماية المقاسة، ثم MEASUREMENT producer مع sequence/timestamp/profile/flags وraw16، واختبار round-trip عبر C/Python قبل تمريرها إلى Android.
+
+
+## 9.4 نقطة تدقيق التكامل — 2026-11-18
+
+- لم يتغير تنسيق UART binary v0.1 أو CRC16 أو بنية DEVICE_INFO في هذا التحديث.
+- RP2040 الحالي يعلن ADC_NONE؛ لذلك لا يجوز إرسال أو قبول MEASUREMENT حقيقي حتى تركيب ADC وإعلان ADC_MODEL_ID وSAMPLE_FORMAT_ID وVREF والـinput mode المطابقة.
+- ESP32 parser/session موجودان، لكن لا يوجد بعد end-to-end stream من ADC إلى UART ثم Wi-Fi/Android. لا تعتبر نجاح اختبارات decoder بديلاً عن اختبار اللوحتين.
+- CI #1418 على `e44d5f7` انتهى بـstartup_failure قبل إنشاء أي Job؛ آخر تحقق كامل ناجح يظل CI #1379 على `e687144`، ولا يسجل هذا التحديث نجاحاً جديداً للبناء.

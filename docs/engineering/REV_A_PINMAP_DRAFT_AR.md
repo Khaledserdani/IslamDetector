@@ -229,3 +229,11 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - GP8/GP9/GP10 (CONVST/SCLK/DOUT) في PIO code؛ ADC capture disabled افتراضياً. GP4/GP5/GP6 اختبار منطقي فقط.
 - ESP32-S3 UART1 محدد كمنفذ مرشح، لكن TX GPIO/RX GPIO كلاهما غير معينين افتراضياً، والجسر disabled. لا تختَر أرجل N16R8 من اسم الشريحة وحده.
 - لا يتحول هذا الملف إلى pin map نهائي قبل مطابقة نسخ اللوحات، continuity، 3.3V loopback، ثم قياس CONVST/SCLK/DOUT فعلياً.
+
+
+## 12. تحديث سلامة المخطط — 2026-11-18
+
+- DD32 يبقى baseline للمقارنة فقط. وثيقة المعمارية تسجل حالياً مرشح ملف أحادي حلزوني مسطح؛ لذلك لا يجوز استخدام هذا المخطط التفاضلي التاريخي كتعليمات توصيل للملف الأحادي.
+- جميع GP0/GP1 وGP8/GP9/GP10 وGP11 تظل اقتراحات firmware/bench وليست pin map منتج معتمدة. أرجل ESP32-S3 TX/RX تبقى غير معينة وKconfig disabled حتى مطابقة مخطط لوحة التطوير الفعلية وقياس continuity.
+- `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO=ADC_NONE؛ لا ADC capture ولا TX. لا توصل GP4 إلى MOSFET أو ملف، ولا توصل ملف RX مباشرة إلى THS4521.
+- لا يصدر KiCad أو BOM قابل للتجميع من هذه الوثيقة قبل اختيار طوبولوجيا الملف، وإعادة تصميم AFE والحماية، وقياس transient وclip-release.

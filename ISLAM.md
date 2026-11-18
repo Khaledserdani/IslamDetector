@@ -1248,3 +1248,31 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 2. تنفيذ UART loopback منخفض الجهد 3.3V فقط، ثم التحقق من HELLO/GET_INFO/ACK/DEVICE_INFO.
 3. بعد تركيب ADS8861 والمرجع والحماية الموثقة، قياس CONVST/SCLK/DOUT والنوافذ وDMA على محلل منطقي، ثم إضافة MEASUREMENT producer مشروطاً بوجود ADC وmetadata مقاسة.
 4. بعدها Wi-Fi/JSON API، قياسات الملف وRX recovery، الحسابات الآمنة لـTX، ثم KiCad/BOM/PCB/PCBA. لا تشغيل قدرة TX قبل إغلاق الارتداد والحماية.
+
+
+## 21.21 متابعة Rev A — تدقيق المستودع وإصلاح تغطية CI على الفرع — 2026-11-18
+
+### GitHub والـPull Requests
+- تمت إعادة قراءة `ISLAM.md` والوثائق الأربع المطلوبة على `hardware/rev-a-measurement-design`، ثم فحص ملفات المصدر الفعلية وسجل commits والـActions.
+- HEAD عند بدء هذا التشغيل: `e44d5f7df3e2cd358481e45d3a03eb037815b555`، والـcommit السابق `e68714446555172c92f67d81f8132ff66743cd38`. التغيير الأخير قبل هذا السجل كان توثيقياً في أربعة ملفات فقط.
+- GitHub يؤكد أن PR #6 مغلق Draft وغير مدمج منذ 2026-11-11. محاولة إعادة فتحه رُفضت من GitHub لأن هناك بالفعل PR مفتوحاً من الفرع نفسه إلى `main`، وهو PR #7. لم ندمج أو نغلق أو نغيّر أي PR؛ PR #7 باقٍ Open Draft، و#6 يبقى مغلقاً لتجنب طلبين متطابقين على نفس head/base.
+
+### CI على الرأس الحالي
+- CI #1418 / run ID `44094664292` على `e44d5f7` انتهى بـ`startup_failure` قبل إنشاء الوظائف: `total_count=0`, `jobs=[]`، ولا توجد job logs أو Artifacts. هذا ليس فشل compile معروفاً ولا يمكن تشخيصه من سجلات وظائف غير موجودة.
+- آخر CI كامل ناجح موثق هو #1379 / run ID `43884818868` على `e687144`. نجحت protocol-tests (50 Python tests وC parser/session strict build), ESP32-S3 ESP-IDF v5.4, Android Debug APK, وRP2040-Zero UF2 verification. commit `e44d5f7` أضاف توثيقاً فقط فوق `e687144`، لكن لا نسجل CI جديداً ناجحاً على `e44d5f7`.
+- اكتشفنا أن Workflow في الفرع كان يعمل على `pull_request` فقط، وأن path filters لم تشمل `ISLAM.md` و`docs/**`. أضيف trigger `push` خاص بالفرع مع مسارات التوثيق والبرمجيات، حتى تُنفذ نسخة Workflow الموجودة على فرع Rev A مباشرة عند كل تحديث ذي صلة. هذا التغيير ينتظر تشغيل CI فعلياً.
+
+### تدقيق Android والـFirmware
+- Gradle `settings.gradle` يضم `:app` فقط؛ `app/src/main/...` هو source set الفعلي. Manifest يعلن INTERNET وACCESS_NETWORK_STATE وRTL وcleartext HTTP للاتصال المحلي. `MainActivity` يستخدم Executor منفصلاً للشبكة وآخر لـSQLite، مع مهلات 2.5s وإغلاق `HttpURLConnection` في `finally`؛ CSV يخرج عبر Sharesheet كنص ولا ينشئ ملفاً مستقلاً في Downloads. لم يظهر خطأ محافظ مثبت يستدعي تغيير Java/Manifest/Gradle، ولم تُحذف النسخ القديمة المتداخلة تحت `app/app/src/main`.
+- ESP32 UART bridge وparser/session موجودة ومبنية في CI السابق، لكن Kconfig يبقيها disabled وGPIO TX/RX=-1. لا توجد Wi-Fi AP أو `/status` و`/control` API بعد.
+- RP2040 firmware ما زال اختباراً منطقياً GP4/GP5/GP6؛ `ENABLE_ADS8861_CAPTURE=0`، وDEVICE_INFO يعلن ADC_NONE. لا يوجد MEASUREMENT producer يرسل عينات ADC عبر UART. لا Flash أو loopback أو قياس PIO فعلي.
+
+### توضيح هندسة الملف والـAFE
+- DD32 يبقى baseline مرجعياً للمقارنة وليس اعتماداً نهائياً للمنتج. وثيقة المعمارية الحالية تسجل ملفاً أحادياً حلزونياً مسطحاً 35×35cm/13 لفة/0.60mm كمرشح المنتج الحالي؛ تبقى قيمه هدفاً لا قياساً.
+- مسار THS4521/ADS8861 التفاضلي وPin Map DD التاريخي لا يُنسخان إلى ملف أحادي دون إعادة تقييم T/R والحماية والـcommon-mode والـrecovery. أعلى `REV_A_PINMAP_DRAFT_AR.md` تحذير صريح بأنه غير صالح للتوصيل في التصميم الحالي.
+
+### الخطوة التالية
+1. انتظار تشغيل push CI الناتج عن هذا commit، والتحقق من وظائفه الأربع وUF2 artifact الجديد قبل إعلان البناء الحالي.
+2. تثبيت رقم مراجعة ومخطط لوحة ESP32-S3-N16R8 وRP2040-Zero، ثم continuity وUART loopback عند 3.3V.
+3. بعد ذلك فقط تفعيل بناء ADC منفصل واختبار ADS8861 على طاولة محمية، ثم تنفيذ MEASUREMENT producer وWi-Fi API.
+4. لا شراء ولا TX عالي الطاقة ولا اعتماد KiCad/BOM نهائي قبل قياس الملف والـtransient وإغلاق حماية RX/TX.
