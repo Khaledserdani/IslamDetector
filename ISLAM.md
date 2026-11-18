@@ -1443,3 +1443,12 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - TC4420 OUT → RG غير محدد → Gate؛ driver GND عند Kelvin source. TLV3201 IN+ من أعلى الشنت، IN− من I_LIMIT_REF، ويطلق fault latch. TX_PERMIT يتطلب one-shot وARM وPower-Good وwatchdog وعدم وجود fault.
 - صححت خريطة مدخلي comparator: طرف الشنت السفلي هو PGND/reference، وليس مدخل comparator؛ مدخل TLV3201 السالب يستقبل I_LIMIT_REF.
 - هذه مسودة net-level لا تصلح للتوصيل أو التصنيع. TVS/shunt/reference/RG/one-shot غير محددة، ولا schematic KiCad أو BOM نهائي بعد.
+
+
+## 33. حالة CI بعد تحديثات مرحلة TX — 2026-11-18
+
+- آخر HEAD مسجل قبل هذا التحديث: `e40811f4956f91f3f3abb7b2c1496d580b46d48d`؛ يجب إعادة قراءة HEAD عند الاستئناف.
+- فحص PR-associated run على هذا commit أعاد run #1588 / ID `44338617925` بحالة `startup_failure`، دون jobs ودون artifacts. هذا ليس فشل compile/test داخل أي job؛ لم يبدأ أي job أصلاً.
+- `get_commit_combined_status` لا يعرض أي statuses على هذا commit. لذلك لا نعلن نجاح CI أو UF2/APK حديث.
+- تعذر فحص push-triggered run المستقل عبر واجهة GitHub connector المتاحة في هذه الجلسة؛ لا نخلط run PR startup_failure مع إثبات أن push workflow لم يعمل.
+- آخر PR #7 مفتوح Draft وغير مدمج؛ `main` لم يتغير. الفرع وقت آخر compare كان ahead477/behind6.
