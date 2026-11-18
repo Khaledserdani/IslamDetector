@@ -330,3 +330,49 @@ def low_side_clamp_stress(
         "peak_clamp_current_a": current,
         "current_decay_s": decay_s,
     }
+
+
+def current_limit_response(
+    supply_v: float,
+    coil_resistance_ohm: float,
+    coil_inductance_h: float,
+    current_limit_a: float,
+    comparator_delay_s: float,
+    max_pulse_width_s: float,
+) -> dict[str, float | bool]:
+    """Estimate current overshoot while a hardware comparator turns TX off.
+
+    The comparator trips at current_limit_a, then the current continues to
+    rise during comparator + latch + gate-driver turn-off delay. A hard
+    one-shot independently truncates the pulse at max_pulse_width_s.
+    This ideal RL model excludes sensor filtering, blanking, propagation
+    variation, gate Miller behavior, wiring inductance and clamp dynamics.
+    """
+    supply = _positive_finite("supply_v", supply_v)
+    resistance = _positive_finite("coil_resistance_ohm", coil_resistance_ohm, allow_zero=True)
+    inductance = _positive_finite("coil_inductance_h", coil_inductance_h)
+    limit = _positive_finite("current_limit_a", current_limit_a)
+    delay = _positive_finite("comparator_delay_s", comparator_delay_s, allow_zero=True)
+    max_width = _positive_finite("max_pulse_width_s", max_pulse_width_s)
+
+    if resistance == 0.0:
+        crossing = inductance * limit / supply
+    else:
+        steady_state_current = supply / resistance
+        crossing = (
+            math.inf if limit >= steady_state_current
+            else -(inductance / resistance) * math.log1p(-limit / steady_state_current)
+        )
+
+    threshold_reached = crossing <= max_width
+    cutoff_time = min(crossing + delay, max_width) if threshold_reached else max_width
+    current_at_cutoff = pulse_current(supply, resistance, inductance, cutoff_time)
+    current_without_comparator = pulse_current(supply, resistance, inductance, max_width)
+    return {
+        "threshold_crossing_s": crossing,
+        "cutoff_time_s": cutoff_time,
+        "current_at_cutoff_a": current_at_cutoff,
+        "current_without_comparator_a": current_without_comparator,
+        "threshold_reached_before_timeout": threshold_reached,
+        "comparator_cuts_before_timeout": threshold_reached and crossing + delay < max_width,
+    }
