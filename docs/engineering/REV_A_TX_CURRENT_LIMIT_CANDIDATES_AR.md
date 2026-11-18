@@ -59,3 +59,33 @@
 
 ## 8. Fault latch مرشح A — SN74LVC2G74
 أضيفت REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md. المرشح SN74LVC2G74 بمدخلي PRE/CLR غير متزامنين active-low؛ PRE_N منخفض يثبت Q=FAULT، وCLR_N منخفض يمسح فقط بعد تحقق RESET_REQUEST + STOP_OK + OC_CLEAR_N + RESET_N. TPS3808 supervisor يفرض POR/brownout إلى PRE_N، وTLV3201 OC عبر SN74LVC1G04 وSN74LVC1G08 يثبت fault. Qbar=NOT_FAULT يدخل بوابة TX النهائية. لا يجوز reset تلقائي أو reset أثناء overcurrent. ما زال threshold supervisor وreset gating والـfault injection مفتوحاً.
+
+
+## 9. اختيار شنت Kelvin فعلي مرشح — Littelfuse L4CL-A
+
+### 9.1 المرشح A
+Littelfuse L4CL2512LR050FYR-A:
+- 50mΩ، ±1%، 1W، TCR±30ppm/°C، package2512، أربع أطراف Kelvin.
+- داتا شيت L4CL-A تصفه Four-Terminal/Kelvin sensing مع separate voltage-sensing terminals وlow ESL.
+- عند3A: Vshunt=150mV، P=I²R=0.45W، أي أقل من rating1W عند شروط الداتا شيت. الحد المحافظ لطاقة نبضة20µs إذا افترضنا3A طوال النبضة=9µJ؛ عند100Hz متوسطها الأعلى النظري0.9mW.
+- offset TLV3201 max4mV يعادل80mA عبر50mΩ. مع شنت±1% ومرجع150mV±1%، trip النظري≈2.86–3.14A قبل noise/hysteresis/Kelvin error وتأخير القطع.
+
+### 9.2 مقارنة القيم
+| الشنت | الإشارة عند3A | القدرة عند3A | أثر offset4mV | التقييم |
+|---|---:|---:|---:|---|
+| 30mΩ | 90mV | 0.27W | 133mA | فقد أقل لكن حساسية offset أسوأ |
+| **50mΩ** | **150mV** | **0.45W** | **80mA** | أفضل توازن مبدئي |
+| 100mΩ | 300mV | 0.90W | 40mA | هبوط/حرارة أعلى ويقترب من1W rating |
+
+### 9.3 طريقة التوصيل
+- أطراف القدرة في مسار MOSFET source إلى PGND فقط.
+- طرفا Kelvin يذهبان مباشرة إلى مدخلي comparator، دون مرور تيار القدرة في مسارات sense.
+- اجعل مسار Kelvin زوجياً ومتقارباً، بعيداً عن Drain/Gate وloop TX.
+- لا توصل sense إلى أرجل القدرة بعد مسارات نحاسية طويلة؛ لا تستخدم ground trace مشتركاً.
+
+### 9.4 قرار العتبة
+150mV يقابل3A nominal، وهو مثال التصميم السابق. لا نثبت قيمة المرجع أو trip حتى حساب source bounce والضوضاء وoffset المرجع ووقت comparator→latch→driver. يجب أن يبقى مجموع زمن القطع الفعلي دون1µs (هدف دون0.5µs)، ثم يعاد حساب overshoot على Lmin=50µH وRmin=0.9Ω كحالة stress محافظة.
+
+**القرار:** L4CL2512LR050FYR-A هو مرشح A للشنت بسبب Kelvin 4-terminal و1W و±1%، وليس اعتماد شراء بعد. لا يزال قياس الضوضاء/الحرارة/النبضة والـlayout مطلوباً.
+
+المصدر الرسمي: Littelfuse L4CL-A Series datasheet: https://www.littelfuse.com/assetdocs/littelfuse-resistor-l4cl-a-datasheet?assetguid=a57275e4-80b6-41b0-ab69-386df0e05ecf
