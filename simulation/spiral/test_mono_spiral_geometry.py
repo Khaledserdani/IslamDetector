@@ -18,6 +18,22 @@ class MonoSpiralGeometryTests(unittest.TestCase):
         self.assertAlmostEqual(self.coil.copper_path_length_m, 17.4512, places=6)
         self.assertAlmostEqual(self.coil.copper_resistance_20c_ohm, 1.0641, places=3)
 
+    def test_mohan_planar_inductance_estimates_are_independent_methods(self):
+        current_sheet = self.coil.mohan_current_sheet_inductance_h
+        modified_wheeler = self.coil.mohan_modified_wheeler_inductance_h
+        self.assertAlmostEqual(current_sheet, 175.8e-6, delta=0.5e-6)
+        self.assertAlmostEqual(modified_wheeler, 149.2e-6, delta=0.5e-6)
+        method_spread = abs(current_sheet - modified_wheeler) / current_sheet
+        self.assertGreater(method_spread, 0.15)
+        self.assertLess(method_spread, 0.20)
+
+    def test_planar_inductance_estimates_reject_single_turn_fill_ratio(self):
+        single_turn = MonoSpiral(turns=1)
+        with self.assertRaises(ValueError):
+            _ = single_turn.mohan_current_sheet_inductance_h
+        with self.assertRaises(ValueError):
+            _ = single_turn.mohan_modified_wheeler_inductance_h
+
     def test_continuous_spiral_has_all_turns_and_connectors(self):
         segments = self.coil.continuous_spiral_segments()
         self.assertEqual(len(segments), 4 * self.coil.turns + self.coil.turns - 1)
