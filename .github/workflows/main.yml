@@ -1,31 +1,12 @@
 name: Validate Islam Detector app and Rev A firmware
 on:
-  # Run the Rev A workflow from this branch on every relevant branch push.
-  # PR validation alone may execute the base-branch workflow definition.
-  push:
-    branches:
-      - hardware/rev-a-measurement-design
-    paths:
-      - '.github/workflows/main.yml'
-      - 'ISLAM.md'
-      - 'README.md'
-      - 'docs/**'
-      - 'tools/**'
-      - 'firmware/**'
-      - 'app/**'
-      - 'pro/**'
-      - 'build.gradle*'
-      - 'settings.gradle*'
-      - 'gradle/**'
   pull_request:
     branches: [ main ]
     paths:
       - '.github/workflows/main.yml'
-      - 'ISLAM.md'
-      - 'README.md'
-      - 'docs/**'
       - 'tools/**'
-      - 'firmware/**'
+      - 'firmware/rp2040_timing_test/**'
+      - 'firmware/esp32_s3_bridge/**'
       - 'app/**'
       - 'pro/**'
       - 'build.gradle*'
@@ -34,7 +15,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: rev-a-validation-${{ github.ref }}
+  group: rev-a-validation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   protocol-tests:

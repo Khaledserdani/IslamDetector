@@ -1285,3 +1285,15 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - صفحة حالة GitHub الرسمية عند المراجعة تعرض `All Systems Operational`، وتذكر أن حادثة Actions/Pull Requests في 2026-11-16 حُلّت. لا يوجد إعلان رسمي يفسر هذا التشغيل تحديداً؛ السبب ما زال غير محسوم. المرجع: https://www.githubstatus.com/.
 - محاولة إعادة فتح PR #6 أعادت GitHub HTTP 422: لا يمكن فتح PR آخر من `hardware/rev-a-measurement-design` إلى `main` لأن PR #7 مفتوح بالفعل من الفرع نفسه. لم تتغير حالة PR #6 أو #7، ولم يحدث دمج.
 - الإجراء التالي: لا نكرر تغييرات YAML بالتخمين. نفحص إعدادات Actions/runner والـcheck-suite عند توفر تفاصيل إضافية، ثم نعيد تشغيل CI بعد إزالة سبب startup failure؛ إلى ذلك الحين يبقى آخر بناء كامل ناجح CI #1379 على commit `e687144`.
+
+
+## 21.22 متابعة Rev A — تشخيص Actions بعد عزل runner — 2026-11-18
+
+- Workflow smoke بسيط بلا Actions خارجية نجح مرة واحدة: Run #44316204045، job واحد `runner-smoke`، والخطوات الثلاث نجحت. هذا يثبت أن hosted runner بدأ في تلك المحاولة.
+- بعدها فشلت تشغيلات التحقق الكاملة قبل إنشاء Jobs، بما فيها `rev-a-validation.yml` (Run #44316564765) و`main.yml` (Runs #44316338050 و`44316658856`) و`rev-a-action-smoke.yml` (Run #44316761184). في كل حالة startup_failure و0 Jobs/Artifacts ولا توجد سجلات تنفيذ؛ لم يصل أي منها إلى checkout أو compile أو tests.
+- لا يوجد دليل كافٍ لنسب السبب إلى كود C/Python/Android أو إلى خطوة بعينها. حالة GitHub الرسمية كانت All Systems Operational؛ الاحتمال المتبقي خلل dispatch/registration أو إعداد Actions خاص بالـworkflow/repository، لكنه غير مثبت. أوقفنا تجارب إنشاء workflows حتى لا نزيد الضوضاء.
+- أُعيد `main.yml` إلى النسخة التي اجتازت CI #1379، وحُذفت ملفات التشخيص المؤقتة `rev-a-validation.yml` و`rev-a-action-smoke.yml`. لا تغيير على `main`.
+- آخر تحقق كامل ناجح ما زال CI #1379 على `e687144`؛ وUF2/APK المذكوران في سجل 21.20 هما artifacts لذلك الـHEAD، وليس لهذا التحديث.
+- PR #6 ما زال مغلق Draft وغير مدمج؛ GitHub رفض إعادة فتحه لأن PR #7 مفتوح بالفعل من الفرع نفسه إلى `main`. لا دمج ولا تغيير حالة PR.
+
+الخطوة التالية: المحافظة على workflow المعروف، وفحص إعدادات Actions والـworkflow registry عبر واجهة GitHub/الدعم عند توفر تفاصيل؛ ثم إعادة تشغيل CI على commit جديد واحد فقط. لا تُعلن نجاح بناء Rev A الحالي حتى تظهر Jobs الأربعة وUF2 جديد.
