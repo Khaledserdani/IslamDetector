@@ -1460,7 +1460,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 
 ### أ. ما أُضيف إلى التصميم
 - مواصفة قفل TX العتادي المستقل: `docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md`. تتطلب hardware one-shot يفرض أقصى عرض نبضة، وfast overcurrent comparator، وfault latch، وrepetition guard، وPower-Good/UVLO، وwatchdog مستقل، وGate OFF افتراضياً عند reset أو فقد التغذية، وعدم إعادة التشغيل تلقائياً بعد fault.
-- دراسة MOSFET/driver: `docs/engineering/REV_A_TX_POWER_STAGE_CANDIDATES_AR.md`. الزوج المرشح للدراسة هو IRFP260NPbF + TC4420 فقط؛ ليس اختياراً نهائياً ولا BOM. يلزم استكمال مقارنة MOSFET أقل Qg، وفحص VDS overshoot وSOA/Zth والحرارة وVGS ringing، وضبط Rg وحماية البوابة.
+- دراسة MOSFET/driver: `docs/engineering/REV_A_TX_POWER_STAGE_CANDIDATES_AR.md`. الزوج المرشح للدراسة حالياً CSD19531KCS + TC4420، وIRFP260NPbF بديل جهد أعلى؛ ليس اختياراً نهائياً ولا BOM. يلزم استكمال مقارنة MOSFET أقل Qg، وفحص VDS overshoot وSOA/Zth والحرارة وVGS ringing، وضبط Rg وحماية البوابة.
 - دراسة current-limit: `docs/engineering/REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md`. TLV3201 مرشح comparator أولي بسبب offset أقل؛ و50mΩ/150mV/3A مثال حسابي فقط، وليس قيمة تشغيل أو شراء معتمدة.
 - مسودة الشبكات: `docs/engineering/REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md`. توضح مسار low-side المقترح وأسماء الشبكات واتجاه clamp، لكنها ليست مخطط توصيل أو PCB صالحاً للتصنيع.
 - أضيفت `current_limit_response()` إلى نموذج الملف لحساب زمن بلوغ عتبة التيار والزيادة خلال تأخير comparator/latch/driver، مع one-shot مستقل كحد أعلى للنبضة.
@@ -1557,7 +1557,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 ## 39. تحديث قرار MOSFET وقيادة البوابة — 2026-11-18
 - راجعنا الداتا شيت الرسمية: CSD19531KCS Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V، VDS100V، TO-220، RθJC0.7°C/W، EAS single-pulse180mJ ضمن شروط اختبار محددة. IRFP260NPbF Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، VDS200V، TO-247، RθJC0.5°C/W.
 - CSD يقلل Qg≈4.78× وQgd≈14.67× مقارنة بـIRFP؛ لذلك هو مرشح A للدراسة، وIRFP مرشح B لهامش الجهد. لا اعتماد شراء.
-- TC4420: تغذية4.5–18V، VIH min2.4V (3.3V logic compatible)، 6A peak، output impedance typ2.5Ω، propagation delay55ns typ، rise/fall25ns typ عند2500pF. لا Enable؛ يجب فرض LOW على IN عبر fault latch/one-shot.
+- TC4420: تغذية4.5–18V، VIH min2.4V (3.3V logic compatible)، 6A peak typical عندVDD18V، ROH2.1Ω typ/2.8Ω max وROL1.5Ω typ/2.5Ω max عند10mA، propagation55ns typ/75ns max عند25°C وحتى100ns max عبر نطاق الحرارة، rise/fall25ns typ/35ns max عند2500pF وحتى60ns max عبر نطاق الحرارة. لا Enable؛ يجب فرض LOW على IN عبر fault latch/one-shot.
 - قيم Rg=4.7/10/15Ω هي نقاط اختبار على منصة آمنة فقط. تقاس VGS عند أرجل MOSFET وVDS والتيار وringing والـfalse turn-on. لا تثبت Rg الآن.
 - لا نستعمل EAS أو pulsed-current headline بدلاً عن SOA. يجب التحقق من SOA/thermal عند ظروف switching الفعلية و100Hz.
 - 80V سقف مراجعة محافظ مبدئي لمرشح100V وليس مواصفة نهائية؛ إذا تجاوزته القمة، يوقف اعتماد CSD وتراجع clamp/layout أو فئة الجهد.
