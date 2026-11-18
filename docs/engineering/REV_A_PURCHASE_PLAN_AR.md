@@ -98,6 +98,13 @@
 
 **مرجعيات اختيار:** Nexperia AN10273 وAN11158 لحدود avalanche وSOA والحرارة؛ AN90001 لتصرف قيادة البوابة مع الأحمال الحثية؛ TI SNVAA45 لمفاضلة جهد clamp وزمن تفريغ الملف. المراجع موجودة في قسم مصادر COIL_TOPOLOGY_STUDY_AR.md.
 
+### 5.2.1 مرشح MOSFET/Driver للدراسة فقط
+
+- MOSFET مرشح A: `IRFP260NPbF` من Infineon، VDS=200V، RDS(on) max40mΩ عندVGS=10V، Qg max234nC، حزمة TO-247AC. لا يعتمد قبل مراجعة overshoot وSOA وZth والحرارة.
+- Driver مرشح A: `TC4420` من Microchip، VDD=4.5–18V، VIH min2.4V، peak6A. متوافق مبدئياً مع منطق3.3V وقيادة بوابة10V، لكنه لا يحتوي overcurrent/thermal protection ولا Enable مخصصاً.
+- هذه الأرقام تثبت قابلية الزوج للدراسة فقط؛ لا تُصدر BOM أو شراء. يجب إضافة interlock عتادي على دخل driver، وGate pulldown، وتحديد Rg وVGS clamp بعد محاكاة/قياس الحافة.
+- تفاصيل المقارنة والحسابات في `REV_A_TX_POWER_STAGE_CANDIDATES_AR.md`.
+
 ## 5.3 قفل TX العتادي المستقل — متطلب إلزامي
 
 المواصفة الوظيفية الكاملة في `REV_A_TX_INTERLOCK_SPEC_AR.md`. لا تعتمد BOM القدرة حتى يتوفر: hardware one-shot، comparator سريع لحد التيار، fault latch، repetition guard، Power-Good/UVLO، watchdog مستقل، Gate pulldown، وإيقاف غير متزامن. كل عناصر السماح يجب أن تكون fail-safe OFF عند reset أو فقد التغذية.
