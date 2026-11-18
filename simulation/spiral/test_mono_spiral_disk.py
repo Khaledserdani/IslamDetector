@@ -1,5 +1,6 @@
 import unittest
 
+from mono_spiral_geometry import MonoSpiral
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
     _coaxial_loop_mutual, _segments_coil_path, build_disk_model, receive_peak, simulate)
 
@@ -22,8 +23,19 @@ class ConductiveDiskModelTests(unittest.TestCase):
 
     def test_disk_coupling_uses_one_continuous_spiral_path(self):
         segments = _segments_coil_path(self.coil, subdivisions=3)
-        expected_base_segments = 4 * self.coil.turns + self.coil.turns - 1
-        self.assertEqual(len(segments), expected_base_segments * 3)
+        geometry = MonoSpiral(
+            outer_side_m=self.coil.outer_side_m,
+            turns=self.coil.turns,
+            pitch_m=self.coil.pitch_m,
+        )
+        expected = []
+        for start, end in geometry.continuous_spiral_segments():
+            for q in range(3):
+                f0, f1 = q / 3, (q + 1) / 3
+                p0 = tuple(start[i] + (end[i] - start[i]) * f0 for i in range(3))
+                p1 = tuple(start[i] + (end[i] - start[i]) * f1 for i in range(3))
+                expected.append((p0, p1))
+        self.assertEqual(segments, expected)
         for first, second in zip(segments, segments[1:]):
             self.assertEqual(first[1], second[0])
 
@@ -42,7 +54,7 @@ class ConductiveDiskModelTests(unittest.TestCase):
         p_far=receive_peak(simulate(self.coil,far,self.pulse,ring_segments=48))
         self.assertGreater(p_near,p_far)
 
-    def test_over_refined_ring_model_is_rejected_when_ill_conditioned(self):
+    def test_ring_count_above_temporary_model_limit_is_rejected(self):
         disk=ConductiveDisk(radius_m=0.012,thickness_m=0.001,
             conductivity_s_m=35e6,depth_m=0.04,rings=9)
         with self.assertRaises(ValueError):
