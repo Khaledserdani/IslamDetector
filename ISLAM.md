@@ -1569,3 +1569,13 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - 6A هي peak typical عندVDD18V وليست حد minimum مضموناً. مقاومة الخرج عند10mA وVDD18V: ROH2.1Ω typ/2.8Ω max، ROL1.5Ω typ/2.5Ω max؛ لا تفترض أن هذه مقاومة ديناميكية ثابتة عند تيار البوابة العالي.
 - لذلك يجب استخدام100ns max في worst-case comparator-to-gate timing budget، ثم إضافة latch وRg وMiller/driver turn-off والـlayout. TC4420 يبقى مرشحاً وليس اختياراً معتمداً.
 - المصدر: Microchip TC4420/TC4429 DS21419D https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf.
+
+
+## 41. حارس عرض نبضة TX مستقل عن المتحكم — 2026-11-18
+- تمت مقارنة LTC6993-1 مع SN74LVC1G123؛ الأول non-retriggerable وهو مرشح A لسقف عرض النبضة، والثاني retriggerable فلا يستخدم وحده كحارس أقصى مدة.
+- إعداد LTC6993-1 المقترح: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، مقسم DIV: 976kΩ/102kΩ 1%. عرض nominal18.88µs؛ أقصى تقدير مع±4.4% و±1%≈19.91µs، أقل من20µs.
+- خرج المؤقت يمر عبر AND hardware gating مع ARM_OK وPOWER_GOOD وWATCHDOG_OK وNOT_FAULT إلى TC4420 IN. fault latch يقطع فوراً؛ Gate pulldown مستقل.
+- Startup typ0.5–8ms؛ يمنع ARM حتى استقرار المؤقت.
+- LTC6993-1 لا يضمن وحده repetition period10ms؛ repetition guard عتادي مستقل ما زال مطلوباً.
+- أضيفت REV_A_TX_ONESHOT_CANDIDATES_AR.md. لا شراء أو توصيل قبل إغلاق cooldown/fault latch والاختبار الفعلي.
+- مصادر: ADI LTC6993-1 Rev.F https://www.analog.com/media/en/technical-documentation/data-sheets/ltc6993-6993-1-6993-2-6993-3-6993-4.pdf ؛ TI SN74LVC1G123 Rev.E https://www.ti.com/lit/ds/symlink/sn74lvc1g123.pdf.
