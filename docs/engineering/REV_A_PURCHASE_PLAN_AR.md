@@ -425,3 +425,11 @@
 - TC4420 مرشح driver: 4.5–18V supply، VIH min2.4V (3.3V logic compatible)، 6A peak typical عندVDD18V وليس minimum مضموناً، 55ns typ/75ns max delay عند25°C (حتى100ns max عبر نطاق الحرارة)، و25ns typ/35ns max rise/fall عند2500pF (حتى60ns max عبر نطاق الحرارة). ROH=2.1Ω typ/2.8Ω max وROL=1.5Ω typ/2.5Ω max عند10mA وVDD18V فقط. لا Enable؛ يتطلب hardware input inhibit + fault latch + one-shot.
 - قيم Rg=4.7/10/15Ω نقاط اختبار فقط وليست قائمة شراء؛ يجب مقارنة VGS/VDS/ringing/turn-off على حمل بديل.
 - لا تشتر MOSFET أو driver أو مقاومات بوابة قبل إغلاق الاختبار والـlayout.
+
+
+## 5.8 حارس نبضة TX — LTC6993-1
+- مرشح A: LTC6993-1 non-retriggerable، 3.3V، DIVCODE1/NDIV8، RSET118kΩ 1%، R1=976kΩ وR2=102kΩ 1%؛ عرض nominal18.88µs وأقصى حسابي≈19.91µs بعد خطأ±4.4% ومقاومة±1%.
+- startup typ0.5–8ms؛ يلزم startup inhibit.
+- يلزم repetition guard عتادي منفصل لفترة10ms؛ لا تعتبر LTC6993-1 بديلاً عنه.
+- SN74LVC1G123 retriggerable، فلا يستخدم وحده كحد أقصى لعرض النبضة.
+- هذه مكونات مرشحة للدراسة وليست BOM شراء نهائي.
