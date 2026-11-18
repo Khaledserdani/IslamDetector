@@ -145,6 +145,12 @@ class MonoSpiralModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             low_side_clamp_stress(12.0, 100e-6, 0.9, 1.0, 30.0, 0.0)
 
+    def test_low_side_clamp_stress_is_numerically_stable_at_tiny_resistance(self):
+        ideal = low_side_clamp_stress(12.0, 85e-6, 0.0, 2.0, 30.0, 100.0)
+        tiny = low_side_clamp_stress(12.0, 85e-6, 1e-12, 2.0, 30.0, 100.0)
+        self.assertAlmostEqual(tiny["clamp_energy_per_pulse_j"], ideal["clamp_energy_per_pulse_j"], places=14)
+        self.assertGreaterEqual(tiny["coil_resistive_loss_per_pulse_j"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
