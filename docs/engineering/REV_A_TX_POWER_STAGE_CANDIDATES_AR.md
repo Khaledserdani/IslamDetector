@@ -1,0 +1,87 @@
+# مرشحو مرحلة TX للـRev A — مراجعة MOSFET وسائق البوابة
+
+**الحالة:** مقارنة مرشحين وليست BOM معتمدة أو مخططاً صالحاً للتوصيل.  
+**التاريخ:** 2026-11-18  
+**الفرع:** `hardware/rev-a-measurement-design`
+
+## 1. الطوبولوجيا المفترضة للمقارنة
+
+مصدر TX منخفض الجهد → ملف Mono Spiral → Drain لـN-MOSFET low-side → Source إلى مسار الرجوع. شبكة clamp مستقلة تعاكس تيار الملف بعد إطفاء MOSFET. هذا المسار يظل افتراضاً حتى إغلاق تصميم clamp والقياس.
+
+## 2. مرشح MOSFET: IRFP260NPbF
+
+البيانات المنشورة من Infineon (Rev 2.1، 2024-10-08):
+
+| الخاصية | القيمة المنشورة | ملاحظة التصميم |
+|---|---:|---|
+| VDS | 200V | مرشح مبدئي لهامش جهد؛ لا يعتمد قبل قياس overshoot |
+| RDS(on) max | 40mΩ عند VGS=10V | لا تنطبق القيمة عند VGS=3.3V |
+| ID continuous | 50A عند TC=25°C وVGS=10V | الرقم ليس هدف تشغيلنا ولا يعوض SOA |
+| Qg max | 234nC عند VGS=10V، ID=28A، VDS=160V | شحنة مرتفعة نسبياً؛ driver يجب أن يشحنها ويفرغها بسرعة مضبوطة |
+| Qgd max | 110nC | يجب الانتباه إلى Miller وdv/dt |
+| VGS absolute max | ±20V | يلزم منع أي overshoot على البوابة |
+| Package | TO-247AC | كبير نسبياً ويحتاج تثبيتاً حرارياً/ميكانيكياً |
+| EAS single pulse | 560mJ | لا يستخدم لتبرير avalanche متكرر |
+| EAR repetitive | 30mJ | مشروط بملاحظات الداتا شيت؛ ليس بديلاً عن clamp |
+
+### التقييم
+- **نقطة قوة:** VDS=200V وRDS(on)=40mΩ عند10V، ما يجعله مرشحاً أولياً مع clamp منخفض/متوسط الجهد.
+- **نقطة ضعف:** Qg يصل234nC والحزمة TO-247 أكبر مما نحتاجه مبدئياً. يجب مقارنة بديل أحدث بجهد150–200V وشحنة بوابة أقل، بشرط SOA حقيقي وRDS(on) مضمون عند جهد القيادة.
+- **قرار:** IRFP260NPbF يبقى مرشح A للمقارنة، لا اختياراً نهائياً. لا نثبت القطعة حتى نعرف VDS الحقيقي مع overshoot ومدة/تكرار النبض.
+
+## 3. مرشح Gate Driver: TC4420
+
+بيانات Microchip الرسمية:
+- تغذية VDD من4.5V إلى18V.
+- دخل HIGH مضمون من2.4V، لذا إشارة منطق3.3V متوافقة من حيث VIH.
+- خرج non-inverting، تيار peak يصل6A، وتأخير نموذجي55ns، وممانعة خرج نموذجية تقارب2.5Ω.
+- خرج البوابة يتبع VDD؛ لذلك تغذية driver بجهد10–12V تعطي VGS أعلى من قيادة3.3V، لكن يجب ضبط VGS ضمن ±20V.
+- TC4420 لا يحتوي قفل overcurrent/thermal مستقل؛ الحماية والـone-shot والـfault latch خارجية وإلزامية.
+
+### حساب gate-charge تقريبي
+باستخدام Qg(max)=234nC وVdrive=10V:
+- طاقة قيادة البوابة التقريبية لكل انتقال شحن: Qg×Vdrive≈2.34µJ.
+- عند100Hz، متوسط قدرة الشحن التقريبي≈0.234mW؛ وعند1kHz≈2.34mW.
+- إذا افترضنا Rg=10Ω وRout≈2.5Ω، فالتيار الأولي التقريبي عند10V≈0.8A، وزمن Qg/I التقريبي≈0.29µs. هذه أرقام screening؛ شكل تيار Miller والـgate plateau والتوصيلات يحدد الزمن الحقيقي.
+
+### التقييم
+TC4420 مناسب مبدئياً لقيادة MOSFET ذي Qg مرتفع مع حافة سريعة، لكن لا يعني أن 6A مطلوب أو أن مقاومة10Ω ثبتت. يجب ضبط Rg وturn-off path بعد اختيار MOSFET ومراجعة EMI والـVGS ringing. لأن TC4420 لا يملك Enable pin مخصصاً، يجب تمرير دخله عبر hardware one-shot/logic gate/fault latch بحيث يكون LOW افتراضياً ويُقطع عند أي fault.
+
+## 4. توافق الزوج المرشح
+
+| البند | النتيجة الأولية |
+|---|---|
+| RP2040 3.3V logic → TC4420 input | متوافق من ناحية VIH=2.4V، بشرط مستوى LOW/boot/reset مضمون |
+| TC4420 VDD=10V → IRFP260N gate | مناسب مبدئياً لتحقيق شرط RDS(on) المنشور عند VGS=10V |
+| Qg 234nC مع TC4420 6A peak | قدرة قيادة كافية مبدئياً؛ نضبط edge عبر Rg |
+| VDS 200V مع سيناريو clamp | 42/72/112V ideal في حالات clamp30/60/100V على مصدر12V، لكن لا نثبت الهامش قبل قياس overshoot |
+| حماية التيار/النبضة | غير موجودة داخل هذا الزوج؛ يجب توفير interlock مستقل |
+| الحماية من transient | لا يوفرها MOSFET/driver وحدهما؛ clamp محسوب وlayout منخفض الحث ضروريان |
+
+## 5. ما لا نثبته بعد
+
+1. رقم MOSFET نهائي أو footprint نهائي.
+2. رقم Gate Driver نهائي أو جهد تغذيته النهائي.
+3. قيمة Rg أو Rgs أو gate zener.
+4. موضع وقيمة TVS/RCD/snubber أو diode.
+5. قيمة الشنت/عتبة comparator.
+6. حد VDS المسموح الفعلي بعد overshoot.
+7. صلاحية IRFP260N للحرارة والـSOA مع النبضات المتكررة في PCB النهائي.
+
+## 6. بوابات اعتماد القطع
+
+- الحصول على waveform/محاكاة transient للطوبولوجيا المحددة.
+- حساب VDS peak مع tolerances وparasitics ثم هامش derating.
+- مراجعة SOA عند VDS/ID/20µs ودرجة حرارة بداية واقعية، وZth مع تكرار100Hz ثم المعدل المستهدف.
+- حساب conduction + switching + gate-drive losses.
+- مراجعة Qg/Qgd عند ظروف أقرب للتشغيل، وضبط Rg وVGS clamp.
+- إثبات أن comparator/one-shot يقطعان النبضة قبل تجاوز حدود الجهاز.
+- اختبار حمل بديل محدود التيار قبل توصيل ملف البحث.
+
+## 7. المصادر الرسمية
+
+- Infineon IRFP260NPbF datasheet Rev.2.1: https://www.infineon.com/assets/row/public/documents/24/49/infineon-irfp260n-datasheet-en.pdf
+- Microchip TC4420 datasheet DS21419: https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf
+- Microchip TC4420 product page: https://www.microchip.com/en-us/product/tc4420
+- Microchip AN798 (TC4420/4429): https://www.microchip.com/en-us/application-notes/an798
+- Nexperia SOA/avalanche application notes: https://assets.nexperia.com/documents/application-note/AN10273.pdf and https://assets.nexperia.com/documents/application-note/AN11158.pdf
