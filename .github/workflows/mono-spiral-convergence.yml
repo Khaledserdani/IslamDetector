@@ -36,6 +36,9 @@ jobs:
       - name: Run synthetic target parameter sweep
         working-directory: simulation/spiral
         run: python run_disk_parameter_sweep.py
+      - name: Run provisional coil-inductance sensitivity sweep
+        working-directory: simulation/spiral
+        run: python run_coil_inductance_sensitivity.py
       - name: Upload convergence CSVs
         uses: actions/upload-artifact@v4
         with:
@@ -44,3 +47,4 @@ jobs:
             simulation/spiral/disk_surrogate_convergence_corrected.csv
             simulation/spiral/disk_surrogate_timestep_sensitivity.csv
             simulation/spiral/disk_surrogate_parameter_sweep.csv
+            simulation/spiral/disk_surrogate_coil_inductance_sensitivity.csv
