@@ -379,3 +379,10 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 ## 22. مرشح comparator لقطع التيار — TLV3201 — 2026-11-18
 
 تمت إضافة `REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md`. مرشح A هو TLV3201 بسبب offset max4mV عبر−40..125°C وpropagation max55ns، مع common-mode input يمتد200mV خارج القضبان وتغذية2.7–5.5V. بالمقارنة TLV3501 أسرع4.5ns لكن offset max6.5mV واستهلاك3.2mA؛ في حد تيار shunt منخفض الجهد، دقة offset أهم من فرق النانوثواني. المثال الحسابي 50mΩ/150mV/3A يبقى غير معتمد؛ يلزم قياس source bounce وKelvin routing وزمن latch/driver. لا يوجد comparator أو shunt مختار نهائياً.
+
+
+## 23. مسودة شبكة مرحلة TX — 2026-11-18
+
+أضيفت `REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md` بمسار net-level للمراجعة: +12V_TX → Mono Spiral → SW_DRAIN/Q1 low-side → KELVIN_SOURCE → shunt → PGND، وTVS عبر الملف بكاثود على SW_DRAIN وأنود على +12V_TX. خرج TC4420 يصل إلى Gate عبر RG غير محدد، وGND السائق عند Kelvin source. TLV3201 يقارن SHUNT_SENSE_P مع I_LIMIT_REF ويطلق fault latch؛ one-shot وARM/Power-Good/Watchdog تشكل TX_PERMIT.
+
+هذه مسودة كتلية/شبكية فقط، وليست schematic للتوصيل. قيم TVS/RG/shunt/reference والـone-shot ما زالت مفتوحة. يجب قياس VCLAMP وVDS overshoot، وإغلاق layout parasitics وSOA قبل KiCad النهائي.
