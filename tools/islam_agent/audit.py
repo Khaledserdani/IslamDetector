@@ -43,10 +43,19 @@ def load_memory() -> tuple[dict | None, str | None]:
             return None, f"Missing required memory key: {key}"
     if not isinstance(memory["known_constraints"], list) or not isinstance(memory["next_tasks"], list):
         return None, "known_constraints and next_tasks must be lists."
-    seen = set()
+    seen: set[str] = set()
+    valid_statuses = {"pending", "in_progress", "blocked", "completed"}
     for index, task in enumerate(memory["next_tasks"]):
         if not isinstance(task, dict) or not all(k in task for k in ("id", "title", "status", "acceptance")):
-            return None, f"Invalid task entry at index {index}."
+            return None, f"Invalid task entry at index {index}: missing fields or non-object."
+        if not isinstance(task["id"], str) or not task["id"].strip():
+            return None, f"Invalid task id at index {index}: expected non-empty string."
+        if not isinstance(task["title"], str) or not task["title"].strip():
+            return None, f"Invalid task title at index {index}: expected non-empty string."
+        if not isinstance(task["acceptance"], str) or not task["acceptance"].strip():
+            return None, f"Invalid task acceptance at index {index}: expected non-empty string."
+        if task["status"] not in valid_statuses:
+            return None, f"Invalid task status at index {index}: {task['status']!r}."
         if task["id"] in seen:
             return None, f"Duplicate task id: {task['id']}"
         seen.add(task["id"])
