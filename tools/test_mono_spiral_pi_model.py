@@ -12,6 +12,7 @@ from mono_spiral_pi_model import (
     square_spiral_estimate,
     square_spiral_axis_field,
     low_side_clamp_stress,
+    current_limit_response,
 )
 
 
@@ -150,6 +151,30 @@ class MonoSpiralModelTests(unittest.TestCase):
         tiny = low_side_clamp_stress(12.0, 85e-6, 1e-12, 2.0, 30.0, 100.0)
         self.assertAlmostEqual(tiny["clamp_energy_per_pulse_j"], ideal["clamp_energy_per_pulse_j"], places=14)
         self.assertGreaterEqual(tiny["coil_resistive_loss_per_pulse_j"], 0.0)
+
+
+    def test_current_limit_response_includes_comparator_delay_overshoot(self):
+        result = current_limit_response(12.0, 0.9, 50e-6, 3.0, 1e-6, 20e-6)
+        self.assertAlmostEqual(result["threshold_crossing_s"] * 1e6, 14.1607, places=3)
+        self.assertAlmostEqual(result["current_at_cutoff_a"], 3.194, places=2)
+        self.assertTrue(result["comparator_cuts_before_timeout"])
+
+    def test_current_limit_response_one_shot_remains_hard_upper_bound(self):
+        result = current_limit_response(12.0, 0.9, 50e-6, 3.0, 10e-6, 20e-6)
+        self.assertAlmostEqual(result["cutoff_time_s"], 20e-6, places=12)
+        self.assertAlmostEqual(result["current_at_cutoff_a"], result["current_without_comparator_a"], places=12)
+        self.assertFalse(result["comparator_cuts_before_timeout"])
+
+    def test_current_limit_response_handles_threshold_never_reached(self):
+        result = current_limit_response(12.0, 0.9, 180e-6, 3.0, 1e-6, 20e-6)
+        self.assertFalse(result["threshold_reached_before_timeout"])
+        self.assertEqual(result["cutoff_time_s"], 20e-6)
+
+    def test_current_limit_response_rejects_invalid_parameters(self):
+        with self.assertRaises(ValueError):
+            current_limit_response(12.0, 0.9, 50e-6, 0.0, 1e-6, 20e-6)
+        with self.assertRaises(ValueError):
+            current_limit_response(12.0, 0.9, 50e-6, 3.0, 1e-6, 0.0)
 
 
 if __name__ == "__main__":
