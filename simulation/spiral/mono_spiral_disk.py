@@ -280,5 +280,21 @@ def simulate(coil: Coil, disk: ConductiveDisk, pulse: Pulse,
 
 
 def receive_peak(rows, start_s: float = 0.0, stop_s: float = 500e-6) -> float:
-    return max((abs(r.get("rx_voltage_v",0.0)) for r in rows
-                if r["phase"] == 2.0 and start_s <= r["time_s"] <= stop_s),default=0.0)
+    """Return peak receive voltage in a window relative to RX-phase start.
+
+    The RX phase begins after the TX pulse and clamp interval, so comparing
+    absolute simulation time against a 500 us stop value truncates the intended
+    receive tail. Window bounds here are measured from the first phase-2 row.
+    """
+    receive_rows = [row for row in rows if row["phase"] == 2.0]
+    if not receive_rows:
+        return 0.0
+    phase_start = receive_rows[0]["time_s"]
+    return max(
+        (
+            abs(row.get("rx_voltage_v", 0.0))
+            for row in receive_rows
+            if start_s <= row["time_s"] - phase_start <= stop_s
+        ),
+        default=0.0,
+    )
