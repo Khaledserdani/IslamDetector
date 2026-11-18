@@ -1595,3 +1595,13 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - Qbar=NOT_FAULT يدخل TX final AND gate؛ ESP32 يقرأ Q للعرض فقط، ولا يملك clear/override.
 - يجب منع PRE_N وCLR_N من LOW معاً، ومنع reset أثناء TX أو مع OC. لا تزال عتبة supervisor ومنطق STOP/reset واختبارات fault injection مفتوحة.
 - أضيفت REV_A_TX_FAULT_LATCH_CANDIDATES_AR.md. لا شراء/تشغيل قبل إغلاقها.
+
+
+## 44. مرشح شنت Kelvin RS1 — 2026-11-18
+- مرشح A: Littelfuse L4CL2512LR050FYR-A، 50mΩ±1%،1W،TCR±30ppm/°C،2512، أربع أطراف Kelvin منفصلة.
+- عند3A: 150mV و0.45W؛ طاقة upper-bound لنبضة20µs عند3A ثابت≈9µJ، ومتوسط upper-bound0.9mW عند100Hz.
+- TLV3201 offset max4mV يعادل80mA مع50mΩ؛ trip النظري مع شنت±1% ومرجع150mV±1%≈2.86–3.14A قبل noise/hysteresis/latency.
+- مقارنة30mΩ (90mV/0.27W/133mA offset) و100mΩ (300mV/0.9W/40mA offset) ترجح50mΩ كتوازن مبدئي.
+- أطراف Kelvin فقط إلى comparator، وأطراف القدرة فقط في مسار Q1 source→PGND. لا اعتماد شراء قبل إثبات threshold وnoise/thermal/current cutoff.
+- أضيفت النتائج إلى REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md ومخطط TX وخطة الشراء.
+- المصدر: Littelfuse L4CL-A datasheet https://www.littelfuse.com/assetdocs/littelfuse-resistor-l4cl-a-datasheet?assetguid=a57275e4-80b6-41b0-ab69-386df0e05ecf.
