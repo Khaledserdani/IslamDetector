@@ -386,3 +386,11 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 أضيفت `REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md` بمسار net-level للمراجعة: +12V_TX → Mono Spiral → SW_DRAIN/Q1 low-side → KELVIN_SOURCE → shunt → PGND، وفرع clamp مصحح برمز TVS ثنائي الاتجاه عبر الملف دون قطبية ثابتة؛ لا يجوز استخدام TVS أحادي الاتجاه مباشرة بهذه الوصلة، لأنه ينحاز أمامياً أثناء TX ON. البديل أحادي الاتجاه يحتاج blocking diode متسلسلاً وفق TI. تفاصيل المقارنة والحسابات في REV_A_TX_CLAMP_COMPARISON_AR.md. خرج TC4420 يصل إلى Gate عبر RG غير محدد، وGND السائق عند Kelvin source. TLV3201 يقارن SHUNT_SENSE_P مع I_LIMIT_REF ويطلق fault latch؛ one-shot وARM/Power-Good/Watchdog تشكل TX_PERMIT.
 
 هذه مسودة كتلية/شبكية فقط، وليست schematic للتوصيل. قيم TVS/RG/shunt/reference والـone-shot ما زالت مفتوحة. يجب قياس VCLAMP وVDS overshoot، وإغلاق layout parasitics وSOA قبل KiCad النهائي.
+
+
+## 24. اختيار MOSFET وقيادة البوابة — تحديث 2026-11-18
+- CSD19531KCS (100V TO-220، Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V) هو مرشح A للدراسة؛ IRFP260NPbF (200V TO-247، Qg max234nC، Qgd max110nC، RDS(on) max40mΩ) مرشح B لهامش جهد أعلى.
+- TC4420 متوافق مبدئياً مع دخل3.3V (VIH min2.4V)، ويعمل بتغذية4.5–18V، 6A peak، delay55ns typ وrise/fall25ns typ عند2500pF. لا يحتوي Enable؛ one-shot/fault latch يفرضان LOW على IN.
+- Rg قيم اختبار bench فقط4.7/10/15Ω؛ لا قيمة نهائية قبل قياس VGS/VDS والـringing وfalse turn-on.
+- مرشح CSD لا يعتمد قبل قياس VDS peak على حمل بديل والتحقق من SOA/thermal وmargin. حد80V للمراجعة الأولية على جهاز100V ليس مواصفة نهائية.
+- لا شراء ولا توصيل ملف البحث في هذه المرحلة.
