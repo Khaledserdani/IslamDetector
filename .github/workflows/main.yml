@@ -34,7 +34,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: rev-a-validation-${{ github.event.pull_request.number || github.ref }}
+  group: rev-a-validation-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   protocol-tests:
