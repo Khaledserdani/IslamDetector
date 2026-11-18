@@ -253,3 +253,66 @@ def square_spiral_axis_field(
             / (2.0 * math.pi * radius_squared * math.sqrt(side * side / 2.0 + depth * depth))
         )
     return field_t
+
+
+def low_side_clamp_stress(
+    supply_v: float,
+    coil_inductance_h: float,
+    coil_resistance_ohm: float,
+    initial_current_a: float,
+    opposing_clamp_v: float,
+    pulse_rate_hz: float,
+    final_current_a: float = 0.0,
+) -> dict[str, float]:
+    """Estimate energy and voltage stress for a low-side NMOS coil switch.
+
+    Assumes a series-RL coil fed from supply_v, with a constant opposing
+    clamp voltage across the coil during turn-off. The ideal switch voltage
+    is supply_v + opposing_clamp_v; real VDS also includes parasitic overshoot.
+    The clamp absorbs the portion of magnetic energy not dissipated in the
+    coil resistance. This is not a TVS selection or MOSFET SOA calculator.
+    """
+    supply = _positive_finite("supply_v", supply_v)
+    inductance = _positive_finite("coil_inductance_h", coil_inductance_h)
+    resistance = _positive_finite("coil_resistance_ohm", coil_resistance_ohm, allow_zero=True)
+    current = _positive_finite("initial_current_a", initial_current_a)
+    clamp = _positive_finite("opposing_clamp_v", opposing_clamp_v)
+    rate = _positive_finite("pulse_rate_hz", pulse_rate_hz)
+    final = _positive_finite("final_current_a", final_current_a, allow_zero=True)
+    if final >= current:
+        raise ValueError("final_current_a must be lower than initial_current_a")
+
+    initial_energy = stored_energy(inductance, current)
+    final_energy = stored_energy(inductance, final)
+    released_energy = initial_energy - final_energy
+    if resistance == 0.0:
+        clamp_energy = released_energy
+    else:
+        delta_i = current - final
+        x = resistance * delta_i / (clamp + resistance * final)
+        integral_i_dt = inductance * (
+            delta_i / resistance
+            - clamp / (resistance * resistance) * math.log1p(x)
+        )
+        clamp_energy = clamp * integral_i_dt
+        # Guard only tiny floating-point round-off; a real negative value is invalid.
+        if clamp_energy < -1e-12 or clamp_energy > released_energy + 1e-12:
+            raise ArithmeticError("energy balance outside physical bounds")
+        clamp_energy = min(max(clamp_energy, 0.0), released_energy)
+
+    coil_resistive_loss = released_energy - clamp_energy
+    decay_s = clamp_decay_time(
+        inductance, resistance, clamp, current, final
+    )
+    return {
+        "initial_magnetic_energy_j": initial_energy,
+        "remaining_magnetic_energy_j": final_energy,
+        "released_magnetic_energy_j": released_energy,
+        "clamp_energy_per_pulse_j": clamp_energy,
+        "coil_resistive_loss_per_pulse_j": coil_resistive_loss,
+        "clamp_average_power_w": clamp_energy * rate,
+        "coil_average_decay_loss_w": coil_resistive_loss * rate,
+        "ideal_mosfet_vds_v": supply + clamp,
+        "peak_clamp_current_a": current,
+        "current_decay_s": decay_s,
+    }
