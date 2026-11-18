@@ -1552,3 +1552,13 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - CSD19531KCS يقلل Qg≈4.8× وQgd≈14.7×، وقد يحسن زمن قيادة/إطفاء البوابة. لكن 100V يتطلب قياس VDS peak بدقة؛ VDS المثالي المحسوب≈35V لا يشمل overshoot.
 - ترتيب المرشحين الحالي للمقارنة فقط: CSD19531KCS A بسبب الشحنة والحجم؛ IRFP260NPbF B بسبب تصنيف الجهد الأعلى. لا اعتماد نهائي قبل قياس overshoot وSOA والحرارة والتوفر/الأصالة.
 - مصدر TI: https://www.ti.com/lit/ds/symlink/csd19531kcs.pdf. مصدر Infineon: https://www.infineon.com/assets/row/public/documents/24/49/infineon-irfp260n-datasheet-en.pdf.
+
+
+## 39. تحديث قرار MOSFET وقيادة البوابة — 2026-11-18
+- راجعنا الداتا شيت الرسمية: CSD19531KCS Qg max49nC، Qgd typ7.5nC، RDS(on) max7.7mΩ عند10V، VDS100V، TO-220، RθJC0.7°C/W، EAS single-pulse180mJ ضمن شروط اختبار محددة. IRFP260NPbF Qg max234nC، Qgd max110nC، RDS(on) max40mΩ عند10V، VDS200V، TO-247، RθJC0.5°C/W.
+- CSD يقلل Qg≈4.78× وQgd≈14.67× مقارنة بـIRFP؛ لذلك هو مرشح A للدراسة، وIRFP مرشح B لهامش الجهد. لا اعتماد شراء.
+- TC4420: تغذية4.5–18V، VIH min2.4V (3.3V logic compatible)، 6A peak، output impedance typ2.5Ω، propagation delay55ns typ، rise/fall25ns typ عند2500pF. لا Enable؛ يجب فرض LOW على IN عبر fault latch/one-shot.
+- قيم Rg=4.7/10/15Ω هي نقاط اختبار على منصة آمنة فقط. تقاس VGS عند أرجل MOSFET وVDS والتيار وringing والـfalse turn-on. لا تثبت Rg الآن.
+- لا نستعمل EAS أو pulsed-current headline بدلاً عن SOA. يجب التحقق من SOA/thermal عند ظروف switching الفعلية و100Hz.
+- 80V سقف مراجعة محافظ مبدئي لمرشح100V وليس مواصفة نهائية؛ إذا تجاوزته القمة، يوقف اعتماد CSD وتراجع clamp/layout أو فئة الجهد.
+- مرجع TC4420: Microchip DS21419D https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf.
