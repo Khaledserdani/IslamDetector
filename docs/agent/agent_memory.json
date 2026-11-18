@@ -25,7 +25,7 @@
     "coil_inductance": "Mohan current-sheet estimate about 175.8 uH and modified Wheeler estimate about 149.2 uH; methods disagree and original paper validation dimensions are far smaller",
     "disk_model": "reduced-order axisymmetric conductive-disk surrogate; not 3D FEM and not field validated",
     "github_actions": "Latest PR run 44413843070 on commit e8510b80a4197d93ff0cdc4f6de9390702d6b1fb completed with startup_failure and zero jobs; no Python steps or tests executed. Root cause is not established.",
-    "agent_task_queue": "Task queue validation hardened for malformed/non-string IDs, blank titles/acceptance fields, and invalid statuses; regression tests added but not executed because Actions runner startup continues to fail. No runtime test success is claimed."
+    "agent_task_queue": "Validation now explicitly rejects malformed/non-string task IDs, blank titles or acceptance fields, and non-string/unknown statuses in both task_queue.py and audit.py; regression tests cover malformed IDs, blank titles, and non-string statuses. Tests remain unexecuted because the latest observed Actions run ended in startup_failure with zero jobs."
   },
   "next_tasks": [
     {
