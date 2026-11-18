@@ -157,3 +157,65 @@ def valid_window_mask(
             mask |= 1 << index
         previous = delay
     return mask
+
+
+def square_spiral_estimate(
+    outer_side_m: float,
+    turns: int,
+    wire_diameter_m: float,
+    gap_m: float,
+    copper_diameter_m: float,
+) -> dict[str, float]:
+    """First-order geometry estimate for a flat square air-core spiral.
+
+    Uses modified-Wheeler and current-sheet approximations attributed to
+    Mohan et al. (1999), plus geometric wire-length and 20 C copper DCR
+    estimates. Not validated here for a 35 cm hand-wound PI search head;
+    treat outputs as a screening range, not measured values.
+    outer_side_m is the outside dimension; outer turn centerline is
+    approximated as outer_side_m - wire_diameter_m.
+    """
+    side = _positive_finite("outer_side_m", outer_side_m)
+    wire = _positive_finite("wire_diameter_m", wire_diameter_m)
+    gap = _positive_finite("gap_m", gap_m, allow_zero=True)
+    copper = _positive_finite("copper_diameter_m", copper_diameter_m)
+    if not isinstance(turns, int) or isinstance(turns, bool) or turns < 1:
+        raise ValueError("turns must be a positive integer")
+    if copper > wire:
+        raise ValueError("copper_diameter_m cannot exceed wire_diameter_m")
+
+    pitch = wire + gap
+    outer_centerline = side - wire
+    inner_centerline = outer_centerline - 2.0 * (turns - 1) * pitch
+    if inner_centerline <= 0:
+        raise ValueError("winding geometry collapses: inner opening is not positive")
+
+    d_avg = 0.5 * (outer_centerline + inner_centerline)
+    rho = (outer_centerline - inner_centerline) / (outer_centerline + inner_centerline)
+    mu0 = 4.0 * math.pi * 1e-7
+
+    # Square-layout coefficients from Mohan et al., IEEE JSSC 34(10), 1999.
+    inductance_wheeler_h = 2.34 * mu0 * turns * turns * d_avg / (1.0 + 2.75 * rho)
+    inductance_current_sheet_h = (
+        mu0 * turns * turns * d_avg * 1.27 / 2.0
+        * (math.log(2.07 / rho) + 0.18 * rho + 0.13 * rho * rho)
+    )
+
+    wire_length_m = 4.0 * sum(
+        outer_centerline - 2.0 * index * pitch
+        for index in range(turns)
+    )
+    copper_area_m2 = math.pi * (copper / 2.0) ** 2
+    copper_resistivity_20c_ohm_m = 1.724e-8
+    dcr_20c_ohm = copper_resistivity_20c_ohm_m * wire_length_m / copper_area_m2
+
+    return {
+        "outer_centerline_side_m": outer_centerline,
+        "inner_centerline_side_m": inner_centerline,
+        "average_side_m": d_avg,
+        "fill_ratio": rho,
+        "wire_length_m": wire_length_m,
+        "dcr_20c_ohm": dcr_20c_ohm,
+        "inductance_wheeler_h": inductance_wheeler_h,
+        "inductance_current_sheet_h": inductance_current_sheet_h,
+    }
