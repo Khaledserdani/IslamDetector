@@ -98,6 +98,12 @@
 
 **مرجعيات اختيار:** Nexperia AN10273 وAN11158 لحدود avalanche وSOA والحرارة؛ AN90001 لتصرف قيادة البوابة مع الأحمال الحثية؛ TI SNVAA45 لمفاضلة جهد clamp وزمن تفريغ الملف. المراجع موجودة في قسم مصادر COIL_TOPOLOGY_STUDY_AR.md.
 
+## 5.3 قفل TX العتادي المستقل — متطلب إلزامي
+
+المواصفة الوظيفية الكاملة في `REV_A_TX_INTERLOCK_SPEC_AR.md`. لا تعتمد BOM القدرة حتى يتوفر: hardware one-shot، comparator سريع لحد التيار، fault latch، repetition guard، Power-Good/UVLO، watchdog مستقل، Gate pulldown، وإيقاف غير متزامن. كل عناصر السماح يجب أن تكون fail-safe OFF عند reset أو فقد التغذية.
+
+الـRP2040/ESP32 لا يملكان صلاحية تمديد النبضة أو تعطيل comparator. البرنامج يطلب النبضة فقط؛ one-shot يحدد أقصى زمنها والـcomparator يستطيع قطعها فوراً. لا يعتبر START مفعلاً في Firmware حتى اكتمال الدائرة واختبارها.
+
 ## 6. ترتيب الشراء والتنفيذ
 
 ### الدفعة A — تجهيز القياس الآمن
