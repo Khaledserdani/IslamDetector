@@ -85,3 +85,9 @@ flowchart TD
 - إجراء ERC/DRC وthermal/SOA review قبل إصدار Gerbers/PCBA.
 
 **الحالة النهائية لهذه الوثيقة:** يمكن استخدامها لتوجيه الرسم الكهربائي التالي، لكنها ليست schematic قابل للتوصيل، ولا BOM، ولا دليلاً على أن أي قطعة موجودة أو تم اختبارها.
+
+
+## 6. قيد زمن Gate Driver — TC4420
+- لا تستخدم55ns كحد أقصى؛ هي typical. اعتمد100ns max كحد تأخير عبر نطاق الحرارة في worst-case timing budget، مع rise/fall حتى60ns max عند2500pF.
+- 6A peak قيمة typical عندVDD18V وليست minimum مضموناً. قيم ROH/ROL المنشورة مقاسة عند10mA، ولا تمثل نموذجاً كاملاً لتيار البوابة العالي.
+- يجب قياس turn-off الفعلي للـMOSFET مع Rg وQgd والـlayout، وعدم جمع أرقام typ وحدها لإثبات قطع overcurrent.
