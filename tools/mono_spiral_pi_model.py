@@ -289,11 +289,25 @@ def low_side_clamp_stress(
         clamp_energy = released_energy
     else:
         delta_i = current - final
-        x = resistance * delta_i / (clamp + resistance * final)
-        integral_i_dt = inductance * (
-            delta_i / resistance
-            - clamp / (resistance * resistance) * math.log1p(x)
-        )
+        denominator = clamp + resistance * final
+        x = resistance * delta_i / denominator
+        if x < 1e-4:
+            # Series expansion avoids catastrophic cancellation as R -> 0.
+            b = resistance / denominator
+            d = delta_i
+            integral_i_di = (
+                final * d + d**2 / 2.0
+                - b * (final * d**2 / 2.0 + d**3 / 3.0)
+                + b**2 * (final * d**3 / 3.0 + d**4 / 4.0)
+                - b**3 * (final * d**4 / 4.0 + d**5 / 5.0)
+                + b**4 * (final * d**5 / 5.0 + d**6 / 6.0)
+            ) / denominator
+        else:
+            integral_i_di = (
+                delta_i / resistance
+                - clamp / (resistance * resistance) * math.log1p(x)
+            )
+        integral_i_dt = inductance * integral_i_di
         clamp_energy = clamp * integral_i_dt
         # Guard only tiny floating-point round-off; a real negative value is invalid.
         if clamp_energy < -1e-12 or clamp_energy > released_energy + 1e-12:
