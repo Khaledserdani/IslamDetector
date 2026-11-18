@@ -98,7 +98,7 @@ flowchart TD
 
 
 ## 8. كتلة التوقيت المقترحة بعد تحسين repetition guard
-U3A/U3B LTC6993-1 مستقلان → AND → SHOT_WINDOW. الحافة الهابطة لـSHOT_WINDOW تشغل U4 LTC6993-4 retriggerable cooldown10.4ms. خرج السائق يمر عبر AND نهائية: SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT → TC4420 IN. يجب تصميم fail-safe إذا فقد U4/بوابة AND صلاحيتها. التفاصيل والقيم في REV_A_TX_ONESHOT_CANDIDATES_AR.md؛ لا تعتبرها netlist نهائية.
+U3A/U3B LTC6993-1 مستقلان → AND → SHOT_WINDOW. الحافة الهابطة لـSHOT_WINDOW تشغل U4 LTC6993-4 retriggerable cooldown10.4ms. خرج السائق يمر عبر AND نهائية: SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT → TC4420 IN. يجب تصميم fail-safe إذا فقد U4/بوابة AND صلاحيتها. التفاصيل والقيم في REV_A_TX_ONESHOT_CANDIDATES_AR.md؛ لا تعتبرها netlist نهائية.
 
 
 ## 9. Fault latch كتلة مقترحة
