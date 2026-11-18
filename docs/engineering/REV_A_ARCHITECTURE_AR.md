@@ -383,6 +383,6 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 
 ## 23. مسودة شبكة مرحلة TX — 2026-11-18
 
-أضيفت `REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md` بمسار net-level للمراجعة: +12V_TX → Mono Spiral → SW_DRAIN/Q1 low-side → KELVIN_SOURCE → shunt → PGND، وTVS عبر الملف بكاثود على SW_DRAIN وأنود على +12V_TX. خرج TC4420 يصل إلى Gate عبر RG غير محدد، وGND السائق عند Kelvin source. TLV3201 يقارن SHUNT_SENSE_P مع I_LIMIT_REF ويطلق fault latch؛ one-shot وARM/Power-Good/Watchdog تشكل TX_PERMIT.
+أضيفت `REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md` بمسار net-level للمراجعة: +12V_TX → Mono Spiral → SW_DRAIN/Q1 low-side → KELVIN_SOURCE → shunt → PGND، وفرع clamp مصحح برمز TVS ثنائي الاتجاه عبر الملف دون قطبية ثابتة؛ لا يجوز استخدام TVS أحادي الاتجاه مباشرة بهذه الوصلة، لأنه ينحاز أمامياً أثناء TX ON. البديل أحادي الاتجاه يحتاج blocking diode متسلسلاً وفق TI. تفاصيل المقارنة والحسابات في REV_A_TX_CLAMP_COMPARISON_AR.md. خرج TC4420 يصل إلى Gate عبر RG غير محدد، وGND السائق عند Kelvin source. TLV3201 يقارن SHUNT_SENSE_P مع I_LIMIT_REF ويطلق fault latch؛ one-shot وARM/Power-Good/Watchdog تشكل TX_PERMIT.
 
 هذه مسودة كتلية/شبكية فقط، وليست schematic للتوصيل. قيم TVS/RG/shunt/reference والـone-shot ما زالت مفتوحة. يجب قياس VCLAMP وVDS overshoot، وإغلاق layout parasitics وSOA قبل KiCad النهائي.
