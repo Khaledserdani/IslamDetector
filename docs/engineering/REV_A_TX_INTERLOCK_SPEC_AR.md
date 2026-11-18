@@ -160,7 +160,7 @@ flowchart TD
 ## 14. تحديث repetition guard — بنية ثلاثة مؤقتات — 2026-11-18
 - لتحمل stuck-high منفرد في one-shot، تقترح البنية وحدتين LTC6993-1 مستقلتين U3A/U3B، كل واحدة تضبط18.88µs nominal (RSET118kΩ1%، DIVCODE1/NDIV8، divider976kΩ/102kΩ1%). SHOT_WINDOW = U3A_OUT AND U3B_OUT؛ فشل أي واحدة LOW يمنع TX، وفشل واحدة HIGH يترك الأخرى تحد النافذة.
 - U4 هو LTC6993-4 falling-edge retriggerable، يأخذ الحافة الهابطة لـSHOT_WINDOW ويولد COOLDOWN_OUT. إعداد DIVCODE4/NDIV4096، RSET127kΩ1%، divider1.00MΩ/392kΩ1%؛ nominal10.40384ms، minimum حسابي≈10.06ms بعد ±2.3% و±1%.
-- TX_DRIVER_IN = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND NOT_FAULT.
+- TX_DRIVER_IN = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT.
 - كل محاولة أثناء cooldown تُحجب؛ الحافة الهابطة لـSHOT_WINDOW تعيد تشغيل U4 وتبقي القفل10ms بعد آخر محاولة.
 - ما زال fail-safe عند فشل U4 أو AND gate مفتوحاً؛ يجب أن يؤدي فقد صلاحية/تغذية U4 إلى TX OFF. startup inhibit لكل المؤقتات مطلوب.
 - هذه بنية مقترحة لتحمل عطل stuck-high منفرد في U3A أو U3B فقط، وليست ضماناً ضد فشل مزدوج أو فشل بوابة القيادة. لا تشغيل/شراء قبل مراجعة fault injection والقياس.
