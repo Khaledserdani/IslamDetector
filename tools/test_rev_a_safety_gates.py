@@ -49,6 +49,11 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("if (ch == 'R' || ch == 'r')", self.rp_main)
         self.assertIn("Do NOT connect GP4 to a gate driver or coil.", self.rp_main)
 
+    def test_protocol_start_is_rejected_until_a_hardware_tx_interlock_exists(self):
+        self.assertIn("case REV_A_TYPE_START:", self.rp_main)
+        self.assertIn("REV_A_ACK_STATUS_REJECTED", self.rp_main)
+        self.assertIn("REV_A_ACK_REASON_TX_NOT_ARMED", self.rp_main)
+
 
 if __name__ == "__main__":
     unittest.main()
