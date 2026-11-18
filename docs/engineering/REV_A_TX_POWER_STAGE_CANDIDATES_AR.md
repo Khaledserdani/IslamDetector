@@ -85,3 +85,8 @@ TC4420 مناسب مبدئياً لقيادة MOSFET ذي Qg مرتفع مع ح�
 - Microchip TC4420 product page: https://www.microchip.com/en-us/product/tc4420
 - Microchip AN798 (TC4420/4429): https://www.microchip.com/en-us/application-notes/an798
 - Nexperia SOA/avalanche application notes: https://assets.nexperia.com/documents/application-note/AN10273.pdf and https://assets.nexperia.com/documents/application-note/AN11158.pdf
+
+
+## 8. أثر تأخير comparator على اختيار حد التيار
+
+المواصفة الوظيفية لقفل TX في `REV_A_TX_INTERLOCK_SPEC_AR.md` توسعت لتشمل تأخير comparator + latch + driver. نموذج `current_limit_response()` يبين أن عتبة3A في سيناريو12V/L50µH/R0.9Ω تصل بعد14.16µs، ثم يزيد التيار إلى3.184A إذا كان التأخير الكلي1µs، أو3.889A إذا كان5µs. لذلك لا يكفي أن تكون عتبة comparator أقل من حد MOSFET؛ يجب حساب التيار الفعلي عند إطفاء البوابة وVDS/الطاقة أثناءه. لا يوجد comparator أو shunt محدد بعد.
