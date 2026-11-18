@@ -45,6 +45,38 @@ class MonoSpiral:
         return self.pitch_m - self.wire_diameter_m
 
     @property
+    def average_side_m(self) -> float:
+        return 0.5 * (self.outer_side_m + self.inner_side_m)
+
+    @property
+    def fill_ratio(self) -> float:
+        return (self.outer_side_m - self.inner_side_m) / (
+            self.outer_side_m + self.inner_side_m
+        )
+
+    @property
+    def mohan_current_sheet_inductance_h(self) -> float:
+        """Mohan et al. square current-sheet estimate; approximate, not measured."""
+        rho = self.fill_ratio
+        if rho <= 0.0:
+            raise ValueError("planar-spiral inductance estimate requires at least two turns")
+        return (
+            MU0 * self.turns**2 * self.average_side_m * 1.27 / 2.0
+            * (math.log(2.07 / rho) + 0.18 * rho + 0.13 * rho**2)
+        )
+
+    @property
+    def mohan_modified_wheeler_inductance_h(self) -> float:
+        """Mohan et al. modified-Wheeler square estimate; approximate, not measured."""
+        rho = self.fill_ratio
+        if rho <= 0.0:
+            raise ValueError("planar-spiral inductance estimate requires at least two turns")
+        return (
+            2.34 * MU0 * self.turns**2 * self.average_side_m
+            / (1.0 + 2.75 * rho)
+        )
+
+    @property
     def turn_sides_m(self) -> tuple[float, ...]:
         return tuple(
             self.outer_side_m - 2.0 * self.pitch_m * index
