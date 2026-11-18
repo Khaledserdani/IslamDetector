@@ -66,3 +66,68 @@ def clamp_decay_time(
     if r == 0:
         return l * (i0 - i1) / vc
     return (l / r) * math.log((i0 + vc / r) / (i1 + vc / r))
+
+
+
+def charge_injection_step(
+    feedthrough_capacitance_f: float,
+    switching_step_v: float,
+    total_node_capacitance_f: float,
+) -> float:
+    """First-order receiver-node voltage step from capacitive feedthrough.
+
+    This is a charge-sharing estimate, not a switch datasheet model. The
+    effective capacitances and edge waveform must be obtained from the
+    selected switch, PCB layout and measurement.
+    """
+    c_feed = _positive_finite(
+        "feedthrough_capacitance_f", feedthrough_capacitance_f, allow_zero=True
+    )
+    dv = _positive_finite("switching_step_v", switching_step_v, allow_zero=True)
+    c_total = _positive_finite("total_node_capacitance_f", total_node_capacitance_f)
+    return c_feed * dv / c_total
+
+
+def rc_recovery_time(
+    resistance_ohm: float,
+    capacitance_f: float,
+    initial_error_v: float,
+    allowed_error_v: float,
+) -> float:
+    """Time for a first-order RC residual to decay within an error band."""
+    r = _positive_finite("resistance_ohm", resistance_ohm)
+    c = _positive_finite("capacitance_f", capacitance_f)
+    initial = _positive_finite("initial_error_v", initial_error_v, allow_zero=True)
+    allowed = _positive_finite("allowed_error_v", allowed_error_v)
+    if initial <= allowed:
+        return 0.0
+    return r * c * math.log(initial / allowed)
+
+
+def serial_recovery_budget(
+    coil_decay_s: float,
+    switch_settle_s: float,
+    amplifier_recovery_s: float,
+    rc_recovery_s: float,
+    adc_acquisition_s: float,
+    guard_s: float = 0.0,
+) -> float:
+    """Conservative serial budget before the first candidate ADC sample.
+
+    The sum intentionally assumes the stages recover sequentially. If
+    measured waveforms prove overlap, replace this conservative sum with
+    the measured critical-path timing. This is not a substitute for
+    verifying linear operation and ADC settling on the actual circuit.
+    """
+    stages = {
+        "coil_decay_s": coil_decay_s,
+        "switch_settle_s": switch_settle_s,
+        "amplifier_recovery_s": amplifier_recovery_s,
+        "rc_recovery_s": rc_recovery_s,
+        "adc_acquisition_s": adc_acquisition_s,
+        "guard_s": guard_s,
+    }
+    return sum(
+        _positive_finite(name, value, allow_zero=True)
+        for name, value in stages.items()
+    )
