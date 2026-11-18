@@ -10,7 +10,7 @@
 - U1: TC4420، مرشح Gate Driver فقط.
 - U2: TLV3201، مرشح comparator فقط.
 - RS1: شنت low-side 50mΩ مثال حسابي، غير معتمد.
-- TVS1: clamp عبر الملف، رقم القطعة والجهد غير محددين.
+- TVS1: ثنائي TVS ثنائي الاتجاه (bidirectional) عبر الملف كخيار مرشح أولي؛ SMBJ18CA مرشح دراسة فقط، وليس اختيار شراء. لا تستخدم TVS أحادي الاتجاه مباشرة بهذه الوصلة.
 - U3: hardware one-shot + fault latch + repetition guard؛ المكونات غير محددة.
 
 تفاصيل الداتا شيت والقيود في:
@@ -28,7 +28,7 @@ flowchart TD
     Q --> S[Q1 Source / KELVIN_SOURCE]
     S --> RS[RS1 low-side shunt]
     RS --> G[PGND power return]
-    D --> TVS[TVS1 cathode]
+    D --> TVS[TVS1 bidirectional]
     TVS --> V
     QG[U1 TC4420 OUT] --> RG[RG series placeholder]
     RG --> Q
@@ -41,14 +41,14 @@ flowchart TD
     EN --> IN[U1 TC4420 IN]
 ```
 
-**تفسير TVS1:** الكاثود على SW_DRAIN والأنود على +12V_TX. أثناء الإطفاء يرتفع Drain فوق +12V فيمر تيار الملف عبر TVS ليُفرغ الطاقة. هذا اتجاه مبدئي لشبكة clamp عبر الملف؛ يجب التحقق من قطبية/نوع TVS وتوصيلها الفعلي قبل اعتماد الرسم.
+**تصحيح جوهري لفرع clamp:** النسخة السابقة التي وضعت TVS أحادي الاتجاه مباشرة بين SW_DRAIN و+12V_TX كانت خاطئة؛ إذ تنحاز أمامياً أثناء نبضة TX العادية ويمكن أن تقصر التغذية. في هذه المسودة يُرسم TVS ثنائي الاتجاه عبر طرفي الملف دون قطبية ثابتة، ويجب أن يكون VRWM أعلى من أقصى جهد تشغيل عادي للملف مع هامش. المرشح SMBJ18CA (VRWM=18V) للدراسة فقط مع مصدر اسمي12V؛ لا شراء قبل التحقق من حد المصدر الفعلي ومنحنى V-I والطاقة المتكررة. البديل TVS أحادي الاتجاه لا يجوز وصله مباشرة؛ يحتاج blocking diode على التوالي في فرع clamp وفق مرجع TI، مع التحقق من اتجاهه وVF وIF/VRRM.
 
 ## 3. Net-level connection draft
 
 | الشبكة | الاتصال | الحالة |
 |---|---|---|
-| +12V_TX | موجب مصدر TX، طرف الملف الأول، أنود/مرجع clamp وفق الطوبولوجيا أعلاه | افتراضي |
-| COIL_LOW / SW_DRAIN | طرف الملف الثاني، Drain Q1، كاثود TVS1 | افتراضي |
+| +12V_TX | موجب مصدر TX وطرف الملف الأول؛ الطرف الثاني لفرع TVS1 ثنائي الاتجاه | افتراضي |
+| COIL_LOW / SW_DRAIN | طرف الملف الثاني وDrain Q1؛ TVS1 ثنائي الاتجاه بينه وبين +12V_TX | افتراضي |
 | KELVIN_SOURCE | Source Q1، رجوع U1 GND، sense high RS1 | يحتاج تخطيط Kelvin |
 | PGND | طرف RS1 المنخفض، سالب مصدر TX | قدرة |
 | GATE_RAW | خرج TC4420 عبر RG إلى Gate Q1 | RG غير محدد |
@@ -66,12 +66,13 @@ flowchart TD
 ## 4. نقاط يجب عدم إساءة فهمها
 
 1. U1 GND يربط Kelvin source وليس مسار PGND بعيداً؛ الهدف تقليل common-source inductance. يجب أن يبقى مسار تيار RS1 منفصلاً عن sense trace.
-2. U2 يقيس جهد الشنت الصغير قرب الأرضي. لا توصل أي مدخل comparator إلى SW_DRAIN أو طرف الملف؛ تلك عقدة قدرة عالية الجهد.
-3. TC4420 لا يحتوي Enable مخصصاً. TX_PERMIT يجب أن يفرض LOW على IN، مع pull-down مستقل. comparator fault latch يجب أن يستطيع إسقاط TX_PERMIT دون انتظار البرنامج.
-4. TVS1 يجب أن يثبت VCLAMP الفعلي عند تيار2.5–3A، لا VRWM فقط. يجب حساب جهد Drain = 12V + VCLAMP الفعلي + parasitic overshoot.
-5. لا تضع TVS أو shunt أو driver على breadboard بأسلاك طويلة؛ حلقة الملف/المفتاح/clamp يجب أن تكون قصيرة جداً، والـsense/logic مفصولة عن مسار القدرة.
-6. لا يُوصل GP4 مباشرة بـU1 IN أو Gate. إشارة RP2040 تمر فقط عبر one-shot وARM/fault logic بعد اكتمالها.
-7. يجب أن يكون Q1 Gate pulldown فعالاً حتى عند غياب VDD أو فصل U1.
+2. ممنوع TVS أحادي الاتجاه مباشرة عبر الملف بهذه القطبية؛ سينحاز أمامياً عندما يكون Drain منخفضاً أثناء TX ON. استخدم bidirectional TVS بجهد stand-off أعلى من أقصى جهد الملف، أو فرع unidirectional TVS مع blocking diode متسلسل مصمم كما في مرجع TI.
+3. U2 يقيس جهد الشنت الصغير قرب الأرضي. لا توصل أي مدخل comparator إلى SW_DRAIN أو طرف الملف؛ تلك عقدة قدرة عالية الجهد.
+4. TC4420 لا يحتوي Enable مخصصاً. TX_PERMIT يجب أن يفرض LOW على IN، مع pull-down مستقل. comparator fault latch يجب أن يستطيع إسقاط TX_PERMIT دون انتظار البرنامج.
+5. TVS1 يجب أن يثبت VCLAMP الفعلي عند تيار2.5–3A، لا VRWM فقط. يجب حساب جهد Drain = 12V + VCLAMP الفعلي + parasitic overshoot.
+6. لا تضع TVS أو shunt أو driver على breadboard بأسلاك طويلة؛ حلقة الملف/المفتاح/clamp يجب أن تكون قصيرة جداً، والـsense/logic مفصولة عن مسار القدرة.
+7. لا يُوصل GP4 مباشرة بـU1 IN أو Gate. إشارة RP2040 تمر فقط عبر one-shot وARM/fault logic بعد اكتمالها.
+8. يجب أن يكون Q1 Gate pulldown فعالاً حتى عند غياب VDD أو فصل U1.
 
 ## 5. بوابات إغلاق قبل تحويل المسودة إلى KiCad
 
