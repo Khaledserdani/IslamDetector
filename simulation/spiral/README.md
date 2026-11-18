@@ -59,3 +59,11 @@ simulation input, not a measured or independently validated property. Its
 Likewise, the 12 V / 200 us pulse and 20 ohm clamp are software fixtures,
 not approved hardware specifications. Do not use these defaults for power
 stage selection or safety calculations; see the Arabic science audit.
+
+The geometry model also exposes two independent first-order planar-spiral
+inductance estimates from Mohan et al. (current-sheet and modified Wheeler).
+For the current 350 mm / 13-turn geometry they differ by roughly 15%, so
+175.8 uH remains a provisional input rather than a validated coil property.
+The published expressions were benchmarked on much smaller planar inductors;
+a Greenhouse/path-specific calculation and eventual LCR measurement remain
+necessary before power-stage design.
