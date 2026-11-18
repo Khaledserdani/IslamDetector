@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 RP_MAIN = ROOT / "firmware/rp2040_timing_test/src/main.c"
+RP_CMAKE = ROOT / "firmware/rp2040_timing_test/CMakeLists.txt"
 ADC_DRIVER = ROOT / "firmware/rp2040_timing_test/src/ads8861_capture.c"
 UART_KCONFIG = ROOT / "firmware/esp32_s3_bridge/Kconfig.projbuild"
 UART_APP_MAIN = ROOT / "firmware/esp32_s3_bridge/main/app_main.c"
@@ -15,6 +16,7 @@ class RevASafetyGateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.rp_main = RP_MAIN.read_text(encoding="utf-8")
+        cls.rp_cmake = RP_CMAKE.read_text(encoding="utf-8")
         cls.adc_driver = ADC_DRIVER.read_text(encoding="utf-8")
         cls.kconfig = UART_KCONFIG.read_text(encoding="utf-8")
         cls.app_main = UART_APP_MAIN.read_text(encoding="utf-8")
@@ -53,6 +55,10 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("case REV_A_TYPE_START:", self.rp_main)
         self.assertIn("REV_A_ACK_STATUS_REJECTED", self.rp_main)
         self.assertIn("REV_A_ACK_REASON_TX_NOT_ARMED", self.rp_main)
+
+    def test_protocol_uart0_is_not_shared_with_stdio_console(self):
+        self.assertIn("pico_enable_stdio_uart(islam_rev_a_timing_test 0)", self.rp_cmake)
+        self.assertIn("pico_enable_stdio_usb(islam_rev_a_timing_test 1)", self.rp_cmake)
 
 
 if __name__ == "__main__":
