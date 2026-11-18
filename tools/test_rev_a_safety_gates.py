@@ -10,6 +10,7 @@ ADC_DRIVER = ROOT / "firmware/rp2040_timing_test/src/ads8861_capture.c"
 UART_KCONFIG = ROOT / "firmware/esp32_s3_bridge/Kconfig.projbuild"
 UART_APP_MAIN = ROOT / "firmware/esp32_s3_bridge/main/app_main.c"
 UART_DRIVER = ROOT / "firmware/esp32_s3_bridge/components/rev_a_uart_bridge/rev_a_uart_bridge.c"
+TX_INTERLOCK_SPEC = ROOT / "docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md"
 
 
 class RevASafetyGateTests(unittest.TestCase):
@@ -21,6 +22,7 @@ class RevASafetyGateTests(unittest.TestCase):
         cls.kconfig = UART_KCONFIG.read_text(encoding="utf-8")
         cls.app_main = UART_APP_MAIN.read_text(encoding="utf-8")
         cls.uart_driver = UART_DRIVER.read_text(encoding="utf-8")
+        cls.tx_interlock_spec = TX_INTERLOCK_SPEC.read_text(encoding="utf-8")
 
     def test_ads8861_capture_is_disabled_in_default_rp2040_firmware(self):
         self.assertIn("#define ENABLE_ADS8861_CAPTURE 0", self.rp_main)
@@ -59,6 +61,12 @@ class RevASafetyGateTests(unittest.TestCase):
     def test_protocol_uart0_is_not_shared_with_stdio_console(self):
         self.assertIn("pico_enable_stdio_uart(islam_rev_a_timing_test 0)", self.rp_cmake)
         self.assertIn("pico_enable_stdio_usb(islam_rev_a_timing_test 1)", self.rp_cmake)
+
+    def test_tx_interlock_spec_requires_independent_hardware_cutoff(self):
+        self.assertIn("Hardware one-shot", self.tx_interlock_spec)
+        self.assertIn("Fast analog comparator", self.tx_interlock_spec)
+        self.assertIn("fault latch", self.tx_interlock_spec)
+        self.assertIn("Gate OFF", self.tx_interlock_spec)
 
 
 if __name__ == "__main__":
