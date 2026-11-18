@@ -6,7 +6,7 @@
 
 ## 1. المرشحون المشار إليهم
 
-- Q1: IRFP260NPbF، مرشح MOSFET فقط.
+- Q1: مرشحان قيد المقارنة: TI CSD19531KCS (مرشح A منخفض Qg/100V) وInfineon IRFP260NPbF (مرشح B/200V). لا اختيار نهائي قبل VDS overshoot وSOA.
 - U1: TC4420، مرشح Gate Driver فقط.
 - U2: TLV3201، مرشح comparator فقط.
 - RS1: شنت low-side 50mΩ مثال حسابي، غير معتمد.
@@ -77,6 +77,7 @@ flowchart TD
 ## 5. بوابات إغلاق قبل تحويل المسودة إلى KiCad
 
 - اختيار نوع وموديل TVS أو RCD/active clamp بعد حساب VCLAMP عند التيار الفعلي ودرجة الحرارة والطاقة المتكررة.
+- اختيار Q1 بين CSD19531KCS (100V، Qg max49nC) وIRFP260NPbF (200V، Qg max234nC) بعد قياس VDS overshoot ومراجعة SOA.
 - اختيار shunt وthreshold reference وcomparator بعد حسم current limit وتفاوت L/R.
 - اختيار U3 one-shot/fault latch واثبات non-retriggerable timeout.
 - حساب gate resistance من Qg/Qgd وdriver output impedance، والتحقق من VGS ringing.
