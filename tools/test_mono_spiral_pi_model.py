@@ -10,6 +10,7 @@ from mono_spiral_pi_model import (
     stored_energy,
     valid_window_mask,
     square_spiral_estimate,
+    square_spiral_axis_field,
 )
 
 
@@ -95,6 +96,20 @@ class MonoSpiralModelTests(unittest.TestCase):
             square_spiral_estimate(0.350, 1, 0.0006, 0.001, 0.0006)
         with self.assertRaises(ValueError):
             square_spiral_estimate(0.350, 13, 0.0006, 0.001, 0.0007)
+
+
+    def test_square_spiral_axis_field_matches_single_loop_sum_at_center(self):
+        field = square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 1.5, 0.0)
+        self.assertGreater(field, 0.0)
+        self.assertLess(field, 200e-6)
+
+    def test_square_spiral_axis_field_decreases_with_depth(self):
+        near = square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 1.5, 0.0)
+        far = square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 1.5, 0.2)
+        self.assertGreater(near, far)
+
+    def test_square_spiral_axis_field_zero_current_is_zero(self):
+        self.assertEqual(square_spiral_axis_field(0.350, 13, 0.0006, 0.001, 0.0, 0.1), 0.0)
 
 
 if __name__ == "__main__":
