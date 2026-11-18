@@ -160,7 +160,7 @@ h = |R + ρ2 - ρ1|
 1. إعادة إنتاج مثال Greenhouse المنشور للملف المربع أحادي اللفة: 1.9573 nH ضمن هامش عددي صغير باستخدام تقسيمه وافتراضاته المنشورة.
 2. اختبار اتجاه التيار: عكس اتجاه مقطع واحد يجب أن يعكس إشارة حدود الاقتران معه فقط.
 3. اختبار المقاطع المتعامدة: حد الاقتران المثالي يساوي صفراً.
-4. اختبار دمج المقاطع المتجاورة: تقسيم مقطع مستقيم إلى جزأين ثم دمجهما يجب ألا يغير المحاثة الكلية.
+4. اختبار ثبات التقسيم: مقارنة قطعة مستقيمة واحدة بتمثيلها كقطعتين مع إدخال حد الاقتران بين الجزأين ضمن نموذج محدود المقطع متسق؛ لا يكفي ثبات طول النحاس. يمنع اختبار الخيط عند h=0 بوصفه مرجعاً صالحاً.
 5. اختبار الهندسة النشطة: عدد الوصلات الانتقالية 12، والمسار متصل من البداية للنهاية، ولا توجد مقاطع متداخلة أو مكررة.
 6. اختبار تقارب تقسيم المسار عند نقاط الانعطاف والوصلات؛ يجب ألا يتغير الرقم بسبب تقسيم برمجي اعتباطي.
 7. مقارنة النتيجة مع Mohan current-sheet وmodified-Wheeler وتفسير الفروقات؛ لا نفرض أن Greenhouse يجب أن يطابقهما.
@@ -172,6 +172,7 @@ h = |R + ρ2 - ρ1|
 1. H. M. Greenhouse, “Design of Planar Rectangular Microelectronic Inductors,” IEEE Transactions on Parts, Hybrids, and Packaging, vol. PHP-10, no. 2, pp. 101–109, June 1974. DOI: https://doi.org/10.1109/TPHP.1974.1134841
 2. D. Flynn, thesis discussion of Greenhouse segment summation and current-direction signs: https://www.ros.hw.ac.uk/bitstream/10399/58/1/FlynnD_0307_epsBL.pdf
 3. “Mutual inductance calculation between two coaxial planar spiral coils with an arbitrary number of sides,” Microelectronics Journal, 2019, DOI: https://doi.org/10.1016/j.mejo.2019.01.012
+4. E. B. Rosa and F. W. Grover, “Formulas and Tables for the Calculation of Mutual and Self-Inductance,” U.S. Bureau of Standards Bulletin, vol. 8, 1912, DOI: https://doi.org/10.6028/bulletin.185. انظر صيغة المحاثة الذاتية للسلك الأسطواني المستقيم وحدود تقريبها.
 
 ## قرار هذه الدراسة
 
