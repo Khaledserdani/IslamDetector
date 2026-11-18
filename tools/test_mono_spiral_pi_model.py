@@ -9,6 +9,7 @@ from mono_spiral_pi_model import (
     serial_recovery_budget,
     stored_energy,
     valid_window_mask,
+    square_spiral_estimate,
 )
 
 
@@ -76,6 +77,24 @@ class MonoSpiralModelTests(unittest.TestCase):
     def test_valid_window_mask_rejects_empty_windows(self):
         with self.assertRaises(ValueError):
             valid_window_mask([], 8e-6)
+
+
+    def test_square_spiral_geometry_estimate(self):
+        result = square_spiral_estimate(0.350, 13, 0.0006, 0.001, 0.0006)
+        self.assertAlmostEqual(result["wire_length_m"], 17.1704, places=4)
+        self.assertAlmostEqual(result["dcr_20c_ohm"], 1.04695, places=4)
+        self.assertAlmostEqual(result["inductance_wheeler_h"] * 1e6, 141.47, places=1)
+        self.assertAlmostEqual(result["inductance_current_sheet_h"] * 1e6, 159.56, places=1)
+
+    def test_square_spiral_rejects_collapsed_inner_opening(self):
+        with self.assertRaises(ValueError):
+            square_spiral_estimate(0.350, 13, 0.0006, 0.020, 0.0006)
+
+    def test_square_spiral_rejects_single_turn_and_oversized_copper(self):
+        with self.assertRaises(ValueError):
+            square_spiral_estimate(0.350, 1, 0.0006, 0.001, 0.0006)
+        with self.assertRaises(ValueError):
+            square_spiral_estimate(0.350, 13, 0.0006, 0.001, 0.0007)
 
 
 if __name__ == "__main__":
