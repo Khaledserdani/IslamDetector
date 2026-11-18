@@ -1539,7 +1539,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 
 ## 37. تحسين تقدير Clamp من الداتا شيت الرسمية — 2026-11-18
 - تمت مراجعة ST DS1283 Rev.14 (April 2026)، Table2 note4: VCLmax = VCL - RD × (IPP - IPP_appli). للـSMBJ18CA: VCL29.2V عند21.5A، RD0.328Ω، VRWM18V، VBR20.0–21.1V عند1mA.
-- عند تيار الملف النظري1.24–2.55A، معادلة ST تعطي VCLmax≈22.55–22.98V (وفق شروط موجة 10/1000µs). لأن نبضة demagnetization لدينا أقصر (~8.4–9.9µs)، هذا استقراء أولي لا ضمان؛ يجب مراجعة Figure6 (RD مقابل pulse duration) وقياس V-I.
+- عند تيار الملف النظري1.24–2.55A، معادلة ST تعطي VCLmax≈22.55–22.98V (وفق شروط موجة 10/1000µs). لأن نبضة demagnetization لدينا أقصر (~8.4–9.9µs)، هذا استقراء أولي لا ضمان؛ وFigure6 لا يعرض منحنى خاصاً بـSMBJ18CA، فلا نُجري interpolation غير موثق. يلزم نموذج من الشركة أو قياس V-I.
 - إعادة حساب series-RL مع VCL الثابت المستنتج: I=1.242–2.545A، VDS المثالي34.56–34.98V قبل overshoot، زمن اضمحلال8.44–9.87µs، طاقة TVS0.132–0.258mJ/نبضة، متوسط13.2–25.8mW عند100Hz. لا تمثل قياسات أو اعتماد TVS/MOSFET.
 - أضيفت الدالة tvs_clamp_voltage_from_datasheet() واختبارات تحقق المعادلة والحدود في model/tests.
 - مصدر المواصفات: ST DS1283 Rev.14 April2026، Table2 note4 وFigure6: https://www.st.com/resource/en/datasheet/smbj18ca.pdf.
