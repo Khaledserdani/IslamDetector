@@ -439,3 +439,9 @@
 - U3A/U3B: وحدتان LTC6993-1 مستقلتان، 118kΩ1% لكل RSET، DIVCODE1/NDIV8، divider976kΩ/102kΩ لكل وحدة؛ SHOT_WINDOW من AND بين الخرجين، nominal18.88µs وmax حسابي≈19.91µs.
 - U4: LTC6993-4، falling-edge retriggerable، RSET127kΩ1%، DIVCODE4/NDIV4096، divider1MΩ/392kΩ؛ cooldown nominal10.40384ms وmin حسابي≈10.06ms.
 - يلزم AND gating مع NOT_COOLDOWN وARM/Power-Good/Watchdog/NOT_FAULT. لا تُشترى الوحدات الثلاث قبل مراجعة fail-safe لـU4 والبوابة واختبار نبضات محجوبة/متكررة.
+
+
+## 5.10 Fault latch وPOR
+- مرشح A: SN74LVC2G74 (PRE/CLR active-low asynchronous) + TPS3808 supervisor + SN74LVC1G04 + SN74LVC1G08.
+- overcurrent يثبت Q=FAULT؛ brownout/POR يثبت FAULT أيضاً؛ المسح يدوي فقط مع STOP وعدم وجود OC وPower-Good.
+- لا شراء قبل اختيار supervisor threshold حسب rail regulator وإثبات عدم تزامن PRE/CLR واختبارات fault injection.
