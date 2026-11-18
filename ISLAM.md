@@ -1332,10 +1332,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - تحديث COIL_TOPOLOGY_STUDY_AR.md بمعمارية T/R للملف المشترك متعدد اللفات، وتسلسل TX/turn-off/blanking/recovery/acquisition، وخيارات T/R ومحددات أول عينة صالحة.
 - إضافة tools/mono_spiral_pi_model.py لحساب تيار نبضة series-RL والطاقة وزمن هبوط التيار مع clamp مثالي، وtools/test_mono_spiral_pi_model.py بسبعة اختبارات وحدات.
 - الاختبارات السبعة اجتازت التشغيل المحلي. Fixtures اصطناعية وليست قياسات للملف أو توصية بقيم مكونات.
+- أضيف اختبار static safety جديد يتحقق أن أمر START عبر البروتوكول يبقى مرفوضاً بسبب TX_NOT_ARMED حتى وجود interlock عتادي؛ لم يُعلن اجتيازه في CI بعد.
 
 ### حالة GitHub والتحقق
-- HEAD الفرع: 426e44eb1735250bf01eb9bc30f3f38d4d4b4489.
-- مقارنة مع main: الفرع ahead by 410 وbehind by 6؛ لم يُعدّل main.
+- آخر commit تحقق قبل هذا التحديث: 3660ebc220897d9b680f5169774888474dc372f9 (إضافة اختبار يحرس رفض START حتى وجود interlock عتادي).
+- مقارنة الفرع مع main بعد هذا commit: ahead by 412 وbehind by 6؛ لم يُعدّل main.
 - PR #7 مفتوح Draft وغير مدمج، وHEAD مطابق للالتزام أعلاه. PR #6 مغلق وغير مدمج.
 - Workflow main.yml يحتوي trigger push على الفرع ومسارات tools/** وdocs/**، لكن لا توجد نتيجة CI مؤكدة على HEAD الحالي حتى كتابة هذا التحديث؛ لا نسجل بناءً أو UF2/APK جديداً ناجحاً.
 - لا يوجد اختبار مادي لملف Mono Spiral أو T/R أو ADC أو حماية TX/RX. قيم L/DCR/Q والـtransient والـclip-release ما زالت غير مقاسة، وADC capture يبقى معطلاً افتراضياً.
