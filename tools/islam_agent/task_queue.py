@@ -31,14 +31,23 @@ def load_memory(path: Path) -> dict:
     tasks = memory.get("next_tasks")
     if not isinstance(tasks, list):
         raise ValueError("next_tasks must be a list.")
-    ids = [task.get("id") for task in tasks if isinstance(task, dict)]
-    if len(ids) != len(tasks) or len(ids) != len(set(ids)):
-        raise ValueError("Every task must be an object with a unique id.")
-    for task in tasks:
+    ids: list[str] = []
+    for index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            raise ValueError(f"Task at index {index} must be an object.")
         if not all(key in task for key in ("id", "title", "status", "acceptance")):
-            raise ValueError(f"Task is missing required fields: {task!r}")
+            raise ValueError(f"Task is missing required fields at index {index}.")
+        if not isinstance(task["id"], str) or not task["id"].strip():
+            raise ValueError(f"Task id at index {index} must be a non-empty string.")
+        if not isinstance(task["title"], str) or not task["title"].strip():
+            raise ValueError(f"Task title at index {index} must be a non-empty string.")
+        if not isinstance(task["acceptance"], str) or not task["acceptance"].strip():
+            raise ValueError(f"Task acceptance at index {index} must be a non-empty string.")
         if task["status"] not in VALID_STATUSES:
             raise ValueError(f"Invalid status for task {task['id']}: {task['status']}")
+        ids.append(task["id"])
+    if len(ids) != len(set(ids)):
+        raise ValueError("Every task must have a unique id.")
     return memory
 
 
