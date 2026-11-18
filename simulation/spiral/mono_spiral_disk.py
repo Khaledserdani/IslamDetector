@@ -16,6 +16,12 @@ MU0 = 4.0 * math.pi * 1e-7
 
 @dataclass(frozen=True)
 class Coil:
+    """Nominal simulation fixture, not a measured coil characterization.
+
+    Resistance is the geometry-based 20 C copper estimate. The 175.8 uH
+    inductance is a provisional model input and has not yet been validated
+    against a field measurement or an independent inductance calculation.
+    """
     resistance_ohm: float = 1.0641
     inductance_h: float = 175.8e-6
     outer_side_m: float = 0.350
