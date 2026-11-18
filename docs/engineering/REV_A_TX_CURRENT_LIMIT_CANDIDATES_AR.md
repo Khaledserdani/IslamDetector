@@ -11,7 +11,7 @@
 ## 2. مرشح comparator: TI TLV3201
 
 من الداتا شيت SBOS561C، Rev C (May 2024):
-- Propagation delay: 40ns typical، و55ns max عبر مدى الحرارة في شروط القياس المحددة.
+- Propagation delay: 40ns typical، و100ns max عبر نطاق الحرارة (75ns max عند25°C) عبر مدى الحرارة في شروط القياس المحددة.
 - Input offset: 1mV typical، 3mV max عند25°C، و4mV max من−40 إلى125°C.
 - Common-mode input extends 200mV beyond either rail.
 - Supply 2.7–5.5V، push-pull output، و40µA typical quiescent current.
