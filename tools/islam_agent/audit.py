@@ -54,8 +54,8 @@ def load_memory() -> tuple[dict | None, str | None]:
             return None, f"Invalid task title at index {index}: expected non-empty string."
         if not isinstance(task["acceptance"], str) or not task["acceptance"].strip():
             return None, f"Invalid task acceptance at index {index}: expected non-empty string."
-        if task["status"] not in valid_statuses:
-            return None, f"Invalid task status at index {index}: {task['status']!r}."
+        if not isinstance(task["status"], str) or task["status"] not in valid_statuses:
+            return None, f"Invalid task status at index {index}: expected one of {sorted(valid_statuses)}."
         if task["id"] in seen:
             return None, f"Duplicate task id: {task['id']}"
         seen.add(task["id"])
