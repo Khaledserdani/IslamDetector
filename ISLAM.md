@@ -1435,3 +1435,11 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - مقارنة TLV3501: أسرع4.5ns لكن offset max6.5mV واستهلاك أعلى؛ TLV3201 أنسب مبدئياً لدقة threshold shunt.
 - مثال حسابي 50mΩ و150mV عند3A؛ مع offset±4mV وشنت±1% ينتج trip تقريبي2.89–3.11A قبل أخطاء المرجع والضوضاء. هذا ليس BOM أو قيمة نهائية.
 - أضيفت الإحالات إلى interlock spec وpurchase plan وarchitecture. لا comparator أو shunt معتمد؛ يلزم التحقق من source bounce وKelvin sense وزمن fault latch/driver.
+
+
+## 32. مسودة شبكة مرحلة TX — 2026-11-18
+
+- أضيفت `REV_A_TX_POWER_STAGE_BLOCK_SCHEMATIC_AR.md` لتحديد اتجاه المسار المرشح وأسماء الشبكات: +12V_TX → Mono Spiral → SW_DRAIN/Q1 → KELVIN_SOURCE → RS1 → PGND؛ TVS1 عبر الملف بكاثود Drain وأنود +12V_TX.
+- TC4420 OUT → RG غير محدد → Gate؛ driver GND عند Kelvin source. TLV3201 IN+ من أعلى الشنت، IN− من I_LIMIT_REF، ويطلق fault latch. TX_PERMIT يتطلب one-shot وARM وPower-Good وwatchdog وعدم وجود fault.
+- صححت خريطة مدخلي comparator: طرف الشنت السفلي هو PGND/reference، وليس مدخل comparator؛ مدخل TLV3201 السالب يستقبل I_LIMIT_REF.
+- هذه مسودة net-level لا تصلح للتوصيل أو التصنيع. TVS/shunt/reference/RG/one-shot غير محددة، ولا schematic KiCad أو BOM نهائي بعد.
