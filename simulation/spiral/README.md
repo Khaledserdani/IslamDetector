@@ -52,3 +52,10 @@ Time-step sensitivity results support numerical stability only for the
 documented synthetic fixtures. See
 `docs/science/MONO_SPIRAL_DISK_SURROGATE_CONVERGENCE_AR.md` and
 `docs/science/MONO_SPIRAL_CONTINUOUS_PATH_AUDIT_AR.md`.
+
+The disk transient model's default coil inductance (175.8 uH) is a provisional
+simulation input, not a measured or independently validated property. Its
+1.0641 ohm winding resistance is a 20 C geometry-based copper estimate.
+Likewise, the 12 V / 200 us pulse and 20 ohm clamp are software fixtures,
+not approved hardware specifications. Do not use these defaults for power
+stage selection or safety calculations; see the Arabic science audit.
