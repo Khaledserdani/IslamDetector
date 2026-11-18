@@ -19,6 +19,28 @@ def _positive_finite(name: str, value: float, *, allow_zero: bool = False) -> fl
     return value
 
 
+def tvs_clamp_voltage_from_datasheet(
+    rated_clamp_voltage_v: float,
+    dynamic_resistance_ohm: float,
+    rated_peak_current_a: float,
+    application_peak_current_a: float,
+) -> float:
+    """Estimate TVS max clamp at application current using datasheet RD.
+
+    Implements VCLmax = VCLrated - RD * (IPPrated - Iapplication).
+    This is only the datasheet's stated extrapolation for its specified
+    surge waveform; it must not be treated as validated for a different
+    pulse shape or duration.
+    """
+    rated_voltage = _positive_finite("rated_clamp_voltage_v", rated_clamp_voltage_v)
+    dynamic_resistance = _positive_finite("dynamic_resistance_ohm", dynamic_resistance_ohm, allow_zero=True)
+    rated_current = _positive_finite("rated_peak_current_a", rated_peak_current_a)
+    application_current = _positive_finite("application_peak_current_a", application_peak_current_a)
+    if application_current > rated_current:
+        raise ValueError("application_peak_current_a must not exceed rated_peak_current_a")
+    return rated_voltage - dynamic_resistance * (rated_current - application_current)
+
+
 def pulse_current(
     supply_v: float,
     coil_resistance_ohm: float,
