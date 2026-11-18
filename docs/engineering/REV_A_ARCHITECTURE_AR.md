@@ -401,7 +401,7 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 - إعداد مبدئي دون20µs: 3.3V، DIVCODE1/POL0/NDIV8، RSET118kΩ 1%، DIV divider976kΩ/102kΩ 1%؛ nominal18.88µs وأعلى تقدير مع tolerance≈19.91µs.
 - OUT يمر عبر AND hardware gating مع ARM/Power-Good/Watchdog/NOT_FAULT إلى TC4420 IN؛ fault latch يقطع قبل انتهاء one-shot.
 - startup typ0.5–8ms يتطلب startup inhibit.
-- يلزم repetition guard عتادي مستقل لمنع إعادة النبضة قبل10ms؛ LTC6993-1 وحده لا يضمن100Hz.
+- حارس التكرار المقترح U4 LTC6993-4 retriggerable10.4ms يعمل بعد نهاية SHOT_WINDOW من U3A/U3B؛ لا يزال fail-safe عند عطل U4/AND gate مطلوباً.
 - لا اعتماد/شراء قبل schematic كامل واختبار pulse width وcooldown/fault على bench.
 
 
