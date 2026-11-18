@@ -13,11 +13,26 @@ from mono_spiral_pi_model import (
     square_spiral_axis_field,
     low_side_clamp_stress,
     current_limit_response,
+    tvs_clamp_voltage_from_datasheet,
 )
 
 
 class MonoSpiralModelTests(unittest.TestCase):
     # Synthetic fixtures only: these values are not the project's measured coil.
+    def test_tvs_clamp_voltage_uses_datasheet_dynamic_resistance(self):
+        low = tvs_clamp_voltage_from_datasheet(29.2, 0.328, 21.5, 1.24)
+        high = tvs_clamp_voltage_from_datasheet(29.2, 0.328, 21.5, 2.55)
+        self.assertAlmostEqual(low, 22.55472, places=5)
+        self.assertAlmostEqual(high, 22.9844, places=5)
+
+    def test_tvs_clamp_voltage_rejects_application_current_above_rating(self):
+        with self.assertRaises(ValueError):
+            tvs_clamp_voltage_from_datasheet(29.2, 0.328, 21.5, 21.6)
+
+    def test_tvs_clamp_voltage_rejects_nonpositive_parameters(self):
+        with self.assertRaises(ValueError):
+            tvs_clamp_voltage_from_datasheet(29.2, 0.328, 21.5, 0.0)
+
     def test_pulse_current_matches_series_rl_equation(self):
         current = pulse_current(12.0, 1.6, 350e-6, 20e-6)
         expected = (12.0 / 1.6) * (1.0 - math.exp(-(20e-6 * 1.6 / 350e-6)))
