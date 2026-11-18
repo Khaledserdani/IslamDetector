@@ -91,3 +91,7 @@ flowchart TD
 - لا تستخدم55ns كحد أقصى؛ هي typical. اعتمد100ns max كحد تأخير عبر نطاق الحرارة في worst-case timing budget، مع rise/fall حتى60ns max عند2500pF.
 - 6A peak قيمة typical عندVDD18V وليست minimum مضموناً. قيم ROH/ROL المنشورة مقاسة عند10mA، ولا تمثل نموذجاً كاملاً لتيار البوابة العالي.
 - يجب قياس turn-off الفعلي للـMOSFET مع Rg وQgd والـlayout، وعدم جمع أرقام typ وحدها لإثبات قطع overcurrent.
+
+
+## 7. مرشح حارس عرض النبضة
+LTC6993-1 OUT (non-retriggerable, nominal18.88µs with RSET118kΩ) يدخل إلى AND hardware gating مع ARM_OK/POWER_GOOD/WATCHDOG_OK/NOT_FAULT، ثم TC4420 IN. لا يوصل OUT مباشرة بالبوابة. يلزم startup inhibit وhardware repetition guard10ms مستقل؛ التفاصيل في REV_A_TX_ONESHOT_CANDIDATES_AR.md. قيم المؤقت مرشحة وليست معتمدة.
