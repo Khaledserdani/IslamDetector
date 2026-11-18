@@ -131,3 +131,29 @@ def serial_recovery_budget(
         _positive_finite(name, value, allow_zero=True)
         for name, value in stages.items()
     )
+
+
+
+def valid_window_mask(
+    delay_windows_s: list[float],
+    recovery_budget_s: float,
+) -> int:
+    """Return VALID_MASK bits for windows at/after a conservative recovery time.
+
+    Bit i corresponds to delay_windows_s[i]. The caller must still apply
+    hardware-derived quality flags; this timing-only mask is not a signal
+    quality classifier.
+    """
+    budget = _positive_finite("recovery_budget_s", recovery_budget_s, allow_zero=True)
+    if not delay_windows_s:
+        raise ValueError("delay_windows_s must not be empty")
+    previous = -1.0
+    mask = 0
+    for index, raw_delay in enumerate(delay_windows_s):
+        delay = _positive_finite(f"delay_windows_s[{index}]", raw_delay)
+        if delay <= previous:
+            raise ValueError("delay_windows_s must be strictly increasing")
+        if delay >= budget:
+            mask |= 1 << index
+        previous = delay
+    return mask
