@@ -109,6 +109,12 @@
 
 لا نحدد comparator/shunt من قيمة I_LIMIT فقط. يجب حساب زمن عبور العتبة، ثم إضافة تأخير comparator وfault latch وgate-driver turn-off، وحساب التيار الفعلي عند انطفاء MOSFET. في سيناريو12V/L50µH/R0.9Ω، عتبة3A تُبلغ بعد14.16µs، ويصل التيار إلى3.184A بعد تأخير1µs وإلى3.889A بعد5µs. one-shot مستقل يظل حداً زمنياً أعلى ولا يعوض سرعة comparator في حالة fault. النموذج والتفاصيل في `REV_A_TX_INTERLOCK_SPEC_AR.md`.
 
+### 5.2.3 comparator مرشح A وقياس الشنت
+
+- TI TLV3201 مرشح A: 40ns typ/55ns max propagation، offset max4mV عبر−40..125°C، common-mode إلى200mV خارج القضبان، تغذية2.7–5.5V. دقته أنسب مبدئياً من TLV3501 ذي4.5ns لكن offset max6.5mV.
+- مثال shunt فقط: 50mΩ، عتبة150mV عند3A. offset±4mV وشنت±1% ينتجان trip نظرياً2.89–3.11A قبل أخطاء المرجع والضوضاء. يجب أن يكون الشنت low-inductance/pulse-rated مع Kelvin sense.
+- لا يعتمد TLV3201 أو50mΩ أو3A قبل إثبات source bounce، زمن fault latch/driver، ودرجة حرارة الشنت والـtolerance. التفاصيل في `REV_A_TX_CURRENT_LIMIT_CANDIDATES_AR.md`.
+
 ## 5.3 قفل TX العتادي المستقل — متطلب إلزامي
 
 المواصفة الوظيفية الكاملة في `REV_A_TX_INTERLOCK_SPEC_AR.md`. لا تعتمد BOM القدرة حتى يتوفر: hardware one-shot، comparator سريع لحد التيار، fault latch، repetition guard، Power-Good/UVLO، watchdog مستقل، Gate pulldown، وإيقاف غير متزامن. كل عناصر السماح يجب أن تكون fail-safe OFF عند reset أو فقد التغذية.
