@@ -43,8 +43,8 @@ def load_memory(path: Path) -> dict:
             raise ValueError(f"Task title at index {index} must be a non-empty string.")
         if not isinstance(task["acceptance"], str) or not task["acceptance"].strip():
             raise ValueError(f"Task acceptance at index {index} must be a non-empty string.")
-        if task["status"] not in VALID_STATUSES:
-            raise ValueError(f"Invalid status for task {task['id']}: {task['status']}")
+        if not isinstance(task["status"], str) or task["status"] not in VALID_STATUSES:
+            raise ValueError(f"Invalid status for task {task['id']}: expected one of {sorted(VALID_STATUSES)}.")
         ids.append(task["id"])
     if len(ids) != len(set(ids)):
         raise ValueError("Every task must have a unique id.")
