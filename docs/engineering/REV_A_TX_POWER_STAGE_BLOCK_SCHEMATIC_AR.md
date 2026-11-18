@@ -94,7 +94,7 @@ flowchart TD
 
 
 ## 7. مرشح حارس عرض النبضة
-LTC6993-1 OUT (non-retriggerable, nominal18.88µs with RSET118kΩ) يدخل إلى AND hardware gating مع ARM_OK/POWER_GOOD/WATCHDOG_OK/NOT_FAULT، ثم TC4420 IN. لا يوصل OUT مباشرة بالبوابة. يلزم startup inhibit وhardware repetition guard10ms مستقل؛ التفاصيل في REV_A_TX_ONESHOT_CANDIDATES_AR.md. قيم المؤقت مرشحة وليست معتمدة.
+هذه الفقرة استُبدلت بالبنية الأحدث في القسم8: U3A/U3B LTC6993-1 مزدوجتان لتكوين SHOT_WINDOW، وU4 LTC6993-4 retriggerable cooldown10.4ms. لا تعتمد هذه الكتلة قبل إغلاق fail-safe عند عطل U4/AND gate.
 
 
 ## 8. كتلة التوقيت المقترحة بعد تحسين repetition guard
