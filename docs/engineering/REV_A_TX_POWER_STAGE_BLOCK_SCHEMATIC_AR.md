@@ -69,7 +69,7 @@ flowchart TD
 2. ممنوع TVS أحادي الاتجاه مباشرة عبر الملف بهذه القطبية؛ سينحاز أمامياً عندما يكون Drain منخفضاً أثناء TX ON. استخدم bidirectional TVS بجهد stand-off أعلى من أقصى جهد الملف، أو فرع unidirectional TVS مع blocking diode متسلسل مصمم كما في مرجع TI.
 3. U2 يقيس جهد الشنت الصغير قرب الأرضي. لا توصل أي مدخل comparator إلى SW_DRAIN أو طرف الملف؛ تلك عقدة قدرة عالية الجهد.
 4. TC4420 لا يحتوي Enable مخصصاً. TX_PERMIT يجب أن يفرض LOW على IN، مع pull-down مستقل. comparator fault latch يجب أن يستطيع إسقاط TX_PERMIT دون انتظار البرنامج.
-5. TVS1 يجب أن يثبت VCLAMP الفعلي عند تيار2.5–3A، لا VRWM فقط. يجب حساب جهد Drain = 12V + VCLAMP الفعلي + parasitic overshoot.
+5. TVS1 SMBJ18CA يعطي تقديراً أولياً VCLmax≈22.5–23.0V عند1.2–2.55A من معادلة ST (RD=0.328Ω، VCL=29.2V عند21.5A). لكن المعادلة مبنية على surge 10/1000µs؛ نبضتنا أقصر، لذا يجب التحقق من Figure6/قياس V-I. احسب Drain=12V+VCL الفعلي+parasitic overshoot.
 6. لا تضع TVS أو shunt أو driver على breadboard بأسلاك طويلة؛ حلقة الملف/المفتاح/clamp يجب أن تكون قصيرة جداً، والـsense/logic مفصولة عن مسار القدرة.
 7. لا يُوصل GP4 مباشرة بـU1 IN أو Gate. إشارة RP2040 تمر فقط عبر one-shot وARM/fault logic بعد اكتمالها.
 8. يجب أن يكون Q1 Gate pulldown فعالاً حتى عند غياب VDD أو فصل U1.
