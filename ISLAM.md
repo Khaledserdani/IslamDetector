@@ -1562,3 +1562,10 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - لا نستعمل EAS أو pulsed-current headline بدلاً عن SOA. يجب التحقق من SOA/thermal عند ظروف switching الفعلية و100Hz.
 - 80V سقف مراجعة محافظ مبدئي لمرشح100V وليس مواصفة نهائية؛ إذا تجاوزته القمة، يوقف اعتماد CSD وتراجع clamp/layout أو فئة الجهد.
 - مرجع TC4420: Microchip DS21419D https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf.
+
+
+## 40. تدقيق حدود TC4420 القصوى — 2026-11-18
+- تصحيح مهم: لا نسجل 55ns كحد أقصى؛ هي typical. داتا شيت Microchip DS21419D تعطي tD1/tD2=55ns typ و75ns max عند25°C، وعبر النطاق الحراري الواسع قيم max تصل100ns (typ50/65ns حسب المسار). rise/fall=25ns typ و35ns max عند2500pF عند25°C، وقد تصل max60ns عبر النطاق الحراري.
+- 6A هي peak typical عندVDD18V وليست حد minimum مضموناً. مقاومة الخرج عند10mA وVDD18V: ROH2.1Ω typ/2.8Ω max، ROL1.5Ω typ/2.5Ω max؛ لا تفترض أن هذه مقاومة ديناميكية ثابتة عند تيار البوابة العالي.
+- لذلك يجب استخدام100ns max في worst-case comparator-to-gate timing budget، ثم إضافة latch وRg وMiller/driver turn-off والـlayout. TC4420 يبقى مرشحاً وليس اختياراً معتمداً.
+- المصدر: Microchip TC4420/TC4429 DS21419D https://ww1.microchip.com/downloads/en/DeviceDoc/21419D.pdf.
