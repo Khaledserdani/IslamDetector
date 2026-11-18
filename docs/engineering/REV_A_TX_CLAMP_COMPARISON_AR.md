@@ -47,16 +47,29 @@
 - التيار المحسوب عند نهاية النبضة ≈1.24–2.55A.
 - الطاقة المغناطيسية المحسوبة ≈0.139–0.275mJ/نبضة.
 
-لأن منحنى SMBJ18CA لا يحدد قيمة دقيقة عند تيارنا، نستخدم نطاق clamp تحليلياً من22.1V إلى29.2V فقط كحدود دراسة، وليس كتوقع مضمون:
+### تقدير جهد clamp من معادلة ST — مع قيد شكل النبضة
 
-| Vclamp المفترض عبر الملف | VDS المثالي = 12V + Vclamp | زمن اضمحلال تقريبي ضمن نطاق L/R | طاقة TVS تقريبية/نبضة |
-|---:|---:|---:|---:|
-| 22.1V | 34.1V | 8.7–10.1µs | 0.132–0.258mJ |
-| 29.2V | 41.2V | 6.7–7.7µs | 0.134–0.262mJ |
+تذكر ST في DS1283 Rev.14 (April 2026)، ملاحظة Table 2 رقم4، المعادلة:
+VCLmax = VCL - RD × (IPP - IPP_appli).
 
-- القدرة المتوسطة المحسوبة للـTVS عند100Hz تقارب13–26mW.
-- هذه أرقام من نموذج series-RL وclamp ثابت؛ لا تشمل حث الأسلاك، سعة TVS، تفاوت القطعة، منحنى avalanche الحقيقي، الحرارة، تفاعل clamp مع المصدر أو transient على مدخل RX.
-- VDS الحقيقي يساوي تقريباً جهد المصدر + جهد clamp الفعلي + overshoot الطفيلي؛ لا يُعتمد MOSFET بناءً على الرقم المثالي وحده.
+لـSMBJ18CA:
+- VCL=29.2V عند IPP=21.5A (اختبار 10/1000µs).
+- RD=0.328Ω.
+- عند تيار تطبيق 1.24–2.55A ينتج تقدير VCLmax≈22.55–22.98V.
+- VRWM=18V، VBR=20.0–21.1V عند IBR=1mA.
+
+هذه المعادلة تعطي تقديراً مرتبطاً بشروط موجة الاختبار، بينما نبضة إضمحلال ملفنا أقصر ومتغيرة الشكل (نحو8–10µs). لذلك لا نعتبر 22.55–22.98V ضماناً لنبضتنا؛ نستخدمه كتحسين أولي للنموذج فقط، ثم نتحقق من منحنى RD مقابل مدة النبضة في Figure6 أو نقيس V-I فعلياً.
+
+| الحالة | I نهاية النبضة | VCL المقدّر | VDS المثالي=12V+VCL | زمن الاضمحلال | طاقة clamp/نبضة |
+|---|---:|---:|---:|---:|---:|
+| L=180µH, R=1.3Ω | 1.242A | 22.56V | 34.56V | 9.57µs | 0.132mJ |
+| L=180µH, R=0.9Ω | 1.269A | 22.56V | 34.56V | 9.87µs | 0.140mJ |
+| L=85µH, R=1.3Ω | 2.433A | 22.95V | 34.95V | 8.44µs | 0.231mJ |
+| L=85µH, R=0.9Ω | 2.545A | 22.98V | 34.98V | 8.97µs | 0.258mJ |
+
+- القدرة المتوسطة التحليلية للـTVS عند100Hz تقارب13.2–25.8mW، على افتراض تكرار ثابت وعدم وجود تراكم حراري غير ممثل في النموذج.
+- هذه أرقام series-RL مع clamp ثابت مستنتج من معادلة ST؛ لا تشمل حث الأسلاك، سعة TVS، شكل avalanche الفعلي، التفاوت والحرارة، أو overshoot.
+- VDS الحقيقي يساوي تقريباً جهد المصدر + جهد clamp الفعلي + overshoot الطفيلي؛ لا يُعتمد MOSFET بناءً على VDS المثالي وحده.
 
 ## 5. قرار Rev A الحالي
 
@@ -70,7 +83,7 @@
 ## 6. المراجع
 - TI, *11 Ways to Protect Your Power Path*, Chapter 10, Figure 4 / Equation 7 / p.55: https://www.ti.com/lit/eb/slyy168/slyy168.pdf
 - TI, *SNVAA45 — Inductive-load demagnetization*: https://www.ti.com/document-viewer/lit/html/SNVAA45
-- ST, *SMBJxxA / SMBJxxCA 600W TVS datasheet*: https://www.st.com/resource/en/datasheet/smbj18ca.pdf
+- ST, *SMBJxxA / SMBJxxCA 600W TVS datasheet*, DS1283 Rev.14 April 2026, Table2 note4 and Figure6: https://www.st.com/resource/en/datasheet/smbj18ca.pdf
 - Littelfuse SMBJ series datasheet: https://www.littelfuse.com/~/media/electronics/datasheets/tvs_diodes/littelfuse_tvs_diode_smbj_datasheet.pdf.pdf
 
 **الخلاصة:** TVS ثنائي الاتجاه عبر الملف هو أبسط مرشح أولي، لكن القطعة والجهد النهائيان لا يُعتمدان حتى قياس منحنى clamp والـovershoot والتكرار.
