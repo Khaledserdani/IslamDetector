@@ -57,6 +57,12 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaisesRegex(CheckpointError, "already recorded"):
             record_step(state, "one")
 
+    def test_rejects_non_string_state_without_crashing(self):
+        state = new_checkpoint("agent-003", "run-001")
+        state["state"] = []
+        with self.assertRaisesRegex(CheckpointError, "checkpoint state"):
+            save_checkpoint(self.path, state)
+
     def test_rejects_invalid_state_transition(self):
         state = new_checkpoint("agent-003", "run-001")
         state = set_checkpoint_state(state, "completed")
