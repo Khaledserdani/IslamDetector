@@ -1630,8 +1630,9 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 ### تدقيق GitHub والـCI
 - المستودع: Khaledserdani/IslamDetector؛ فرع العمل: hardware/rev-a-measurement-design.
 - PR #6 مغلق حالياً وغير مدمج وفق GitHub؛ لم أعد فتحه ولم أدمجه. PR #7 هو المراجعة المفتوحة Draft على الفرع الحالي؛ لا تعديل لـmain ولا دمج لأي PR.
-- قبل تحديثات هذا التشغيل، CI run ID 44361831846 على HEAD daf44fb انتهى بـstartup_failure قبل إنشاء أي Job. jobs=[] وartifacts=[]؛ لذلك لا توجد سجلات Job قابلة للفحص ولا UF2/APK من ذلك التشغيل. لا يمكن نسبة العطل إلى كود بعينه من هذه النتيجة.
-- أُجريت تحديثات توثيقية على الفرع فقط لتوحيد DD32 baseline وتصحيح سجل البروتوكول؛ يجب فحص CI الذي ينشأ عن هذه commits قبل اعتبار أي Firmware أو APK مبنياً.
+- CI run ID 44361831846 على HEAD daf44fb انتهى بـstartup_failure قبل إنشاء أي Job. ثم CI run #1793 / ID 44540213259 على commit 79d73ee تكرر فيه startup_failure؛ jobs=[] وartifacts=[] في التشغيلين، ولا توجد سجلات Job أو UF2/APK قابلة للتنزيل. لا يمكن تحديد سبب داخلي من غياب Jobs وحده.
+- فحصت صفحة GitHub Status الرسمية أثناء هذا التشغيل؛ كانت Actions وAPI وGit Operations بحالة Operational، ولم يظهر Incident مسجل بتاريخ 2026-11-19. لذلك لا يوجد دليل عام يثبت انقطاعاً شاملاً، ويبقى فشل بدء هذين التشغيلين غير مشخص.
+- أُجريت تحديثات توثيقية على الفرع فقط لتوحيد DD32 baseline وتصحيح سجل البروتوكول؛ لا يوجد نجاح CI جديد مثبت ولا يُعلن Firmware أو APK مبنياً.
 
 ### تدقيق الملفات الفعلية
 - ESP32-S3: C parser/session وUART FreeRTOS task موجودة وتتعامل مع ACK وDEVICE_INFO وMEASUREMENT. المهمة ترسل HELLO وتعيد GET_INFO؛ لكن Kconfig يبقي الجسر معطلاً وGPIO TX/RX=-1 حتى التحقق من لوحة N16R8.
