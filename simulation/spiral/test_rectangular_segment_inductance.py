@@ -2,7 +2,10 @@ import math
 import unittest
 
 from rectangular_cross_section_gmd import rectangular_cross_section_gmd
-from rectangular_segment_inductance import (\n    rectangular_adjacent_segment_mutual_inductance,\n    rectangular_segment_self_inductance,\n)
+from rectangular_segment_inductance import (
+    rectangular_adjacent_segment_mutual_inductance,
+    rectangular_segment_self_inductance,
+)
 
 
 class RectangularSegmentInductanceTests(unittest.TestCase):
