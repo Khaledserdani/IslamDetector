@@ -451,7 +451,7 @@ public class ScientificCaptureStoreTest {
     }
 
 
-    @Test public void v5DatabaseMigratesToV8WithoutLosingScientificHistory() {
+    @Test public void v5DatabaseMigratesToV9WithoutLosingScientificHistory() {
         owner.close();
         context.deleteDatabase("islam_lab_experiments.db");
         java.io.File dbFile = context.getDatabasePath("islam_lab_experiments.db");
