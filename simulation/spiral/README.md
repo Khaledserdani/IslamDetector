@@ -45,6 +45,8 @@ not a measured field map.
 - `greenhouse_inductance.py`: independent path-specific quasi-static partial-inductance estimator. It merges the 12 collinear spiral connectors, sums finite round-wire self terms and signed finite-length mutual terms averaged over both circular cross-sections.
 - `test_greenhouse_inductance.py`: reference, reciprocity, sign, geometry, quadrature and independent Neumann-kernel tests for the estimator.
 - `run_greenhouse_inductance.py`: evaluates 2x8, 4x16 and 8x32 cross-section quadrature orders and enforces a 0.1% final-step convergence threshold.
+- `run_disk_positive_definite_diagnostics.py`: checks whether known rejected disk fixtures recover when ring polygon resolution increases from 48 to 384.
+- `run_disk_radial_basis_diagnostics.py`: checks Cholesky stability as the number of annular target basis loops changes from 3 to 8.
 
 The disk model is a reduced-order axisymmetric approximation, not 3-D FEM.
 It uses equal-area annuli and currently rejects more than 8 target rings
@@ -77,3 +79,5 @@ necessary before power-stage design.
 The production reference implementation now exists in `greenhouse_inductance.py`. For the nominal 13-turn, 350 mm square, 1.20 mm pitch, 0.60 mm round-wire path it merges the 12 radial connectors into 52 physical straight sections while preserving the 17.4512 m copper path. The reference 4x16 cross-section quadrature gives a diagnostic partial quasi-static inductance of approximately 172.067221 µH: self terms 24.307039 µH, positive mutual terms +84.474332 µH and negative mutual terms -10.594241 µH before the required factor of two. This reproduces the independent numerical audit and is covered by unit tests.
 
 This number is not a measured terminal inductance and is not a final PI-frequency effective inductance. It assumes uniform DC current density, ideal sharp corners, and excludes external leads/return path, skin effect, proximity effect and nearby conductive structures. The Greenhouse runner tests cross-section quadrature convergence; a physical LCR measurement with documented fixture/lead geometry remains required before changing the transient model's provisional Coil default or selecting power components.
+
+The 2026-11-19 diagnostics found that increasing polygon resolution from 48 to 384 did not recover the two known rejected fixtures. Both were positive definite only at 3-5 radial rings and failed at 6-8; the lower ring counts had large condition numbers (about 70,000-438,000). Do not use those lower-order cases as a validated fix. The annular basis/self-mutual consistency needs redesign; no diagonal loading or weakened Cholesky gate is permitted.
