@@ -568,6 +568,8 @@ public final class ScientificCaptureStore {
     public String appendEvaluation(EvaluationInput input) {
         if (input == null || isBlank(input.evaluationId) || !isJsonObject(input.manifestJson)
                 || isBlank(input.candidateId) || isBlank(input.candidateVersion)
+                || ("FIELD_CANDIDATE".equals(input.decision)
+                    && (isBlank(input.championId) || isBlank(input.championVersion)))
                 || !isJsonObject(input.metricsJson) || !oneOf(input.decision, "FIELD_CANDIDATE", "SIMULATION_ONLY", "SHADOW_ONLY")
                 || input.createdEpochMs < 0 || input.items == null || input.items.isEmpty())
             throw new IllegalArgumentException("بيانات التقييم غير صالحة");
@@ -619,6 +621,21 @@ public final class ScientificCaptureStore {
                 }
             }
             if ("FIELD_CANDIDATE".equals(input.decision)) {
+                for (EvaluationItemInput item : input.items) {
+                    if ("test".equals(item.split)) {
+                        if (isBlank(item.actualJson))
+                            throw new IllegalArgumentException("التقييم الميداني يحتاج نتيجة فعلية لكل عينة TEST");
+                        try {
+                            org.json.JSONObject actual = new org.json.JSONObject(item.actualJson);
+                            if (!actual.has("champion_detected") || !actual.has("candidate_detected")
+                                    || !(actual.get("champion_detected") instanceof Boolean)
+                                    || !(actual.get("candidate_detected") instanceof Boolean))
+                                throw new IllegalArgumentException("نتيجة العينة يجب أن تحتوي champion_detected وcandidate_detected");
+                        } catch (org.json.JSONException ex) {
+                            throw new IllegalArgumentException("نتيجة العينة غير صالحة", ex);
+                        }
+                    }
+                }
                 validateEvaluationManifest(db, input, manifestHash);
             }
             ContentValues run = new ContentValues();
