@@ -116,7 +116,7 @@ public class ScientificCaptureStoreTest {
     @Test public void v3SchemaIsCreatedAlongsideLegacyExperimentsTable() {
         SQLiteDatabase db = owner.scientificReadableDatabase();
         String[] tables = {"experiments", "captures", "review_events", "analysis_runs",
-                "evaluation_runs", "evaluation_items", "deployment_events"};
+                "evaluation_runs", "evaluation_items", "evaluation_decisions", "deployment_events"};
         for (String table : tables) {
             try (Cursor c = db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
                     new String[]{table})) {
@@ -211,6 +211,9 @@ public class ScientificCaptureStoreTest {
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "eval-approved", "{\"dataset\":\"sealed-v1\"}", "champion", "1.0",
                 "candidate", "2.0", "{\"accuracy\":0.95}", "PROMOTE", 5000L, items));
+        store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
+                "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
+                "independent held-out field test passed", "review-report-13", 5500L);
         store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
                 "deploy-1", "champion", "1.0", "candidate", "2.0", null,
                 "activate", "independent evaluation passed", "operator", 6000L, "eval-approved"));
@@ -242,6 +245,26 @@ public class ScientificCaptureStoreTest {
         assertNotNull(record);
         assertArrayEquals(payload, record.payload);
         assertEquals(payload.length, record.payload.length);
+    }
+
+
+    @Test public void deploymentCannotActivateBeforeExplicitApprovalEvent() {
+        store.insertCapture(capture("pending-capture", 16, "instrument", new byte[]{6}));
+        store.appendReviewEvent(review("pending-review", "pending-capture",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "excavation_record", "field-case-16"));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "pending-item", "pending-capture", "test", "field-case-16", null, null));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "pending-run", "{}", null, null, "candidate", "4.0",
+                "{\"accuracy\":0.97}", "FIELD_CANDIDATE", 8000L, items));
+        try {
+            store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
+                    "pending-deploy", null, null, "candidate", "4.0", null,
+                    "activate", "attempt without approval", "operator", 9000L, "pending-run"));
+            fail("Expected approval gate");
+        } catch (IllegalArgumentException expected) { }
     }
 
 }
