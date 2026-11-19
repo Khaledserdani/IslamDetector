@@ -348,11 +348,20 @@ public class ScientificCaptureStoreTest {
             assertTrue(c.moveToFirst());
             assertEquals(1, c.getInt(0));
         }
+        store.appendDatasetUsageEvent(new ScientificCaptureStore.DatasetUsageInput(
+                "usage-test-2", "usage-capture", "manifest-a2", manifestHash, "TEST",
+                "model-a", "2", "run-a2", 13500L, "test-actor", "repeat-heldout-test"));
         try {
             store.appendDatasetUsageEvent(new ScientificCaptureStore.DatasetUsageInput(
                     "usage-train-1", "usage-capture", "manifest-b", manifestHash, "TRAIN",
                     "model-b", "1", "run-b", 14000L, "trainer", "training-manifest"));
             fail("Expected TEST-to-TRAIN reuse rejection");
+        } catch (SQLiteException expected) { }
+        try {
+            store.appendDatasetUsageEvent(new ScientificCaptureStore.DatasetUsageInput(
+                    "usage-validation-1", "usage-capture", "manifest-c", manifestHash, "VALIDATION",
+                    "model-c", "1", "run-c", 14500L, "validator", "validation-manifest"));
+            fail("Expected TEST-to-VALIDATION reuse rejection");
         } catch (SQLiteException expected) { }
         try {
             owner.scientificWritableDatabase().execSQL(
