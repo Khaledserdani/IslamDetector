@@ -95,6 +95,17 @@ class ConductiveDiskModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
 
+    def test_non_positive_inductance_matrix_reports_failing_pivot(self):
+        unstable_fixture = ConductiveDisk(
+            radius_m=0.006,
+            thickness_m=0.002,
+            conductivity_s_m=35e6,
+            depth_m=0.04,
+            rings=6,
+        )
+        with self.assertRaisesRegex(ValueError, r"not positive definite at pivot \\d+"):
+            build_disk_model(self.coil, unstable_fixture, ring_segments=96)
+
     def test_invalid_disk_is_rejected(self):
         bad=ConductiveDisk(radius_m=0.0,thickness_m=0.001,
             conductivity_s_m=35e6,depth_m=0.04)
