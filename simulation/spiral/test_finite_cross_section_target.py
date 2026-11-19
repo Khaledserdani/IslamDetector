@@ -1,9 +1,12 @@
+import math
 import unittest
 
 from finite_cross_section_target import (
     AnnularCell,
     build_finite_cross_section_matrix,
+    build_finite_cross_section_target_model,
 )
+from mono_spiral_disk import Coil
 
 
 class FiniteCrossSectionTargetTests(unittest.TestCase):
@@ -47,6 +50,27 @@ class FiniteCrossSectionTargetTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, "must not overlap"):
             build_finite_cross_section_matrix(overlap)
+
+    def test_target_model_derives_resistance_and_coil_coupling(self):
+        conductivity = 35e6
+        cell = [AnnularCell(0.020, 0.022, 0.040, 0.041)]
+        matrix, resistance, mutual, diagnostics = (
+            build_finite_cross_section_target_model(
+                Coil(),
+                cell,
+                conductivity,
+                radial_subdivisions=4,
+                axial_subdivisions=4,
+                ring_segments=24,
+                coil_subdivisions=2,
+            )
+        )
+        area = (0.022 - 0.020) * (0.041 - 0.040)
+        expected = 2.0 * 3.141592653589793 * 0.021 / (conductivity * area)
+        self.assertAlmostEqual(resistance[0], expected, places=14)
+        self.assertEqual(len(matrix), 1)
+        self.assertTrue(math.isfinite(mutual[0]))
+        self.assertEqual(diagnostics["cell_count"], 1)
 
     def test_invalid_cell_bounds_are_rejected(self):
         with self.assertRaises(ValueError):
