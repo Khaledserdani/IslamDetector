@@ -57,6 +57,14 @@ public class ScientificCaptureStoreTest {
         return store.buildDatasetManifest(manifestId, createdAt, assignments).json;
     }
 
+    private ScientificCaptureStore.ReviewInput classifiedReview(String eventId, String captureId,
+            String targetClass, String soilClass, boolean positive) {
+        return new ScientificCaptureStore.ReviewInput(eventId, captureId, "reviewer-test",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "field_truth", "confirmed field observation", "excavation_record",
+                "field-evidence-" + captureId, 2500L, targetClass, soilClass, positive);
+    }
+
     @Test public void identicalPayloadsWithDifferentCaptureIdentityRemainSeparate() {
         byte[] payload = new byte[]{1, 2, 3, 4};
         String hash1 = store.insertCapture(capture("capture-1", 1, "instrument", payload));
@@ -217,9 +225,7 @@ public class ScientificCaptureStoreTest {
 
     @Test public void activationRequiresPromotingEvaluationForSameCandidate() {
         store.insertCapture(capture("eval-capture", 13, "instrument", new byte[]{3}));
-        store.appendReviewEvent(review("eval-review", "eval-capture",
-                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
-                "excavation_record", "field-case-13"));
+        store.appendReviewEvent(classifiedReview("eval-review", "eval-capture", "iron", "dry-soil", true));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
@@ -265,9 +271,7 @@ public class ScientificCaptureStoreTest {
 
     @Test public void deploymentCannotActivateBeforeExplicitApprovalEvent() {
         store.insertCapture(capture("pending-capture", 16, "instrument", new byte[]{6}));
-        store.appendReviewEvent(review("pending-review", "pending-capture",
-                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
-                "excavation_record", "field-case-16"));
+        store.appendReviewEvent(classifiedReview("pending-review", "pending-capture", "copper", "wet-clay", false));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "pending-item", "pending-capture", "test", "field-case-16", null, null));
