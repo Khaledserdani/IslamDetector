@@ -258,6 +258,11 @@ public class ScientificCaptureStoreTest {
                 new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.0, 0.0, 0.0,
                         1.0, 0.0, java.util.Collections.<String>emptyList()), 5100L);
         assertEquals("ELIGIBLE_FOR_REVIEW", persistedGate.status);
+        try {
+            owner.scientificWritableDatabase().execSQL(
+                    "UPDATE evaluation_gate_results SET status='REJECTED' WHERE gate_result_id='gate-approved'");
+            fail("Expected gate result append-only update rejection");
+        } catch (SQLiteException expected) { }
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
