@@ -88,8 +88,16 @@ class SafeToolRunner:
             "truncated": len(output) > MAX_OUTPUT_CHARS,
         }
 
-    def execute_plan(self, proposal: object, expected_task_id: str) -> list[dict]:
+    def execute_plan(
+        self,
+        proposal: object,
+        expected_task_id: str,
+        *,
+        human_approved: bool = False,
+    ) -> list[dict]:
         approved = validate_proposal(proposal, expected_task_id)
+        if human_approved is not True:
+            raise PolicyViolation("explicit human approval is required before tool execution")
         results = []
         for step in approved["steps"]:
             if step["kind"] == "inspect":
