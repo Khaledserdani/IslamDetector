@@ -291,6 +291,24 @@ public final class ScientificCaptureStore {
         SQLiteDatabase db = owner.scientificWritableDatabase();
         db.beginTransaction();
         try {
+            if ("PROMOTE".equals(input.decision)) {
+                for (EvaluationItemInput item : input.items) {
+                    try (Cursor c = db.rawQuery("SELECT source_type FROM captures WHERE capture_id=?",
+                            new String[]{item.captureId})) {
+                        if (!c.moveToFirst()) throw new IllegalArgumentException("التقاط التقييم غير موجود");
+                        if ("synthetic".equals(c.getString(0)))
+                            throw new IllegalArgumentException("لا يجوز ترقية خوارزمية اعتماداً على بيانات اصطناعية");
+                    }
+                    try (Cursor c = db.rawQuery("SELECT new_lifecycle_status,new_ground_truth_status "
+                            + "FROM review_events WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
+                            new String[]{item.captureId})) {
+                        if (!c.moveToFirst()
+                                || !"ELIGIBLE_FOR_TRAINING".equals(c.getString(0))
+                                || !"CONFIRMED".equals(c.getString(1)))
+                            throw new IllegalArgumentException("ترقية الخوارزمية تتطلب بيانات مستقلة مؤكدة ومؤهلة");
+                    }
+                }
+            }
             ContentValues run = new ContentValues();
             run.put("evaluation_run_id", input.evaluationId); run.put("dataset_manifest_json", input.manifestJson);
             run.put("dataset_manifest_sha256", manifestHash);
