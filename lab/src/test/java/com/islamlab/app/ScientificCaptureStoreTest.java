@@ -494,4 +494,23 @@ public class ScientificCaptureStoreTest {
         } catch (IllegalArgumentException expected) { }
     }
 
+
+    @Test public void fieldEvaluationRejectsManifestAssignmentTampering() {
+        store.insertCapture(capture("tamper-capture", 34, "instrument", new byte[]{34, 35}));
+        store.appendReviewEvent(review("tamper-review", "tamper-capture",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "excavation_record", "tamper-evidence"));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "tamper-item", "tamper-capture", "test", "tamper-group", null, null));
+        String manifest = manifestJson("tamper-run", 18000L, items)
+                .replace("\\"split\\":\\"test\\"", "\\"split\\":\\"train\\"");
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "tamper-run", manifest, null, null, "candidate", "6.0",
+                    "{}", "FIELD_CANDIDATE", 18000L, items));
+            fail("Expected manifest assignment mismatch rejection");
+        } catch (IllegalArgumentException expected) { }
+    }
+
 }
