@@ -195,7 +195,7 @@ public class ScientificCaptureStoreTest {
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                     "eval-leak", "{}", null, null, "candidate", "1.0",
-                    "{\"accuracy\":0.9}", "PROMOTE", 4000L, items));
+                    "{\"accuracy\":0.9}", "FIELD_CANDIDATE", 4000L, items));
             fail("Expected group split rejection");
         } catch (IllegalArgumentException expected) { }
     }
@@ -210,7 +210,7 @@ public class ScientificCaptureStoreTest {
                 "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "eval-approved", "{\"dataset\":\"sealed-v1\"}", "champion", "1.0",
-                "candidate", "2.0", "{\"accuracy\":0.95}", "PROMOTE", 5000L, items));
+                "candidate", "2.0", "{\"accuracy\":0.95}", "FIELD_CANDIDATE", 5000L, items));
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
@@ -233,7 +233,7 @@ public class ScientificCaptureStoreTest {
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                     "unconfirmed-run", "{}", null, null, "candidate", "3.0",
-                    "{\"accuracy\":0.99}", "PROMOTE", 7000L, items));
+                    "{\"accuracy\":0.99}", "FIELD_CANDIDATE", 7000L, items));
             fail("Expected unconfirmed capture rejection");
         } catch (IllegalArgumentException expected) { }
     }
