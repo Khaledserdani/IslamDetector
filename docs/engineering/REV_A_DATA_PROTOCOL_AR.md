@@ -209,7 +209,7 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - UART FIFO overflow وbuffer full وparity/frame/break errors تمسح RX/parser وتبطل DEVICE_INFO ثم تطلبه مجدداً.
 - القياسات المقبولة تحفظ raw16 وADC metadata وinfo_generation. عند امتلاء queue تسقط العينة الجديدة مع عداد واضح ولا توقف UART task.
 
-لا يوجد RP2040 command receiver أو ACK/DEVICE_INFO transmitter بعد؛ لذلك لا يوجد اختبار end-to-end أو Wi-Fi/Android endpoint. راجع REV_A_ESP32_UART_INTEGRATION_AR.md.
+**ملاحظة تاريخية قبل تحديث 2026-11-15:** كانت جهة RP2040 لم تنفذ command receiver أو ACK/DEVICE_INFO transmitter بعد. تم لاحقاً تنفيذ استقبال الأوامر وإرسال ACK وDEVICE_INFO=ADC_NONE كما يوثق القسم9؛ وما زال اختبار end-to-end وWi-Fi/Android endpoint غير مكتملين.
 
 
 ## 8.5 تحقق تكامل ESP32 وتحديد فجوة جهة RP2040 — 2026-11-14
@@ -267,6 +267,15 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - لا يُغيّر CI الناجح هذه الحدود: build host/compile ليس إثبات baud أو framing أو queue behavior على العتاد، ولا يثبت Wi-Fi أو Android endpoint.
 - الخطوة التالية بعد loopback: تركيب ADC والمرجع والحماية المقاسة، ثم MEASUREMENT producer مع sequence/timestamp/profile/flags وraw16، واختبار round-trip عبر C/Python قبل تمريرها إلى Android.
 
+
+## 9.5 مراجعة الحالة الفعلية — 2026-11-19
+
+- جهة RP2040 تنفذ command receiver على UART0، وترد ACK على HELLO/GET_INFO/STOP/SET_PROFILE/START/SELF_TEST. START مرفوض بـTX_NOT_ARMED، وGET_INFO يرسل DEVICE_INFO=ADC_NONE؛ هذا سلوك firmware برمجي، وليس UART loopback على لوحة فعلية.
+- جهة ESP32-S3 تحتوي C parser/session ومهمة UART تستقبل ACK وDEVICE_INFO وMEASUREMENT، وتبطل metadata وتطلب GET_INFO مجدداً بعد أخطاء stream. الجسر معطل افتراضياً وGPIO TX/RX غير معينين حتى مطابقة لوحة N16R8.
+- PIO ADS8861 موجود في `ads8861_capture.pio` و`ads8861_capture.c`، مع GP8/GP9/GP10 وDMA وثماني نوافذ. لكنه معطل افتراضياً عبر `ENABLE_ADS8861_CAPTURE=0`؛ لا توجد لوحة ADC موصولة أو قياسات فعلية.
+- لا يوجد حالياً MEASUREMENT producer يرسل sweep عبر UART؛ عند تفعيل المسار الاختباري، عينات RAW16 تُطبع عبر USB debug فقط. لا توجد سلسلة ADC→UART→ESP32→Wi-Fi→Android.
+- يجب أن تبقى DEVICE_INFO=ADC_NONE حتى تركيب ADC فعلياً والتحقق من تغذيته ومرجعه ونمط دخله. لا تعلن ADS8861 أو VREF مرشحاً على أنه حقيقة مركبة.
+- لا تخلط DD32 baseline مع نماذج Mono Spiral القديمة؛ لا تُستخدم قيم L/R/clamp المستخرجة من نموذج Mono Spiral لحسابات DD32.
 
 ## 9.4 نقطة تدقيق التكامل — 2026-11-18
 
