@@ -16,7 +16,7 @@ CELLS = [
     AnnularCell(0.010, 0.011, 0.040, 0.041),
     AnnularCell(0.011, 0.012, 0.040, 0.041),
 ]
-RESOLUTIONS = (2, 4, 8, 16, 32, 64)
+RESOLUTIONS = (2, 4, 8, 16, 32, 64, 128)
 
 
 def relative_matrix_error(matrix, reference) -> float:
