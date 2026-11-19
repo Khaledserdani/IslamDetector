@@ -274,9 +274,9 @@ public class ScientificCaptureStoreTest {
         store.appendReviewEvent(classifiedReview("pending-review", "pending-capture", "copper", "wet-clay", false));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "pending-item", "pending-capture", "test", "field-case-16", null, null));
+                "pending-item", "pending-capture", "test", "field-case-16", null, "{\\"champion_detected\\":false,\\"candidate_detected\\":true}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                "pending-run", manifestJson("pending-run", 8000L, items), null, null, "candidate", "4.0",
+                "pending-run", manifestJson("pending-run", 8000L, items), "champion", "1.0", "candidate", "4.0",
                 "{\"accuracy\":0.97}", "FIELD_CANDIDATE", 8000L, items));
         try {
             store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
