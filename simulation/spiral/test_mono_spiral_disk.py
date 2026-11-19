@@ -103,7 +103,7 @@ class ConductiveDiskModelTests(unittest.TestCase):
             depth_m=0.04,
             rings=6,
         )
-        with self.assertRaisesRegex(ValueError, r"not positive definite at pivot \\d+"):
+        with self.assertRaisesRegex(ValueError, r"not positive definite at pivot \d+"):
             build_disk_model(self.coil, unstable_fixture, ring_segments=96)
 
     def test_invalid_disk_is_rejected(self):
