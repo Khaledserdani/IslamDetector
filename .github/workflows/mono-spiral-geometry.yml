@@ -19,13 +19,16 @@ permissions:
 jobs:
   geometry-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Fetch source using runner git (no external actions)
+        env:
+          SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+          SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --no-tags --branch "$SOURCE_REF" "https://github.com/$SOURCE_REPOSITORY.git" source
+          python3 --version
       - name: Run geometry unit tests
-        working-directory: simulation/spiral
-        run: python -m unittest -v
+        working-directory: source/simulation/spiral
+        run: python3 -m unittest -v
