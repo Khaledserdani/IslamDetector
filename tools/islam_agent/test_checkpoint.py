@@ -83,6 +83,18 @@ class CheckpointTests(unittest.TestCase):
                 raise RuntimeError("test failure")
         self.assertFalse(self.lock.exists())
 
+    def test_rejects_unsupported_last_result_fields(self):
+        state = new_checkpoint("agent-003", "run-001")
+        state["last_result"] = {"shell": "must not be stored"}
+        with self.assertRaisesRegex(CheckpointError, "last_result"):
+            save_checkpoint(self.path, state)
+
+    def test_rejects_oversized_checkpoint_file(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text(" " * 256001, encoding="utf-8")
+        with self.assertRaisesRegex(CheckpointError, "size limit"):
+            load_checkpoint(self.path)
+
     def test_rejects_checkpoint_extra_fields(self):
         state = new_checkpoint("agent-003", "run-001")
         state["command"] = "arbitrary"
