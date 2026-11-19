@@ -72,8 +72,7 @@ public final class EvaluationObservationLoader {
             if ("test".equals(entry.optString("split"))) testManifestCount++;
         }
 
-        try (Cursor rows = db.rawQuery("SELECT i.capture_id,i.group_key,i.actual_result_json,"
-                + "c.source_type,c.transport_status,c.payload_blob,c.payload_sha256,c.payload_crc32,"
+        try (Cursor rows = db.rawQuery("SELECT i.capture_id,i.group_key,c.source_type,c.transport_status,c.payload_blob,c.payload_sha256,c.payload_crc32,"
                 + "c.payload_length_bytes,rv.new_lifecycle_status,rv.new_ground_truth_status,"
                 + "rv.target_class,rv.soil_class,rv.ground_truth_positive "
                 + "FROM evaluation_items i JOIN captures c ON c.capture_id=i.capture_id "
@@ -87,27 +86,27 @@ public final class EvaluationObservationLoader {
                 if (entry == null || !"test".equals(entry.optString("split"))
                         || !groupKey.equals(entry.optString("group_key")))
                     throw new IllegalStateException("عناصر TEST لا تطابق بيان مجموعة البيانات");
-                byte[] payload=rows.getBlob(5);
-                if (!"instrument".equals(rows.getString(3)) && !"islam_detector".equals(rows.getString(3)))
+                byte[] payload=rows.getBlob(4);
+                if (!"instrument".equals(rows.getString(2)) && !"islam_detector".equals(rows.getString(2)))
                     throw new IllegalArgumentException("بيانات TEST ليست التقاطاً من جهاز قياس موثق");
-                if (!"complete".equals(rows.getString(4)) || payload == null
-                        || payload.length != rows.getInt(8)
-                        || !rows.getString(6).equals(sha256(payload))
-                        || !rows.getString(7).equals(crc32(payload)))
+                if (!"complete".equals(rows.getString(3)) || payload == null
+                        || payload.length != rows.getInt(7)
+                        || !rows.getString(5).equals(sha256(payload))
+                        || !rows.getString(6).equals(crc32(payload)))
                     throw new IllegalStateException("حمولة TEST ناقصة أو لا تطابق بصمتها");
-                if (!rows.getString(6).equals(entry.optString("payload_sha256"))
-                        || !rows.getString(3).equals(entry.optString("source_type"))
-                        || !rows.getString(4).equals(entry.optString("transport_status")))
+                if (!rows.getString(5).equals(entry.optString("payload_sha256"))
+                        || !rows.getString(2).equals(entry.optString("source_type"))
+                        || !rows.getString(3).equals(entry.optString("transport_status")))
                     throw new IllegalStateException("بيان TEST لا يطابق الالتقاط الأصلي");
-                if (!"ELIGIBLE_FOR_TRAINING".equals(rows.getString(9))
-                        || !"CONFIRMED".equals(rows.getString(10))
-                        || blank(rows.getString(11)) || blank(rows.getString(12))
-                        || rows.isNull(13))
+                if (!"ELIGIBLE_FOR_TRAINING".equals(rows.getString(8))
+                        || !"CONFIRMED".equals(rows.getString(9))
+                        || blank(rows.getString(10)) || blank(rows.getString(11))
+                        || rows.isNull(12))
                     throw new IllegalArgumentException("الحقيقة الأرضية أو فئة الهدف/التربة غير مؤكدة");
-                if (!rows.getString(11).equals(entry.optString("target_class"))
-                        || !rows.getString(12).equals(entry.optString("soil_class"))
+                if (!rows.getString(10).equals(entry.optString("target_class"))
+                        || !rows.getString(11).equals(entry.optString("soil_class"))
                         || entry.isNull("ground_truth_positive")
-                        || entry.getBoolean("ground_truth_positive") != (rows.getInt(13)==1))
+                        || entry.getBoolean("ground_truth_positive") != (rows.getInt(12)==1))
                     throw new IllegalStateException("بيان الحقيقة الأرضية لا يطابق آخر مراجعة");
 
                 try (Cursor usage = db.rawQuery("SELECT COUNT(*) FROM dataset_usage_events "
@@ -118,18 +117,15 @@ public final class EvaluationObservationLoader {
                         throw new IllegalStateException("سجل استخدام TEST غير موجود أو غير فريد");
                 }
 
-                JSONObject actual;
-                try { actual = new JSONObject(rows.getString(2)); }
-                catch (JSONException ex) { throw new IllegalArgumentException("نتيجة كشف TEST غير صالحة", ex); }
-                if (!(actual.opt("champion_detected") instanceof Boolean)
-                        || !(actual.opt("candidate_detected") instanceof Boolean))
-                    throw new IllegalArgumentException("نتيجة TEST لا تحتوي قراري الكشف للنسختين");
+                boolean championDetected = ScientificCaptureStore.requireCompletedDetectionRun(
+                        db, captureId, championId, championVersion, rows.getString(5));
+                boolean candidateDetected = ScientificCaptureStore.requireCompletedDetectionRun(
+                        db, captureId, candidateId, candidateVersion, rows.getString(5));
                 if (!groups.add(groupKey))
                     throw new IllegalArgumentException("تكررت المجموعة المستقلة في TEST");
                 observations.add(new EvaluationPolicyEvaluator.Observation(
-                        "test", groupKey, rows.getString(11), rows.getString(12),
-                        rows.getInt(13)==1, actual.getBoolean("champion_detected"),
-                        actual.getBoolean("candidate_detected")));
+                        "test", groupKey, rows.getString(10), rows.getString(11),
+                        rows.getInt(12)==1, championDetected, candidateDetected));
             }
         } catch (JSONException ex) {
             throw new IllegalStateException("تعذر التحقق من بيانات الحقيقة الأرضية", ex);
