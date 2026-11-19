@@ -107,6 +107,8 @@ public class EvaluationPolicyEvaluatorTest {
         assertEquals(0, r.strata.get("iron|dry").candidate.negatives);
         assertEquals(0, r.strata.get("no-target|dry").candidate.positives);
         assertEquals(2, r.strata.get("no-target|dry").candidate.negatives);
+        assertTrue(Double.isNaN(r.strata.get("iron|dry").candidate.falsePositiveRate));
+        assertTrue(Double.isNaN(r.strata.get("no-target|dry").candidate.recall));
     }
 
 }
