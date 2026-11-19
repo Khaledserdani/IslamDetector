@@ -413,6 +413,16 @@ public class ScientificCaptureStoreTest {
         SQLiteDatabase oldDb = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
         oldDb.execSQL("CREATE TABLE captures (capture_id TEXT PRIMARY KEY NOT NULL)");
         oldDb.execSQL("INSERT INTO captures(capture_id) VALUES('v5-preserved-capture')");
+        oldDb.execSQL("CREATE TABLE evaluation_runs (evaluation_run_id TEXT PRIMARY KEY NOT NULL, "
+                + "dataset_manifest_sha256 TEXT NOT NULL, candidate_algorithm_id TEXT NOT NULL, "
+                + "candidate_algorithm_version TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL)");
+        oldDb.execSQL("CREATE TABLE evaluation_items (evaluation_item_id TEXT PRIMARY KEY NOT NULL, "
+                + "evaluation_run_id TEXT NOT NULL, capture_id TEXT NOT NULL, split TEXT NOT NULL)");
+        oldDb.execSQL("INSERT INTO evaluation_runs VALUES('v5-run', "
+                + "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', "
+                + "'legacy-model', '0.9', 14999)");
+        oldDb.execSQL("INSERT INTO evaluation_items VALUES('v5-item','v5-run',"
+                + "'v5-preserved-capture','test')");
         oldDb.setVersion(5);
         oldDb.close();
 
@@ -427,6 +437,15 @@ public class ScientificCaptureStoreTest {
                 "SELECT COUNT(*) FROM captures WHERE capture_id='v5-preserved-capture'", null)) {
             assertTrue(c.moveToFirst());
             assertEquals(1, c.getInt(0));
+        }
+        try (Cursor c = migrated.rawQuery(
+                "SELECT usage_role,consumer_id,consumer_version,actor_id FROM dataset_usage_events "
+                        + "WHERE event_id='legacy-v6:v5-item'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals("TEST", c.getString(0));
+            assertEquals("legacy-model", c.getString(1));
+            assertEquals("0.9", c.getString(2));
+            assertEquals("migration_v6", c.getString(3));
         }
         assertEquals(6, migrated.getVersion());
     }
