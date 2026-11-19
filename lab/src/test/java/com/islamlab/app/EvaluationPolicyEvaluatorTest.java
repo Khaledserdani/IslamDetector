@@ -3,12 +3,14 @@ package com.islamlab.app;
 import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
+import java.util.Arrays;
 import static org.junit.Assert.*;
 
 public class EvaluationPolicyEvaluatorTest {
-    private EvaluationPolicyEvaluator.Policy policy(boolean perStratum) {
+    private EvaluationPolicyEvaluator.Policy policy(List<String> requiredStrata) {
         return new EvaluationPolicyEvaluator.Policy(
-                4, 2, 2, 0.05, 0.05, 0.05, 0.80, 0.20, perStratum);
+                4, 2, 2, 0.05, 0.05, 0.05, 0.80, 0.20, requiredStrata);
     }
 
     private List<EvaluationPolicyEvaluator.Observation> balanced() {
@@ -28,7 +30,7 @@ public class EvaluationPolicyEvaluatorTest {
 
     @Test public void identicalCandidatePassesOnlyToHumanReview() {
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(balanced(), policy(false));
+                EvaluationPolicyEvaluator.evaluate(balanced(), policy(Collections.<String>emptyList()));
         assertEquals("ELIGIBLE_FOR_REVIEW", r.status);
         assertEquals(1.0, r.candidate.accuracy, 0.0);
         assertEquals(0.0, r.candidate.falsePositiveRate, 0.0);
@@ -70,7 +72,7 @@ public class EvaluationPolicyEvaluatorTest {
         List<EvaluationPolicyEvaluator.Observation> rows = balanced();
         rows.add(row("g5", true, true, true, "copper", "wet-clay"));
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(true));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Arrays.asList("iron|dry", "copper|wet-clay")));
         assertEquals("INSUFFICIENT_EVIDENCE", r.status);
         assertTrue(r.reason.contains("copper"));
     }
@@ -87,6 +89,6 @@ public class EvaluationPolicyEvaluatorTest {
     @Test(expected = IllegalArgumentException.class)
     public void policyRejectsInvalidThreshold() {
         new EvaluationPolicyEvaluator.Policy(4, 2, 2,
-                1.2, 0.05, 0.05, 0.8, 0.2, false);
+                1.2, 0.05, 0.05, 0.8, 0.2, Collections.<String>emptyList());
     }
 }
