@@ -1,5 +1,7 @@
+import math
 import unittest
 
+from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 from mono_spiral_geometry import MonoSpiral
 from run_disk_convergence import matrix_condition_inf
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
@@ -94,6 +96,22 @@ class ConductiveDiskModelTests(unittest.TestCase):
     def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
+
+    def test_ring_self_term_uses_rectangular_section_gmd(self):
+        disk = ConductiveDisk(
+            radius_m=0.012,
+            thickness_m=0.001,
+            conductivity_s_m=35e6,
+            depth_m=0.04,
+            rings=4,
+        )
+        matrix, _, radii = build_disk_model(self.coil, disk, ring_segments=48)
+        edges = [disk.radius_m * math.sqrt(i / disk.rings)
+                 for i in range(disk.rings + 1)]
+        width = edges[1] - edges[0]
+        section_gmd = rectangular_cross_section_gmd(width, disk.thickness_m, order=96)
+        expected = MU0 * radii[0] * (math.log(8 * radii[0] / section_gmd) - 2.0)
+        self.assertAlmostEqual(matrix[1][1], expected, places=18)
 
     def test_non_positive_inductance_matrix_reports_failing_pivot(self):
         unstable_fixture = ConductiveDisk(
