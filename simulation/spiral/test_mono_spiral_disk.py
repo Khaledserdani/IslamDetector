@@ -94,6 +94,20 @@ class ConductiveDiskModelTests(unittest.TestCase):
         expected=MU0*3.141592653589793*a*a*b*b/(2*z**3)
         self.assertLess(abs(actual-expected)/expected,0.002)
 
+    def test_agm_mutual_matches_independent_simpson_quadrature(self):
+        cases = (
+            (0.010, 0.012, 0.001),
+            (0.010, 0.020, 0.030),
+            (0.010, 0.015, 1.500),
+        )
+        for radius_a, radius_b, gap in cases:
+            with self.subTest(radius_a=radius_a, radius_b=radius_b, gap=gap):
+                fast = _coaxial_loop_mutual(radius_a, radius_b, gap)
+                reference = _coaxial_loop_mutual(
+                    radius_a, radius_b, gap, integration_steps=4096
+                )
+                self.assertLess(abs(fast - reference) / reference, 2.0e-10)
+
     def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
