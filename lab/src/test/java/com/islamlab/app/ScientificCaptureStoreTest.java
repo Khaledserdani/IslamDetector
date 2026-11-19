@@ -224,7 +224,7 @@ public class ScientificCaptureStoreTest {
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                "eval-approved", "{\"dataset\":\"sealed-v1\"}", "champion", "1.0",
+                "eval-approved", manifestJson("eval-approved", 5000L, items), "champion", "1.0",
                 "candidate", "2.0", "{\"accuracy\":0.95}", "FIELD_CANDIDATE", 5000L, items));
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
