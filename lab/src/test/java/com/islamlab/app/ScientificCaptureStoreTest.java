@@ -178,7 +178,7 @@ public class ScientificCaptureStoreTest {
         assertEquals("سجل إصدار 2", restored.name);
         assertEquals(44L, restored.createdEpochMs);
         for (String table : new String[]{"captures", "review_events", "analysis_runs",
-                "evaluation_runs", "evaluation_items", "evaluation_decisions", "deployment_events", "dataset_usage_events"}) {
+                "evaluation_runs", "evaluation_items", "evaluation_decisions", "evaluation_gate_results", "deployment_events", "dataset_usage_events"}) {
             try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
                     new String[]{table})) {
