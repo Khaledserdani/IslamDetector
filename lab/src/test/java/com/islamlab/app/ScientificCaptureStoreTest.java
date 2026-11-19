@@ -436,7 +436,7 @@ public class ScientificCaptureStoreTest {
     }
 
 
-    @Test public void v5DatabaseMigratesToV6WithoutLosingCaptures() {
+    @Test public void v5DatabaseMigratesToV8WithoutLosingScientificHistory() {
         owner.close();
         context.deleteDatabase("islam_lab_experiments.db");
         java.io.File dbFile = context.getDatabasePath("islam_lab_experiments.db");
@@ -478,7 +478,12 @@ public class ScientificCaptureStoreTest {
             assertEquals("0.9", c.getString(2));
             assertEquals("migration_v6", c.getString(3));
         }
-        assertEquals(7, migrated.getVersion());
+        try (Cursor c = migrated.rawQuery(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='evaluation_gate_results'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
+        }
+        assertEquals(8, migrated.getVersion());
     }
 
 
