@@ -410,6 +410,27 @@ public final class ScientificCaptureStore {
     }
 
 
+
+    /** Requires a complete detector result bound to the exact raw capture digest. */
+    static boolean requireCompletedDetectionRun(SQLiteDatabase db, String captureId,
+            String algorithmId, String algorithmVersion, String captureDigest) {
+        try (Cursor c = db.rawQuery("SELECT input_payload_sha256,result_json FROM analysis_runs "
+                + "WHERE capture_id=? AND algorithm_id=? AND algorithm_version=? AND run_status='complete' "
+                + "ORDER BY started_epoch_ms DESC,rowid DESC LIMIT 1",
+                new String[]{captureId, algorithmId, algorithmVersion})) {
+            if (!c.moveToFirst() || !captureDigest.equals(c.getString(0)) || c.isNull(1))
+                throw new IllegalArgumentException("نتيجة التحليل المكتملة غير موجودة أو لا تطابق الالتقاط");
+            try {
+                org.json.JSONObject result = new org.json.JSONObject(c.getString(1));
+                if (!(result.opt("detected") instanceof Boolean))
+                    throw new IllegalArgumentException("خرج كاشف المعادن يجب أن يحتوي detected منطقية");
+                return result.getBoolean("detected");
+            } catch (org.json.JSONException ex) {
+                throw new IllegalArgumentException("خرج التحليل غير صالح", ex);
+            }
+        }
+    }
+
     /** A field-candidate evaluation must consume the exact sealed manifest it records. */
     private static void validateEvaluationManifest(SQLiteDatabase db, EvaluationInput input,
             String expectedManifestHash) {
@@ -619,6 +640,7 @@ public final class ScientificCaptureStore {
         try {
             if ("FIELD_CANDIDATE".equals(input.decision)) {
                 for (EvaluationItemInput item : input.items) {
+                    String captureDigest;
                     try (Cursor c = db.rawQuery("SELECT source_type,transport_status,payload_blob,"
                             + "payload_sha256,payload_crc32,payload_length_bytes FROM captures WHERE capture_id=?",
                             new String[]{item.captureId})) {
@@ -626,9 +648,10 @@ public final class ScientificCaptureStore {
                         if ("synthetic".equals(c.getString(0)))
                             throw new IllegalArgumentException("لا يجوز ترقية خوارزمية اعتماداً على بيانات اصطناعية");
                         byte[] raw = c.getBlob(2);
+                        captureDigest = c.getString(3);
                         if (!"complete".equals(c.getString(1)) || raw == null
                                 || raw.length != c.getInt(5)
-                                || !c.getString(3).equals(sha256(raw))
+                                || !captureDigest.equals(sha256(raw))
                                 || !c.getString(4).equals(crc32(raw)))
                             throw new IllegalArgumentException("بيانات التقييم لا تقبل حمولة ناقصة أو تالفة");
                     }
@@ -640,24 +663,15 @@ public final class ScientificCaptureStore {
                                 || !"CONFIRMED".equals(c.getString(1)))
                             throw new IllegalArgumentException("ترقية الخوارزمية تتطلب بيانات مستقلة مؤكدة ومؤهلة");
                     }
+                    if ("test".equals(item.split)) {
+                        requireCompletedDetectionRun(db, item.captureId, input.championId,
+                                input.championVersion, captureDigest);
+                        requireCompletedDetectionRun(db, item.captureId, input.candidateId,
+                                input.candidateVersion, captureDigest);
+                    }
                 }
             }
             if ("FIELD_CANDIDATE".equals(input.decision)) {
-                for (EvaluationItemInput item : input.items) {
-                    if ("test".equals(item.split)) {
-                        if (isBlank(item.actualJson))
-                            throw new IllegalArgumentException("التقييم الميداني يحتاج نتيجة فعلية لكل عينة TEST");
-                        try {
-                            org.json.JSONObject actual = new org.json.JSONObject(item.actualJson);
-                            if (!actual.has("champion_detected") || !actual.has("candidate_detected")
-                                    || !(actual.get("champion_detected") instanceof Boolean)
-                                    || !(actual.get("candidate_detected") instanceof Boolean))
-                                throw new IllegalArgumentException("نتيجة العينة يجب أن تحتوي champion_detected وcandidate_detected");
-                        } catch (org.json.JSONException ex) {
-                            throw new IllegalArgumentException("نتيجة العينة غير صالحة", ex);
-                        }
-                    }
-                }
                 validateEvaluationManifest(db, input, manifestHash);
             }
             ContentValues run = new ContentValues();
