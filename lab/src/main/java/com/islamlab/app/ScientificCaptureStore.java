@@ -325,11 +325,18 @@ public final class ScientificCaptureStore {
         try {
             if ("FIELD_CANDIDATE".equals(input.decision)) {
                 for (EvaluationItemInput item : input.items) {
-                    try (Cursor c = db.rawQuery("SELECT source_type FROM captures WHERE capture_id=?",
+                    try (Cursor c = db.rawQuery("SELECT source_type,transport_status,payload_blob,"
+                            + "payload_sha256,payload_crc32,payload_length_bytes FROM captures WHERE capture_id=?",
                             new String[]{item.captureId})) {
                         if (!c.moveToFirst()) throw new IllegalArgumentException("التقاط التقييم غير موجود");
                         if ("synthetic".equals(c.getString(0)))
                             throw new IllegalArgumentException("لا يجوز ترقية خوارزمية اعتماداً على بيانات اصطناعية");
+                        byte[] raw = c.getBlob(2);
+                        if (!"complete".equals(c.getString(1)) || raw == null
+                                || raw.length != c.getInt(5)
+                                || !c.getString(3).equals(sha256(raw))
+                                || !c.getString(4).equals(crc32(raw)))
+                            throw new IllegalArgumentException("بيانات التقييم لا تقبل حمولة ناقصة أو تالفة");
                     }
                     try (Cursor c = db.rawQuery("SELECT new_lifecycle_status,new_ground_truth_status "
                             + "FROM review_events WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
