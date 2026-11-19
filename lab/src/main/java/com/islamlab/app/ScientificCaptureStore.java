@@ -162,6 +162,211 @@ public final class ScientificCaptureStore {
         }
     }
 
+
+    public static final class AnalysisInput {
+        public final String runId, captureId, payloadSha256, algorithmId, algorithmVersion, modelSha256;
+        public final String parametersJson, resultJson, runStatus;
+        public final long startedEpochMs;
+        public final Long completedEpochMs;
+        public AnalysisInput(String runId, String captureId, String payloadSha256,
+                String algorithmId, String algorithmVersion, String modelSha256,
+                String parametersJson, String resultJson, long startedEpochMs,
+                Long completedEpochMs, String runStatus) {
+            this.runId=runId; this.captureId=captureId; this.payloadSha256=payloadSha256;
+            this.algorithmId=algorithmId; this.algorithmVersion=algorithmVersion;
+            this.modelSha256=modelSha256; this.parametersJson=parametersJson;
+            this.resultJson=resultJson; this.startedEpochMs=startedEpochMs;
+            this.completedEpochMs=completedEpochMs; this.runStatus=runStatus;
+        }
+    }
+
+    public static final class EvaluationItemInput {
+        public final String itemId, captureId, split, groupKey, expectedJson, actualJson;
+        public EvaluationItemInput(String itemId, String captureId, String split, String groupKey,
+                                   String expectedJson, String actualJson) {
+            this.itemId=itemId; this.captureId=captureId; this.split=split; this.groupKey=groupKey;
+            this.expectedJson=expectedJson; this.actualJson=actualJson;
+        }
+    }
+
+    public static final class EvaluationInput {
+        public final String evaluationId, manifestJson, championId, championVersion;
+        public final String candidateId, candidateVersion, metricsJson, decision;
+        public final long createdEpochMs;
+        public final java.util.List<EvaluationItemInput> items;
+        public EvaluationInput(String evaluationId, String manifestJson, String championId,
+                String championVersion, String candidateId, String candidateVersion,
+                String metricsJson, String decision, long createdEpochMs,
+                java.util.List<EvaluationItemInput> items) {
+            this.evaluationId=evaluationId; this.manifestJson=manifestJson;
+            this.championId=championId; this.championVersion=championVersion;
+            this.candidateId=candidateId; this.candidateVersion=candidateVersion;
+            this.metricsJson=metricsJson; this.decision=decision;
+            this.createdEpochMs=createdEpochMs; this.items=items;
+        }
+    }
+
+    public static final class DeploymentInput {
+        public final String eventId, previousAlgorithmId, previousAlgorithmVersion;
+        public final String newAlgorithmId, newAlgorithmVersion, modelSha256;
+        public final String action, reason, actorId, evaluationRunId;
+        public final long eventTimeEpochMs;
+        public DeploymentInput(String eventId, String previousAlgorithmId,
+                String previousAlgorithmVersion, String newAlgorithmId, String newAlgorithmVersion,
+                String modelSha256, String action, String reason, String actorId,
+                long eventTimeEpochMs, String evaluationRunId) {
+            this.eventId=eventId; this.previousAlgorithmId=previousAlgorithmId;
+            this.previousAlgorithmVersion=previousAlgorithmVersion;
+            this.newAlgorithmId=newAlgorithmId; this.newAlgorithmVersion=newAlgorithmVersion;
+            this.modelSha256=modelSha256; this.action=action; this.reason=reason;
+            this.actorId=actorId; this.eventTimeEpochMs=eventTimeEpochMs;
+            this.evaluationRunId=evaluationRunId;
+        }
+    }
+
+    /** Persists an analysis only when it names the exact immutable capture digest. */
+    public void appendAnalysisRun(AnalysisInput input) {
+        if (input == null || isBlank(input.runId) || isBlank(input.captureId)
+                || !isSha256(input.payloadSha256) || isBlank(input.algorithmId)
+                || isBlank(input.algorithmVersion) || !isJsonObject(input.parametersJson)
+                || (input.resultJson != null && !isJsonObject(input.resultJson))
+                || input.startedEpochMs < 0 || !oneOf(input.runStatus, "complete", "failed", "cancelled"))
+            throw new IllegalArgumentException("بيانات تشغيل التحليل غير صالحة");
+        if (input.modelSha256 != null && !isSha256(input.modelSha256))
+            throw new IllegalArgumentException("بصمة النموذج غير صالحة");
+        if ("complete".equals(input.runStatus) && input.completedEpochMs == null)
+            throw new IllegalArgumentException("التحليل المكتمل يحتاج وقت انتهاء");
+        if (input.completedEpochMs != null && input.completedEpochMs < input.startedEpochMs)
+            throw new IllegalArgumentException("وقت انتهاء التحليل يسبق بدايته");
+
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            try (Cursor c = db.rawQuery("SELECT payload_sha256 FROM captures WHERE capture_id=?",
+                    new String[]{input.captureId})) {
+                if (!c.moveToFirst()) throw new IllegalArgumentException("الالتقاط غير موجود");
+                if (!input.payloadSha256.equals(c.getString(0)))
+                    throw new IllegalArgumentException("بصمة التحليل لا تطابق بصمة الالتقاط الخام");
+            }
+            ContentValues v = new ContentValues();
+            v.put("analysis_run_id", input.runId); v.put("capture_id", input.captureId);
+            v.put("input_payload_sha256", input.payloadSha256);
+            v.put("algorithm_id", input.algorithmId); v.put("algorithm_version", input.algorithmVersion);
+            putNullable(v, "model_sha256", input.modelSha256);
+            v.put("parameters_json", input.parametersJson); putNullable(v, "result_json", input.resultJson);
+            v.put("started_epoch_ms", input.startedEpochMs);
+            if (input.completedEpochMs != null) v.put("completed_epoch_ms", input.completedEpochMs);
+            v.put("run_status", input.runStatus);
+            db.insertOrThrow("analysis_runs", null, v);
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+
+    /** Stores an evaluation and all its split assignments atomically. */
+    public String appendEvaluation(EvaluationInput input) {
+        if (input == null || isBlank(input.evaluationId) || !isJsonObject(input.manifestJson)
+                || isBlank(input.candidateId) || isBlank(input.candidateVersion)
+                || !isJsonObject(input.metricsJson) || isBlank(input.decision)
+                || input.createdEpochMs < 0 || input.items == null || input.items.isEmpty())
+            throw new IllegalArgumentException("بيانات التقييم غير صالحة");
+        final String manifestHash;
+        try { manifestHash = sha256(input.manifestJson.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+        catch (Exception ex) { throw new IllegalStateException("تعذر حساب بصمة بيان مجموعة البيانات", ex); }
+
+        java.util.HashMap<String, String> groupSplits = new java.util.HashMap<>();
+        java.util.HashSet<String> captureIds = new java.util.HashSet<>();
+        for (EvaluationItemInput item : input.items) {
+            if (item == null || isBlank(item.itemId) || isBlank(item.captureId) || isBlank(item.groupKey)
+                    || !oneOf(item.split, "train", "validation", "test", "shadow")
+                    || (item.expectedJson != null && !isJsonObject(item.expectedJson))
+                    || (item.actualJson != null && !isJsonObject(item.actualJson)))
+                throw new IllegalArgumentException("عنصر تقييم غير صالح");
+            if (!captureIds.add(item.captureId))
+                throw new IllegalArgumentException("لا يجوز تكرار الالتقاط داخل التقييم نفسه");
+            String oldSplit = groupSplits.putIfAbsent(item.groupKey, item.split);
+            if (oldSplit != null && !oldSplit.equals(item.split))
+                throw new IllegalArgumentException("تسرب مجموعة مترابطة بين تقسيمات التقييم");
+        }
+
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            ContentValues run = new ContentValues();
+            run.put("evaluation_run_id", input.evaluationId); run.put("dataset_manifest_json", input.manifestJson);
+            run.put("dataset_manifest_sha256", manifestHash);
+            putNullable(run, "champion_algorithm_id", input.championId);
+            putNullable(run, "champion_algorithm_version", input.championVersion);
+            run.put("candidate_algorithm_id", input.candidateId);
+            run.put("candidate_algorithm_version", input.candidateVersion);
+            run.put("metrics_json", input.metricsJson); run.put("decision", input.decision);
+            run.put("created_epoch_ms", input.createdEpochMs);
+            db.insertOrThrow("evaluation_runs", null, run);
+
+            for (EvaluationItemInput item : input.items) {
+                ContentValues row = new ContentValues();
+                row.put("evaluation_item_id", item.itemId); row.put("evaluation_run_id", input.evaluationId);
+                row.put("capture_id", item.captureId); row.put("split", item.split);
+                row.put("group_key", item.groupKey);
+                putNullable(row, "expected_result_json", item.expectedJson);
+                putNullable(row, "actual_result_json", item.actualJson);
+                db.insertOrThrow("evaluation_items", null, row);
+            }
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+        return manifestHash;
+    }
+
+    /** Activation is permitted only when a recorded evaluation explicitly says PROMOTE. */
+    public void appendDeploymentEvent(DeploymentInput input) {
+        if (input == null || isBlank(input.eventId) || isBlank(input.newAlgorithmId)
+                || isBlank(input.newAlgorithmVersion) || !oneOf(input.action, "activate", "rollback", "reject")
+                || isBlank(input.reason) || isBlank(input.actorId) || input.eventTimeEpochMs < 0)
+            throw new IllegalArgumentException("بيانات حدث النشر غير صالحة");
+        if (input.modelSha256 != null && !isSha256(input.modelSha256))
+            throw new IllegalArgumentException("بصمة النموذج غير صالحة");
+        if ("activate".equals(input.action) && isBlank(input.evaluationRunId))
+            throw new IllegalArgumentException("التفعيل يحتاج مرجع تقييم");
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            if (input.evaluationRunId != null) {
+                try (Cursor c = db.rawQuery("SELECT candidate_algorithm_id,candidate_algorithm_version,decision "
+                        + "FROM evaluation_runs WHERE evaluation_run_id=?",
+                        new String[]{input.evaluationRunId})) {
+                    if (!c.moveToFirst()) throw new IllegalArgumentException("التقييم المرجعي غير موجود");
+                    if ("activate".equals(input.action)) {
+                        if (!input.newAlgorithmId.equals(c.getString(0))
+                                || !input.newAlgorithmVersion.equals(c.getString(1))
+                                || !"PROMOTE".equals(c.getString(2)))
+                            throw new IllegalArgumentException("التقييم لا يجيز تفعيل هذه النسخة");
+                    }
+                }
+            }
+            ContentValues v = new ContentValues();
+            v.put("deployment_event_id", input.eventId);
+            putNullable(v, "previous_algorithm_id", input.previousAlgorithmId);
+            putNullable(v, "previous_algorithm_version", input.previousAlgorithmVersion);
+            v.put("new_algorithm_id", input.newAlgorithmId);
+            v.put("new_algorithm_version", input.newAlgorithmVersion);
+            putNullable(v, "model_sha256", input.modelSha256);
+            v.put("action", input.action); v.put("reason", input.reason);
+            v.put("actor_id", input.actorId); v.put("event_time_epoch_ms", input.eventTimeEpochMs);
+            putNullable(v, "evaluation_run_id", input.evaluationRunId);
+            db.insertOrThrow("deployment_events", null, v);
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+
+    private static boolean isSha256(String value) {
+        return value != null && value.matches("(?i)[0-9a-f]{64}");
+    }
+
+    private static boolean isJsonObject(String value) {
+        if (isBlank(value)) return false;
+        try { new org.json.JSONObject(value); return true; }
+        catch (org.json.JSONException ex) { return false; }
+    }
+
     private static void validateCapture(CaptureInput x) {
         if (x == null || isBlank(x.captureId) || isBlank(x.sessionId) || x.sequence < 0
                 || isBlank(x.payloadFormat) || x.payload == null || x.payload.length == 0
