@@ -58,3 +58,10 @@
 تُحسب البوابة عبر evaluateAndRecordGate: تحميل حالات TEST الموثقة، ثم تشغيل EvaluationPolicyEvaluator، ثم حفظ status والمقاييس ولقطة السياسة في evaluation_gate_results. قرار PROMOTE لم يعد يقبل metrics_json وحده؛ يشترط وجود أحدث نتيجة ELIGIBLE_FOR_REVIEW بنفس policy_id/version. حالات INSUFFICIENT_EVIDENCE أو REJECTED تمنع الترقية.
 
 لا تزال مصادقة هوية معتمد السياسة والمراجع خارج نطاق هذه الطبقة، كما يجب ربط نتائج الكشف بمخرجات المحرك الفعلية قبل اعتبار السلسلة مغلقة بالكامل.
+
+
+## ربط مخرجات الكشف بسجلات التحليل
+
+لكل عينة TEST في تقييم FIELD_CANDIDATE، يشترط وجود تشغيل مكتمل لكل من Champion وCandidate في analysis_runs، مطابق لمعرف الخوارزمية وإصدارها وبصمة الحمولة الخام. يجب أن يحتوي result_json لكل تشغيل على الحقل المنطقي detected. يقوم EvaluationObservationLoader بقراءة هذه السجلات مباشرة؛ ولا يعتمد على actual_result_json الذي قد يمرره منشئ EvaluationItem.
+
+ما زال على مسار التنفيذ الحقيقي أن ينشئ analysis_run مباشرة من خرج المحرك، مع توثيق بصمة الكود/النموذج وإعدادات التشغيل، بدلاً من السماح لأي مستدعٍ بإدخال result_json يدوياً.
