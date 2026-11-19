@@ -250,6 +250,122 @@ public final class ScientificCaptureStore {
     }
 
 
+
+    /** Split assignment supplied by the experiment protocol; group keys must be stable identifiers. */
+    public static final class ManifestAssignment {
+        public final String captureId, split, groupKey;
+        public ManifestAssignment(String captureId, String split, String groupKey) {
+            this.captureId=captureId; this.split=split; this.groupKey=groupKey;
+        }
+    }
+
+    /** A manifest is generated from stored captures and the latest review event, never from caller labels. */
+    public static final class DatasetManifest {
+        public final String manifestId, json, sha256;
+        public final int itemCount;
+        DatasetManifest(String manifestId, String json, String sha256, int itemCount) {
+            this.manifestId=manifestId; this.json=json; this.sha256=sha256; this.itemCount=itemCount;
+        }
+    }
+
+    /**
+     * Builds a deterministic manifest from authoritative local records.
+     * Target class and soil class are intentionally absent: they are not canonical capture fields.
+     */
+    public DatasetManifest buildDatasetManifest(String manifestId, long createdEpochMs,
+            java.util.List<ManifestAssignment> assignments) {
+        if (isBlank(manifestId) || createdEpochMs < 0 || assignments == null || assignments.isEmpty())
+            throw new IllegalArgumentException("بيانات بيان مجموعة البيانات غير صالحة");
+        java.util.ArrayList<ManifestAssignment> ordered = new java.util.ArrayList<>(assignments);
+        ordered.sort(java.util.Comparator.comparing(x -> x == null ? "" : String.valueOf(x.captureId)));
+        java.util.HashSet<String> ids = new java.util.HashSet<>();
+        java.util.HashMap<String,String> groupSplits = new java.util.HashMap<>();
+        org.json.JSONArray entries = new org.json.JSONArray();
+        SQLiteDatabase db = owner.scientificReadableDatabase();
+        for (ManifestAssignment assignment : ordered) {
+            if (assignment == null || isBlank(assignment.captureId) || isBlank(assignment.groupKey)
+                    || !oneOf(assignment.split, "train", "validation", "test", "shadow")
+                    || !ids.add(assignment.captureId))
+                throw new IllegalArgumentException("توزيع العينات في البيان غير صالح أو مكرر");
+            String prior = groupSplits.putIfAbsent(assignment.groupKey, assignment.split);
+            if (prior != null && !prior.equals(assignment.split))
+                throw new IllegalArgumentException("المجموعة المترابطة موزعة بين تقسيمات مختلفة");
+
+            try (Cursor capture = db.rawQuery("SELECT source_type,transport_status,payload_blob,"
+                    + "payload_sha256,payload_crc32,payload_length_bytes,sample_count,payload_format,"
+                    + "session_id,sequence,device_id,stm32_firmware,esp32_firmware,coil_profile_id,"
+                    + "acquisition_config_id,captured_at_utc,monotonic_start_tick,tick_frequency_hz "
+                    + "FROM captures WHERE capture_id=?", new String[]{assignment.captureId})) {
+                if (!capture.moveToFirst()) throw new IllegalArgumentException("عينة غير موجودة: " + assignment.captureId);
+                byte[] raw = capture.getBlob(2);
+                if (raw == null || raw.length != capture.getInt(5)
+                        || !capture.getString(3).equals(sha256(raw))
+                        || !capture.getString(4).equals(crc32(raw)))
+                    throw new IllegalStateException("سلامة الحمولة غير مثبتة للعينة: " + assignment.captureId);
+                org.json.JSONObject entry = new org.json.JSONObject();
+                try {
+                    entry.put("capture_id", assignment.captureId);
+                    entry.put("split", assignment.split);
+                    entry.put("group_key", assignment.groupKey);
+                    entry.put("payload_sha256", capture.getString(3));
+                    entry.put("payload_length_bytes", raw.length);
+                    entry.put("sample_count", capture.getInt(6));
+                    entry.put("payload_format", capture.getString(7));
+                    entry.put("source_type", capture.getString(0));
+                    entry.put("transport_status", capture.getString(1));
+                    entry.put("session_id", capture.getString(8));
+                    entry.put("sequence", capture.getLong(9));
+                    putJsonNullable(entry, "device_id", capture.getString(10));
+                    putJsonNullable(entry, "stm32_firmware", capture.getString(11));
+                    putJsonNullable(entry, "esp32_firmware", capture.getString(12));
+                    putJsonNullable(entry, "coil_profile_id", capture.getString(13));
+                    putJsonNullable(entry, "acquisition_config_id", capture.getString(14));
+                    putJsonNullable(entry, "captured_at_utc", capture.getString(15));
+                    if (!capture.isNull(16)) entry.put("monotonic_start_tick", capture.getLong(16));
+                    if (!capture.isNull(17)) entry.put("tick_frequency_hz", capture.getLong(17));
+                    try (Cursor review = db.rawQuery("SELECT reviewer_id,new_lifecycle_status,"
+                            + "new_ground_truth_status,evidence_type,evidence_ref,event_time_epoch_ms "
+                            + "FROM review_events WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
+                            new String[]{assignment.captureId})) {
+                        if (review.moveToFirst()) {
+                            entry.put("reviewer_id", review.getString(0));
+                            entry.put("review_lifecycle", review.getString(1));
+                            entry.put("ground_truth_status", review.getString(2));
+                            putJsonNullable(entry, "evidence_type", review.getString(3));
+                            putJsonNullable(entry, "evidence_ref", review.getString(4));
+                            entry.put("reviewed_epoch_ms", review.getLong(5));
+                        } else {
+                            entry.put("review_lifecycle", "CAPTURED");
+                            entry.put("ground_truth_status", "UNKNOWN");
+                        }
+                    }
+                    entries.put(entry);
+                } catch (org.json.JSONException ex) {
+                    throw new IllegalStateException("تعذر إنشاء بيان مجموعة البيانات", ex);
+                }
+            }
+        }
+        try {
+            org.json.JSONObject root = new org.json.JSONObject();
+            root.put("manifest_schema", "islam-dataset-manifest-v1");
+            root.put("manifest_id", manifestId);
+            root.put("created_epoch_ms", createdEpochMs);
+            root.put("item_count", entries.length());
+            root.put("items", entries);
+            String json = root.toString();
+            return new DatasetManifest(manifestId, json,
+                    sha256(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)), entries.length());
+        } catch (org.json.JSONException | NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("تعذر ختم بيان مجموعة البيانات", ex);
+        }
+    }
+
+    private static void putJsonNullable(org.json.JSONObject object, String key, String value)
+            throws org.json.JSONException {
+        if (value == null) object.put(key, org.json.JSONObject.NULL);
+        else object.put(key, value);
+    }
+
     /** Immutable record of a capture's declared role in a versioned dataset/run. */
     public static final class DatasetUsageInput {
         public final String eventId, captureId, manifestId, manifestSha256, role;
