@@ -100,6 +100,22 @@ class CheckpointedRunnerTests(unittest.TestCase):
                 run_id="run-005", human_approved=True,
             )
 
+    def test_refuses_resume_when_plan_changes(self):
+        first_plan = proposal([{"kind": "run_test", "target": "agent_unit_tests"}])
+        with patch.object(self.runner.runner, "_run_tests", return_value={
+            "kind": "run_test", "target": "agent_unit_tests", "status": "failed", "exit_code": 1,
+        }):
+            self.runner.execute(
+                first_plan, "agent-003", checkpoint_path=self.checkpoint, lock_path=self.lock,
+                run_id="run-plan", human_approved=True,
+            )
+        changed_plan = proposal([{"kind": "inspect", "target": "tools/islam_agent/ollama_client.py"}])
+        with self.assertRaisesRegex(CheckpointError, "plan does not match"):
+            self.runner.execute(
+                changed_plan, "agent-003", checkpoint_path=self.checkpoint, lock_path=self.lock,
+                run_id="run-plan", human_approved=True,
+            )
+
     def test_refuses_checkpoint_for_different_task(self):
         plan = proposal([{"kind": "run_test", "target": "agent_unit_tests"}])
         with patch.object(self.runner.runner, "_run_tests", return_value={
