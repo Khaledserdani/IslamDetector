@@ -83,6 +83,10 @@ class OllamaClientTests(unittest.TestCase):
             self.client().chat_json([{"role": "user", "content": "hello"}])
         self.assertIsNotNone(self.request_payload)
 
+    def test_non_string_message_role_is_rejected_cleanly(self):
+        with self.assertRaisesRegex(ValueError, "unsupported message role"):
+            self.client().chat_json([{"role": [], "content": "hello"}])
+
     def test_message_extra_fields_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "only role and content"):
             self.client().chat_json([{"role": "user", "content": "hello", "tools": []}])
