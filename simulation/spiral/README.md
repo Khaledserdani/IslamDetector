@@ -85,7 +85,7 @@ The 2026-11-19 diagnostics found that increasing polygon resolution from 48 to 3
 ## Rectangular conductor-section diagnostics
 
 - `rectangular_cross_section_gmd.py`: logarithmic geometric-mean distance (GMD) for a uniformly filled rectangular cross-section.
-- `rectangular_segment_inductance.py`: finite-length Neumann self term for one straight segment with a uniform rectangular current cross-section, plus the matching mutual term for two contiguous collinear segments; both use analytic axial integration and Gauss-Legendre cross-section averaging.
+- `rectangular_segment_inductance.py`: finite-length Neumann self term for one straight segment, a matching mutual term for two contiguous collinear segments, and a generalized mutual term for equally oriented parallel segments with transverse and axial offsets. The generalized term integrates the axial coordinates analytically and averages the triangular cross-section difference density using split Gauss-Legendre panels.
 - `test_rectangular_cross_section_gmd.py` and `test_rectangular_segment_inductance.py`: numerical scaling, symmetry, convergence and limiting checks.
 - Arabic derivations: `docs/science/RECTANGULAR_CROSS_SECTION_GMD_NOTE_AR.md` and `docs/science/RECTANGULAR_SEGMENT_SELF_INDUCTANCE_AR.md`.
 
