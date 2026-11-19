@@ -93,7 +93,8 @@ public final class ExperimentStore extends SQLiteOpenHelper {
             ScientificStorageSchema.createDatasetUsageEvents(db);
             ScientificStorageSchema.backfillDatasetUsageEvents(db);
         }
-        if (oldVersion < 7) {
+        // Databases older than v3 create the current scientific schema above, so avoid duplicate columns.
+        if (oldVersion >= 3 && oldVersion < 7) {
             db.execSQL("ALTER TABLE review_events ADD COLUMN target_class TEXT");
             db.execSQL("ALTER TABLE review_events ADD COLUMN soil_class TEXT");
             db.execSQL("ALTER TABLE review_events ADD COLUMN ground_truth_positive INTEGER "
