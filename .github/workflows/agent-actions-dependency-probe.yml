@@ -1,0 +1,36 @@
+name: ISLAM Actions Dependency Probe
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+  pull_request:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - '.github/workflows/agent-actions-dependency-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  external-actions:
+    name: Check allowed GitHub actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout action
+        uses: actions/checkout@v4
+      - name: Python setup action
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Python
+        run: python --version
+      - name: Prepare harmless artifact
+        run: echo "ISLAM actions dependency probe" > probe.txt
+      - name: Artifact upload action
+        uses: actions/upload-artifact@v4
+        with:
+          name: islam-actions-dependency-probe
+          path: probe.txt
