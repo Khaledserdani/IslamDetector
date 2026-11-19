@@ -510,12 +510,12 @@ public class ScientificCaptureStoreTest {
 
     @Test public void fieldEvaluationRejectsManifestAssignmentTampering() {
         store.insertCapture(capture("tamper-capture", 34, "instrument", new byte[]{34, 35}));
-        store.appendReviewEvent(review("tamper-review", "tamper-capture",
-                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
-                "excavation_record", "tamper-evidence"));
+        store.appendReviewEvent(classifiedReview("tamper-review", "tamper-capture",
+                "gold", "dry-soil", true));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "tamper-item", "tamper-capture", "test", "tamper-group", null, null));
+                "tamper-item", "tamper-capture", "test", "tamper-group", null,
+                "{\"champion_detected\":true,\"candidate_detected\":false}"));
         String manifest = manifestJson("tamper-run", 18000L, items)
                 .replace("\"split\":\"test\"", "\"split\":\"train\"");
         try {
