@@ -893,7 +893,17 @@ public final class ScientificCaptureStore {
             if (input.evaluationRunId != null) {
                 try (Cursor c = db.rawQuery("SELECT r.candidate_algorithm_id,r.candidate_algorithm_version,"
                         + "r.decision,(SELECT d.decision FROM evaluation_decisions d "
-                        + "WHERE d.evaluation_run_id=r.evaluation_run_id ORDER BY d.rowid DESC LIMIT 1) "
+                        + "WHERE d.evaluation_run_id=r.evaluation_run_id ORDER BY d.rowid DESC LIMIT 1),"
+                        + "(SELECT d.policy_id FROM evaluation_decisions d "
+                        + "WHERE d.evaluation_run_id=r.evaluation_run_id ORDER BY d.rowid DESC LIMIT 1),"
+                        + "(SELECT d.policy_version FROM evaluation_decisions d "
+                        + "WHERE d.evaluation_run_id=r.evaluation_run_id ORDER BY d.rowid DESC LIMIT 1),"
+                        + "(SELECT g.status FROM evaluation_gate_results g "
+                        + "WHERE g.evaluation_run_id=r.evaluation_run_id ORDER BY g.rowid DESC LIMIT 1),"
+                        + "(SELECT g.policy_id FROM evaluation_gate_results g "
+                        + "WHERE g.evaluation_run_id=r.evaluation_run_id ORDER BY g.rowid DESC LIMIT 1),"
+                        + "(SELECT g.policy_version FROM evaluation_gate_results g "
+                        + "WHERE g.evaluation_run_id=r.evaluation_run_id ORDER BY g.rowid DESC LIMIT 1) "
                         + "FROM evaluation_runs r WHERE r.evaluation_run_id=?",
                         new String[]{input.evaluationRunId})) {
                     if (!c.moveToFirst()) throw new IllegalArgumentException("التقييم المرجعي غير موجود");
@@ -901,8 +911,11 @@ public final class ScientificCaptureStore {
                         if (!input.newAlgorithmId.equals(c.getString(0))
                                 || !input.newAlgorithmVersion.equals(c.getString(1))
                                 || !"FIELD_CANDIDATE".equals(c.getString(2))
-                                || !"PROMOTE".equals(c.getString(3)))
-                            throw new IllegalArgumentException("لا يوجد قرار اعتماد صريح لهذه النسخة");
+                                || !"PROMOTE".equals(c.getString(3))
+                                || !"ELIGIBLE_FOR_REVIEW".equals(c.getString(6))
+                                || !equalsNullable(c.getString(4), c.getString(7))
+                                || !equalsNullable(c.getString(5), c.getString(8)))
+                            throw new IllegalArgumentException("الاعتماد أو أحدث بوابة رقمية لا يطابق النسخة المطلوب تفعيلها");
                     }
                 }
             }
