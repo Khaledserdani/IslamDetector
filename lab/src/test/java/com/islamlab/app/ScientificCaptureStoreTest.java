@@ -202,6 +202,9 @@ public class ScientificCaptureStoreTest {
 
     @Test public void activationRequiresPromotingEvaluationForSameCandidate() {
         store.insertCapture(capture("eval-capture", 13, "instrument", new byte[]{3}));
+        store.appendReviewEvent(review("eval-review", "eval-capture",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "excavation_record", "field-case-13"));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
@@ -216,6 +219,29 @@ public class ScientificCaptureStoreTest {
             assertTrue(c.moveToFirst());
             assertEquals(1, c.getInt(0));
         }
+    }
+
+
+    @Test public void promotionEvaluationRejectsUnconfirmedCapture() {
+        store.insertCapture(capture("unconfirmed-eval", 14, "instrument", new byte[]{4}));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "unconfirmed-item", "unconfirmed-eval", "test", "field-case-14", null, null));
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "unconfirmed-run", "{}", null, null, "candidate", "3.0",
+                    "{\"accuracy\":0.99}", "PROMOTE", 7000L, items));
+            fail("Expected unconfirmed capture rejection");
+        } catch (IllegalArgumentException expected) { }
+    }
+
+    @Test public void captureReadVerifiesOriginalBytesAndDigests() {
+        byte[] payload = new byte[]{10, 20, 30, 40};
+        store.insertCapture(capture("read-capture", 15, "instrument", payload));
+        ScientificCaptureStore.CaptureRecord record = store.getCapture("read-capture");
+        assertNotNull(record);
+        assertArrayEquals(payload, record.payload);
+        assertEquals(payload.length, record.payload.length);
     }
 
 }
