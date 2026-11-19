@@ -228,10 +228,18 @@ public class ScientificCaptureStoreTest {
         store.appendReviewEvent(classifiedReview("eval-review", "eval-capture", "iron", "dry-soil", true));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
+                "eval-item", "eval-capture", "test", "target-13", null, "{\"champion_detected\":true,\"candidate_detected\":true}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "eval-approved", manifestJson("eval-approved", 5000L, items), "champion", "1.0",
                 "candidate", "2.0", "{\"accuracy\":0.95}", "FIELD_CANDIDATE", 5000L, items));
+        java.util.List<EvaluationPolicyEvaluator.Observation> loaded =
+                EvaluationObservationLoader.loadHeldOutTest(owner, "eval-approved");
+        assertEquals(1, loaded.size());
+        assertEquals("iron", loaded.get(0).targetClass);
+        assertEquals("dry-soil", loaded.get(0).soilClass);
+        assertTrue(loaded.get(0).groundTruthPositive);
+        assertTrue(loaded.get(0).championDetected);
+        assertTrue(loaded.get(0).candidateDetected);
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
