@@ -586,4 +586,29 @@ public class ScientificCaptureStoreTest {
         } catch (IllegalArgumentException expected) { }
     }
 
+
+    @Test public void insufficientComputedEvidenceBlocksPromotion() {
+        store.insertCapture(capture("small-test", 37, "instrument", new byte[]{37, 38}));
+        store.appendReviewEvent(classifiedReview("small-test-review", "small-test",
+                "iron", "dry-soil", true));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "small-test-item", "small-test", "test", "small-group", null,
+                "{\"champion_detected\":true,\"candidate_detected\":true}"));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "small-test-run", manifestJson("small-test-run", 20000L, items),
+                "champion", "1.0", "candidate", "8.0", "{}", "FIELD_CANDIDATE", 20000L, items));
+        EvaluationPolicyEvaluator.Result result = store.evaluateAndRecordGate(
+                "small-gate", "small-test-run", "FIELD-POLICY", "1",
+                new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.05, 0.05,
+                        0.05, 0.8, 0.2, java.util.Collections.<String>emptyList()), 20100L);
+        assertEquals("INSUFFICIENT_EVIDENCE", result.status);
+        try {
+            store.appendEvaluationDecision("small-promote", "small-test-run", "PROMOTE",
+                    "FIELD-POLICY", "1", "reviewer",
+                    "attempt with insufficient evidence", "review-report", 20200L);
+            fail("Expected insufficient evidence to block promotion");
+        } catch (IllegalArgumentException expected) { }
+    }
+
 }
