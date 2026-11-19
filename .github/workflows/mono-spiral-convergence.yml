@@ -33,6 +33,9 @@ jobs:
       - name: Run all unit tests
         working-directory: source/simulation/spiral
         run: python3 -m unittest -v
+      - name: Run finite cross-section target refinement study
+        working-directory: source/simulation/spiral
+        run: python3 run_finite_cross_section_convergence.py
       - name: Run disk surrogate convergence sweep
         working-directory: source/simulation/spiral
         run: python3 run_disk_convergence.py
@@ -58,7 +61,7 @@ jobs:
         working-directory: source/simulation/spiral
         run: |
           set -euo pipefail
-          for file in disk_surrogate_convergence_corrected.csv disk_surrogate_timestep_sensitivity.csv disk_surrogate_parameter_sweep.csv disk_positive_definite_resolution_diagnostics.csv disk_radial_basis_diagnostics.csv disk_surrogate_coil_inductance_sensitivity.csv greenhouse_inductance_convergence.csv; do
+          for file in finite_cross_section_convergence.csv disk_surrogate_convergence_corrected.csv disk_surrogate_timestep_sensitivity.csv disk_surrogate_parameter_sweep.csv disk_positive_definite_resolution_diagnostics.csv disk_radial_basis_diagnostics.csv disk_surrogate_coil_inductance_sensitivity.csv greenhouse_inductance_convergence.csv; do
             test -s "$file"
             echo "Generated $file ($(wc -l < "$file") lines)"
             head -n 3 "$file"
