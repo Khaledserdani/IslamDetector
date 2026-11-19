@@ -5,7 +5,7 @@ from unittest.mock import patch
 from subprocess import CompletedProcess
 
 from agent_policy import PolicyViolation
-from tool_runner import SafeToolRunner, ToolExecutionError
+from tool_runner import AGENT_TEST_MODULES, SafeToolRunner, ToolExecutionError
 
 
 def proposal(steps):
@@ -54,7 +54,7 @@ class SafeToolRunnerTests(unittest.TestCase):
         run.assert_not_called()
 
     @patch("tool_runner.subprocess.run")
-    def test_runs_only_fixed_test_command_without_shell(self, run):
+    def test_runs_complete_fixed_test_command_without_shell(self, run):
         run.return_value = CompletedProcess(args=["python", "-m", "unittest"], returncode=0, stdout="OK")
         runner = SafeToolRunner()
         result = runner.execute_plan(
@@ -64,9 +64,12 @@ class SafeToolRunnerTests(unittest.TestCase):
         )
         self.assertEqual(result[0]["status"], "passed")
         kwargs = run.call_args.kwargs
+        command = run.call_args.args[0]
         self.assertIs(kwargs["shell"], False)
         self.assertEqual(kwargs["timeout"], 120)
-        self.assertEqual(run.call_args.args[0][1:3], ["-m", "unittest"])
+        self.assertEqual(command[1:4], ["-m", "unittest", "-v"])
+        self.assertEqual(tuple(command[4:]), AGENT_TEST_MODULES)
+        self.assertEqual(len(AGENT_TEST_MODULES), 7)
 
     def test_failed_tests_stop_later_steps(self):
         with patch("tool_runner.subprocess.run") as run:
