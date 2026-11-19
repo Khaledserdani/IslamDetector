@@ -1,5 +1,5 @@
 name: ISLAM Actions Dependency Probe
-# Diagnostic only: verify the exact action versions used by project workflows.
+# Diagnostic only: isolate checkout action.
 
 on:
   push:
@@ -15,23 +15,11 @@ permissions:
   contents: read
 
 jobs:
-  external-actions:
-    name: Check allowed GitHub actions
+  checkout-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 2
     steps:
       - name: Checkout action
         uses: actions/checkout@v4
-      - name: Python setup action
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Verify Python
-        run: python --version
-      - name: Prepare harmless artifact
-        run: echo "ISLAM actions dependency probe" > probe.txt
-      - name: Artifact upload action
-        uses: actions/upload-artifact@v4
-        with:
-          name: islam-actions-dependency-probe
-          path: probe.txt
+      - name: Confirm checkout action completed
+        run: echo "checkout completed"
