@@ -24,12 +24,24 @@ def main() -> None:
                 depth_m=0.04,
                 rings=ring_count,
             )
+            edges = [radius_m * (i / ring_count) ** 0.5
+                     for i in range(ring_count + 1)]
+            radii = [radius_m * ((i + 0.5) / ring_count) ** 0.5
+                     for i in range(ring_count)]
+            widths = [edges[i + 1] - edges[i] for i in range(ring_count)]
+            section_ratios = [
+                max(widths[i], thickness_m) / radii[i]
+                for i in range(ring_count)
+            ]
             row = {
                 "case": case_name,
                 "radius_mm": radius_m * 1000.0,
                 "thickness_mm": thickness_m * 1000.0,
                 "rings": ring_count,
                 "ring_segments": 96,
+                "inner_annulus_width_over_radius": f"{section_ratios[0]:.8g}",
+                "max_section_dimension_over_radius": f"{max(section_ratios):.8g}",
+                "thin_ring_assumption_warning": str(max(section_ratios) >= 0.1).lower(),
                 "status": "not_run",
                 "condition_inf": "",
                 "error": "",
