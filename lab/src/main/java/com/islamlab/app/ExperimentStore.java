@@ -91,6 +91,7 @@ public final class ExperimentStore extends SQLiteOpenHelper {
         }
         if (oldVersion < 6) {
             ScientificStorageSchema.createDatasetUsageEvents(db);
+            ScientificStorageSchema.backfillDatasetUsageEvents(db);
         }
     }
 
