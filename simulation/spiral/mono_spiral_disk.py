@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import math
 
 from mono_spiral_geometry import MonoSpiral
+from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 
 MU0 = 4.0 * math.pi * 1e-7
 
@@ -187,9 +188,14 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
     L[0][0] = coil.inductance_h
     for i in range(disk.rings):
         r = radii[i]
-        area = widths[i]*disk.thickness_m
-        equivalent_wire_radius = math.sqrt(area/math.pi)
-        L[i+1][i+1] = MU0*r*(math.log(8*r/equivalent_wire_radius)-2.0)
+        # Use the logarithmic GMD of the actual rectangular annulus section.
+        # The equal-area circular radius is not the same GMD and can bias the
+        # ring self term low. This remains a thin-ring, uniform-current
+        # approximation; finite curvature and nonuniform PI current are open.
+        section_gmd = rectangular_cross_section_gmd(
+            widths[i], disk.thickness_m, order=96
+        )
+        L[i+1][i+1] = MU0*r*(math.log(8*r/section_gmd)-2.0)
         L[0][i+1] = L[i+1][0] = _mutual_neumann(coil_segments,target_segments[i])
     for i in range(disk.rings):
         for j in range(i+1,disk.rings):
