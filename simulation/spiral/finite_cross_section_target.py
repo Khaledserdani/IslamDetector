@@ -83,6 +83,74 @@ def _self_inductance_gmd(subcell: _Subcell, *, gmd_order: int,
     return value
 
 
+def build_finite_cross_section_target_model(
+    coil,
+    cells: list[AnnularCell],
+    conductivity_s_m: float,
+    *,
+    radial_subdivisions: int = 4,
+    axial_subdivisions: int = 4,
+    ring_segments: int = 96,
+    coil_subdivisions: int = 16,
+    gmd_order: int = 96,
+    max_section_ratio: float = 0.1,
+) -> tuple[list[list[float]], list[float], list[float], dict[str, float | int]]:
+    """Build target L, target R, and coil-to-target M from the same cells.
+
+    Resistance assumes uniform current density over each rectangular r-z
+    cross-section. Coil coupling is the area-average of the existing
+    continuous Mono Spiral path against polygonal coaxial loops. This M0 path
+    is a documented midpoint/Neumann approximation and must be refined and
+    compared independently before the combined model is treated as validated.
+    """
+    if not math.isfinite(conductivity_s_m) or conductivity_s_m <= 0.0:
+        raise ValueError("conductivity_s_m must be finite and positive")
+    if ring_segments < 24:
+        raise ValueError("ring_segments must be at least 24")
+    if coil_subdivisions < 1:
+        raise ValueError("coil_subdivisions must be positive")
+
+    from mono_spiral_disk import (
+        _mutual_neumann,
+        _segments_coil_path,
+        _segments_ring,
+    )
+
+    target_l, diagnostics = build_finite_cross_section_matrix(
+        cells,
+        radial_subdivisions=radial_subdivisions,
+        axial_subdivisions=axial_subdivisions,
+        gmd_order=gmd_order,
+        max_section_ratio=max_section_ratio,
+    )
+    coil_segments = _segments_coil_path(coil, subdivisions=coil_subdivisions)
+    target_r = []
+    coil_to_target = []
+    for cell in cells:
+        area = (
+            (cell.r_outer_m - cell.r_inner_m)
+            * (cell.z_upper_m - cell.z_lower_m)
+        )
+        mean_radius = 0.5 * (cell.r_inner_m + cell.r_outer_m)
+        target_r.append(
+            2.0 * math.pi * mean_radius / (conductivity_s_m * area)
+        )
+        samples = _subdivide(cell, radial_subdivisions, axial_subdivisions)
+        mutual_sum = 0.0
+        for sample in samples:
+            ring = _segments_ring(
+                sample.radius_m, sample.z_m, 0.0, 0.0, ring_segments
+            )
+            mutual_sum += _mutual_neumann(coil_segments, ring)
+        coil_to_target.append(mutual_sum / len(samples))
+
+    if not all(math.isfinite(value) and value > 0.0 for value in target_r):
+        raise ValueError("target resistance calculation produced invalid values")
+    if not all(math.isfinite(value) for value in coil_to_target):
+        raise ValueError("coil-to-target mutual calculation produced invalid values")
+    return target_l, target_r, coil_to_target, diagnostics
+
+
 def _assert_positive_definite(matrix: list[list[float]]) -> None:
     """Fail closed on a non-positive Cholesky pivot; never regularize."""
     n = len(matrix)
