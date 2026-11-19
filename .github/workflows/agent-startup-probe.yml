@@ -1,9 +1,11 @@
 name: ISLAM Agent Startup Probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/islam-free-agent-foundation
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - '.github/workflows/agent-startup-probe.yml'
 
 permissions:
   contents: read
