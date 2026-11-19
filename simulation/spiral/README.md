@@ -81,3 +81,12 @@ The production reference implementation now exists in `greenhouse_inductance.py`
 This number is not a measured terminal inductance and is not a final PI-frequency effective inductance. It assumes uniform DC current density, ideal sharp corners, and excludes external leads/return path, skin effect, proximity effect and nearby conductive structures. The Greenhouse runner tests cross-section quadrature convergence; a physical LCR measurement with documented fixture/lead geometry remains required before changing the transient model's provisional Coil default or selecting power components.
 
 The 2026-11-19 diagnostics found that increasing polygon resolution from 48 to 384 did not recover the two known rejected fixtures. Both were positive definite only at 3-5 radial rings and failed at 6-8; the lower ring counts had large condition numbers (about 70,000-438,000). Do not use those lower-order cases as a validated fix. The annular basis/self-mutual consistency needs redesign; no diagonal loading or weakened Cholesky gate is permitted.
+
+## Rectangular conductor-section diagnostics
+
+- `rectangular_cross_section_gmd.py`: logarithmic geometric-mean distance (GMD) for a uniformly filled rectangular cross-section.
+- `rectangular_segment_inductance.py`: finite-length Neumann self term for one straight segment with a uniform rectangular current cross-section; the axial double integral is analytic and the remaining cross-section average uses Gauss-Legendre quadrature.
+- `test_rectangular_cross_section_gmd.py` and `test_rectangular_segment_inductance.py`: numerical scaling, symmetry, convergence and limiting checks.
+- Arabic derivations: `docs/science/RECTANGULAR_CROSS_SECTION_GMD_NOTE_AR.md` and `docs/science/RECTANGULAR_SEGMENT_SELF_INDUCTANCE_AR.md`.
+
+These are diagnostic primitives only. The segment self term is not a complete closed-loop coil inductance. A complete energy-consistent model still needs all mutual terms between segment/cell current distributions, correct cross-section orientation and return path, plus mesh-refinement and positive-definiteness checks. The segment helper is intentionally not wired into `mono_spiral_disk.py` or the Greenhouse coil estimator; no Coil defaults have changed.
