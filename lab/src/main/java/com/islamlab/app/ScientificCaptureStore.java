@@ -698,6 +698,88 @@ public final class ScientificCaptureStore {
     }
 
 
+
+    /**
+     * Loads verified held-out TEST records, computes the release gate locally, and appends
+     * the immutable result. Caller-supplied metrics_json is never used as the gate result.
+     */
+    public EvaluationPolicyEvaluator.Result evaluateAndRecordGate(String gateResultId,
+            String evaluationId, String policyId, String policyVersion,
+            EvaluationPolicyEvaluator.Policy policy, long createdEpochMs) {
+        if (isBlank(gateResultId) || isBlank(evaluationId) || isBlank(policyId)
+                || isBlank(policyVersion) || policy == null || createdEpochMs < 0)
+            throw new IllegalArgumentException("مدخلات بوابة التقييم غير صالحة");
+        java.util.List<EvaluationPolicyEvaluator.Observation> observations =
+                EvaluationObservationLoader.loadHeldOutTest(owner, evaluationId);
+        EvaluationPolicyEvaluator.Result result =
+                EvaluationPolicyEvaluator.evaluate(observations, policy);
+        final String policyJson, metricsJson;
+        try {
+            org.json.JSONObject p = new org.json.JSONObject();
+            p.put("min_test_cases", policy.minTestCases);
+            p.put("min_positive_cases", policy.minPositiveCases);
+            p.put("min_negative_cases", policy.minNegativeCases);
+            p.put("max_accuracy_drop", policy.maxAccuracyDrop);
+            p.put("max_recall_drop", policy.maxRecallDrop);
+            p.put("max_false_positive_rate_increase", policy.maxFalsePositiveRateIncrease);
+            p.put("min_candidate_recall", policy.minCandidateRecall);
+            p.put("max_candidate_false_positive_rate", policy.maxCandidateFalsePositiveRate);
+            org.json.JSONArray required = new org.json.JSONArray();
+            java.util.ArrayList<String> sortedRequired = new java.util.ArrayList<>(policy.requiredStrata);
+            java.util.Collections.sort(sortedRequired);
+            for (String key : sortedRequired) required.put(key);
+            p.put("required_strata", required);
+            policyJson = p.toString();
+
+            org.json.JSONObject m = new org.json.JSONObject();
+            m.put("status", result.status); m.put("reason", result.reason);
+            if (result.champion != null) m.put("champion", metricsJson(result.champion));
+            if (result.candidate != null) m.put("candidate", metricsJson(result.candidate));
+            org.json.JSONArray strata = new org.json.JSONArray();
+            for (EvaluationPolicyEvaluator.StratumResult stratum : result.strata.values()) {
+                org.json.JSONObject s = new org.json.JSONObject();
+                s.put("target_class", stratum.targetClass); s.put("soil_class", stratum.soilClass);
+                s.put("champion", metricsJson(stratum.champion));
+                s.put("candidate", metricsJson(stratum.candidate));
+                strata.put(s);
+            }
+            m.put("strata", strata);
+            metricsJson = m.toString();
+        } catch (org.json.JSONException ex) {
+            throw new IllegalStateException("تعذر توثيق نتيجة بوابة التقييم", ex);
+        }
+
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            try (Cursor run = db.rawQuery("SELECT decision FROM evaluation_runs WHERE evaluation_run_id=?",
+                    new String[]{evaluationId})) {
+                if (!run.moveToFirst() || !"FIELD_CANDIDATE".equals(run.getString(0)))
+                    throw new IllegalArgumentException("بوابة النشر تتطلب تقييماً ميدانياً");
+            }
+            ContentValues v = new ContentValues();
+            v.put("gate_result_id", gateResultId); v.put("evaluation_run_id", evaluationId);
+            v.put("policy_id", policyId); v.put("policy_version", policyVersion);
+            v.put("policy_json", policyJson); v.put("status", result.status);
+            v.put("reason", result.reason); v.put("metrics_json", metricsJson);
+            v.put("created_epoch_ms", createdEpochMs);
+            db.insertOrThrow("evaluation_gate_results", null, v);
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+        return result;
+    }
+
+    private static org.json.JSONObject metricsJson(EvaluationPolicyEvaluator.Metrics metrics)
+            throws org.json.JSONException {
+        org.json.JSONObject out = new org.json.JSONObject();
+        out.put("cases", metrics.cases); out.put("positives", metrics.positives);
+        out.put("negatives", metrics.negatives); out.put("tp", metrics.truePositive);
+        out.put("fp", metrics.falsePositive); out.put("tn", metrics.trueNegative);
+        out.put("fn", metrics.falseNegative); out.put("accuracy", metrics.accuracy);
+        out.put("recall", metrics.recall); out.put("false_positive_rate", metrics.falsePositiveRate);
+        return out;
+    }
+
     /** Appends an explicit human/policy decision after a field-candidate evaluation. */
     public void appendEvaluationDecision(String decisionId, String evaluationId, String decision,
             String policyId, String policyVersion, String reviewerId, String rationale,
@@ -717,6 +799,14 @@ public final class ScientificCaptureStore {
                     throw new IllegalArgumentException("لا يمكن ترقية تقييم محاكاة أو ظل");
             }
             if ("PROMOTE".equals(decision)) {
+                try (Cursor c = db.rawQuery("SELECT status,policy_id,policy_version "
+                        + "FROM evaluation_gate_results WHERE evaluation_run_id=? "
+                        + "ORDER BY rowid DESC LIMIT 1", new String[]{evaluationId})) {
+                    if (!c.moveToFirst() || !"ELIGIBLE_FOR_REVIEW".equals(c.getString(0))
+                            || !policyId.equals(c.getString(1))
+                            || !policyVersion.equals(c.getString(2)))
+                        throw new IllegalArgumentException("PROMOTE يتطلب بوابة رقمية ناجحة بنفس السياسة والإصدار");
+                }
                 try (Cursor c = db.rawQuery("SELECT COUNT(*) FROM evaluation_items "
                         + "WHERE evaluation_run_id=? AND split='test'", new String[]{evaluationId})) {
                     if (!c.moveToFirst() || c.getInt(0) < 1)
