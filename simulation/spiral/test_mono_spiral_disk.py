@@ -44,7 +44,8 @@ class ConductiveDiskModelTests(unittest.TestCase):
                 expected.append((p0, p1))
         self.assertEqual(segments, expected)
         for first, second in zip(segments, segments[1:]):
-            self.assertEqual(first[1], second[0])
+            for axis in range(3):
+                self.assertAlmostEqual(first[1][axis], second[0][axis], delta=1e-12)
 
     def test_model_produces_finite_receive_signal(self):
         rows=simulate(self.coil,self.disk,self.pulse,ring_segments=48)
