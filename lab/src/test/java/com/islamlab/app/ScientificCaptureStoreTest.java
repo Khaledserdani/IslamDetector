@@ -290,4 +290,26 @@ public class ScientificCaptureStoreTest {
         } catch (IllegalArgumentException expected) { }
     }
 
+    @Test public void captureReadReturnsFullAcquisitionMetadata() {
+        store.insertCapture(new ScientificCaptureStore.CaptureInput(
+                "metadata-capture", "session-meta", 21, "instrument",
+                "2026-11-19T10:00:00Z", 12345L, 1000000L,
+                "device-7", "stm32-fw-2", "esp-fw-3", "mono-spiral-35",
+                "acq-config-9", "u16-le-v1", new byte[]{11, 12, 13}, 3,
+                "complete", 21000L));
+        ScientificCaptureStore.CaptureRecord record = store.getCapture("metadata-capture");
+        assertNotNull(record);
+        assertEquals("2026-11-19T10:00:00Z", record.capturedAtUtc);
+        assertEquals(Long.valueOf(12345L), record.monotonicStartTick);
+        assertEquals(Long.valueOf(1000000L), record.tickFrequencyHz);
+        assertEquals("device-7", record.deviceId);
+        assertEquals("stm32-fw-2", record.stm32Firmware);
+        assertEquals("esp-fw-3", record.esp32Firmware);
+        assertEquals("mono-spiral-35", record.coilProfileId);
+        assertEquals("acq-config-9", record.acquisitionConfigId);
+        assertEquals("complete", record.transportStatus);
+        assertEquals("u16-le-v1", record.payloadFormat);
+        assertEquals(3, record.sampleCount);
+    }
+
 }
