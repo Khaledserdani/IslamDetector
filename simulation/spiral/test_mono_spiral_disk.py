@@ -108,6 +108,12 @@ class ConductiveDiskModelTests(unittest.TestCase):
                 )
                 self.assertLess(abs(fast - reference) / reference, 2.0e-10)
 
+    def test_agm_mutual_matches_far_field_dipole_limit(self):
+        radius_a, radius_b, gap = 0.010, 0.015, 1.5
+        actual = _coaxial_loop_mutual(radius_a, radius_b, gap)
+        expected = MU0 * math.pi * radius_a**2 * radius_b**2 / (2 * gap**3)
+        self.assertLess(abs(actual - expected) / expected, 3.0e-4)
+
     def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
