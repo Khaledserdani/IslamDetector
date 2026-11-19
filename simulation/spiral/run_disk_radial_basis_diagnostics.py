@@ -8,6 +8,21 @@ from mono_spiral_disk import Coil, ConductiveDisk, build_disk_model
 from run_disk_convergence import matrix_condition_inf
 
 
+def annulus_section_aspect_ratios(radius_m: float, thickness_m: float,
+                                  ring_count: int) -> list[float]:
+    """Return max(radial width, thickness)/mean radius for equal-area annuli."""
+    if radius_m <= 0.0 or thickness_m <= 0.0 or ring_count < 1:
+        raise ValueError("radius, thickness, and ring_count must be positive")
+    edges = [radius_m * (i / ring_count) ** 0.5
+             for i in range(ring_count + 1)]
+    radii = [radius_m * ((i + 0.5) / ring_count) ** 0.5
+             for i in range(ring_count)]
+    return [
+        max(edges[i + 1] - edges[i], thickness_m) / radii[i]
+        for i in range(ring_count)
+    ]
+
+
 def main() -> None:
     cases = (
         ("small_radius", 0.006, 0.001),
@@ -24,15 +39,9 @@ def main() -> None:
                 depth_m=0.04,
                 rings=ring_count,
             )
-            edges = [radius_m * (i / ring_count) ** 0.5
-                     for i in range(ring_count + 1)]
-            radii = [radius_m * ((i + 0.5) / ring_count) ** 0.5
-                     for i in range(ring_count)]
-            widths = [edges[i + 1] - edges[i] for i in range(ring_count)]
-            section_ratios = [
-                max(widths[i], thickness_m) / radii[i]
-                for i in range(ring_count)
-            ]
+            section_ratios = annulus_section_aspect_ratios(
+                radius_m, thickness_m, ring_count
+            )
             row = {
                 "case": case_name,
                 "radius_mm": radius_m * 1000.0,
