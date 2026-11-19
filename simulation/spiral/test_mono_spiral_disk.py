@@ -4,6 +4,7 @@ import unittest
 from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 from mono_spiral_geometry import MonoSpiral
 from run_disk_convergence import matrix_condition_inf
+from run_disk_radial_basis_diagnostics import annulus_section_aspect_ratios
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
     _coaxial_loop_mutual, _segments_coil_path, build_disk_model, receive_peak, simulate)
 
@@ -96,6 +97,16 @@ class ConductiveDiskModelTests(unittest.TestCase):
     def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
+
+    def test_equal_area_inner_annulus_is_not_thin_ring_geometry(self):
+        ratios = annulus_section_aspect_ratios(
+            radius_m=0.012, thickness_m=0.001, ring_count=6
+        )
+        # For equal-area annuli, the innermost radial width / mean radius
+        # is sqrt(2), independent of ring count; thin-filament loop formulas
+        # are therefore not asymptotically justified for this inner basis.
+        self.assertAlmostEqual(ratios[0], math.sqrt(2.0), places=14)
+        self.assertGreater(ratios[0], 1.0)
 
     def test_ring_self_term_uses_rectangular_section_gmd(self):
         disk = ConductiveDisk(
