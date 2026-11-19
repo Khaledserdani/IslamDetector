@@ -92,9 +92,9 @@ public final class EvaluationPolicyEvaluator {
         private Metrics(int cases, int positives, int negatives, int tp, int fp, int tn, int fn) {
             this.cases=cases; this.positives=positives; this.negatives=negatives;
             this.truePositive=tp; this.falsePositive=fp; this.trueNegative=tn; this.falseNegative=fn;
-            this.accuracy = cases == 0 ? 0.0 : (double) (tp + tn) / cases;
-            this.recall = positives == 0 ? 0.0 : (double) tp / positives;
-            this.falsePositiveRate = negatives == 0 ? 0.0 : (double) fp / negatives;
+            this.accuracy = cases == 0 ? Double.NaN : (double) (tp + tn) / cases;
+            this.recall = positives == 0 ? Double.NaN : (double) tp / positives;
+            this.falsePositiveRate = negatives == 0 ? Double.NaN : (double) fp / negatives;
         }
     }
 
