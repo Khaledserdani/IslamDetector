@@ -253,6 +253,11 @@ public class ScientificCaptureStoreTest {
         assertEquals(1.0, gate.candidate.accuracy, 0.0);
         assertEquals(1.0, gate.candidate.recall, 0.0);
         assertEquals(0.0, gate.candidate.falsePositiveRate, 0.0);
+        EvaluationPolicyEvaluator.Result persistedGate = store.evaluateAndRecordGate(
+                "gate-approved", "eval-approved", "ISLAM-RELEASE-GATE", "1.0",
+                new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.0, 0.0, 0.0,
+                        1.0, 0.0, java.util.Collections.<String>emptyList()), 5100L);
+        assertEquals("ELIGIBLE_FOR_REVIEW", persistedGate.status);
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
@@ -554,6 +559,26 @@ public class ScientificCaptureStoreTest {
             assertEquals("salty-soil", c.getString(1));
             assertEquals(1, c.getInt(2));
         }
+    }
+
+
+    @Test public void promotionCannotUseCallerMetricsWithoutComputedGateRecord() {
+        store.insertCapture(capture("no-gate-capture", 36, "instrument", new byte[]{36, 37}));
+        store.appendReviewEvent(classifiedReview("no-gate-review", "no-gate-capture",
+                "iron", "dry-soil", true));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "no-gate-item", "no-gate-capture", "test", "no-gate-group", null,
+                "{\"champion_detected\":true,\"candidate_detected\":true}"));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "no-gate-run", manifestJson("no-gate-run", 19000L, items), "champion", "1.0",
+                "candidate", "7.0", "{\"accuracy\":1.0}", "FIELD_CANDIDATE", 19000L, items));
+        try {
+            store.appendEvaluationDecision("no-gate-promotion", "no-gate-run", "PROMOTE",
+                    "ISLAM-RELEASE-GATE", "1.0", "reviewer",
+                    "attempt without computed gate", "evidence", 19100L);
+            fail("Expected computed gate requirement");
+        } catch (IllegalArgumentException expected) { }
     }
 
 }
