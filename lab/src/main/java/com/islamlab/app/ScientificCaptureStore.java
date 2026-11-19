@@ -444,7 +444,9 @@ public final class ScientificCaptureStore {
                 }
                 if (!"CONFIRMED".equals(entry.optString("ground_truth_status"))
                         || !"ELIGIBLE_FOR_TRAINING".equals(entry.optString("review_lifecycle"))
+                        || !entry.has("target_class") || entry.isNull("target_class")
                         || isBlank(entry.optString("target_class"))
+                        || !entry.has("soil_class") || entry.isNull("soil_class")
                         || isBlank(entry.optString("soil_class"))
                         || !entry.has("ground_truth_positive") || entry.isNull("ground_truth_positive"))
                     throw new IllegalArgumentException("بيان التقييم يفتقد حقيقة أرضية مؤكدة أو فئة الهدف/التربة");
