@@ -39,6 +39,12 @@ class AgentPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PolicyViolation, "not allowlisted"):
             validate_proposal(proposal, "agent-003")
 
+    def test_rejects_non_string_step_kind_without_crashing(self):
+        proposal = valid_proposal()
+        proposal["steps"][0]["kind"] = []
+        with self.assertRaisesRegex(PolicyViolation, "step kind"):
+            validate_proposal(proposal, "agent-003")
+
     def test_rejects_arbitrary_inspection_path(self):
         proposal = valid_proposal()
         proposal["steps"][0]["target"] = "../../.env"
