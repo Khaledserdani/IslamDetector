@@ -271,4 +271,23 @@ public class ScientificCaptureStoreTest {
         } catch (IllegalArgumentException expected) { }
     }
 
+
+    @Test public void promotionEvaluationRejectsIncompleteCapturePayload() {
+        store.insertCapture(new ScientificCaptureStore.CaptureInput(
+                "partial-capture", "session-A", 17, "instrument",
+                "u8-test-v1", new byte[]{7, 8}, 0, "incomplete", 1017L));
+        store.appendReviewEvent(review("partial-review", "partial-capture",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "field_record", "partial-case"));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "partial-item", "partial-capture", "test", "partial-case", null, null));
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "partial-run", "{}", null, null, "candidate", "5.0",
+                    "{\"accuracy\":0.99}", "FIELD_CANDIDATE", 10000L, items));
+            fail("Expected incomplete payload rejection");
+        } catch (IllegalArgumentException expected) { }
+    }
+
 }
