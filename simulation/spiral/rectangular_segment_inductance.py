@@ -130,3 +130,84 @@ def rectangular_adjacent_segment_mutual_inductance(
     )
     return MU0 / (4.0 * math.pi) * expectation
 
+def rectangular_parallel_segment_mutual_inductance(
+    length_a_m: float,
+    length_b_m: float,
+    width_m: float,
+    height_m: float,
+    transverse_offset_x_m: float = 0.0,
+    transverse_offset_y_m: float = 0.0,
+    axial_offset_m: float = 0.0,
+    order: int = 96,
+) -> float:
+    """Mutual inductance of two parallel, equally oriented rectangular wires.
+
+    Segment A occupies z=[0, length_a]. Segment B occupies
+    z=[axial_offset, axial_offset+length_b] and its cross-section center is
+    shifted by (transverse_offset_x, transverse_offset_y). Both conductors
+    have the same rectangular section and uniform axial current density.
+
+    The axial Neumann double integral is analytic. The remaining expectation
+    is over the difference of two independent uniform points in each section.
+    This handles separated parallel segments and the contiguous collinear
+    special case without a filament self-singularity.
+    """
+    values = (
+        length_a_m, length_b_m, width_m, height_m,
+        transverse_offset_x_m, transverse_offset_y_m, axial_offset_m,
+    )
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("segment dimensions and offsets must be finite")
+    if min(length_a_m, length_b_m, width_m, height_m) <= 0.0:
+        raise ValueError("segment dimensions must be positive")
+    if order < 8 or order > 512:
+        raise ValueError("quadrature order must be between 8 and 512")
+
+    nodes, weights = _gauss_legendre(order)
+    differences_x = [node * width_m for node in nodes]
+    differences_y = [node * height_m for node in nodes]
+    density_weights_x = [
+        weight * (width_m - abs(value)) / width_m
+        for value, weight in zip(differences_x, weights)
+    ]
+    density_weights_y = [
+        weight * (height_m - abs(value)) / height_m
+        for value, weight in zip(differences_y, weights)
+    ]
+
+    def second_primitive(value: float, rho: float) -> float:
+        if rho == 0.0:
+            if value == 0.0:
+                return 0.0
+            return value * (math.log(2.0 * abs(value)) - 1.0)
+        return value * math.asinh(value / rho) - math.hypot(value, rho)
+
+    c = axial_offset_m
+    a = length_a_m
+    b = length_b_m
+    weighted_integral = 0.0
+    for i, dx in enumerate(differences_x):
+        for j, dy in enumerate(differences_y):
+            rho = math.hypot(
+                dx + transverse_offset_x_m,
+                dy + transverse_offset_y_m,
+            )
+            if rho <= 1e-15 * max(width_m, height_m):
+                # An exact quadrature hit on the integrable cross-section
+                # singularity is not a valid point sample.
+                raise ArithmeticError(
+                    "quadrature node hit the cross-section singularity; "
+                    "change quadrature order or offset"
+                )
+            integral = (
+                second_primitive(a - c, rho)
+                - second_primitive(-c, rho)
+                - second_primitive(a - c - b, rho)
+                + second_primitive(-c - b, rho)
+            )
+            weighted_integral += (
+                density_weights_x[i] * density_weights_y[j] * integral
+            )
+
+    return MU0 / (4.0 * math.pi) * weighted_integral
+
