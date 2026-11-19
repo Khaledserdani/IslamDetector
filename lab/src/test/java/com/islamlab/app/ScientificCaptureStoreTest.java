@@ -282,7 +282,7 @@ public class ScientificCaptureStoreTest {
         store.appendReviewEvent(classifiedReview("pending-review", "pending-capture", "copper", "wet-clay", false));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "pending-item", "pending-capture", "test", "field-case-16", null, "{\\"champion_detected\\":false,\\"candidate_detected\\":true}"));
+                "pending-item", "pending-capture", "test", "field-case-16", null, "{\"champion_detected\":false,\"candidate_detected\":true}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "pending-run", manifestJson("pending-run", 8000L, items), "champion", "1.0", "candidate", "4.0",
                 "{\"accuracy\":0.97}", "FIELD_CANDIDATE", 8000L, items));
@@ -425,6 +425,7 @@ public class ScientificCaptureStoreTest {
         SQLiteDatabase oldDb = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
         oldDb.execSQL("CREATE TABLE captures (capture_id TEXT PRIMARY KEY NOT NULL)");
         oldDb.execSQL("INSERT INTO captures(capture_id) VALUES('v5-preserved-capture')");
+        oldDb.execSQL("CREATE TABLE review_events (event_id TEXT PRIMARY KEY, capture_id TEXT)");
         oldDb.execSQL("CREATE TABLE evaluation_runs (evaluation_run_id TEXT PRIMARY KEY NOT NULL, "
                 + "dataset_manifest_sha256 TEXT NOT NULL, candidate_algorithm_id TEXT NOT NULL, "
                 + "candidate_algorithm_version TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL)");
@@ -459,7 +460,7 @@ public class ScientificCaptureStoreTest {
             assertEquals("0.9", c.getString(2));
             assertEquals("migration_v6", c.getString(3));
         }
-        assertEquals(6, migrated.getVersion());
+        assertEquals(7, migrated.getVersion());
     }
 
 
