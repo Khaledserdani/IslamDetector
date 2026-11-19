@@ -226,20 +226,33 @@ public class ScientificCaptureStoreTest {
     @Test public void activationRequiresPromotingEvaluationForSameCandidate() {
         store.insertCapture(capture("eval-capture", 13, "instrument", new byte[]{3}));
         store.appendReviewEvent(classifiedReview("eval-review", "eval-capture", "iron", "dry-soil", true));
+        store.insertCapture(capture("eval-negative", 14, "instrument", new byte[]{4}));
+        store.appendReviewEvent(classifiedReview("eval-negative-review", "eval-negative",
+                "no-target", "dry-soil", false));
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "eval-item", "eval-capture", "test", "target-13", null, "{\"champion_detected\":true,\"candidate_detected\":true}"));
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "eval-negative-item", "eval-negative", "test", "clear-ground-14", null,
+                "{\"champion_detected\":false,\"candidate_detected\":false}"));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "eval-approved", manifestJson("eval-approved", 5000L, items), "champion", "1.0",
                 "candidate", "2.0", "{\"accuracy\":0.95}", "FIELD_CANDIDATE", 5000L, items));
         java.util.List<EvaluationPolicyEvaluator.Observation> loaded =
                 EvaluationObservationLoader.loadHeldOutTest(owner, "eval-approved");
-        assertEquals(1, loaded.size());
+        assertEquals(2, loaded.size());
         assertEquals("iron", loaded.get(0).targetClass);
         assertEquals("dry-soil", loaded.get(0).soilClass);
         assertTrue(loaded.get(0).groundTruthPositive);
         assertTrue(loaded.get(0).championDetected);
         assertTrue(loaded.get(0).candidateDetected);
+        EvaluationPolicyEvaluator.Result gate = EvaluationPolicyEvaluator.evaluate(loaded,
+                new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.0, 0.0, 0.0,
+                        1.0, 0.0, java.util.Collections.<String>emptyList()));
+        assertEquals("ELIGIBLE_FOR_REVIEW", gate.status);
+        assertEquals(1.0, gate.candidate.accuracy, 0.0);
+        assertEquals(1.0, gate.candidate.recall, 0.0);
+        assertEquals(0.0, gate.candidate.falsePositiveRate, 0.0);
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
