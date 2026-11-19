@@ -305,6 +305,22 @@ public class ScientificCaptureStoreTest {
         store.appendEvaluationDecision("approval-1", "eval-approved", "PROMOTE",
                 "ISLAM-RELEASE-GATE", "1.0", "reviewer-1",
                 "independent held-out field test passed", "review-report-13", 5500L);
+        EvaluationPolicyEvaluator.Policy strictPolicy =
+                new EvaluationPolicyEvaluator.Policy(3, 1, 1, 0.0, 0.0, 0.0,
+                        1.0, 0.0, java.util.Collections.<String>emptyList());
+        store.registerEvaluationPolicy("STRICT-RECHECK", "1.0", strictPolicy,
+                "policy-approver", "strict-policy-evidence", 5600L);
+        assertEquals("INSUFFICIENT_EVIDENCE", store.evaluateAndRecordGate(
+                "gate-strict-recheck", "eval-approved", "STRICT-RECHECK", "1.0",
+                strictPolicy, 5700L).status);
+        try {
+            store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
+                    "deploy-stale-gate", "champion", "1.0", "candidate", "2.0", null,
+                    "activate", "stale gate must block", "operator", 5800L, "eval-approved"));
+            fail("Expected latest insufficient gate to block activation");
+        } catch (IllegalArgumentException expected) { }
+        store.evaluateAndRecordGate("gate-approved-latest", "eval-approved",
+                "ISLAM-RELEASE-GATE", "1.0", releasePolicy, 5900L);
         store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
                 "deploy-1", "champion", "1.0", "candidate", "2.0", null,
                 "activate", "independent evaluation passed", "operator", 6000L, "eval-approved"));
