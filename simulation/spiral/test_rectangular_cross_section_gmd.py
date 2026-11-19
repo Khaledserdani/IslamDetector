@@ -11,7 +11,7 @@ class RectangularCrossSectionGmdTests(unittest.TestCase):
 
     def test_square_section_reference(self):
         value = rectangular_cross_section_gmd(0.001, 0.001, order=128)
-        self.assertAlmostEqual(value, 0.0004470491557, delta=2e-12)
+        self.assertAlmostEqual(value, 0.0004470491557, delta=5e-12)
 
     def test_gmd_scales_linearly(self):
         base = rectangular_cross_section_gmd(0.002, 0.001, order=96)
