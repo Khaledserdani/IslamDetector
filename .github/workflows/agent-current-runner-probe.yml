@@ -9,11 +9,6 @@ on:
       - feature/islam-lab-searchcoil-redesign
     paths:
       - '.github/workflows/agent-current-runner-probe.yml'
-  pull_request:
-    branches:
-      - feature/islam-lab-searchcoil-redesign
-    paths:
-      - '.github/workflows/agent-current-runner-probe.yml'
 
 permissions:
   contents: read
