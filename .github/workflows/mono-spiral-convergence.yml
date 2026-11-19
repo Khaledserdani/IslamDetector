@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/islam-lab-searchcoil-redesign
+      - feature/islam-free-agent-foundation
     paths:
       - "simulation/spiral/**"
       - ".github/workflows/mono-spiral-convergence.yml"
