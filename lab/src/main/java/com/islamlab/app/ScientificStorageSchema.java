@@ -103,6 +103,19 @@ final class ScientificStorageSchema {
                 + "WHERE old.evaluation_run_id=NEW.evaluation_run_id "
                 + "AND old.group_key=NEW.group_key AND old.split<>NEW.split) "
                 + "BEGIN SELECT RAISE(ABORT, 'evaluation group split conflict'); END");
+
+        createGlobalTrainTestReuseGuard(db);
+    }
+
+
+    static void createGlobalTrainTestReuseGuard(SQLiteDatabase db) {
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_capture_train_test_reuse_guard "
+                + "BEFORE INSERT ON evaluation_items "
+                + "WHEN EXISTS (SELECT 1 FROM evaluation_items old "
+                + "WHERE old.capture_id=NEW.capture_id "
+                + "AND ((old.split='test' AND NEW.split='train') "
+                + "OR (old.split='train' AND NEW.split='test'))) "
+                + "BEGIN SELECT RAISE(ABORT, 'capture reused across train and test'); END");
     }
 
     private static void createAppendOnlyTriggers(SQLiteDatabase db, String table) {
