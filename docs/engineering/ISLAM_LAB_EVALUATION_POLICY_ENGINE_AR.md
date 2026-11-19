@@ -65,3 +65,8 @@
 لكل عينة TEST في تقييم FIELD_CANDIDATE، يشترط وجود تشغيل مكتمل لكل من Champion وCandidate في analysis_runs، مطابق لمعرف الخوارزمية وإصدارها وبصمة الحمولة الخام. يجب أن يحتوي result_json لكل تشغيل على الحقل المنطقي detected. يقوم EvaluationObservationLoader بقراءة هذه السجلات مباشرة؛ ولا يعتمد على actual_result_json الذي قد يمرره منشئ EvaluationItem.
 
 ما زال على مسار التنفيذ الحقيقي أن ينشئ analysis_run مباشرة من خرج المحرك، مع توثيق بصمة الكود/النموذج وإعدادات التشغيل، بدلاً من السماح لأي مستدعٍ بإدخال result_json يدوياً.
+
+
+## صلاحية التفعيل مرتبطة بأحدث بوابة
+
+حتى بعد قرار PROMOTE، يفحص مسار activate أحدث evaluation_gate_result. يجب أن تكون حالته ELIGIBLE_FOR_REVIEW وأن تطابق policy_id/version في آخر قرار اعتماد. أي نتيجة أحدث غير كافية أو مرفوضة أو بسياسة مختلفة توقف التفعيل، ولا يكفي وجود PROMOTE قديم.
