@@ -1,4 +1,5 @@
 name: ISLAM Actions Dependency Probe
+# Diagnostic only: verify the exact action versions used by project workflows.
 
 on:
   push:
