@@ -15,16 +15,19 @@ typedef enum {
     REV_A_SESSION_INVALID_DEVICE_INFO,
     REV_A_SESSION_INVALID_MEASUREMENT,
     REV_A_SESSION_ADC_NOT_READY,
-    REV_A_SESSION_UNSUPPORTED_FRAME
+    REV_A_SESSION_UNSUPPORTED_FRAME,
+    REV_A_SESSION_PROFILE_MISMATCH
 } rev_a_session_result_t;
 
 typedef struct {
     bool device_info_valid;
     rev_a_device_info_t device_info;
     uint32_t info_generation;
+    uint32_t profile_crc32;
     uint32_t accepted_measurements;
     uint32_t rejected_measurements_without_info;
     uint32_t rejected_measurements_without_adc;
+    uint32_t rejected_measurements_profile_mismatch;
 } rev_a_session_t;
 
 /*
@@ -56,7 +59,8 @@ void rev_a_session_invalidate_device_info(rev_a_session_t *session);
  * Consume one CRC-validated frame from rev_a_parser_feed().
  * DEVICE_INFO opens/refreshes the metadata session. MEASUREMENT is rejected
  * until metadata is valid, then copied with raw samples and signed values
- * gated by VALID_MASK and the advertised ADC format.
+ * gated by VALID_MASK and the advertised ADC format. The MEASUREMENT profile_id
+ * must match DEVICE_INFO.active_profile_id; accepted records carry profile_crc32.
  */
 rev_a_session_result_t rev_a_session_accept_frame(
     rev_a_session_t *session,

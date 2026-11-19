@@ -345,6 +345,14 @@ int main(void) {
     CHECK(session.device_info_valid);
     session_frame.type = REV_A_TYPE_MEASUREMENT;
     session_frame.value.measurement = measurement;
+    session_frame.value.measurement.profile_id = (uint8_t)(info.active_profile_id + 1u);
+    CHECK(rev_a_session_accept_frame(
+        &session, &session_frame, &session_measurement)
+        == REV_A_SESSION_PROFILE_MISMATCH);
+    CHECK(session.rejected_measurements_profile_mismatch == 1u);
+    CHECK(session.accepted_measurements == 0u);
+
+    session_frame.value.measurement.profile_id = info.active_profile_id;
     session_frame.value.measurement.valid_mask = 0x0Du;
     session_frame.value.measurement.samples[1] = 0xDEADu;
     CHECK(rev_a_session_accept_frame(
@@ -358,6 +366,7 @@ int main(void) {
     CHECK(session_measurement.interpreted_samples[2] == -32768);
     CHECK(session_measurement.interpreted_samples[3] == -1);
     CHECK(session_measurement.info_generation == session.info_generation);
+    CHECK(session_measurement.profile_crc32 == info.profile_crc32);
     CHECK(session.accepted_measurements == 1u);
 
     rev_a_session_invalidate_device_info(&session);
@@ -383,6 +392,8 @@ int main(void) {
     info14.adc_resolution_bits = 14u;
     info14.adc_input_mode_id = REV_A_INPUT_DIFFERENTIAL;
     info14.adc_vref_uv = 3300000u;
+    info14.active_profile_id = measurement.profile_id;
+    info14.profile_crc32 = 0x71E6D9DDu;
     CHECK(rev_a_device_info_valid(&info14));
     session_frame.type = REV_A_TYPE_DEVICE_INFO;
     session_frame.value.device_info = info14;

@@ -78,6 +78,10 @@ rev_a_session_result_t rev_a_session_accept_frame(
     if (!measurement_shape_valid(raw)) {
         return REV_A_SESSION_INVALID_MEASUREMENT;
     }
+    if (raw->profile_id != session->device_info.active_profile_id) {
+        ++session->rejected_measurements_profile_mismatch;
+        return REV_A_SESSION_PROFILE_MISMATCH;
+    }
 
     rev_a_session_measurement_t decoded;
     memset(&decoded, 0, sizeof(decoded));
@@ -88,6 +92,7 @@ rev_a_session_result_t rev_a_session_accept_frame(
     decoded.adc_input_mode_id = session->device_info.adc_input_mode_id;
     decoded.adc_vref_uv = session->device_info.adc_vref_uv;
     decoded.info_generation = session->info_generation;
+    decoded.profile_crc32 = session->device_info.profile_crc32;
     decoded.interpreted_mask = raw->valid_mask;
 
     for (uint8_t i = 0u; i < raw->sample_count; ++i) {

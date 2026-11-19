@@ -46,3 +46,9 @@
 
 ### Invalid DEVICE_INFO recovery
 A syntactically valid frame with inconsistent ADC metadata invalidates the session. The bridge now clears its mirrored public status snapshot and immediately retries GET_INFO, so stale ADC identity is not exposed after the session gate closes. This is host-code behavior pending fresh CI and hardware fault-injection/loopback; it is not a hardware test result.
+
+
+### Profile identity gate
+- The ESP32-S3 session rejects any MEASUREMENT whose profile_id differs from DEVICE_INFO.active_profile_id.
+- Accepted session records retain profile_crc32 and info_generation so the sample can be traced to the exact advertised timing-profile revision.
+- A mismatch counter is exposed in the UART bridge status snapshot. This is host-code validation; no board-to-board loopback is claimed.

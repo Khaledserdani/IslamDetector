@@ -38,6 +38,7 @@ typedef struct {
     uint32_t accepted_measurements;
     uint32_t rejected_measurements_without_info;
     uint32_t rejected_measurements_without_adc;
+    uint32_t rejected_measurements_profile_mismatch;
     uint32_t dropped_measurements;
     uint32_t uart_fifo_overflows;
     uint32_t uart_buffer_full_events;

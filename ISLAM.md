@@ -1674,3 +1674,23 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 3. ثم UART loopback بين اللوحتين، ثم Wi-Fi/WebServer وAndroid، وبعدها قياسات DD32/AFE وحماية TX وKiCad/BOM.
 
 لا شراء ولا توصيل لمرحلة TX عالية الطاقة، ولا ادعاء تصنيع أو اختبار ميداني.
+
+
+## 48. بوابة تطابق ملف التوقيت مع القياس — 2026-11-19
+
+- كشف التدقيق أن جلسة ESP32-S3 كانت تقبل MEASUREMENT حتى لو اختلف profile_id عن DEVICE_INFO.active_profile_id؛ وهذا قد يربط عينات الاضمحلال بجدول تأخيرات خاطئ.
+- أضيف رفض صريح REV_A_SESSION_PROFILE_MISMATCH، وعدّاد rejected_measurements_profile_mismatch في session وUART status.
+- السجلات المقبولة تحتفظ الآن بـprofile_crc32 وinfo_generation مع ADC metadata، لتبقى هوية جدول التوقيت قابلة للتتبع.
+- أضيف اختبار C لرفض الملف المختلف وقبول الملف المطابق وحفظ profile_crc32. لم يُنفذ الاختبار بعد بسبب تعطل بدء CI قبل إنشاء jobs.
+
+### حالة CI بعد تصحيح PIO
+- commit ffb8884 على الفرع أدى إلى run #1798 (push) و#1799 (pull_request)، وكلاهما startup_failure مع jobs=0 وartifacts=0؛ لا توجد logs لخطوات أو UF2/APK.
+- لا يوجد دليل من هذه النتيجة على فشل compile أو على خطأ YAML؛ التشغيلان لم يصلا إلى إنشاء أي Job. آخر حالة GitHub Status ظاهرة عند 13:50 UTC كانت Operational ولا incident غير محلول، لكنها لا تفسر فشل 14:10 UTC.
+- PR #6 مغلق وغير مدمج؛ PR #7 هو Draft المفتوح على الفرع. لا دمج ولا تعديل main.
+
+### الحالة التالية
+1. إعادة محاولة CI حتى يظهر build كامل وUF2 صالح وAPK.
+2. مراجعة تنفيذ PIO/DMA على مستوى C/Pico SDK، ثم producer يرسل MEASUREMENT عبر UART بعد التحقق من ADC الحقيقي.
+3. UART loopback، ثم Wi-Fi/WebServer وAndroid، ثم KiCad/حماية/PCB/BOM.
+
+لا توجد قياسات مادية أو ميدانية جديدة، ولا شراء أو توصيل TX عالي الطاقة.

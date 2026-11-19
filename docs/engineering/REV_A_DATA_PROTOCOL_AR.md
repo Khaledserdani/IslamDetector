@@ -290,3 +290,10 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - خرج ADS8861 متسلسل MSB-first؛ لذلك يجب أن يستخدم RP2040 PIO اتجاه IN shift-left مع autopush=16 حتى تبقى الكلمة الأصلية في ISR[15:0] دون عكس ترتيب البتات.
 - صُحح الإعداد من shift-right إلى shift-left في ads8861_capture.c، وأضيف اختبار static guard بنمط 0xA55A. استخراج DMA الحالي capture_buffer[i] & 0xFFFF أصبح متوافقاً مع هذا الاتجاه.
 - هذا يثبت اتساقاً برمجياً/حسابياً فقط؛ لا توجد قراءة ADC فعلية أو loopback أو قياس logic-analyzer حتى الآن. يبقى DEVICE_INFO=ADC_NONE وENABLE_ADS8861_CAPTURE=0 حتى تركيب ADC والتحقق منه.
+
+
+## 9.7 ربط MEASUREMENT بهوية جدول التوقيت — 2026-11-19
+
+- يجب أن يطابق MEASUREMENT.profile_id قيمة DEVICE_INFO.active_profile_id؛ اختلافهما يعني أن توقيتات النوافذ غير معروفة لهذه العينة، لذلك ترفضها جلسة ESP32-S3 بدلاً من تفسيرها بملف خاطئ.
+- أضيفت نتيجة REV_A_SESSION_PROFILE_MISMATCH وعدّاد رفض، كما يحمل كل سجل مقبول profile_crc32 وinfo_generation إلى جانب ADC metadata.
+- أضيف اختبار C يثبت رفض profile mismatch وقبول profile المطابق مع حفظ CRC. لا توجد نتيجة CI ناجحة لهذا التغيير حتى الآن، ولا يثبت الاختبار البرمجي اتصال اللوحتين.

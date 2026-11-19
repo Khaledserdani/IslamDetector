@@ -43,6 +43,7 @@ static void status_set_parser_counters(void) {
     s_status.parser_discarded_bytes = s_parser.discarded_bytes;
     s_status.rejected_measurements_without_info = s_session.rejected_measurements_without_info;
     s_status.rejected_measurements_without_adc = s_session.rejected_measurements_without_adc;
+    s_status.rejected_measurements_profile_mismatch = s_session.rejected_measurements_profile_mismatch;
     portEXIT_CRITICAL(&s_status_mux);
 }
 static void status_set_device_info(const rev_a_device_info_t *info) {
