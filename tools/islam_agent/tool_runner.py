@@ -35,12 +35,15 @@ class SafeToolRunner:
             path.relative_to(self.root)
         except ValueError:
             raise PolicyViolation("inspect path escapes the project root") from None
-        if not path.is_file():
-            raise ToolExecutionError(f"approved file does not exist: {relative_path}")
-        size = path.stat().st_size
-        if size > MAX_INSPECT_BYTES:
-            raise ToolExecutionError(f"approved file exceeds {MAX_INSPECT_BYTES} bytes")
-        content = path.read_text(encoding="utf-8")
+        try:
+            if not path.is_file():
+                raise ToolExecutionError(f"approved file does not exist: {relative_path}")
+            size = path.stat().st_size
+            if size > MAX_INSPECT_BYTES:
+                raise ToolExecutionError(f"approved file exceeds {MAX_INSPECT_BYTES} bytes")
+            content = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            raise ToolExecutionError(f"approved file could not be read safely: {relative_path}") from None
         return {
             "kind": "inspect",
             "target": relative_path,
