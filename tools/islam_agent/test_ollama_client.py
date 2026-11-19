@@ -25,6 +25,8 @@ class OllamaClientTests(unittest.TestCase):
                 self.send_response(owner.response_status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(body)))
+                if owner.response_status == 302:
+                    self.send_header("Location", "http://example.com/steal")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -74,6 +76,12 @@ class OllamaClientTests(unittest.TestCase):
         self.response_status = 500
         with self.assertRaisesRegex(OllamaClientError, "HTTP status 500"):
             self.client().chat_json([{"role": "user", "content": "hello"}])
+
+    def test_redirect_is_not_followed(self):
+        self.response_status = 302
+        with self.assertRaisesRegex(OllamaClientError, "HTTP status 302"):
+            self.client().chat_json([{"role": "user", "content": "hello"}])
+        self.assertIsNotNone(self.request_payload)
 
     def test_message_extra_fields_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "only role and content"):
