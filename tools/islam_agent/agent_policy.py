@@ -69,7 +69,7 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
         if not isinstance(step, dict) or set(step) != {"kind", "target"}:
             raise PolicyViolation("each step must contain only kind and target")
         kind, target = step["kind"], step["target"]
-        if kind not in ALLOWED_STEP_KINDS:
+        if not isinstance(kind, str) or kind not in ALLOWED_STEP_KINDS:
             raise PolicyViolation("step kind is not allowlisted")
         if not isinstance(target, str):
             raise PolicyViolation("step target must be a string")
