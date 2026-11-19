@@ -42,6 +42,8 @@ REQUIRED_FILES = (
     AGENT_DIR / "test_checkpointed_runner.py",
     AGENT_DIR / "local_agent.py",
     AGENT_DIR / "test_local_agent.py",
+    AGENT_DIR / "local_workflow.py",
+    AGENT_DIR / "test_local_workflow.py",
 )
 
 
@@ -79,7 +81,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
         (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects"]),
-        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent"]),
+        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent", "test_local_workflow"]),
     )
     outputs = []
     exit_code = 0
