@@ -348,7 +348,8 @@ public final class ScientificCaptureStore {
                     if (!capture.isNull(16)) entry.put("monotonic_start_tick", capture.getLong(16));
                     if (!capture.isNull(17)) entry.put("tick_frequency_hz", capture.getLong(17));
                     try (Cursor review = db.rawQuery("SELECT reviewer_id,new_lifecycle_status,"
-                            + "new_ground_truth_status,evidence_type,evidence_ref,event_time_epoch_ms "
+                            + "new_ground_truth_status,evidence_type,evidence_ref,event_time_epoch_ms,"
+                            + "target_class,soil_class,ground_truth_positive "
                             + "FROM review_events WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
                             new String[]{assignment.captureId})) {
                         if (review.moveToFirst()) {
@@ -358,6 +359,11 @@ public final class ScientificCaptureStore {
                             putJsonNullable(entry, "evidence_type", review.getString(3));
                             putJsonNullable(entry, "evidence_ref", review.getString(4));
                             entry.put("reviewed_epoch_ms", review.getLong(5));
+                            putJsonNullable(entry, "target_class", review.getString(6));
+                            putJsonNullable(entry, "soil_class", review.getString(7));
+                            if (!review.isNull(8))
+                                entry.put("ground_truth_positive", review.getInt(8) == 1);
+                            else entry.put("ground_truth_positive", org.json.JSONObject.NULL);
                         } else {
                             entry.put("review_lifecycle", "CAPTURED");
                             entry.put("ground_truth_status", "UNKNOWN");
@@ -418,8 +424,11 @@ public final class ScientificCaptureStore {
                         throw new IllegalArgumentException("بيان العينة لا يطابق سجل الالتقاط الأصلي");
                 }
                 if (!"CONFIRMED".equals(entry.optString("ground_truth_status"))
-                        || !"ELIGIBLE_FOR_TRAINING".equals(entry.optString("review_lifecycle")))
-                    throw new IllegalArgumentException("بيان التقييم يحتوي عينة غير مؤكدة أو غير مؤهلة");
+                        || !"ELIGIBLE_FOR_TRAINING".equals(entry.optString("review_lifecycle"))
+                        || isBlank(entry.optString("target_class"))
+                        || isBlank(entry.optString("soil_class"))
+                        || !entry.has("ground_truth_positive") || entry.isNull("ground_truth_positive"))
+                    throw new IllegalArgumentException("بيان التقييم يفتقد حقيقة أرضية مؤكدة أو فئة الهدف/التربة");
             }
             if (!byCapture.isEmpty())
                 throw new IllegalArgumentException("البيان يحتوي عينات غير موجودة في التقييم");
