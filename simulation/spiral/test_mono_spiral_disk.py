@@ -124,6 +124,26 @@ class ConductiveDiskModelTests(unittest.TestCase):
         expected = MU0 * radii[0] * (math.log(8 * radii[0] / section_gmd) - 2.0)
         self.assertAlmostEqual(matrix[1][1], expected, places=18)
 
+    def test_eight_ring_basis_is_rejected_for_known_small_target_fixture(self):
+        # Regression fixture from the radial-basis sweep: seven annuli remain
+        # positive definite, while the eighth introduces a negative Schur
+        # complement at pivot 8. Keep the solver fail-closed until the annular
+        # basis/self-inductance formulation is upgraded.
+        seven = ConductiveDisk(
+            radius_m=0.006, thickness_m=0.001,
+            conductivity_s_m=35e6, depth_m=0.04, rings=7,
+        )
+        eight = ConductiveDisk(
+            radius_m=0.006, thickness_m=0.001,
+            conductivity_s_m=35e6, depth_m=0.04, rings=8,
+        )
+        matrix, _, _ = build_disk_model(self.coil, seven, ring_segments=96)
+        self.assertEqual(len(matrix), 8)
+        with self.assertRaisesRegex(
+            ValueError, r"not positive definite at pivot 8"
+        ):
+            build_disk_model(self.coil, eight, ring_segments=96)
+
     def test_non_positive_inductance_matrix_reports_failing_pivot(self):
         unstable_fixture = ConductiveDisk(
             radius_m=0.006,
