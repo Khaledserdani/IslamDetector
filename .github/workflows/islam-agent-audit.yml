@@ -23,22 +23,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Fetch source using runner git (no external actions)
+        env:
+          SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --no-tags --branch "$SOURCE_REF" "https://github.com/$REPOSITORY.git" source
+          cd source
+          python3 --version
 
       - name: Run deterministic audit
-        run: python tools/islam_agent/audit.py --report islam-agent-report.md
-
-      - name: Upload audit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: islam-agent-audit-report
-          path: islam-agent-report.md
-          if-no-files-found: warn
-          retention-days: 14
+        working-directory: source
+        run: |
+          set +e
+          python3 tools/islam_agent/audit.py --report "$GITHUB_WORKSPACE/islam-agent-report.md"
+          audit_status=$?
+          if [ -f "$GITHUB_WORKSPACE/islam-agent-report.md" ]; then
+            cat "$GITHUB_WORKSPACE/islam-agent-report.md"
+          else
+            echo "Audit report was not created."
+          fi
+          exit "$audit_status"
