@@ -57,6 +57,21 @@ public class ScientificCaptureStoreTest {
         return store.buildDatasetManifest(manifestId, createdAt, assignments).json;
     }
 
+
+    private void recordDetectionRuns(String captureId, String championId, String championVersion,
+            String candidateId, String candidateVersion, boolean championDetected,
+            boolean candidateDetected, long startEpochMs) {
+        String digest = store.getCapture(captureId).payloadSha256;
+        store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
+                "analysis-" + captureId + "-" + championId, captureId, digest,
+                championId, championVersion, null, "{}", "{\"detected\":" + championDetected + "}",
+                startEpochMs, startEpochMs + 1, "complete"));
+        store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
+                "analysis-" + captureId + "-" + candidateId, captureId, digest,
+                candidateId, candidateVersion, null, "{}", "{\"detected\":" + candidateDetected + "}",
+                startEpochMs + 2, startEpochMs + 3, "complete"));
+    }
+
     private ScientificCaptureStore.ReviewInput classifiedReview(String eventId, String captureId,
             String targetClass, String soilClass, boolean positive) {
         return new ScientificCaptureStore.ReviewInput(eventId, captureId, "reviewer-test",
@@ -229,12 +244,13 @@ public class ScientificCaptureStoreTest {
         store.insertCapture(capture("eval-negative", 14, "instrument", new byte[]{4}));
         store.appendReviewEvent(classifiedReview("eval-negative-review", "eval-negative",
                 "no-target", "dry-soil", false));
+        recordDetectionRuns("eval-capture", "champion", "1.0", "candidate", "2.0", true, true, 30000L);
+        recordDetectionRuns("eval-negative", "champion", "1.0", "candidate", "2.0", false, false, 30100L);
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "eval-item", "eval-capture", "test", "target-13", null, "{\"champion_detected\":true,\"candidate_detected\":true}"));
+                "eval-item", "eval-capture", "test", "target-13", null, null));
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "eval-negative-item", "eval-negative", "test", "clear-ground-14", null,
-                "{\"champion_detected\":false,\"candidate_detected\":false}"));
+                "eval-negative-item", "eval-negative", "test", "clear-ground-14", null, null));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "eval-approved", manifestJson("eval-approved", 5000L, items), "champion", "1.0",
                 "candidate", "2.0", "{\"accuracy\":0.95}", "FIELD_CANDIDATE", 5000L, items));
@@ -313,9 +329,10 @@ public class ScientificCaptureStoreTest {
     @Test public void deploymentCannotActivateBeforeExplicitApprovalEvent() {
         store.insertCapture(capture("pending-capture", 16, "instrument", new byte[]{6}));
         store.appendReviewEvent(classifiedReview("pending-review", "pending-capture", "copper", "wet-clay", false));
+        recordDetectionRuns("pending-capture", "champion", "1.0", "candidate", "4.0", false, true, 30200L);
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "pending-item", "pending-capture", "test", "field-case-16", null, "{\"champion_detected\":false,\"candidate_detected\":true}"));
+                "pending-item", "pending-capture", "test", "field-case-16", null, null));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "pending-run", manifestJson("pending-run", 8000L, items), "champion", "1.0", "candidate", "4.0",
                 "{\"accuracy\":0.97}", "FIELD_CANDIDATE", 8000L, items));
@@ -552,10 +569,10 @@ public class ScientificCaptureStoreTest {
         store.insertCapture(capture("tamper-capture", 34, "instrument", new byte[]{34, 35}));
         store.appendReviewEvent(classifiedReview("tamper-review", "tamper-capture",
                 "gold", "dry-soil", true));
+        recordDetectionRuns("tamper-capture", "champion", "1.0", "candidate", "6.0", true, false, 30300L);
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "tamper-item", "tamper-capture", "test", "tamper-group", null,
-                "{\"champion_detected\":true,\"candidate_detected\":false}"));
+                "tamper-item", "tamper-capture", "test", "tamper-group", null, null));
         String manifest = manifestJson("tamper-run", 18000L, items)
                 .replace("\"split\":\"test\"", "\"split\":\"train\"");
         try {
@@ -588,10 +605,10 @@ public class ScientificCaptureStoreTest {
         store.insertCapture(capture("no-gate-capture", 36, "instrument", new byte[]{36, 37}));
         store.appendReviewEvent(classifiedReview("no-gate-review", "no-gate-capture",
                 "iron", "dry-soil", true));
+        recordDetectionRuns("no-gate-capture", "champion", "1.0", "candidate", "7.0", true, true, 30400L);
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "no-gate-item", "no-gate-capture", "test", "no-gate-group", null,
-                "{\"champion_detected\":true,\"candidate_detected\":true}"));
+                "no-gate-item", "no-gate-capture", "test", "no-gate-group", null, null));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "no-gate-run", manifestJson("no-gate-run", 19000L, items), "champion", "1.0",
                 "candidate", "7.0", "{\"accuracy\":1.0}", "FIELD_CANDIDATE", 19000L, items));
@@ -608,10 +625,10 @@ public class ScientificCaptureStoreTest {
         store.insertCapture(capture("small-test", 37, "instrument", new byte[]{37, 38}));
         store.appendReviewEvent(classifiedReview("small-test-review", "small-test",
                 "iron", "dry-soil", true));
+        recordDetectionRuns("small-test", "champion", "1.0", "candidate", "8.0", true, true, 30500L);
         java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
         items.add(new ScientificCaptureStore.EvaluationItemInput(
-                "small-test-item", "small-test", "test", "small-group", null,
-                "{\"champion_detected\":true,\"candidate_detected\":true}"));
+                "small-test-item", "small-test", "test", "small-group", null, null));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "small-test-run", manifestJson("small-test-run", 20000L, items),
                 "champion", "1.0", "candidate", "8.0", "{}", "FIELD_CANDIDATE", 20000L, items));
