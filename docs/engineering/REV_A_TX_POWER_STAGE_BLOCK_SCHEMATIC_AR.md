@@ -1,3 +1,5 @@
+> DD32 هو baseline الحالي. هذه مسودة net-level فقط؛ لا تُعتمد قيم clamp أو التيار أو MOSFET من نموذج Mono Spiral السابق. يلزم قياس L/DCR وطوبولوجيا اللفات والارتداد الفعلي قبل الحساب والشراء.
+
 # مخطط كتل/شبكة مرحلة TX — Rev A
 
 **الحالة:** مسودة pin-level وظيفية للمرشحين؛ لا تستخدم للتوصيل أو تصنيع PCB.  
@@ -22,7 +24,7 @@
 
 ```mermaid
 flowchart TD
-    V[+12V_TX] --> L[Mono Spiral coil]
+    V[+12V_TX] --> L[DD32 TX winding]
     L --> D[SW_DRAIN]
     D --> Q[Q1 IRFP260N Drain]
     Q --> S[Q1 Source / KELVIN_SOURCE]
