@@ -2,7 +2,7 @@ import math
 import unittest
 
 from rectangular_cross_section_gmd import rectangular_cross_section_gmd
-from rectangular_segment_inductance import rectangular_segment_self_inductance
+from rectangular_segment_inductance import (\n    rectangular_adjacent_segment_mutual_inductance,\n    rectangular_segment_self_inductance,\n)
 
 
 class RectangularSegmentInductanceTests(unittest.TestCase):
@@ -32,6 +32,33 @@ class RectangularSegmentInductanceTests(unittest.TestCase):
         gmd = rectangular_cross_section_gmd(width, height, order=128)
         asymptote = 2e-7 * length * (math.log(2.0 * length / gmd) - 1.0)
         self.assertLess(abs(actual - asymptote) / actual, 5e-5)
+
+
+    def test_adjacent_segment_mutual_is_reciprocal(self):
+        first = rectangular_adjacent_segment_mutual_inductance(
+            0.003, 0.002, 0.0006, 0.0006, order=96
+        )
+        second = rectangular_adjacent_segment_mutual_inductance(
+            0.002, 0.003, 0.0006, 0.0006, order=96
+        )
+        self.assertGreater(first, 0.0)
+        self.assertAlmostEqual(first, second, places=20)
+
+    def test_splitting_a_straight_conductor_preserves_total_energy(self):
+        whole = rectangular_segment_self_inductance(
+            0.005, 0.0006, 0.0006, order=96
+        )
+        first_self = rectangular_segment_self_inductance(
+            0.003, 0.0006, 0.0006, order=96
+        )
+        second_self = rectangular_segment_self_inductance(
+            0.002, 0.0006, 0.0006, order=96
+        )
+        mutual = rectangular_adjacent_segment_mutual_inductance(
+            0.003, 0.002, 0.0006, 0.0006, order=96
+        )
+        reconstructed = first_self + second_self + 2.0 * mutual
+        self.assertAlmostEqual(reconstructed, whole, delta=1e-18)
 
     def test_invalid_dimensions_and_order_are_rejected(self):
         for dims in ((0.0, 0.001, 0.001), (0.001, -0.001, 0.001),
