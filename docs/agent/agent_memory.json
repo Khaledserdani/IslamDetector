@@ -69,6 +69,47 @@
       "status": "in_progress",
       "acceptance": "Determine whether rejected target fixtures recover under finer ring polygon quadrature; if not, identify and redesign the inconsistent annular self/mutual basis. Preserve positive-definiteness rejection and do not hide failures with diagonal loading or arbitrary clamps.",
       "last_note": "تم تعميم mutual إلى قطعتين متوازيتين بإزاحة عرضية وطولية، مع مقطع مستطيل متماثل وتيار منتظم. التكامل الطولي تحليلي، والتكامل العرضي يقسم كثافة الفرق المثلثية عند الصفر. اختبارات الاختزال إلى الحالة المتجاورة، والتبادلية، وحد المجال البعيد نجحت. CI: audit run 44514197646 PASS (30 ملفاً، 63 اختباراً هندسياً +62 وكيل =125، منها 11 اختباراً للقطعة والاقتران). Geometry 44514197758 وtransient 44514197566 PASS. Convergence run 44513960162 اكتمل PASS بكل المراحل بما فيها Greenhouse وCSV. تشغيل أحدث على head 72c36bd... run 44514197623: unit tests وdisk convergence PASS، timestep sensitivity قيد التنفيذ عند آخر فحص. الدالة لم تدمج في نموذج القرص أو Greenhouse؛ ما زال الاقتران غير المتوازي والمنحني وتدوير المقاطع غير مدعوم. أضيف أيضاً مرجع Neumann سداسي الأبعاد لقطعتين مستقيمتين غير متوازيتين بمقاطع مستطيلة، مع خمسة اختبارات أولية، وسُجل في audit. CI على الرأس الجديد لم يُتحقق منه بعد؛ الأداة لا تدعم الانحناء/التداخل أو التيار غير المنتظم، ولم تُدمج في نموذج الطاقة."
+    },
+    {
+      "id": "agent-006",
+      "title": "Design reviewable self-learning lab and safe live algorithm evolution",
+      "status": "in_progress",
+      "acceptance": "Specify and implement an auditable experiment ledger, algorithm versioning, candidate/stable separation, held-out validation, human correction workflow, safe switching and rollback, integrated with the single-device architecture without interrupting stable detection.",
+      "last_note": "قرار معماري معتمد في 2026-11-19 وموثق في docs/agent/ISLAM_SELF_LEARNING_LAB_CHARTER_AR.md. المطلوب تنفيذ سجل التعلم القابل للمراجعة وتدفق تطوير الخوارزميات واختبارها واعتمادها بأمان؛ لم تُنفذ هذه المنظومة بعد."
     }
-  ]
+  ],
+  "current_decisions": {
+    "self_learning_device_charter": {
+      "status": "adopted",
+      "title": "Single integrated detector with reviewable continuous self-learning",
+      "charter": "docs/agent/ISLAM_SELF_LEARNING_LAB_CHARTER_AR.md",
+      "principles": [
+        "Design one integrated physical detector from a strong scientific, physical, mathematical and algorithmic foundation; do not make rebuilding a new device the normal improvement path.",
+        "Provide a transparent, reviewable learning and experiment log, including evidence, conditions, reasoning, changes, failures and outcomes.",
+        "Allow the user to inspect learning records, correct data or assumptions, edit algorithms or add code, and validate changes.",
+        "Keep the stable detector algorithm running while candidate versions are trained and tested separately; switch only at a safe point after independent validation.",
+        "Promote only improvements that pass held-out confirmed data and regression checks; preserve version history and rollback.",
+        "Allow automatic learning and bounded calibration/configuration only; physical hardware changes and safety-critical power/protection changes require human engineering intervention."
+      ],
+      "learning_lab_name": "ISLAM SELF-LEARNING LAB",
+      "required_capabilities": [
+        "timestamped experiment and measurement ledger",
+        "raw signal and extracted-feature review",
+        "soil, calibration and target-condition context",
+        "algorithm versioning, rationale and reproducible comparisons",
+        "independent validation against the current stable version",
+        "failure and regression records",
+        "human correction and algorithm contribution workflow",
+        "safe live-version switching and rollback"
+      ],
+      "operational_cycle": "collect -> validate -> learn -> propose -> independently test -> human review/correction -> safe promotion -> monitor/rollback",
+      "constraints": [
+        "Synthetic or unconfirmed data must never be represented as confirmed field measurements.",
+        "Self-learning must not autonomously alter hardware, pulse-power limits, or protection settings.",
+        "No unvalidated candidate may replace the stable detection algorithm.",
+        "This decision is an architectural target, not a claim that the current device is built or field-validated."
+      ],
+      "adopted_at": "2026-11-19"
+    }
+  }
 }
