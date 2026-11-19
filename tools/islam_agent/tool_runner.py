@@ -24,6 +24,7 @@ AGENT_TEST_MODULES = (
     "test_checkpoint",
     "test_checkpointed_runner",
     "test_local_agent",
+    "test_local_workflow",
 )
 
 
