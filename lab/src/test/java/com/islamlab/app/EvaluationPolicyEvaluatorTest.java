@@ -91,4 +91,22 @@ public class EvaluationPolicyEvaluatorTest {
         new EvaluationPolicyEvaluator.Policy(4, 2, 2,
                 1.2, 0.05, 0.05, 0.8, 0.2, Collections.<String>emptyList());
     }
+
+    @Test public void positiveOnlyAndNegativeOnlyStrataUseApplicableMetrics() {
+        List<EvaluationPolicyEvaluator.Observation> rows = new ArrayList<>();
+        rows.add(row("p1", true, true, true, "iron", "dry"));
+        rows.add(row("p2", true, true, true, "iron", "dry"));
+        rows.add(row("n1", false, false, false, "no-target", "dry"));
+        rows.add(row("n2", false, false, false, "no-target", "dry"));
+        EvaluationPolicyEvaluator.Policy p = new EvaluationPolicyEvaluator.Policy(
+                2, 2, 2, 0.0, 0.0, 0.0, 1.0, 0.0,
+                Arrays.asList("iron|dry", "no-target|dry"));
+        EvaluationPolicyEvaluator.Result r = EvaluationPolicyEvaluator.evaluate(rows, p);
+        assertEquals("ELIGIBLE_FOR_REVIEW", r.status);
+        assertEquals(2, r.strata.get("iron|dry").candidate.positives);
+        assertEquals(0, r.strata.get("iron|dry").candidate.negatives);
+        assertEquals(0, r.strata.get("no-target|dry").candidate.positives);
+        assertEquals(2, r.strata.get("no-target|dry").candidate.negatives);
+    }
+
 }
