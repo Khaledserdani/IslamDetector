@@ -30,6 +30,10 @@ def _gauss_legendre(order: int) -> tuple[list[float], list[float]]:
                 break
         else:
             raise ArithmeticError("Gauss-Legendre root did not converge")
+        p0, p1 = 1.0, z
+        for degree in range(2, order + 1):
+            p0, p1 = p1, ((2 * degree - 1) * z * p1 - (degree - 1) * p0) / degree
+        derivative = order * (z * p1 - p0) / (z * z - 1.0)
         weight = 2.0 / ((1.0 - z * z) * derivative * derivative)
         nodes[i], nodes[order - 1 - i] = -z, z
         weights[i] = weights[order - 1 - i] = weight
