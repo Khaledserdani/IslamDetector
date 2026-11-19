@@ -40,6 +40,7 @@ class SafeToolRunnerTests(unittest.TestCase):
             runner.execute_plan(
                 proposal([{"kind": "inspect", "target": "../../.env"}]),
                 "agent-003",
+                human_approved=True,
             )
 
     @patch("tool_runner.subprocess.run")
@@ -59,6 +60,7 @@ class SafeToolRunnerTests(unittest.TestCase):
         result = runner.execute_plan(
             proposal([{"kind": "run_test", "target": "agent_unit_tests"}]),
             "agent-003",
+            human_approved=True,
         )
         self.assertEqual(result[0]["status"], "passed")
         kwargs = run.call_args.kwargs
@@ -87,6 +89,7 @@ class SafeToolRunnerTests(unittest.TestCase):
             runner.execute_plan(
                 proposal([{"kind": "run_test", "target": "python -c print(1)"}]),
                 "agent-003",
+                human_approved=True,
             )
 
 
