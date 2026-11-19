@@ -100,6 +100,8 @@ public final class ScientificCaptureStore {
         public final String eventId, captureId, reviewerId;
         public final String expectedLifecycle, newLifecycle, expectedGroundTruth, newGroundTruth;
         public final String reasonCode, note, evidenceType, evidenceRef;
+        public final String targetClass, soilClass;
+        public final Boolean groundTruthPositive;
         public final long eventTimeEpochMs;
 
         public ReviewInput(String eventId, String captureId, String reviewerId,
@@ -107,11 +109,24 @@ public final class ScientificCaptureStore {
                            String expectedGroundTruth, String newGroundTruth,
                            String reasonCode, String note, String evidenceType,
                            String evidenceRef, long eventTimeEpochMs) {
+            this(eventId, captureId, reviewerId, expectedLifecycle, newLifecycle,
+                    expectedGroundTruth, newGroundTruth, reasonCode, note, evidenceType,
+                    evidenceRef, eventTimeEpochMs, null, null, null);
+        }
+
+        public ReviewInput(String eventId, String captureId, String reviewerId,
+                           String expectedLifecycle, String newLifecycle,
+                           String expectedGroundTruth, String newGroundTruth,
+                           String reasonCode, String note, String evidenceType,
+                           String evidenceRef, long eventTimeEpochMs,
+                           String targetClass, String soilClass, Boolean groundTruthPositive) {
             this.eventId=eventId; this.captureId=captureId; this.reviewerId=reviewerId;
             this.expectedLifecycle=expectedLifecycle; this.newLifecycle=newLifecycle;
             this.expectedGroundTruth=expectedGroundTruth; this.newGroundTruth=newGroundTruth;
             this.reasonCode=reasonCode; this.note=note; this.evidenceType=evidenceType;
             this.evidenceRef=evidenceRef; this.eventTimeEpochMs=eventTimeEpochMs;
+            this.targetClass=targetClass; this.soilClass=soilClass;
+            this.groundTruthPositive=groundTruthPositive;
         }
     }
 
@@ -188,6 +203,12 @@ public final class ScientificCaptureStore {
                     throw new IllegalArgumentException("تأكيد الحقيقة الأرضية يتطلب نوع دليل ومرجعه");
             }
 
+            if ((input.targetClass != null && isBlank(input.targetClass))
+                    || (input.soilClass != null && isBlank(input.soilClass)))
+                throw new IllegalArgumentException("فئة الهدف أو التربة لا يجوز أن تكون فارغة");
+            if (input.groundTruthPositive != null && !"CONFIRMED".equals(input.newGroundTruth))
+                throw new IllegalArgumentException("تحديد وجود الهدف يتطلب حقيقة أرضية مؤكدة");
+
             ContentValues v = new ContentValues();
             v.put("event_id", input.eventId); v.put("capture_id", input.captureId);
             v.put("event_time_epoch_ms", input.eventTimeEpochMs); v.put("reviewer_id", input.reviewerId);
@@ -197,6 +218,9 @@ public final class ScientificCaptureStore {
             v.put("new_ground_truth_status", input.newGroundTruth);
             v.put("reason_code", input.reasonCode); putNullable(v, "review_note", input.note);
             putNullable(v, "evidence_type", input.evidenceType); putNullable(v, "evidence_ref", input.evidenceRef);
+            putNullable(v, "target_class", input.targetClass); putNullable(v, "soil_class", input.soilClass);
+            if (input.groundTruthPositive != null)
+                v.put("ground_truth_positive", input.groundTruthPositive ? 1 : 0);
             putNullable(v, "previous_event_id", latestEventId);
             db.insertOrThrow("review_events", null, v);
             db.setTransactionSuccessful();
