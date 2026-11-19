@@ -360,6 +360,53 @@ public final class ScientificCaptureStore {
         }
     }
 
+
+    /** A field-candidate evaluation must consume the exact sealed manifest it records. */
+    private static void validateEvaluationManifest(SQLiteDatabase db, EvaluationInput input,
+            String expectedManifestHash) {
+        try {
+            org.json.JSONObject root = new org.json.JSONObject(input.manifestJson);
+            if (!"islam-dataset-manifest-v1".equals(root.optString("manifest_schema"))
+                    || !input.evaluationId.equals(root.optString("manifest_id"))
+                    || root.optInt("item_count", -1) != input.items.size())
+                throw new IllegalArgumentException("تقييم ميداني يحتاج بيان بيانات موثوقاً مطابقاً");
+            org.json.JSONArray entries = root.optJSONArray("items");
+            if (entries == null || entries.length() != input.items.size())
+                throw new IllegalArgumentException("عدد عينات البيان لا يطابق التقييم");
+            java.util.HashMap<String,org.json.JSONObject> byCapture = new java.util.HashMap<>();
+            for (int i=0;i<entries.length();i++) {
+                org.json.JSONObject entry = entries.getJSONObject(i);
+                String id = entry.optString("capture_id", "");
+                if (isBlank(id) || byCapture.put(id, entry) != null)
+                    throw new IllegalArgumentException("البيان يحتوي معرف التقاط مفقوداً أو مكرراً");
+            }
+            for (EvaluationItemInput item : input.items) {
+                org.json.JSONObject entry = byCapture.remove(item.captureId);
+                if (entry == null || !item.split.equals(entry.optString("split"))
+                        || !item.groupKey.equals(entry.optString("group_key")))
+                    throw new IllegalArgumentException("توزيع العينة في البيان لا يطابق عناصر التقييم");
+                try (Cursor capture = db.rawQuery("SELECT payload_sha256,source_type,transport_status "
+                        + "FROM captures WHERE capture_id=?", new String[]{item.captureId})) {
+                    if (!capture.moveToFirst()
+                            || !capture.getString(0).equals(entry.optString("payload_sha256"))
+                            || !capture.getString(1).equals(entry.optString("source_type"))
+                            || !capture.getString(2).equals(entry.optString("transport_status")))
+                        throw new IllegalArgumentException("بيان العينة لا يطابق سجل الالتقاط الأصلي");
+                }
+                if (!"CONFIRMED".equals(entry.optString("ground_truth_status"))
+                        || !"ELIGIBLE_FOR_TRAINING".equals(entry.optString("review_lifecycle")))
+                    throw new IllegalArgumentException("بيان التقييم يحتوي عينة غير مؤكدة أو غير مؤهلة");
+            }
+            if (!byCapture.isEmpty())
+                throw new IllegalArgumentException("البيان يحتوي عينات غير موجودة في التقييم");
+            if (!expectedManifestHash.equals(sha256(input.manifestJson.getBytes(
+                    java.nio.charset.StandardCharsets.UTF_8))))
+                throw new IllegalArgumentException("بصمة بيان مجموعة البيانات غير متطابقة");
+        } catch (org.json.JSONException | NoSuchAlgorithmException ex) {
+            throw new IllegalArgumentException("تعذر التحقق من بيان مجموعة البيانات", ex);
+        }
+    }
+
     private static void putJsonNullable(org.json.JSONObject object, String key, String value)
             throws org.json.JSONException {
         if (value == null) object.put(key, org.json.JSONObject.NULL);
@@ -537,6 +584,9 @@ public final class ScientificCaptureStore {
                             throw new IllegalArgumentException("ترقية الخوارزمية تتطلب بيانات مستقلة مؤكدة ومؤهلة");
                     }
                 }
+            }
+            if ("FIELD_CANDIDATE".equals(input.decision)) {
+                validateEvaluationManifest(db, input, manifestHash);
             }
             ContentValues run = new ContentValues();
             run.put("evaluation_run_id", input.evaluationId); run.put("dataset_manifest_json", input.manifestJson);
