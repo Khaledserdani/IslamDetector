@@ -699,6 +699,48 @@ public final class ScientificCaptureStore {
 
 
 
+
+    /** Registers one immutable, explicitly approved policy version. */
+    public void registerEvaluationPolicy(String policyId, String policyVersion,
+            EvaluationPolicyEvaluator.Policy policy, String approvedBy,
+            String approvalEvidenceRef, long approvedEpochMs) {
+        if (isBlank(policyId) || isBlank(policyVersion) || policy == null
+                || isBlank(approvedBy) || isBlank(approvalEvidenceRef) || approvedEpochMs < 0)
+            throw new IllegalArgumentException("بيانات اعتماد سياسة التقييم غير مكتملة");
+        String json = serializePolicy(policy);
+        String hash;
+        try { hash = sha256(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+        catch (Exception ex) { throw new IllegalStateException("تعذر ختم سياسة التقييم", ex); }
+        ContentValues row = new ContentValues();
+        row.put("policy_id", policyId); row.put("policy_version", policyVersion);
+        row.put("policy_json", json); row.put("policy_sha256", hash);
+        row.put("approved_by", approvedBy); row.put("approval_evidence_ref", approvalEvidenceRef);
+        row.put("approved_epoch_ms", approvedEpochMs);
+        owner.scientificWritableDatabase().insertOrThrow("evaluation_policies", null, row);
+    }
+
+    private static String serializePolicy(EvaluationPolicyEvaluator.Policy policy) {
+        try {
+            org.json.JSONObject p = new org.json.JSONObject();
+            p.put("min_test_cases", policy.minTestCases);
+            p.put("min_positive_cases", policy.minPositiveCases);
+            p.put("min_negative_cases", policy.minNegativeCases);
+            p.put("max_accuracy_drop", policy.maxAccuracyDrop);
+            p.put("max_recall_drop", policy.maxRecallDrop);
+            p.put("max_false_positive_rate_increase", policy.maxFalsePositiveRateIncrease);
+            p.put("min_candidate_recall", policy.minCandidateRecall);
+            p.put("max_candidate_false_positive_rate", policy.maxCandidateFalsePositiveRate);
+            org.json.JSONArray required = new org.json.JSONArray();
+            java.util.ArrayList<String> sorted = new java.util.ArrayList<>(policy.requiredStrata);
+            java.util.Collections.sort(sorted);
+            for (String key : sorted) required.put(key);
+            p.put("required_strata", required);
+            return p.toString();
+        } catch (org.json.JSONException ex) {
+            throw new IllegalStateException("تعذر ترميز سياسة التقييم", ex);
+        }
+    }
+
     /**
      * Loads verified held-out TEST records, computes the release gate locally, and appends
      * the immutable result. Caller-supplied metrics_json is never used as the gate result.
@@ -713,24 +755,18 @@ public final class ScientificCaptureStore {
                 EvaluationObservationLoader.loadHeldOutTest(owner, evaluationId);
         EvaluationPolicyEvaluator.Result result =
                 EvaluationPolicyEvaluator.evaluate(observations, policy);
-        final String policyJson, metricsJson;
+        final String policyJson = serializePolicy(policy);
+        final String metricsJson;
         try {
-            org.json.JSONObject p = new org.json.JSONObject();
-            p.put("min_test_cases", policy.minTestCases);
-            p.put("min_positive_cases", policy.minPositiveCases);
-            p.put("min_negative_cases", policy.minNegativeCases);
-            p.put("max_accuracy_drop", policy.maxAccuracyDrop);
-            p.put("max_recall_drop", policy.maxRecallDrop);
-            p.put("max_false_positive_rate_increase", policy.maxFalsePositiveRateIncrease);
-            p.put("min_candidate_recall", policy.minCandidateRecall);
-            p.put("max_candidate_false_positive_rate", policy.maxCandidateFalsePositiveRate);
-            org.json.JSONArray required = new org.json.JSONArray();
-            java.util.ArrayList<String> sortedRequired = new java.util.ArrayList<>(policy.requiredStrata);
-            java.util.Collections.sort(sortedRequired);
-            for (String key : sortedRequired) required.put(key);
-            p.put("required_strata", required);
-            policyJson = p.toString();
-
+            String policyHash = sha256(policyJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            try (Cursor registered = owner.scientificReadableDatabase().rawQuery(
+                    "SELECT policy_json,policy_sha256 FROM evaluation_policies "
+                            + "WHERE policy_id=? AND policy_version=?",
+                    new String[]{policyId, policyVersion})) {
+                if (!registered.moveToFirst() || !policyJson.equals(registered.getString(0))
+                        || !policyHash.equals(registered.getString(1)))
+                    throw new IllegalArgumentException("سياسة التقييم غير مسجلة أو تختلف عن النسخة المعتمدة");
+            }
             org.json.JSONObject m = new org.json.JSONObject();
             m.put("status", result.status); m.put("reason", result.reason);
             if (result.champion != null) m.put("champion", metricsJson(result.champion));
