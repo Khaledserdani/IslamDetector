@@ -334,4 +334,55 @@ public class ScientificCaptureStoreTest {
         } catch (SQLiteException expected) { }
     }
 
+
+    @Test public void datasetUsageIsAppendOnlyAndRoleIsolatedAcrossRuns() {
+        store.insertCapture(capture("usage-capture", 23, "instrument", new byte[]{23, 24}));
+        String manifestHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        ScientificCaptureStore.DatasetUsageInput testUsage = new ScientificCaptureStore.DatasetUsageInput(
+                "usage-test-1", "usage-capture", "manifest-a", manifestHash, "TEST",
+                "model-a", "1", "run-a", 13000L, "test-actor", "sealed-test-manifest");
+        store.appendDatasetUsageEvent(testUsage);
+        store.appendDatasetUsageEvent(testUsage); // identical retry is idempotent
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM dataset_usage_events WHERE event_id='usage-test-1'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
+        }
+        try {
+            store.appendDatasetUsageEvent(new ScientificCaptureStore.DatasetUsageInput(
+                    "usage-train-1", "usage-capture", "manifest-b", manifestHash, "TRAIN",
+                    "model-b", "1", "run-b", 14000L, "trainer", "training-manifest"));
+            fail("Expected TEST-to-TRAIN reuse rejection");
+        } catch (SQLiteException expected) { }
+        try {
+            owner.scientificWritableDatabase().execSQL(
+                    "UPDATE dataset_usage_events SET actor_id='tampered' WHERE event_id='usage-test-1'");
+            fail("Expected append-only update rejection");
+        } catch (SQLiteException expected) { }
+        try {
+            owner.scientificWritableDatabase().execSQL(
+                    "DELETE FROM dataset_usage_events WHERE event_id='usage-test-1'");
+            fail("Expected append-only delete rejection");
+        } catch (SQLiteException expected) { }
+    }
+
+    @Test public void evaluationAutomaticallyRecordsDatasetUsageRoles() {
+        store.insertCapture(capture("usage-eval-test", 24, "instrument", new byte[]{24}));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "usage-eval-item", "usage-eval-test", "test", "usage-group", null, null));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "usage-eval-run", "{}", null, null, "candidate-usage", "1.2",
+                "{}", "SIMULATION_ONLY", 15000L, items));
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT usage_role,consumer_id,consumer_version,run_id "
+                + "FROM dataset_usage_events WHERE capture_id='usage-eval-test'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals("TEST", c.getString(0));
+            assertEquals("candidate-usage", c.getString(1));
+            assertEquals("1.2", c.getString(2));
+            assertEquals("usage-eval-run", c.getString(3));
+        }
+    }
+
 }
