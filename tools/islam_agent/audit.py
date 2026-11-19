@@ -31,6 +31,8 @@ REQUIRED_FILES = (
     SPIRAL_DIR / "test_conductor_effects.py",
     SPIRAL_DIR / "rectangular_cross_section_gmd.py",
     SPIRAL_DIR / "test_rectangular_cross_section_gmd.py",
+    SPIRAL_DIR / "rectangular_segment_inductance.py",
+    SPIRAL_DIR / "test_rectangular_segment_inductance.py",
     MEMORY_FILE,
     AGENT_DIR / "task_queue.py",
     AGENT_DIR / "test_task_queue.py",
@@ -84,7 +86,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
-        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects", "test_greenhouse_inductance", "test_rectangular_cross_section_gmd"]),
+        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects", "test_greenhouse_inductance", "test_rectangular_cross_section_gmd", "test_rectangular_segment_inductance"]),
         (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent", "test_local_workflow"]),
     )
     outputs = []
