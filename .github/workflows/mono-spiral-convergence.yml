@@ -44,11 +44,14 @@ jobs:
       - name: Run provisional coil-inductance sensitivity sweep
         working-directory: source/simulation/spiral
         run: python3 run_coil_inductance_sensitivity.py
+      - name: Run Greenhouse path-specific inductance convergence
+        working-directory: source/simulation/spiral
+        run: python3 run_greenhouse_inductance.py
       - name: Summarize generated CSV outputs
         working-directory: source/simulation/spiral
         run: |
           set -euo pipefail
-          for file in disk_surrogate_convergence_corrected.csv disk_surrogate_timestep_sensitivity.csv disk_surrogate_parameter_sweep.csv disk_surrogate_coil_inductance_sensitivity.csv; do
+          for file in disk_surrogate_convergence_corrected.csv disk_surrogate_timestep_sensitivity.csv disk_surrogate_parameter_sweep.csv disk_surrogate_coil_inductance_sensitivity.csv greenhouse_inductance_convergence.csv; do
             test -s "$file"
             echo "Generated $file ($(wc -l < "$file") lines)"
             head -n 3 "$file"
