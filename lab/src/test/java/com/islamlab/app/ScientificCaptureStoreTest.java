@@ -170,7 +170,7 @@ public class ScientificCaptureStoreTest {
         String hash = store.insertCapture(capture("analysis-capture", 8, "instrument", new byte[]{8, 7, 6}));
         try {
             store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
-                    "analysis-bad", "analysis-capture", "0".repeat(64), "pi-decay", "0.1",
+                    "analysis-bad", "analysis-capture", "0000000000000000000000000000000000000000000000000000000000000000", "pi-decay", "0.1",
                     null, "{}", "{}", 3000L, 3100L, "complete"));
             fail("Expected digest mismatch");
         } catch (IllegalArgumentException expected) { }
