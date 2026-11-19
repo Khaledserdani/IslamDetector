@@ -53,6 +53,38 @@ public final class ScientificCaptureStore {
         }
     }
 
+    public static final class CaptureRecord {
+        public final String captureId, sessionId, sourceType, payloadFormat, payloadSha256, payloadCrc32;
+        public final long sequence, createdEpochMs;
+        public final int sampleCount;
+        public final byte[] payload;
+        CaptureRecord(Cursor c) {
+            captureId=c.getString(0); sessionId=c.getString(1); sequence=c.getLong(2);
+            sourceType=c.getString(3); payloadFormat=c.getString(4);
+            payload=c.getBlob(5); payloadSha256=c.getString(6); payloadCrc32=c.getString(7);
+            sampleCount=c.getInt(8); createdEpochMs=c.getLong(9);
+        }
+    }
+
+    /** Reads the original bytes and verifies their stored length, CRC32 and SHA-256. */
+    public CaptureRecord getCapture(String captureId) {
+        if (isBlank(captureId)) throw new IllegalArgumentException("معرف الالتقاط مطلوب");
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT capture_id,session_id,sequence,source_type,payload_format,payload_blob,"
+                + "payload_sha256,payload_crc32,sample_count,created_epoch_ms,payload_length_bytes "
+                + "FROM captures WHERE capture_id=?", new String[]{captureId})) {
+            if (!c.moveToFirst()) return null;
+            CaptureRecord record = new CaptureRecord(c);
+            if (record.payload == null || record.payload.length != c.getInt(10)
+                    || !record.payloadSha256.equals(sha256(record.payload))
+                    || !record.payloadCrc32.equals(crc32(record.payload)))
+                throw new IllegalStateException("فشل التحقق من سلامة الالتقاط المخزن");
+            return record;
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("تعذر التحقق من بصمة الالتقاط", ex);
+        }
+    }
+
     public static final class ReviewInput {
         public final String eventId, captureId, reviewerId;
         public final String expectedLifecycle, newLifecycle, expectedGroundTruth, newGroundTruth;
