@@ -312,4 +312,26 @@ public class ScientificCaptureStoreTest {
         assertEquals(3, record.sampleCount);
     }
 
+    @Test public void captureCannotMoveBetweenTrainAndTestAcrossEvaluationRuns() {
+        store.insertCapture(capture("reused-capture", 22, "instrument", new byte[]{22, 23}));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> first =
+                new java.util.ArrayList<>();
+        first.add(new ScientificCaptureStore.EvaluationItemInput(
+                "first-test-item", "reused-capture", "test", "case-22", null, null));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "first-run", "{}", null, null, "candidate-a", "1",
+                "{}", "SIMULATION_ONLY", 11000L, first));
+
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> second =
+                new java.util.ArrayList<>();
+        second.add(new ScientificCaptureStore.EvaluationItemInput(
+                "second-train-item", "reused-capture", "train", "case-22", null, null));
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "second-run", "{}", null, null, "candidate-b", "1",
+                    "{}", "SIMULATION_ONLY", 12000L, second));
+            fail("Expected cross-run train/test reuse guard");
+        } catch (SQLiteException expected) { }
+    }
+
 }
