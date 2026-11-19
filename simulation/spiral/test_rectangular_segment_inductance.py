@@ -4,6 +4,7 @@ import unittest
 from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 from rectangular_segment_inductance import (
     rectangular_adjacent_segment_mutual_inductance,
+    rectangular_parallel_segment_mutual_inductance,
     rectangular_segment_self_inductance,
 )
 
@@ -62,6 +63,50 @@ class RectangularSegmentInductanceTests(unittest.TestCase):
         )
         reconstructed = first_self + second_self + 2.0 * mutual
         self.assertAlmostEqual(reconstructed, whole, delta=1e-18)
+
+
+    def test_parallel_mutual_reduces_to_adjacent_collinear_case(self):
+        adjacent = rectangular_adjacent_segment_mutual_inductance(
+            0.003, 0.002, 0.0006, 0.0006, order=96
+        )
+        general = rectangular_parallel_segment_mutual_inductance(
+            0.003, 0.002, 0.0006, 0.0006,
+            axial_offset_m=0.003, order=96
+        )
+        self.assertAlmostEqual(general, adjacent, delta=1e-18)
+
+    def test_parallel_mutual_is_reciprocal_with_offsets_reversed(self):
+        first = rectangular_parallel_segment_mutual_inductance(
+            0.003, 0.002, 0.0006, 0.0004,
+            transverse_offset_x_m=0.004,
+            transverse_offset_y_m=-0.002,
+            axial_offset_m=0.001,
+            order=96,
+        )
+        reverse = rectangular_parallel_segment_mutual_inductance(
+            0.002, 0.003, 0.0006, 0.0004,
+            transverse_offset_x_m=-0.004,
+            transverse_offset_y_m=0.002,
+            axial_offset_m=-0.001,
+            order=96,
+        )
+        self.assertGreater(first, 0.0)
+        self.assertAlmostEqual(first, reverse, delta=1e-18)
+
+    def test_parallel_mutual_matches_far_field_limit(self):
+        a, b = 0.001, 0.0015
+        dx, dy, offset = 0.10, 0.05, 0.03
+        actual = rectangular_parallel_segment_mutual_inductance(
+            a, b, 0.0006, 0.0006,
+            transverse_offset_x_m=dx,
+            transverse_offset_y_m=dy,
+            axial_offset_m=offset,
+            order=96,
+        )
+        center_z = offset + (b - a) / 2.0
+        distance = math.sqrt(dx * dx + dy * dy + center_z * center_z)
+        expected = 1e-7 * a * b / distance
+        self.assertLess(abs(actual - expected) / expected, 0.002)
 
     def test_invalid_dimensions_and_order_are_rejected(self):
         for dims in ((0.0, 0.001, 0.001), (0.001, -0.001, 0.001),
