@@ -1,4 +1,5 @@
 name: ISLAM Setup Python Action Probe
+# Temporary diagnostic: isolate setup-python from checkout.
 
 on:
   push:
