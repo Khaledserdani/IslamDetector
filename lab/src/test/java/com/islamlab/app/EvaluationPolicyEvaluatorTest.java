@@ -41,7 +41,7 @@ public class EvaluationPolicyEvaluatorTest {
         rows.set(0, row("g1", true, true, false, "iron", "dry"));
         rows.set(1, row("g2", true, true, true, "iron", "dry"));
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(false));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
         assertEquals("REJECTED", r.status);
     }
 
@@ -49,7 +49,7 @@ public class EvaluationPolicyEvaluatorTest {
         List<EvaluationPolicyEvaluator.Observation> rows = balanced();
         rows.set(2, row("g3", false, false, true, "iron", "dry"));
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(false));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
         assertEquals("REJECTED", r.status);
     }
 
@@ -57,14 +57,14 @@ public class EvaluationPolicyEvaluatorTest {
         List<EvaluationPolicyEvaluator.Observation> rows = balanced();
         rows.add(row("g1", true, true, true, "iron", "dry"));
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(false));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
         assertEquals("REJECTED", r.status);
     }
 
     @Test public void insufficientIndependentCasesDoNotPass() {
         List<EvaluationPolicyEvaluator.Observation> rows = balanced().subList(0, 3);
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(false));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
         assertEquals("INSUFFICIENT_EVIDENCE", r.status);
     }
 
@@ -82,7 +82,7 @@ public class EvaluationPolicyEvaluatorTest {
         rows.set(0, new EvaluationPolicyEvaluator.Observation(
                 "train", "g1", "iron", "dry", true, true, true));
         EvaluationPolicyEvaluator.Result r =
-                EvaluationPolicyEvaluator.evaluate(rows, policy(false));
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
         assertEquals("REJECTED", r.status);
     }
 
