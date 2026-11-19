@@ -198,15 +198,13 @@ public final class EvaluationPolicyEvaluator {
 
         if (!policy.requiredStrata.isEmpty()) {
             for (StratumResult s : strata.values()) {
-                if (s.candidate.cases < policy.minTestCases
-                        || s.candidate.positives < policy.minPositiveCases
-                        || s.candidate.negatives < policy.minNegativeCases)
+                if (s.candidate.cases < policy.minTestCases)
                     return result("INSUFFICIENT_EVIDENCE",
-                            "التغطية غير كافية للفئة/التربة: " + s.targetClass + " / " + s.soilClass,
+                            "عدد الحالات المستقلة غير كافٍ للفئة/التربة: " + s.targetClass + " / " + s.soilClass,
                             champion, candidate, strata);
-                if (!passes(s.champion, s.candidate, policy))
+                if (!passesStratum(s.champion, s.candidate, policy))
                     return result("REJECTED",
-                            "تراجع في الفئة/التربة: " + s.targetClass + " / " + s.soilClass,
+                            "تراجع في المقاييس القابلة للحساب للفئة/التربة: " + s.targetClass + " / " + s.soilClass,
                             champion, candidate, strata);
             }
         }
@@ -221,6 +219,18 @@ public final class EvaluationPolicyEvaluator {
                 && newM.falsePositiveRate <= oldM.falsePositiveRate + p.maxFalsePositiveRateIncrease
                 && newM.recall >= p.minCandidateRecall
                 && newM.falsePositiveRate <= p.maxCandidateFalsePositiveRate;
+    }
+
+    /** Strata may be positive-only or negative-only; test only metrics with a real denominator. */
+    private static boolean passesStratum(Metrics oldM, Metrics newM, Policy p) {
+        if (newM.accuracy < oldM.accuracy - p.maxAccuracyDrop) return false;
+        if (newM.positives > 0
+                && (newM.recall < oldM.recall - p.maxRecallDrop
+                    || newM.recall < p.minCandidateRecall)) return false;
+        if (newM.negatives > 0
+                && (newM.falsePositiveRate > oldM.falsePositiveRate + p.maxFalsePositiveRateIncrease
+                    || newM.falsePositiveRate > p.maxCandidateFalsePositiveRate)) return false;
+        return true;
     }
 
     private static Result result(String status, String reason, Metrics champion, Metrics candidate,
