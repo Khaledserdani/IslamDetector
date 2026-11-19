@@ -1,0 +1,18 @@
+name: ISLAM Agent Startup Probe
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  startup-probe:
+    name: Minimal runner startup check
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm runner started
+        run: echo "ISLAM agent startup probe reached a GitHub-hosted runner."
