@@ -34,7 +34,7 @@ public final class ScientificCaptureStore {
                             String payloadFormat, byte[] payload, int sampleCount,
                             String transportStatus, long createdEpochMs) {
             this(captureId, sessionId, sequence, sourceType, null, null, null, null,
-                    null, null, payloadFormat, payload, sampleCount, transportStatus, createdEpochMs);
+                    null, null, null, null, payloadFormat, payload, sampleCount, transportStatus, createdEpochMs);
         }
 
         public CaptureInput(String captureId, String sessionId, long sequence, String sourceType,
