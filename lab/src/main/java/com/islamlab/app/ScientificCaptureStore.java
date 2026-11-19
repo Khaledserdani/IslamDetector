@@ -298,7 +298,7 @@ public final class ScientificCaptureStore {
     public String appendEvaluation(EvaluationInput input) {
         if (input == null || isBlank(input.evaluationId) || !isJsonObject(input.manifestJson)
                 || isBlank(input.candidateId) || isBlank(input.candidateVersion)
-                || !isJsonObject(input.metricsJson) || isBlank(input.decision)
+                || !isJsonObject(input.metricsJson) || !oneOf(input.decision, "FIELD_CANDIDATE", "SIMULATION_ONLY", "SHADOW_ONLY")
                 || input.createdEpochMs < 0 || input.items == null || input.items.isEmpty())
             throw new IllegalArgumentException("بيانات التقييم غير صالحة");
         final String manifestHash;
@@ -323,7 +323,7 @@ public final class ScientificCaptureStore {
         SQLiteDatabase db = owner.scientificWritableDatabase();
         db.beginTransaction();
         try {
-            if ("PROMOTE".equals(input.decision)) {
+            if ("FIELD_CANDIDATE".equals(input.decision)) {
                 for (EvaluationItemInput item : input.items) {
                     try (Cursor c = db.rawQuery("SELECT source_type FROM captures WHERE capture_id=?",
                             new String[]{item.captureId})) {
@@ -366,6 +366,43 @@ public final class ScientificCaptureStore {
         return manifestHash;
     }
 
+
+    /** Appends an explicit human/policy decision after a field-candidate evaluation. */
+    public void appendEvaluationDecision(String decisionId, String evaluationId, String decision,
+            String policyId, String policyVersion, String reviewerId, String rationale,
+            String evidenceRef, long decidedEpochMs) {
+        if (isBlank(decisionId) || isBlank(evaluationId)
+                || !oneOf(decision, "PROMOTE", "REJECT", "SHADOW_ONLY")
+                || isBlank(policyId) || isBlank(policyVersion) || isBlank(reviewerId)
+                || isBlank(rationale) || isBlank(evidenceRef) || decidedEpochMs < 0)
+            throw new IllegalArgumentException("قرار اعتماد التقييم ناقص أو غير صالح");
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            try (Cursor c = db.rawQuery("SELECT decision FROM evaluation_runs WHERE evaluation_run_id=?",
+                    new String[]{evaluationId})) {
+                if (!c.moveToFirst()) throw new IllegalArgumentException("التقييم غير موجود");
+                if ("PROMOTE".equals(decision) && !"FIELD_CANDIDATE".equals(c.getString(0)))
+                    throw new IllegalArgumentException("لا يمكن ترقية تقييم محاكاة أو ظل");
+            }
+            if ("PROMOTE".equals(decision)) {
+                try (Cursor c = db.rawQuery("SELECT COUNT(*) FROM evaluation_items "
+                        + "WHERE evaluation_run_id=? AND split='test'", new String[]{evaluationId})) {
+                    if (!c.moveToFirst() || c.getInt(0) < 1)
+                        throw new IllegalArgumentException("الترقية تتطلب مجموعة اختبار مستقلة");
+                }
+            }
+            ContentValues v = new ContentValues();
+            v.put("decision_id", decisionId); v.put("evaluation_run_id", evaluationId);
+            v.put("decision", decision); v.put("policy_id", policyId);
+            v.put("policy_version", policyVersion); v.put("reviewer_id", reviewerId);
+            v.put("rationale", rationale); v.put("evidence_ref", evidenceRef);
+            v.put("decided_epoch_ms", decidedEpochMs);
+            db.insertOrThrow("evaluation_decisions", null, v);
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+
     /** Activation is permitted only when a recorded evaluation explicitly says PROMOTE. */
     public void appendDeploymentEvent(DeploymentInput input) {
         if (input == null || isBlank(input.eventId) || isBlank(input.newAlgorithmId)
@@ -380,15 +417,18 @@ public final class ScientificCaptureStore {
         db.beginTransaction();
         try {
             if (input.evaluationRunId != null) {
-                try (Cursor c = db.rawQuery("SELECT candidate_algorithm_id,candidate_algorithm_version,decision "
-                        + "FROM evaluation_runs WHERE evaluation_run_id=?",
+                try (Cursor c = db.rawQuery("SELECT r.candidate_algorithm_id,r.candidate_algorithm_version,"
+                        + "r.decision,(SELECT d.decision FROM evaluation_decisions d "
+                        + "WHERE d.evaluation_run_id=r.evaluation_run_id ORDER BY d.rowid DESC LIMIT 1) "
+                        + "FROM evaluation_runs r WHERE r.evaluation_run_id=?",
                         new String[]{input.evaluationRunId})) {
                     if (!c.moveToFirst()) throw new IllegalArgumentException("التقييم المرجعي غير موجود");
                     if ("activate".equals(input.action)) {
                         if (!input.newAlgorithmId.equals(c.getString(0))
                                 || !input.newAlgorithmVersion.equals(c.getString(1))
-                                || !"PROMOTE".equals(c.getString(2)))
-                            throw new IllegalArgumentException("التقييم لا يجيز تفعيل هذه النسخة");
+                                || !"FIELD_CANDIDATE".equals(c.getString(2))
+                                || !"PROMOTE".equals(c.getString(3)))
+                            throw new IllegalArgumentException("لا يوجد قرار اعتماد صريح لهذه النسخة");
                     }
                 }
             }
