@@ -29,6 +29,7 @@ class SafeToolRunnerTests(unittest.TestCase):
             result = runner.execute_plan(
                 proposal([{"kind": "inspect", "target": "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md"}]),
                 "agent-003",
+                human_approved=True,
             )
             self.assertEqual(result[0]["content"], "read-only evidence")
             self.assertEqual(target.read_text(encoding="utf-8"), "read-only evidence")
@@ -40,6 +41,16 @@ class SafeToolRunnerTests(unittest.TestCase):
                 proposal([{"kind": "inspect", "target": "../../.env"}]),
                 "agent-003",
             )
+
+    @patch("tool_runner.subprocess.run")
+    def test_requires_explicit_human_approval(self, run):
+        runner = SafeToolRunner()
+        with self.assertRaisesRegex(PolicyViolation, "explicit human approval"):
+            runner.execute_plan(
+                proposal([{"kind": "run_test", "target": "agent_unit_tests"}]),
+                "agent-003",
+            )
+        run.assert_not_called()
 
     @patch("tool_runner.subprocess.run")
     def test_runs_only_fixed_test_command_without_shell(self, run):
@@ -65,6 +76,7 @@ class SafeToolRunnerTests(unittest.TestCase):
                     {"kind": "inspect", "target": "tools/islam_agent/ollama_client.py"},
                 ]),
                 "agent-003",
+                human_approved=True,
             )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["status"], "failed")
