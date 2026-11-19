@@ -19,6 +19,8 @@ VALID_STATES = {"running", "paused", "completed"}
 MAX_COMPLETED_STEPS = 100
 MAX_STEP_ID_CHARS = 120
 MAX_TASK_ID_CHARS = 120
+MAX_CHECKPOINT_BYTES = 256_000
+ALLOWED_RESULT_KEYS = {"status", "kind", "target", "step_id", "exit_code", "error"}
 
 
 class CheckpointError(ValueError):
@@ -67,9 +69,16 @@ def validate_checkpoint(data: object, expected_task_id: str | None = None) -> di
     if len(steps) != len(set(steps)):
         raise CheckpointError("completed_steps contains duplicate identifiers")
     result = data["last_result"]
-    if result is not None and not isinstance(result, dict):
-        raise CheckpointError("last_result must be an object or null")
-    if not isinstance(data["updated_at"], str) or not data["updated_at"].strip():
+    if result is not None:
+        if not isinstance(result, dict) or not set(result).issubset(ALLOWED_RESULT_KEYS):
+            raise CheckpointError("last_result contains unsupported fields")
+        for key, value in result.items():
+            if isinstance(value, str) and len(value) <= 500:
+                continue
+            if key == "exit_code" and (value is None or (isinstance(value, int) and not isinstance(value, bool))):
+                continue
+            raise CheckpointError("last_result values must be bounded strings or an integer exit_code")
+    if not isinstance(data["updated_at"], str) or not data["updated_at"].strip() or len(data["updated_at"]) > 64:
         raise CheckpointError("updated_at must be a non-empty string")
     # Round-trip to ensure returned state is detached from caller-owned objects.
     return json.loads(json.dumps(data, ensure_ascii=False))
@@ -90,9 +99,14 @@ def new_checkpoint(task_id: str, run_id: str, plan_digest: str | None = None) ->
 
 def load_checkpoint(path: Path, expected_task_id: str | None = None) -> dict:
     try:
-        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+        target = Path(path)
+        if target.stat().st_size > MAX_CHECKPOINT_BYTES:
+            raise CheckpointError("checkpoint exceeds the configured size limit")
+        raw = json.loads(target.read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise CheckpointError("checkpoint does not exist; cannot resume") from None
+    except CheckpointError:
+        raise
     except (OSError, json.JSONDecodeError):
         raise CheckpointError("checkpoint is unreadable or invalid JSON") from None
     return validate_checkpoint(raw, expected_task_id=expected_task_id)
