@@ -41,6 +41,7 @@ final class ScientificStorageSchema {
                 + "new_ground_truth_status TEXT NOT NULL CHECK(new_ground_truth_status IN "
                 + "('UNKNOWN','CONFIRMED','REJECTED','INCONCLUSIVE')),"
                 + "reason_code TEXT NOT NULL, review_note TEXT, evidence_type TEXT, evidence_ref TEXT,"
+                + "target_class TEXT, soil_class TEXT, ground_truth_positive INTEGER CHECK(ground_truth_positive IS NULL OR ground_truth_positive IN (0,1)),"
                 + "previous_event_id TEXT REFERENCES review_events(event_id) ON DELETE RESTRICT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_review_events_capture_time ON review_events(capture_id, event_time_epoch_ms)");
 
