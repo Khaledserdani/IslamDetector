@@ -205,7 +205,7 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
             value = L[i][j] - sum(lower[i][k]*lower[j][k] for k in range(j))
             if i == j:
                 if value <= 0:
-                    raise ValueError("inductance matrix is not positive definite; refine model")
+                    raise ValueError(f"inductance matrix is not positive definite at pivot {i} (Schur complement {value:.6e} H); refine model")
                 lower[i][j] = math.sqrt(value)
             else:
                 lower[i][j] = value/lower[j][j]
