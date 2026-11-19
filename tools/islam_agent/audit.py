@@ -25,6 +25,8 @@ REQUIRED_FILES = (
     SPIRAL_DIR / "mono_spiral_disk.py",
     SPIRAL_DIR / "run_disk_convergence.py",
     SPIRAL_DIR / "test_mono_spiral_geometry.py",
+    SPIRAL_DIR / "greenhouse_inductance.py",
+    SPIRAL_DIR / "test_greenhouse_inductance.py",
     SPIRAL_DIR / "test_mono_spiral_disk.py",
     SPIRAL_DIR / "test_conductor_effects.py",
     MEMORY_FILE,
@@ -80,7 +82,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
-        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects"]),
+        (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects", "test_greenhouse_inductance"]),
         (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent", "test_local_workflow"]),
     )
     outputs = []
