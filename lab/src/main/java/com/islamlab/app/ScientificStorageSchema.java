@@ -130,6 +130,20 @@ final class ScientificStorageSchema {
                 + "BEGIN SELECT RAISE(ABORT, 'capture reused across dataset usage roles'); END");
     }
 
+
+    /** Backfills v5 evaluation assignments so v6 role isolation covers historical use. */
+    static void backfillDatasetUsageEvents(SQLiteDatabase db) {
+        db.execSQL("INSERT INTO dataset_usage_events (event_id,capture_id,dataset_manifest_id,"
+                + "dataset_manifest_sha256,usage_role,consumer_id,consumer_version,run_id,"
+                + "recorded_epoch_ms,actor_id,evidence_ref) "
+                + "SELECT 'legacy-v6:' || i.evaluation_item_id,i.capture_id,r.evaluation_run_id,"
+                + "r.dataset_manifest_sha256,upper(i.split),r.candidate_algorithm_id,"
+                + "r.candidate_algorithm_version,r.evaluation_run_id,r.created_epoch_ms,"
+                + "'migration_v6','evaluation_items:' || i.evaluation_item_id "
+                + "FROM evaluation_items i JOIN evaluation_runs r "
+                + "ON r.evaluation_run_id=i.evaluation_run_id");
+    }
+
     static void createGlobalTrainTestReuseGuard(SQLiteDatabase db) {
         db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_capture_train_test_reuse_guard "
                 + "BEFORE INSERT ON evaluation_items "
