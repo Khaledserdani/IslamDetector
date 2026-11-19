@@ -12,7 +12,7 @@ import java.util.List;
 /** Durable local experiment store. Raw CSV is preserved alongside searchable metadata. */
 public final class ExperimentStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "islam_lab_experiments.db";
-    private static final int DB_VERSION = 8;
+    private static final int DB_VERSION = 9;
     private static final String TABLE = "experiments";
     private static final String[] RECORD_COLUMNS = {
             "id", "name", "csv", "source_type", "acquisition_origin", "measurement_status",
@@ -114,6 +114,19 @@ public final class ExperimentStore extends SQLiteOpenHelper {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_gate_results_no_delete "
                     + "BEFORE DELETE ON evaluation_gate_results BEGIN "
                     + "SELECT RAISE(ABORT, 'evaluation_gate_results is append-only'); END");
+        }
+        if (oldVersion < 9) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_policies ("
+                    + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL,"
+                    + "policy_json TEXT NOT NULL, policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256)=64),"
+                    + "approved_by TEXT NOT NULL, approval_evidence_ref TEXT NOT NULL,"
+                    + "approved_epoch_ms INTEGER NOT NULL, PRIMARY KEY(policy_id,policy_version))");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_policies_no_update "
+                    + "BEFORE UPDATE ON evaluation_policies BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_policies is append-only'); END");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_policies_no_delete "
+                    + "BEFORE DELETE ON evaluation_policies BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_policies is append-only'); END");
         }
     }
 
