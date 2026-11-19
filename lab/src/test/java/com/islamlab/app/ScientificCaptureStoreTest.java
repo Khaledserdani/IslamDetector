@@ -139,7 +139,7 @@ public class ScientificCaptureStoreTest {
                 + "measurement_quantity TEXT NOT NULL DEFAULT 'unknown', sample_count INTEGER NOT NULL DEFAULT 0, "
                 + "device_id TEXT NOT NULL DEFAULT '', firmware_version TEXT NOT NULL DEFAULT '', "
                 + "soil_type TEXT NOT NULL DEFAULT '')");
-        String csv = "schema_version,1.1\\nsource_type,user_provided\\nindex,value\\n1,2\\n2,3\\n";
+        String csv = "schema_version,1.1\nsource_type,user_provided\nindex,value\n1,2\n2,3\n";
         android.content.ContentValues row = new android.content.ContentValues();
         row.put("id", "v2-row"); row.put("name", "سجل إصدار 2"); row.put("csv", csv);
         row.put("source_type", "user_provided"); row.put("acquisition_origin", "legacy_import");
@@ -162,6 +162,59 @@ public class ScientificCaptureStoreTest {
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='captures'", null)) {
             assertTrue(cursor.moveToFirst());
             assertEquals(1, cursor.getInt(0));
+        }
+    }
+
+
+    @Test public void analysisRequiresExactRawCaptureDigest() {
+        String hash = store.insertCapture(capture("analysis-capture", 8, "instrument", new byte[]{8, 7, 6}));
+        try {
+            store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
+                    "analysis-bad", "analysis-capture", "0".repeat(64), "pi-decay", "0.1",
+                    null, "{}", "{}", 3000L, 3100L, "complete"));
+            fail("Expected digest mismatch");
+        } catch (IllegalArgumentException expected) { }
+        store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
+                "analysis-good", "analysis-capture", hash, "pi-decay", "0.1",
+                null, "{\"window\":8}", "{\"score\":0.72}", 3000L, 3100L, "complete"));
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM analysis_runs WHERE capture_id='analysis-capture'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
+        }
+    }
+
+    @Test public void evaluationRejectsRelatedGroupAcrossTrainAndTest() {
+        store.insertCapture(capture("eval-a", 11, "instrument", new byte[]{1}));
+        store.insertCapture(capture("eval-b", 12, "instrument", new byte[]{2}));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "item-a", "eval-a", "train", "same-target-session", null, null));
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "item-b", "eval-b", "test", "same-target-session", null, null));
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "eval-leak", "{}", null, null, "candidate", "1.0",
+                    "{\"accuracy\":0.9}", "PROMOTE", 4000L, items));
+            fail("Expected group split rejection");
+        } catch (IllegalArgumentException expected) { }
+    }
+
+    @Test public void activationRequiresPromotingEvaluationForSameCandidate() {
+        store.insertCapture(capture("eval-capture", 13, "instrument", new byte[]{3}));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "eval-item", "eval-capture", "test", "target-13", null, "{\"score\":0.8}"));
+        store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                "eval-approved", "{\"dataset\":\"sealed-v1\"}", "champion", "1.0",
+                "candidate", "2.0", "{\"accuracy\":0.95}", "PROMOTE", 5000L, items));
+        store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
+                "deploy-1", "champion", "1.0", "candidate", "2.0", null,
+                "activate", "independent evaluation passed", "operator", 6000L, "eval-approved"));
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM deployment_events WHERE action='activate'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
         }
     }
 
