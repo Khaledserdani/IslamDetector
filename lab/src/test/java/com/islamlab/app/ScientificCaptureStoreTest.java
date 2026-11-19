@@ -504,7 +504,7 @@ public class ScientificCaptureStoreTest {
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "tamper-item", "tamper-capture", "test", "tamper-group", null, null));
         String manifest = manifestJson("tamper-run", 18000L, items)
-                .replace("\\"split\\":\\"test\\"", "\\"split\\":\\"train\\"");
+                .replace("\"split\":\"test\"", "\"split\":\"train\"");
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                     "tamper-run", manifest, null, null, "candidate", "6.0",
