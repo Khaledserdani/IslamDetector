@@ -23,7 +23,7 @@
 ## 2. ترقية قاعدة البيانات
 
 - الإصدار السابق في التطبيق هو DB_VERSION=2؛ نُفذت ترقية إضافية إلى DB_VERSION=4. الترقية 2→3 تضيف جداول الالتقاط والتقييم، والترقية 3→4 تضيف سجل قرارات الاعتماد.
-- Migration 2→3 تضيف الجداول والفهارس والقيود فقط.
+- Migration 2→3 تضيف الجداول الأساسية والفهارس والقيود، وMigration 3→4 تضيف سجل قرارات الاعتماد؛ كلاهما إضافي.
 - لا تحذف أو تعيد إنشاء جدول `experiments`، ولا تعيد كتابة CSV القديم، ولا تعيد تصنيف مصدره.
 - لا تنشئ صفوف `captures` تلقائياً من التجارب القديمة؛ تحويل سجل قديم يحتاج عملية استيراد صريحة تحفظ الأصل ومصدر التحويل.
 - يجب أن يكون الترحيل داخل معاملة SQLite التي يديرها `SQLiteOpenHelper`. إذا فشل إنشاء أي جدول، يجب أن تتراجع المعاملة ولا تترك قاعدة نصف محدثة.
@@ -112,7 +112,7 @@
 - معرف تشغيل التقييم.
 - `dataset_manifest_json` وبصمة SHA-256 له.
 - معرفات وإصدارات champion وcandidate.
-- `metrics_json`، `decision`، `created_epoch_ms`.
+- `metrics_json`، نوع التقييم (`FIELD_CANDIDATE` أو `SIMULATION_ONLY` أو `SHADOW_ONLY`)، `created_epoch_ms`.
 - مرجع مجموعة الاختبار المستقلة وحدود قبولها.
 
 `evaluation_items`:
@@ -130,7 +130,7 @@
 - reviewer_id وrationale وevidence_ref.
 - decided_epoch_ms.
 
-لا يمكن إنشاء قرار PROMOTE إلا لتقييم FIELD_CANDIDATE يحتوي مجموعة test، ويجب أن تكون كل التقاطاته من مصدر ميداني غير اصطناعي، وآخر حالة مراجعة لها ELIGIBLE_FOR_TRAINING مع ground truth CONFIRMED. التفعيل يتحقق من وجود آخر قرار PROMOTE لنفس التقييم، وأن الخوارزمية والإصدار المطلوبين يطابقان المرشح الذي جرى تقييمه.
+لا يمكن إنشاء قرار PROMOTE إلا لتقييم FIELD_CANDIDATE يحتوي مجموعة test، ويجب أن تكون كل التقاطاته من مصدر ميداني غير اصطناعي، وحالتها `transport_status=complete` مع تطابق الطول وCRC32 وSHA-256، وآخر حالة مراجعة لها ELIGIBLE_FOR_TRAINING مع ground truth CONFIRMED. التفعيل يتحقق من وجود آخر قرار PROMOTE لنفس التقييم، وأن الخوارزمية والإصدار المطلوبين يطابقان المرشح الذي جرى تقييمه.
 
 هذا لا يجعل القرار تلقائياً أو يثبت صحة المقاييس؛ إنه يفصل الحساب عن الاعتماد البشري ويترك أثراً قابلاً للتدقيق.
 
@@ -163,8 +163,9 @@
 - `getCapture(captureId)` وعمليات القراءة/البحث.
 - `appendReviewEvent(...)`: إضافة حدث مراجعة مع التحقق من الحالة السابقة.
 - `appendAnalysisRun(...)`.
-- `appendEvaluationRun(...)` و`appendEvaluationItem(...)`.
-- `appendDeploymentEvent(...)`.
+- `appendEvaluation(...)`: يحفظ التقييم وعناصر التقسيم في معاملة واحدة.
+- `appendEvaluationDecision(...)`: يسجل موافقة المراجع والسياسة كحدث مستقل.
+- `appendDeploymentEvent(...)`: لا يسمح بالتفعيل إلا بعد قرار PROMOTE مطابق.
 
 لا توجد دوال `updateCapture`, `deleteCapture`, `replaceCapture` أو `overwriteReview`.
 
@@ -183,8 +184,8 @@
 9. رفض تحويل synthetic إلى ground truth CONFIRMED.
 10. حفظ تحليلين مختلفين لنفس الالتقاط: يحتفظ بهما مع ربطهما ببصمة الخام.
 11. رفض split متعارض للالتقاط أو group_key داخل evaluation واحدة.
-12. ترقية قاعدة v2 إلى v3 تحفظ كل سجلات experiments القديمة وCSV والبيانات الوصفية دون تغيير.
-13. فشل Migration في منتصفه: rollback كامل وعدم إعلان DB_VERSION=3.
+12. ترقية قاعدة v2 إلى v4 تحفظ كل سجلات experiments القديمة وCSV والبيانات الوصفية دون تغيير.
+13. فشل Migration في منتصفه: rollback كامل وعدم إعلان DB_VERSION=4.
 14. اختبار أن التخزين والتحليل لا يحجبان واجهة المستخدم أو مسار أخذ العينات.
 
 ## 7. نقاط لم تُحسم بعد
@@ -204,7 +205,7 @@
 - `ScientificStorageSchema.java`: جداول captures وreview_events وanalysis_runs وevaluation_runs وevaluation_items وevaluation_decisions وdeployment_events مع Triggers append-only.
 - `ScientificCaptureStore.java`: إدراج الالتقاط والتحقق من SHA-256/CRC32 عند القراءة، وإضافة أحداث المراجعة، وربط التحليل ببصمة الخام، وحفظ التقييم ومجموعات split، وتسجيل قرار اعتماد مستقل، ومنع تفعيل نسخة دون قرار PROMOTE مطابق.
 - `ExperimentStore.java`: ترقية DB_VERSION إلى 4 مع ترحيل إضافي.
-- `ScientificCaptureStoreTest.java`: اختبارات Robolectric تشمل حفظ الالتقاطات المتطابقة بهويات مستقلة، ومنع الاستبدال، وسجل التصحيح، وترحيل قاعدة قديمة، ومطابقة بصمة التحليل، ومنع تسرب group_key، واشتراط الاعتماد قبل التفعيل.
+- `ScientificCaptureStoreTest.java`: اختبارات Robolectric تشمل حفظ الالتقاطات المتطابقة بهويات مستقلة، ومنع الاستبدال، وسجل التصحيح، وترحيل قاعدة v2 إلى v4، ومطابقة بصمة التحليل، ومنع تسرب group_key، ورفض الحمولة الناقصة، واشتراط قرار اعتماد مستقل قبل التفعيل.
 
 هذه مرحلة تنفيذ أولي وليست اعتماداً نهائياً. لم يثبت نجاح Gradle أو الاختبارات بعد. أضيف workflow مخصصاً لتشغيل `:lab:testDebugUnitTest` باستخدام Gradle 8.9 وJava 17، لكن يجب فحص نتيجة تشغيله الفعلية قبل إعلان النجاح.
 
