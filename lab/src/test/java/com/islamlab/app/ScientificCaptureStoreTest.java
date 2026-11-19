@@ -125,4 +125,44 @@ public class ScientificCaptureStoreTest {
             }
         }
     }
+
+    @Test public void upgradesVersionTwoDatabaseWithoutChangingLegacyCsv() {
+        owner.close();
+        java.io.File dbFile = context.getDatabasePath("islam_lab_experiments.db");
+        SQLiteDatabase oldDb = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
+        oldDb.execSQL("CREATE TABLE experiments (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, "
+                + "csv TEXT NOT NULL, source_type TEXT NOT NULL, acquisition_origin TEXT NOT NULL, "
+                + "measurement_status TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL, "
+                + "updated_epoch_ms INTEGER NOT NULL, schema_version TEXT NOT NULL DEFAULT 'legacy_unknown', "
+                + "verification_status TEXT NOT NULL DEFAULT 'legacy_unverified', "
+                + "measurement_unit TEXT NOT NULL DEFAULT 'unknown', "
+                + "measurement_quantity TEXT NOT NULL DEFAULT 'unknown', sample_count INTEGER NOT NULL DEFAULT 0, "
+                + "device_id TEXT NOT NULL DEFAULT '', firmware_version TEXT NOT NULL DEFAULT '', "
+                + "soil_type TEXT NOT NULL DEFAULT '')");
+        String csv = "schema_version,1.1\\nsource_type,user_provided\\nindex,value\\n1,2\\n2,3\\n";
+        android.content.ContentValues row = new android.content.ContentValues();
+        row.put("id", "v2-row"); row.put("name", "سجل إصدار 2"); row.put("csv", csv);
+        row.put("source_type", "user_provided"); row.put("acquisition_origin", "legacy_import");
+        row.put("measurement_status", "legacy_unverified"); row.put("created_epoch_ms", 44L);
+        row.put("updated_epoch_ms", 55L); row.put("schema_version", "1.1");
+        row.put("verification_status", "legacy_unverified"); row.put("measurement_unit", "mV");
+        row.put("measurement_quantity", "unknown"); row.put("sample_count", 2);
+        row.put("device_id", ""); row.put("firmware_version", ""); row.put("soil_type", "");
+        oldDb.insertOrThrow("experiments", null, row);
+        oldDb.setVersion(2);
+        oldDb.close();
+
+        owner = new ExperimentStore(context);
+        ExperimentStore.Record restored = owner.get("v2-row");
+        assertNotNull(restored);
+        assertEquals(csv, restored.csv);
+        assertEquals("سجل إصدار 2", restored.name);
+        assertEquals(44L, restored.createdEpochMs);
+        try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='captures'", null)) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals(1, cursor.getInt(0));
+        }
+    }
+
 }
