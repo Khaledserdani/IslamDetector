@@ -12,7 +12,7 @@ import java.util.List;
 /** Durable local experiment store. Raw CSV is preserved alongside searchable metadata. */
 public final class ExperimentStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "islam_lab_experiments.db";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 3;
     private static final String TABLE = "experiments";
     private static final String[] RECORD_COLUMNS = {
             "id", "name", "csv", "source_type", "acquisition_origin", "measurement_status",
@@ -40,11 +40,17 @@ public final class ExperimentStore extends SQLiteOpenHelper {
 
     public ExperimentStore(Context context) { super(context, DB_NAME, null, DB_VERSION); }
 
+    @Override public void onConfigure(SQLiteDatabase db) {
+        super.onConfigure(db);
+        db.setForeignKeyConstraintsEnabled(true);
+    }
+
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE + " (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, csv TEXT NOT NULL, source_type TEXT NOT NULL, acquisition_origin TEXT NOT NULL, measurement_status TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL, updated_epoch_ms INTEGER NOT NULL, schema_version TEXT NOT NULL DEFAULT 'legacy_unknown', verification_status TEXT NOT NULL DEFAULT 'legacy_unverified', measurement_unit TEXT NOT NULL DEFAULT 'unknown', measurement_quantity TEXT NOT NULL DEFAULT 'unknown', sample_count INTEGER NOT NULL DEFAULT 0, device_id TEXT NOT NULL DEFAULT '', firmware_version TEXT NOT NULL DEFAULT '', soil_type TEXT NOT NULL DEFAULT '')");
         db.execSQL("CREATE INDEX idx_experiments_created ON " + TABLE + "(created_epoch_ms DESC)");
         db.execSQL("CREATE INDEX idx_experiments_source ON " + TABLE + "(source_type)");
         db.execSQL("CREATE INDEX idx_experiments_verification ON " + TABLE + "(verification_status)");
+        ScientificStorageSchema.create(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -60,6 +66,9 @@ public final class ExperimentStore extends SQLiteOpenHelper {
             backfillMetadata(db);
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_experiments_source ON " + TABLE + "(source_type)");
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_experiments_verification ON " + TABLE + "(verification_status)");
+        }
+        if (oldVersion < 3) {
+            ScientificStorageSchema.create(db);
         }
     }
 
@@ -196,6 +205,10 @@ public final class ExperimentStore extends SQLiteOpenHelper {
         } finally { db.endTransaction(); }
         return migrated;
     }
+
+    SQLiteDatabase scientificWritableDatabase() { return getWritableDatabase(); }
+
+    SQLiteDatabase scientificReadableDatabase() { return getReadableDatabase(); }
 
     private static String metadata(String csv, String key, String fallback) {
         if (csv == null) return fallback;
