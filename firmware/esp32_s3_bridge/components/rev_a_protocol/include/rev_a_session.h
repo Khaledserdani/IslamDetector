@@ -23,7 +23,6 @@ typedef struct {
     bool device_info_valid;
     rev_a_device_info_t device_info;
     uint32_t info_generation;
-    uint32_t profile_crc32;
     uint32_t accepted_measurements;
     uint32_t rejected_measurements_without_info;
     uint32_t rejected_measurements_without_adc;
@@ -43,6 +42,7 @@ typedef struct {
     uint8_t adc_input_mode_id;
     uint32_t adc_vref_uv;
     uint32_t info_generation;
+    uint32_t profile_crc32;
     uint8_t interpreted_mask;
     int32_t interpreted_samples[REV_A_MAX_SAMPLES];
 } rev_a_session_measurement_t;
