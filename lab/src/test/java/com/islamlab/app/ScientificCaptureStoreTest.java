@@ -258,6 +258,12 @@ public class ScientificCaptureStoreTest {
                         1.0, 0.0, java.util.Collections.<String>emptyList());
         store.registerEvaluationPolicy("ISLAM-RELEASE-GATE", "1.0", releasePolicy,
                 "policy-approver", "approved-policy-record-1", 5050L);
+        try {
+            owner.scientificWritableDatabase().execSQL(
+                    "UPDATE evaluation_policies SET policy_json='{}' "
+                            + "WHERE policy_id='ISLAM-RELEASE-GATE' AND policy_version='1.0'");
+            fail("Expected approved policy append-only update rejection");
+        } catch (SQLiteException expected) { }
         EvaluationPolicyEvaluator.Result persistedGate = store.evaluateAndRecordGate(
                 "gate-approved", "eval-approved", "ISLAM-RELEASE-GATE", "1.0",
                 releasePolicy, 5100L);
