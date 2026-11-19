@@ -648,4 +648,20 @@ public class ScientificCaptureStoreTest {
         } catch (IllegalArgumentException expected) { }
     }
 
+
+    @Test public void fieldEvaluationRejectsMissingCompletedDetectorRuns() {
+        store.insertCapture(capture("missing-analysis", 38, "instrument", new byte[]{38, 39}));
+        store.appendReviewEvent(classifiedReview("missing-analysis-review", "missing-analysis",
+                "iron", "dry-soil", true));
+        java.util.List<ScientificCaptureStore.EvaluationItemInput> items = new java.util.ArrayList<>();
+        items.add(new ScientificCaptureStore.EvaluationItemInput(
+                "missing-analysis-item", "missing-analysis", "test", "missing-analysis-group", null, null));
+        try {
+            store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
+                    "missing-analysis-run", manifestJson("missing-analysis-run", 21000L, items),
+                    "champion", "1.0", "candidate", "9.0", "{}", "FIELD_CANDIDATE", 21000L, items));
+            fail("Expected missing detector analysis runs to be rejected");
+        } catch (IllegalArgumentException expected) { }
+    }
+
 }
