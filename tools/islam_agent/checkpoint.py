@@ -53,7 +53,7 @@ def validate_checkpoint(data: object, expected_task_id: str | None = None) -> di
         raise CheckpointError("checkpoint task_id does not match requested task")
     if not isinstance(run_id, str) or not run_id.strip() or len(run_id) > MAX_TASK_ID_CHARS:
         raise CheckpointError("invalid run_id")
-    if data["state"] not in VALID_STATES:
+    if not isinstance(data["state"], str) or data["state"] not in VALID_STATES:
         raise CheckpointError("invalid checkpoint state")
     steps = data["completed_steps"]
     if not isinstance(steps, list) or len(steps) > MAX_COMPLETED_STEPS:
@@ -143,7 +143,7 @@ def record_step(checkpoint: object, step_id: str, result: dict | None = None) ->
 
 def set_checkpoint_state(checkpoint: object, state: str) -> dict:
     checked = validate_checkpoint(checkpoint)
-    if state not in VALID_STATES:
+    if not isinstance(state, str) or state not in VALID_STATES:
         raise CheckpointError("invalid checkpoint state")
     allowed = {
         "running": {"paused", "completed"},
