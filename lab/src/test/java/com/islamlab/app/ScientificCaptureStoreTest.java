@@ -385,4 +385,30 @@ public class ScientificCaptureStoreTest {
         }
     }
 
+
+    @Test public void v5DatabaseMigratesToV6WithoutLosingCaptures() {
+        owner.close();
+        context.deleteDatabase("islam_lab_experiments.db");
+        java.io.File dbFile = context.getDatabasePath("islam_lab_experiments.db");
+        SQLiteDatabase oldDb = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
+        oldDb.execSQL("CREATE TABLE captures (capture_id TEXT PRIMARY KEY NOT NULL)");
+        oldDb.execSQL("INSERT INTO captures(capture_id) VALUES('v5-preserved-capture')");
+        oldDb.setVersion(5);
+        oldDb.close();
+
+        owner = new ExperimentStore(context);
+        SQLiteDatabase migrated = owner.scientificReadableDatabase();
+        try (Cursor c = migrated.rawQuery(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='dataset_usage_events'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
+        }
+        try (Cursor c = migrated.rawQuery(
+                "SELECT COUNT(*) FROM captures WHERE capture_id='v5-preserved-capture'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(1, c.getInt(0));
+        }
+        assertEquals(6, migrated.getVersion());
+    }
+
 }
