@@ -54,28 +54,39 @@ public final class ScientificCaptureStore {
     }
 
     public static final class CaptureRecord {
-        public final String captureId, sessionId, sourceType, payloadFormat, payloadSha256, payloadCrc32;
+        public final String captureId, sessionId, sourceType, capturedAtUtc, deviceId;
+        public final String stm32Firmware, esp32Firmware, coilProfileId, acquisitionConfigId;
+        public final String payloadFormat, payloadSha256, payloadCrc32, transportStatus;
         public final long sequence, createdEpochMs;
+        public final Long monotonicStartTick, tickFrequencyHz;
         public final int sampleCount;
         public final byte[] payload;
         CaptureRecord(Cursor c) {
             captureId=c.getString(0); sessionId=c.getString(1); sequence=c.getLong(2);
-            sourceType=c.getString(3); payloadFormat=c.getString(4);
-            payload=c.getBlob(5); payloadSha256=c.getString(6); payloadCrc32=c.getString(7);
-            sampleCount=c.getInt(8); createdEpochMs=c.getLong(9);
+            sourceType=c.getString(3); capturedAtUtc=c.getString(4);
+            monotonicStartTick=c.isNull(5) ? null : c.getLong(5);
+            tickFrequencyHz=c.isNull(6) ? null : c.getLong(6);
+            deviceId=c.getString(7); stm32Firmware=c.getString(8); esp32Firmware=c.getString(9);
+            coilProfileId=c.getString(10); acquisitionConfigId=c.getString(11);
+            payloadFormat=c.getString(12); payload=c.getBlob(13);
+            payloadSha256=c.getString(14); payloadCrc32=c.getString(15);
+            sampleCount=c.getInt(16); transportStatus=c.getString(17);
+            createdEpochMs=c.getLong(18);
         }
     }
 
-    /** Reads the original bytes and verifies their stored length, CRC32 and SHA-256. */
+    /** Reads the original bytes and full acquisition metadata; verifies length, CRC32 and SHA-256. */
     public CaptureRecord getCapture(String captureId) {
         if (isBlank(captureId)) throw new IllegalArgumentException("معرف الالتقاط مطلوب");
         try (Cursor c = owner.scientificReadableDatabase().rawQuery(
-                "SELECT capture_id,session_id,sequence,source_type,payload_format,payload_blob,"
-                + "payload_sha256,payload_crc32,sample_count,created_epoch_ms,payload_length_bytes "
+                "SELECT capture_id,session_id,sequence,source_type,captured_at_utc,"
+                + "monotonic_start_tick,tick_frequency_hz,device_id,stm32_firmware,esp32_firmware,"
+                + "coil_profile_id,acquisition_config_id,payload_format,payload_blob,payload_sha256,"
+                + "payload_crc32,sample_count,transport_status,created_epoch_ms,payload_length_bytes "
                 + "FROM captures WHERE capture_id=?", new String[]{captureId})) {
             if (!c.moveToFirst()) return null;
             CaptureRecord record = new CaptureRecord(c);
-            if (record.payload == null || record.payload.length != c.getInt(10)
+            if (record.payload == null || record.payload.length != c.getInt(19)
                     || !record.payloadSha256.equals(sha256(record.payload))
                     || !record.payloadCrc32.equals(crc32(record.payload)))
                 throw new IllegalStateException("فشل التحقق من سلامة الالتقاط المخزن");
