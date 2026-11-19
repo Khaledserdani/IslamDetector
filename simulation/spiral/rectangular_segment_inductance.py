@@ -82,3 +82,51 @@ def rectangular_segment_self_inductance(
         width_m * width_m * height_m * height_m
     )
     return MU0 / (2.0 * math.pi) * expectation
+
+def rectangular_adjacent_segment_mutual_inductance(
+    length_a_m: float, length_b_m: float,
+    width_m: float, height_m: float, order: int = 128
+) -> float:
+    """Return mutual inductance of two contiguous collinear segments.
+
+    Both segments carry current in the same axial direction, meet end-to-end,
+    and have the same uniformly filled rectangular cross-section. This special
+    case avoids the zero-separation singularity of a filament formula.
+    """
+    values = (length_a_m, length_b_m, width_m, height_m)
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("segment dimensions must be finite")
+    if any(value <= 0.0 for value in values):
+        raise ValueError("segment dimensions must be positive")
+    if order < 8 or order > 512:
+        raise ValueError("quadrature order must be between 8 and 512")
+
+    nodes, weights = _gauss_legendre(order)
+    xs = [(node + 1.0) * width_m / 2.0 for node in nodes]
+    ys = [(node + 1.0) * height_m / 2.0 for node in nodes]
+    wx = [weight * width_m / 2.0 for weight in weights]
+    wy = [weight * height_m / 2.0 for weight in weights]
+
+    weighted_integral = 0.0
+    for i, x in enumerate(xs):
+        for j, y in enumerate(ys):
+            rho = math.hypot(x, y)
+
+            def primitive(value: float) -> float:
+                return value * math.asinh(value / rho) - math.hypot(value, rho)
+
+            integral = (
+                primitive(length_a_m + length_b_m)
+                - primitive(length_a_m)
+                - primitive(length_b_m)
+                + primitive(0.0)
+            )
+            weighted_integral += (
+                wx[i] * wy[j] * (width_m - x) * (height_m - y) * integral
+            )
+
+    expectation = 4.0 * weighted_integral / (
+        width_m * width_m * height_m * height_m
+    )
+    return MU0 / (4.0 * math.pi) * expectation
+
