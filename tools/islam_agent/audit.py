@@ -40,6 +40,8 @@ REQUIRED_FILES = (
     AGENT_DIR / "test_checkpoint.py",
     AGENT_DIR / "checkpointed_runner.py",
     AGENT_DIR / "test_checkpointed_runner.py",
+    AGENT_DIR / "local_agent.py",
+    AGENT_DIR / "test_local_agent.py",
 )
 
 
@@ -77,7 +79,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
         (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects"]),
-        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner"]),
+        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent"]),
     )
     outputs = []
     exit_code = 0
@@ -136,7 +138,7 @@ def main() -> int:
         "هذا تدقيق برمجي محدود. نجاح الاختبارات لا يثبت صحة النموذج الفيزيائي، "
         "ولا يثبت محاثة الملف أو عمق الكشف أو الأداء الميداني. لم تُشغّل مسوحات "
         "التقارب أو الحساسية في هذا الإصدار. أداة الطابور تعدّل ملف الذاكرة محلياً "
-        "فقط عند استدعائها؛ لا يكتب هذا الـWorkflow إلى المستودع.",
+        "فقط عند استدعائها؛ يحفظ checkpoint التقدم محلياً. لا يكتب هذا الـWorkflow إلى المستودع.",
         "", f"## النتيجة النهائية: {'PASS' if passed else 'FAIL'}", "",
     ])
     report_path = Path(args.report)
