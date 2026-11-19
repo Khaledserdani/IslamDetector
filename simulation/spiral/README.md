@@ -90,3 +90,12 @@ The 2026-11-19 diagnostics found that increasing polygon resolution from 48 to 3
 - Arabic derivations: `docs/science/RECTANGULAR_CROSS_SECTION_GMD_NOTE_AR.md` and `docs/science/RECTANGULAR_SEGMENT_SELF_INDUCTANCE_AR.md`.
 
 These are diagnostic primitives only. The segment self term is not a complete closed-loop coil inductance. A complete energy-consistent model still needs all mutual terms between segment/cell current distributions, correct cross-section orientation and return path, plus mesh-refinement and positive-definiteness checks. The segment helper is intentionally not wired into `mono_spiral_disk.py` or the Greenhouse coil estimator; no Coil defaults have changed.
+
+
+## General straight-segment mutual diagnostic
+
+- `rectangular_segment_general_mutual.py`: six-dimensional Neumann quadrature for two straight rectangular conductors with arbitrary axis orientations and explicit cross-section frames.
+- `test_rectangular_segment_general_mutual.py`: far-field, reciprocity, current-direction sign, perpendicular-axis zero-coupling and frame-validation tests.
+- Derivation and limits: `docs/science/RECTANGULAR_SEGMENT_GENERAL_MUTUAL_AR.md`.
+
+This is a finite-cross-section uniform-current reference for disjoint straight conductor volumes. It is not an analytic solution; near-touching geometries need a separate quadrature-order study. It does not support intersecting/overlapping conductors, curved bends, nonuniform current, skin/proximity or PI pulse effects. It is not integrated into the disk or Greenhouse models, and it does not yet establish a positive-definite complete energy matrix.
