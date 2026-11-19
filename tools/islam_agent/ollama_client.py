@@ -85,7 +85,7 @@ class LocalOllamaClient:
             if not isinstance(item, dict) or set(item) != {"role", "content"}:
                 raise ValueError("each message must contain only role and content")
             role, content = item["role"], item["content"]
-            if role not in {"system", "user", "assistant"}:
+            if not isinstance(role, str) or role not in {"system", "user", "assistant"}:
                 raise ValueError("unsupported message role")
             if not isinstance(content, str) or not content.strip() or len(content) > MAX_PROMPT_CHARS:
                 raise ValueError("message content is empty or exceeds the size limit")
