@@ -12,7 +12,7 @@ import java.util.List;
 /** Durable local experiment store. Raw CSV is preserved alongside searchable metadata. */
 public final class ExperimentStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "islam_lab_experiments.db";
-    private static final int DB_VERSION = 3;
+    private static final int DB_VERSION = 4;
     private static final String TABLE = "experiments";
     private static final String[] RECORD_COLUMNS = {
             "id", "name", "csv", "source_type", "acquisition_origin", "measurement_status",
@@ -69,6 +69,21 @@ public final class ExperimentStore extends SQLiteOpenHelper {
         }
         if (oldVersion < 3) {
             ScientificStorageSchema.create(db);
+        }
+        if (oldVersion < 4) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_decisions ("
+                    + "decision_id TEXT PRIMARY KEY NOT NULL,"
+                    + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
+                    + "decision TEXT NOT NULL CHECK(decision IN ('PROMOTE','REJECT','SHADOW_ONLY')),"
+                    + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL,"
+                    + "reviewer_id TEXT NOT NULL, rationale TEXT NOT NULL, evidence_ref TEXT NOT NULL,"
+                    + "decided_epoch_ms INTEGER NOT NULL)");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_decisions_no_update "
+                    + "BEFORE UPDATE ON evaluation_decisions BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_decisions is append-only'); END");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_decisions_no_delete "
+                    + "BEFORE DELETE ON evaluation_decisions BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_decisions is append-only'); END");
         }
     }
 
