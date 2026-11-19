@@ -781,7 +781,7 @@ public final class ScientificCaptureStore {
             }
             m.put("strata", strata);
             metricsJson = m.toString();
-        } catch (org.json.JSONException ex) {
+        } catch (org.json.JSONException | NoSuchAlgorithmException ex) {
             throw new IllegalStateException("تعذر توثيق نتيجة بوابة التقييم", ex);
         }
 
