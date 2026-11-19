@@ -53,7 +53,7 @@ class SafeToolRunnerTests(unittest.TestCase):
         kwargs = run.call_args.kwargs
         self.assertIs(kwargs["shell"], False)
         self.assertEqual(kwargs["timeout"], 120)
-        self.assertEqual(run.call_args.args[0][2:4], ["-m", "unittest"])
+        self.assertEqual(run.call_args.args[0][1:3], ["-m", "unittest"])
 
     def test_failed_tests_stop_later_steps(self):
         with patch("tool_runner.subprocess.run") as run:
