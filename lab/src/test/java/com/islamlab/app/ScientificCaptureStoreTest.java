@@ -420,4 +420,48 @@ public class ScientificCaptureStoreTest {
         assertEquals(6, migrated.getVersion());
     }
 
+
+    @Test public void datasetManifestUsesStoredEvidenceAndStableOrdering() throws Exception {
+        store.insertCapture(capture("manifest-b", 31, "instrument", new byte[]{31, 32}));
+        store.insertCapture(capture("manifest-a", 30, "instrument", new byte[]{30, 31}));
+        store.appendReviewEvent(review("manifest-review-a", "manifest-a",
+                "CAPTURED", "ELIGIBLE_FOR_TRAINING", "UNKNOWN", "CONFIRMED",
+                "excavation_record", "field-evidence-a"));
+        java.util.List<ScientificCaptureStore.ManifestAssignment> assignments =
+                new java.util.ArrayList<>();
+        assignments.add(new ScientificCaptureStore.ManifestAssignment("manifest-b", "test", "case-b"));
+        assignments.add(new ScientificCaptureStore.ManifestAssignment("manifest-a", "train", "case-a"));
+        ScientificCaptureStore.DatasetManifest first =
+                store.buildDatasetManifest("manifest-v1", 16000L, assignments);
+        java.util.Collections.reverse(assignments);
+        ScientificCaptureStore.DatasetManifest second =
+                store.buildDatasetManifest("manifest-v1", 16000L, assignments);
+        assertEquals(first.json, second.json);
+        assertEquals(first.sha256, second.sha256);
+        assertEquals(2, first.itemCount);
+        org.json.JSONObject root = new org.json.JSONObject(first.json);
+        assertEquals("islam-dataset-manifest-v1", root.getString("manifest_schema"));
+        org.json.JSONArray entries = root.getJSONArray("items");
+        assertEquals("manifest-a", entries.getJSONObject(0).getString("capture_id"));
+        assertEquals("CONFIRMED", entries.getJSONObject(0).getString("ground_truth_status"));
+        assertEquals("field-evidence-a", entries.getJSONObject(0).getString("evidence_ref"));
+        assertFalse(first.json.contains("target_class"));
+        assertFalse(first.json.contains("soil_class"));
+    }
+
+    @Test public void datasetManifestRejectsRelatedGroupAcrossSplits() {
+        store.insertCapture(capture("manifest-group-a", 32, "instrument", new byte[]{32}));
+        store.insertCapture(capture("manifest-group-b", 33, "instrument", new byte[]{33}));
+        java.util.List<ScientificCaptureStore.ManifestAssignment> assignments =
+                new java.util.ArrayList<>();
+        assignments.add(new ScientificCaptureStore.ManifestAssignment(
+                "manifest-group-a", "train", "same-field-target"));
+        assignments.add(new ScientificCaptureStore.ManifestAssignment(
+                "manifest-group-b", "test", "same-field-target"));
+        try {
+            store.buildDatasetManifest("manifest-bad", 17000L, assignments);
+            fail("Expected related-group split rejection");
+        } catch (IllegalArgumentException expected) { }
+    }
+
 }
