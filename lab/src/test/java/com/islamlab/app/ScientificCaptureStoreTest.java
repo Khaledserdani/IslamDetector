@@ -178,7 +178,7 @@ public class ScientificCaptureStoreTest {
         assertEquals("سجل إصدار 2", restored.name);
         assertEquals(44L, restored.createdEpochMs);
         for (String table : new String[]{"captures", "review_events", "analysis_runs",
-                "evaluation_runs", "evaluation_items", "evaluation_decisions", "evaluation_gate_results", "deployment_events", "dataset_usage_events"}) {
+                "evaluation_runs", "evaluation_items", "evaluation_decisions", "evaluation_gate_results", "evaluation_policies", "deployment_events", "dataset_usage_events"}) {
             try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
                     new String[]{table})) {
@@ -253,10 +253,14 @@ public class ScientificCaptureStoreTest {
         assertEquals(1.0, gate.candidate.accuracy, 0.0);
         assertEquals(1.0, gate.candidate.recall, 0.0);
         assertEquals(0.0, gate.candidate.falsePositiveRate, 0.0);
+        EvaluationPolicyEvaluator.Policy releasePolicy =
+                new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.0, 0.0, 0.0,
+                        1.0, 0.0, java.util.Collections.<String>emptyList());
+        store.registerEvaluationPolicy("ISLAM-RELEASE-GATE", "1.0", releasePolicy,
+                "policy-approver", "approved-policy-record-1", 5050L);
         EvaluationPolicyEvaluator.Result persistedGate = store.evaluateAndRecordGate(
                 "gate-approved", "eval-approved", "ISLAM-RELEASE-GATE", "1.0",
-                new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.0, 0.0, 0.0,
-                        1.0, 0.0, java.util.Collections.<String>emptyList()), 5100L);
+                releasePolicy, 5100L);
         assertEquals("ELIGIBLE_FOR_REVIEW", persistedGate.status);
         try {
             owner.scientificWritableDatabase().execSQL(
@@ -483,12 +487,14 @@ public class ScientificCaptureStoreTest {
             assertEquals("0.9", c.getString(2));
             assertEquals("migration_v6", c.getString(3));
         }
-        try (Cursor c = migrated.rawQuery(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='evaluation_gate_results'", null)) {
-            assertTrue(c.moveToFirst());
-            assertEquals(1, c.getInt(0));
+        for (String table : new String[]{"evaluation_gate_results", "evaluation_policies"}) {
+            try (Cursor c = migrated.rawQuery(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", new String[]{table})) {
+                assertTrue(c.moveToFirst());
+                assertEquals("missing v9 table " + table, 1, c.getInt(0));
+            }
         }
-        assertEquals(8, migrated.getVersion());
+        assertEquals(9, migrated.getVersion());
     }
 
 
@@ -603,10 +609,13 @@ public class ScientificCaptureStoreTest {
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
                 "small-test-run", manifestJson("small-test-run", 20000L, items),
                 "champion", "1.0", "candidate", "8.0", "{}", "FIELD_CANDIDATE", 20000L, items));
-        EvaluationPolicyEvaluator.Result result = store.evaluateAndRecordGate(
-                "small-gate", "small-test-run", "FIELD-POLICY", "1",
+        EvaluationPolicyEvaluator.Policy strictPolicy =
                 new EvaluationPolicyEvaluator.Policy(2, 1, 1, 0.05, 0.05,
-                        0.05, 0.8, 0.2, java.util.Collections.<String>emptyList()), 20100L);
+                        0.05, 0.8, 0.2, java.util.Collections.<String>emptyList());
+        store.registerEvaluationPolicy("FIELD-POLICY", "1", strictPolicy,
+                "policy-approver", "approved-policy-record-2", 20050L);
+        EvaluationPolicyEvaluator.Result result = store.evaluateAndRecordGate(
+                "small-gate", "small-test-run", "FIELD-POLICY", "1", strictPolicy, 20100L);
         assertEquals("INSUFFICIENT_EVIDENCE", result.status);
         try {
             store.appendEvaluationDecision("small-promote", "small-test-run", "PROMOTE",
