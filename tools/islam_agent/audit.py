@@ -30,6 +30,8 @@ REQUIRED_FILES = (
     MEMORY_FILE,
     AGENT_DIR / "task_queue.py",
     AGENT_DIR / "test_task_queue.py",
+    AGENT_DIR / "ollama_client.py",
+    AGENT_DIR / "test_ollama_client.py",
 )
 
 
@@ -67,7 +69,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
         (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects"]),
-        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue"]),
+        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client"]),
     )
     outputs = []
     exit_code = 0
