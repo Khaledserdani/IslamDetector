@@ -158,10 +158,14 @@ public class ScientificCaptureStoreTest {
         assertEquals(csv, restored.csv);
         assertEquals("سجل إصدار 2", restored.name);
         assertEquals(44L, restored.createdEpochMs);
-        try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='captures'", null)) {
-            assertTrue(cursor.moveToFirst());
-            assertEquals(1, cursor.getInt(0));
+        for (String table : new String[]{"captures", "review_events", "analysis_runs",
+                "evaluation_runs", "evaluation_items", "evaluation_decisions", "deployment_events"}) {
+            try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
+                    new String[]{table})) {
+                assertTrue(cursor.moveToFirst());
+                assertEquals("missing migrated table " + table, 1, cursor.getInt(0));
+            }
         }
     }
 
