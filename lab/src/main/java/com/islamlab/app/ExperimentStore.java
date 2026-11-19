@@ -12,7 +12,7 @@ import java.util.List;
 /** Durable local experiment store. Raw CSV is preserved alongside searchable metadata. */
 public final class ExperimentStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "islam_lab_experiments.db";
-    private static final int DB_VERSION = 4;
+    private static final int DB_VERSION = 5;
     private static final String TABLE = "experiments";
     private static final String[] RECORD_COLUMNS = {
             "id", "name", "csv", "source_type", "acquisition_origin", "measurement_status",
@@ -84,6 +84,9 @@ public final class ExperimentStore extends SQLiteOpenHelper {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_decisions_no_delete "
                     + "BEFORE DELETE ON evaluation_decisions BEGIN "
                     + "SELECT RAISE(ABORT, 'evaluation_decisions is append-only'); END");
+        }
+        if (oldVersion < 5) {
+            ScientificStorageSchema.createGlobalTrainTestReuseGuard(db);
         }
     }
 
