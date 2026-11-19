@@ -164,15 +164,29 @@ def rectangular_parallel_segment_mutual_inductance(
         raise ValueError("quadrature order must be between 8 and 512")
 
     nodes, weights = _gauss_legendre(order)
-    differences_x = [node * width_m for node in nodes]
-    differences_y = [node * height_m for node in nodes]
+    # Split each triangular difference density at zero. This removes the
+    # absolute-value cusp from each quadrature panel and improves convergence.
+    differences_x = [
+        sign * (node + 1.0) * width_m / 2.0
+        for sign in (-1.0, 1.0) for node in nodes
+    ]
+    differences_y = [
+        sign * (node + 1.0) * height_m / 2.0
+        for sign in (-1.0, 1.0) for node in nodes
+    ]
     density_weights_x = [
-        weight * (width_m - abs(value)) / width_m
-        for value, weight in zip(differences_x, weights)
+        weight * (width_m - abs(value)) / (2.0 * width_m)
+        for sign in (-1.0, 1.0)
+        for value, weight in zip(
+            [sign * (node + 1.0) * width_m / 2.0 for node in nodes], weights
+        )
     ]
     density_weights_y = [
-        weight * (height_m - abs(value)) / height_m
-        for value, weight in zip(differences_y, weights)
+        weight * (height_m - abs(value)) / (2.0 * height_m)
+        for sign in (-1.0, 1.0)
+        for value, weight in zip(
+            [sign * (node + 1.0) * height_m / 2.0 for node in nodes], weights
+        )
     ]
 
     def second_primitive(value: float, rho: float) -> float:
