@@ -76,7 +76,7 @@ class LocalProposalAgent:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ])
-        if not getattr(reply, "done", False):
+        if getattr(reply, "done", False) is not True:
             raise LocalAgentError("local model response did not complete")
         proposal = validate_proposal(reply.content, expected_task_id=safe_task["id"])
         return {
