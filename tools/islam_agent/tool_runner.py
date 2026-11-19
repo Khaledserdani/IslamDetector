@@ -16,6 +16,15 @@ AGENT_DIR = ROOT / "tools" / "islam_agent"
 MAX_INSPECT_BYTES = 64_000
 MAX_OUTPUT_CHARS = 20_000
 TEST_TIMEOUT_SECONDS = 120
+AGENT_TEST_MODULES = (
+    "test_task_queue",
+    "test_ollama_client",
+    "test_agent_policy",
+    "test_tool_runner",
+    "test_checkpoint",
+    "test_checkpointed_runner",
+    "test_local_agent",
+)
 
 
 class ToolExecutionError(RuntimeError):
@@ -62,9 +71,7 @@ class SafeToolRunner:
             "-m",
             "unittest",
             "-v",
-            "test_task_queue",
-            "test_ollama_client",
-            "test_agent_policy",
+            *AGENT_TEST_MODULES,
         ]
         try:
             result = subprocess.run(
