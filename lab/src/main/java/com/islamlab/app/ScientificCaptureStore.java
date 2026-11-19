@@ -828,8 +828,13 @@ public final class ScientificCaptureStore {
         out.put("cases", metrics.cases); out.put("positives", metrics.positives);
         out.put("negatives", metrics.negatives); out.put("tp", metrics.truePositive);
         out.put("fp", metrics.falsePositive); out.put("tn", metrics.trueNegative);
-        out.put("fn", metrics.falseNegative); out.put("accuracy", metrics.accuracy);
-        out.put("recall", metrics.recall); out.put("false_positive_rate", metrics.falsePositiveRate);
+        out.put("fn", metrics.falseNegative);
+        out.put("accuracy", Double.isNaN(metrics.accuracy)
+                ? org.json.JSONObject.NULL : metrics.accuracy);
+        out.put("recall", Double.isNaN(metrics.recall)
+                ? org.json.JSONObject.NULL : metrics.recall);
+        out.put("false_positive_rate", Double.isNaN(metrics.falsePositiveRate)
+                ? org.json.JSONObject.NULL : metrics.falsePositiveRate);
         return out;
     }
 
