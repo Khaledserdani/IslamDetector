@@ -411,3 +411,10 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 - TX_DRIVER_IN = SHOT_WINDOW AND NOT(COOLDOWN_OUT) AND ARM_OK AND POWER_GOOD AND WATCHDOG_OK AND OC_CLEAR_N AND NOT_FAULT.
 - كل محاولة جديدة خلال cooldown محجوبة وتعيد تشغيل cooldown عند نهاية SHOT_WINDOW.
 - ما زال fail-safe عند فشل U4/بوابة AND وstartup inhibit/fault injection مطلوباً قبل KiCad. هذه بنية مرشحة لا اعتماد نهائي.
+
+
+## 27. تصحيح ترتيب بتات ADS8861 في PIO — 2026-11-19
+
+DOUT في ADS8861 يرسل الكلمة MSB-first. يجب أن يكون sm_config_in_shift(..., true, true, 16u) حتى يجمع PIO البتات باتجاه اليسار ويترك الكلمة الأصلية في ISR[15:0]. الإعداد السابق shift-right كان سيعكس ترتيب تسلسل MSB-first ويضعه في الجزء العلوي من ISR؛ لذلك صُحح مع اختبار guard على 0xA55A. راجع ADS8861_PIO_TIMING_AUDIT_AR.md، القسم10.
+
+هذا تصحيح برمجي مدقق بالمرجع الرسمي واختبار ساكن، وليس اختباراً على لوحة فعلية. يبقى ADC capture معطلاً افتراضياً.

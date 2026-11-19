@@ -74,9 +74,21 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("following rising edge", self.pio_source)
 
     def test_capture_shift_width_matches_one_adc_word(self):
-        self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
+        self.assertIn("sm_config_set_in_shift(&capture_config, true, true, 16u)", self.c_source)
         self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
         self.assertIn("uint32_t capture_buffer[ADS8861_SWEEP_SAMPLES]", self.c_source)
+        self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
+
+    def test_msb_first_adc_word_is_right_aligned_without_bit_reversal(self):
+        # PIO shift-left inserts each serial bit at ISR[0]. With MSB-first
+        # DOUT, the original 16-bit word is therefore in ISR[15:0].
+        sample = 0xA55A
+        isr = 0
+        for bit_index in range(15, -1, -1):
+            isr = ((isr << 1) | ((sample >> bit_index) & 1)) & 0xFFFFFFFF
+        self.assertEqual(isr & 0xFFFF, sample)
+        self.assertIn("sm_config_set_in_shift(&capture_config, true, true, 16u)", self.c_source)
+        self.assertNotIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
         self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
 
     def test_first_dout_sample_waits_for_msb_valid(self):

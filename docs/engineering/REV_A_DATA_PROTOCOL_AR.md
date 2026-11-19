@@ -283,3 +283,10 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - RP2040 الحالي يعلن ADC_NONE؛ لذلك لا يجوز إرسال أو قبول MEASUREMENT حقيقي حتى تركيب ADC وإعلان ADC_MODEL_ID وSAMPLE_FORMAT_ID وVREF والـinput mode المطابقة.
 - ESP32 parser/session موجودان، لكن لا يوجد بعد end-to-end stream من ADC إلى UART ثم Wi-Fi/Android. لا تعتبر نجاح اختبارات decoder بديلاً عن اختبار اللوحتين.
 - CI #1418 على `e44d5f7` انتهى بـstartup_failure قبل إنشاء أي Job؛ آخر تحقق كامل ناجح يظل CI #1379 على `e687144`، ولا يسجل هذا التحديث نجاحاً جديداً للبناء.
+
+
+## 9.6 تدقيق محاذاة RAW16 لواجهة ADS8861 — 2026-11-19
+
+- خرج ADS8861 متسلسل MSB-first؛ لذلك يجب أن يستخدم RP2040 PIO اتجاه IN shift-left مع autopush=16 حتى تبقى الكلمة الأصلية في ISR[15:0] دون عكس ترتيب البتات.
+- صُحح الإعداد من shift-right إلى shift-left في ads8861_capture.c، وأضيف اختبار static guard بنمط 0xA55A. استخراج DMA الحالي capture_buffer[i] & 0xFFFF أصبح متوافقاً مع هذا الاتجاه.
+- هذا يثبت اتساقاً برمجياً/حسابياً فقط؛ لا توجد قراءة ADC فعلية أو loopback أو قياس logic-analyzer حتى الآن. يبقى DEVICE_INFO=ADC_NONE وENABLE_ADS8861_CAPTURE=0 حتى تركيب ADC والتحقق منه.

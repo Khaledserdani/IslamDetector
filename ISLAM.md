@@ -1647,3 +1647,30 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 3. بعد ذلك اختبار UART loopback، ثم تنفيذ Wi-Fi/WebServer endpoints وربط Android، ثم الانتقال إلى قياسات DD32 وAFE والحماية وKiCad وBOM.
 
 لا توجد نتيجة مادية أو ميدانية جديدة في هذا التشغيل؛ الجهاز لم يُصنع أو يُختبر، ولا شراء أو توصيل TX عالي الطاقة.
+
+
+## 47. تصحيح محاذاة بيانات ADS8861 وتدقيق الحالة — 2026-11-19
+
+### إصلاح PIO
+- اكتشف التدقيق أن sm_config_in_shift(..., false, true, 16u) يضبط shift-right، وهو غير مناسب لتسلسل ADS8861 ذي MSB-first؛ كان سيعكس ترتيب البتات ويضعها في الجزء الأعلى من ISR بينما الكود يقرأ الجزء الأدنى.
+- صُحح الإعداد إلى shift-left: sm_config_set_in_shift(&capture_config, true, true, 16u). تبقى كلمة RAW16 في ISR[15:0]، لذا استخراج capture_buffer[i] & 0xFFFF متسق.
+- أضيف اختبار ساكن لنمط 0xA55A واختبار يرفض رجوع إعداد shift-right. أضيف شرح إلى تدقيق PIO ووثيقتي architecture/protocol.
+- المرجع: دليل Raspberry Pi Pico C/C++ SDK الرسمي، قسم PIO IN/shift direction: https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf.
+- لا توجد قراءة فعلية من ADS8861؛ هذا تصحيح برمجي/حسابي فقط.
+
+### GitHub وCI
+- HEAD قبل هذا التحديث: 3b769836aaaa720da6ff3e9b0c72c8872308dd04.
+- PR #6 مغلق وغير مدمج وفق GitHub؛ لم يُعد فتحه ولم يُدمج. PR #7 هو المفتوح Draft الذي يتتبع HEAD الحالي. لا تعديل على main.
+- آخر تشغيلين على HEAD السابق (#1796 push و#1797 pull_request) انتهيا بـstartup_failure، مع jobs=[] وartifacts=[]. لذلك لا توجد سجلات خطوات يمكن تشخيصها ولا UF2/APK جديد. صفحة GitHub Status الرسمية كانت تعرض All Systems Operational عند آخر تحديث ظاهر 13:50 UTC؛ هذا لا يحدد سبب فشل البدء الذي ظهر 14:10 UTC.
+- لا توجد نتيجة CI جديدة لهذا التصحيح حتى اكتمال التشغيل الناتج عن commit الحالي.
+
+### مراجعة Android
+- تمت مراجعة MainActivity وManifest وGradle على الفرع: INTERNET وACCESS_NETWORK_STATE موجودتان، HTTP cleartext مفعّل للاتصال المحلي، الشبكة على Executor منفصل، SQLite/CSV على Executor منفصل، وإغلاق HttpURLConnection داخل finally.
+- لم يظهر خطأ compile واضح في الملفات المفحوصة، لكن لم يتوفر APK مبني من HEAD الحالي بسبب startup_failure. واجهة Wi-Fi/WebServer في ESP32-S3 غير منفذة بعد؛ لذلك لا يوجد اتصال هاتف↔جهاز.
+
+### الخطوة التالية
+1. إعادة فحص CI الناتج على هذا commit حتى يظهر build ناجح وUF2 صالح وAPK.
+2. بعد نجاح البناء، تنفيذ producer يربط PIO/DMA بثماني عينات RAW16 وإطار MEASUREMENT على UART، مع إبقاء ADC_NONE افتراضياً حتى اختبار ADC الحقيقي.
+3. ثم UART loopback بين اللوحتين، ثم Wi-Fi/WebServer وAndroid، وبعدها قياسات DD32/AFE وحماية TX وKiCad/BOM.
+
+لا شراء ولا توصيل لمرحلة TX عالية الطاقة، ولا ادعاء تصنيع أو اختبار ميداني.
