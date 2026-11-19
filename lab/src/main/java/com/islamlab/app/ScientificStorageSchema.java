@@ -80,6 +80,12 @@ final class ScientificStorageSchema {
                 + "reviewer_id TEXT NOT NULL, rationale TEXT NOT NULL, evidence_ref TEXT NOT NULL,"
                 + "decided_epoch_ms INTEGER NOT NULL)");
 
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_policies ("
+                + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL,"
+                + "policy_json TEXT NOT NULL, policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256)=64),"
+                + "approved_by TEXT NOT NULL, approval_evidence_ref TEXT NOT NULL,"
+                + "approved_epoch_ms INTEGER NOT NULL, PRIMARY KEY(policy_id,policy_version))");
+
         db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_gate_results ("
                 + "gate_result_id TEXT PRIMARY KEY NOT NULL,"
                 + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
@@ -104,6 +110,7 @@ final class ScientificStorageSchema {
         createAppendOnlyTriggers(db, "evaluation_items");
         createAppendOnlyTriggers(db, "evaluation_decisions");
         createAppendOnlyTriggers(db, "evaluation_gate_results");
+        createAppendOnlyTriggers(db, "evaluation_policies");
         createAppendOnlyTriggers(db, "deployment_events");
 
         // A capture group must never leak across dataset splits in the same evaluation.
