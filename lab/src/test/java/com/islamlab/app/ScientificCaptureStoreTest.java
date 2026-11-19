@@ -217,7 +217,7 @@ public class ScientificCaptureStoreTest {
                 "item-b", "eval-b", "test", "same-target-session", null, null));
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                    "eval-leak", "{}", null, null, "candidate", "1.0",
+                    "eval-leak", "{}", "champion", "1.0", "candidate", "1.0",
                     "{\"accuracy\":0.9}", "FIELD_CANDIDATE", 4000L, items));
             fail("Expected group split rejection");
         } catch (IllegalArgumentException expected) { }
@@ -294,7 +294,7 @@ public class ScientificCaptureStoreTest {
                 "unconfirmed-item", "unconfirmed-eval", "test", "field-case-14", null, null));
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                    "unconfirmed-run", "{}", null, null, "candidate", "3.0",
+                    "unconfirmed-run", "{}", "champion", "1.0", "candidate", "3.0",
                     "{\"accuracy\":0.99}", "FIELD_CANDIDATE", 7000L, items));
             fail("Expected unconfirmed capture rejection");
         } catch (IllegalArgumentException expected) { }
@@ -340,7 +340,7 @@ public class ScientificCaptureStoreTest {
                 "partial-item", "partial-capture", "test", "partial-case", null, null));
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                    "partial-run", "{}", null, null, "candidate", "5.0",
+                    "partial-run", "{}", "champion", "1.0", "candidate", "5.0",
                     "{\"accuracy\":0.99}", "FIELD_CANDIDATE", 10000L, items));
             fail("Expected incomplete payload rejection");
         } catch (IllegalArgumentException expected) { }
@@ -560,7 +560,7 @@ public class ScientificCaptureStoreTest {
                 .replace("\"split\":\"test\"", "\"split\":\"train\"");
         try {
             store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                    "tamper-run", manifest, null, null, "candidate", "6.0",
+                    "tamper-run", manifest, "champion", "1.0", "candidate", "6.0",
                     "{}", "FIELD_CANDIDATE", 18000L, items));
             fail("Expected manifest assignment mismatch rejection");
         } catch (IllegalArgumentException expected) { }
