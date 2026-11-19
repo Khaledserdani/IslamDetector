@@ -1,6 +1,8 @@
 """Checkpoint-aware orchestration for policy-approved, human-approved plans."""
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 from agent_policy import PolicyViolation, validate_proposal
@@ -39,6 +41,11 @@ class CheckpointedPlanRunner:
         if human_approved is not True:
             raise PolicyViolation("explicit human approval is required before tool execution")
         step_ids = [self._step_id(step, index) for index, step in enumerate(approved["steps"])]
+        plan_payload = json.dumps(
+            {"task_id": approved["task_id"], "steps": approved["steps"]},
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")
+        plan_digest = hashlib.sha256(plan_payload).hexdigest()
         if len(step_ids) != len(set(step_ids)):
             raise PolicyViolation("plan contains duplicate step identities")
 
@@ -50,8 +57,10 @@ class CheckpointedPlanRunner:
                 state = load_checkpoint(path, expected_task_id=expected_task_id)
                 if state["run_id"] != run_id:
                     raise CheckpointError("checkpoint run_id does not match requested run")
+                if state["plan_digest"] != plan_digest:
+                    raise CheckpointError("checkpoint plan does not match the requested plan")
             else:
-                state = new_checkpoint(expected_task_id, run_id)
+                state = new_checkpoint(expected_task_id, run_id, plan_digest=plan_digest)
                 save_checkpoint(path, state)
 
             if state["state"] == "completed":
