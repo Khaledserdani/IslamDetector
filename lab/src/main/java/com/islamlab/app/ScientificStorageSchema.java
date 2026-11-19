@@ -108,6 +108,28 @@ final class ScientificStorageSchema {
     }
 
 
+
+    static void createDatasetUsageEvents(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS dataset_usage_events ("
+                + "event_id TEXT PRIMARY KEY NOT NULL,"
+                + "capture_id TEXT NOT NULL REFERENCES captures(capture_id) ON DELETE RESTRICT,"
+                + "dataset_manifest_id TEXT NOT NULL,"
+                + "dataset_manifest_sha256 TEXT NOT NULL CHECK(length(dataset_manifest_sha256)=64),"
+                + "usage_role TEXT NOT NULL CHECK(usage_role IN ('TRAIN','VALIDATION','TEST','SHADOW')),"
+                + "consumer_id TEXT NOT NULL, consumer_version TEXT NOT NULL,"
+                + "run_id TEXT NOT NULL,"
+                + "recorded_epoch_ms INTEGER NOT NULL CHECK(recorded_epoch_ms >= 0),"
+                + "actor_id TEXT NOT NULL, evidence_ref TEXT NOT NULL)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dataset_usage_capture ON dataset_usage_events(capture_id, usage_role)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dataset_usage_run ON dataset_usage_events(run_id)");
+        createAppendOnlyTriggers(db, "dataset_usage_events");
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_dataset_usage_role_isolation "
+                + "BEFORE INSERT ON dataset_usage_events "
+                + "WHEN EXISTS (SELECT 1 FROM dataset_usage_events old "
+                + "WHERE old.capture_id=NEW.capture_id AND old.usage_role<>NEW.usage_role) "
+                + "BEGIN SELECT RAISE(ABORT, 'capture reused across dataset usage roles'); END");
+    }
+
     static void createGlobalTrainTestReuseGuard(SQLiteDatabase db) {
         db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_capture_train_test_reuse_guard "
                 + "BEFORE INSERT ON evaluation_items "
