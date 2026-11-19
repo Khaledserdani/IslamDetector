@@ -249,6 +249,69 @@ public final class ScientificCaptureStore {
         }
     }
 
+
+    /** Immutable record of a capture's declared role in a versioned dataset/run. */
+    public static final class DatasetUsageInput {
+        public final String eventId, captureId, manifestId, manifestSha256, role;
+        public final String consumerId, consumerVersion, runId, actorId, evidenceRef;
+        public final long recordedEpochMs;
+        public DatasetUsageInput(String eventId, String captureId, String manifestId,
+                String manifestSha256, String role, String consumerId, String consumerVersion,
+                String runId, long recordedEpochMs, String actorId, String evidenceRef) {
+            this.eventId=eventId; this.captureId=captureId; this.manifestId=manifestId;
+            this.manifestSha256=manifestSha256; this.role=role; this.consumerId=consumerId;
+            this.consumerVersion=consumerVersion; this.runId=runId;
+            this.recordedEpochMs=recordedEpochMs; this.actorId=actorId; this.evidenceRef=evidenceRef;
+        }
+    }
+
+    /**
+     * Appends dataset usage evidence. Repeating an identical event_id is idempotent;
+     * reusing it with different content is rejected.
+     */
+    public void appendDatasetUsageEvent(DatasetUsageInput input) {
+        if (input == null || isBlank(input.eventId) || isBlank(input.captureId)
+                || isBlank(input.manifestId) || !isSha256(input.manifestSha256)
+                || !oneOf(input.role, "TRAIN", "VALIDATION", "TEST", "SHADOW")
+                || isBlank(input.consumerId) || isBlank(input.consumerVersion)
+                || isBlank(input.runId) || input.recordedEpochMs < 0
+                || isBlank(input.actorId) || isBlank(input.evidenceRef))
+            throw new IllegalArgumentException("بيانات سجل استخدام العينة غير صالحة");
+        SQLiteDatabase db = owner.scientificWritableDatabase();
+        db.beginTransaction();
+        try {
+            try (Cursor c = db.rawQuery("SELECT capture_id,dataset_manifest_id,dataset_manifest_sha256,"
+                    + "usage_role,consumer_id,consumer_version,run_id,recorded_epoch_ms,actor_id,evidence_ref "
+                    + "FROM dataset_usage_events WHERE event_id=?", new String[]{input.eventId})) {
+                if (c.moveToFirst()) {
+                    boolean same = input.captureId.equals(c.getString(0))
+                            && input.manifestId.equals(c.getString(1))
+                            && input.manifestSha256.equals(c.getString(2))
+                            && input.role.equals(c.getString(3))
+                            && input.consumerId.equals(c.getString(4))
+                            && input.consumerVersion.equals(c.getString(5))
+                            && input.runId.equals(c.getString(6))
+                            && input.recordedEpochMs == c.getLong(7)
+                            && input.actorId.equals(c.getString(8))
+                            && input.evidenceRef.equals(c.getString(9));
+                    if (!same) throw new IllegalArgumentException("معرف الحدث مستخدم بمحتوى مختلف");
+                    db.setTransactionSuccessful();
+                    return;
+                }
+            }
+            ContentValues v = new ContentValues();
+            v.put("event_id", input.eventId); v.put("capture_id", input.captureId);
+            v.put("dataset_manifest_id", input.manifestId);
+            v.put("dataset_manifest_sha256", input.manifestSha256);
+            v.put("usage_role", input.role); v.put("consumer_id", input.consumerId);
+            v.put("consumer_version", input.consumerVersion); v.put("run_id", input.runId);
+            v.put("recorded_epoch_ms", input.recordedEpochMs); v.put("actor_id", input.actorId);
+            v.put("evidence_ref", input.evidenceRef);
+            db.insertOrThrow("dataset_usage_events", null, v);
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+
     public static final class DeploymentInput {
         public final String eventId, previousAlgorithmId, previousAlgorithmVersion;
         public final String newAlgorithmId, newAlgorithmVersion, modelSha256;
@@ -378,6 +441,20 @@ public final class ScientificCaptureStore {
                 putNullable(row, "expected_result_json", item.expectedJson);
                 putNullable(row, "actual_result_json", item.actualJson);
                 db.insertOrThrow("evaluation_items", null, row);
+
+                ContentValues usage = new ContentValues();
+                usage.put("event_id", input.evaluationId + ":" + item.captureId);
+                usage.put("capture_id", item.captureId);
+                usage.put("dataset_manifest_id", input.evaluationId);
+                usage.put("dataset_manifest_sha256", manifestHash);
+                usage.put("usage_role", item.split.toUpperCase(Locale.ROOT));
+                usage.put("consumer_id", input.candidateId);
+                usage.put("consumer_version", input.candidateVersion);
+                usage.put("run_id", input.evaluationId);
+                usage.put("recorded_epoch_ms", input.createdEpochMs);
+                usage.put("actor_id", "evaluation_pipeline");
+                usage.put("evidence_ref", "evaluation_items:" + item.itemId);
+                db.insertOrThrow("dataset_usage_events", null, usage);
             }
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
