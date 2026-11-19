@@ -25,7 +25,7 @@
 - `instrument`: جهاز قياس مختبري خارجي.
 - `islam_detector`: التقاط من جهاز إسلام الفعلي.
 
-ولا يجوز تحويل المصدر من نوع إلى آخر لمجرد مراجعة السجل أو تأكيد المستخدم له. تأكيد المستخدم حالة مراجعة مستقلة وليس دليلاً تلقائياً على صحة القياس الفيزيائي.
+ولا يجوز تحويل المصدر من نوع إلى آخر لمجرد مراجعة السجل أو تأكيد المستخدم له. كما يجب الفصل بين دورة حياة المراجعة وبين الحقيقة الأرضية: `review.lifecycle_status` يصف أين وصل السجل في سير العمل، أما `ground_truth.status` فيصف ما ثبت عن الهدف بدليل مستقل. لا يؤدي ضغط المستخدم على «هدف مؤكد» وحده إلى GROUND_TRUTH_CONFIRMED أو CONFIRMED؛ بل ينشئ حدث مراجعة يحتاج تحققاً موثقاً.
 
 ## 4. نموذج سجل الالتقاط
 
@@ -52,7 +52,10 @@
 | payload_length_bytes | عدد صحيح موجب | حجم الحمولة بالبايت |
 | payload_crc32 | نص hex | كشف تلف النقل العرضي |
 | transport_status | enum | complete أو incomplete أو corrupted |
-| verification.status | enum | unverified أو reviewed أو ground_truth_confirmed أو rejected أو inconclusive أو not_excavated |
+| review.lifecycle_status | enum | CAPTURED أو NEEDS_REVIEW أو REVIEWED أو GROUND_TRUTH_CONFIRMED أو REJECTED أو INCONCLUSIVE أو ELIGIBLE_FOR_TRAINING |
+| ground_truth.status | enum | UNKNOWN أو CONFIRMED أو REJECTED أو INCONCLUSIVE؛ لا يحدد إلا وفق دليل مراجعة موثق |
+| reviewer_id | نص أو null | معرف المراجع عند وجود مراجعة |
+| review_event_id | UUID أو null | مرجع حدث المراجعة؛ لا تحفظ التعديلات فوق السجل الخام |
 
 كل حقل غير متاح يبقى null أو يوسم بأنه غير معروف وفق المخطط؛ لا نخترع قيماً افتراضية توحي بقياس لم يحدث.
 
