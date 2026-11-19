@@ -58,17 +58,23 @@ public class ScientificCaptureStoreTest {
     }
 
 
+    private String modelDigestFor(String algorithmId) {
+        char[] chars = new char[64];
+        java.util.Arrays.fill(chars, algorithmId.startsWith("champion") ? 'a' : 'b');
+        return new String(chars);
+    }
+
     private void recordDetectionRuns(String captureId, String championId, String championVersion,
             String candidateId, String candidateVersion, boolean championDetected,
             boolean candidateDetected, long startEpochMs) {
         String digest = store.getCapture(captureId).payloadSha256;
         store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
                 "analysis-" + captureId + "-" + championId, captureId, digest,
-                championId, championVersion, null, "{}", "{\"detected\":" + championDetected + "}",
+                championId, championVersion, modelDigestFor(championId), "{}", "{\"detected\":" + championDetected + "}",
                 startEpochMs, startEpochMs + 1, "complete"));
         store.appendAnalysisRun(new ScientificCaptureStore.AnalysisInput(
                 "analysis-" + captureId + "-" + candidateId, captureId, digest,
-                candidateId, candidateVersion, null, "{}", "{\"detected\":" + candidateDetected + "}",
+                candidateId, candidateVersion, modelDigestFor(candidateId), "{}", "{\"detected\":" + candidateDetected + "}",
                 startEpochMs + 2, startEpochMs + 3, "complete"));
     }
 
