@@ -414,12 +414,13 @@ public final class ScientificCaptureStore {
     /** Requires a complete detector result bound to the exact raw capture digest. */
     static boolean requireCompletedDetectionRun(SQLiteDatabase db, String captureId,
             String algorithmId, String algorithmVersion, String captureDigest) {
-        try (Cursor c = db.rawQuery("SELECT input_payload_sha256,result_json FROM analysis_runs "
+        try (Cursor c = db.rawQuery("SELECT input_payload_sha256,result_json,model_sha256 FROM analysis_runs "
                 + "WHERE capture_id=? AND algorithm_id=? AND algorithm_version=? AND run_status='complete' "
                 + "ORDER BY started_epoch_ms DESC,rowid DESC LIMIT 1",
                 new String[]{captureId, algorithmId, algorithmVersion})) {
-            if (!c.moveToFirst() || !captureDigest.equals(c.getString(0)) || c.isNull(1))
-                throw new IllegalArgumentException("نتيجة التحليل المكتملة غير موجودة أو لا تطابق الالتقاط");
+            if (!c.moveToFirst() || !captureDigest.equals(c.getString(0)) || c.isNull(1)
+                    || !isSha256(c.getString(2)))
+                throw new IllegalArgumentException("نتيجة التحليل المكتملة أو بصمة النموذج غير موجودة أو لا تطابق الالتقاط");
             try {
                 org.json.JSONObject result = new org.json.JSONObject(c.getString(1));
                 if (!(result.opt("detected") instanceof Boolean))
@@ -645,8 +646,8 @@ public final class ScientificCaptureStore {
                             + "payload_sha256,payload_crc32,payload_length_bytes FROM captures WHERE capture_id=?",
                             new String[]{item.captureId})) {
                         if (!c.moveToFirst()) throw new IllegalArgumentException("التقاط التقييم غير موجود");
-                        if ("synthetic".equals(c.getString(0)))
-                            throw new IllegalArgumentException("لا يجوز ترقية خوارزمية اعتماداً على بيانات اصطناعية");
+                        if (!oneOf(c.getString(0), "instrument", "islam_detector"))
+                            throw new IllegalArgumentException("التقييم الميداني يقبل التقاطاً مباشراً من الجهاز فقط");
                         byte[] raw = c.getBlob(2);
                         captureDigest = c.getString(3);
                         if (!"complete".equals(c.getString(1)) || raw == null
