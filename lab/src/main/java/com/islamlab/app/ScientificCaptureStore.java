@@ -301,7 +301,13 @@ public final class ScientificCaptureStore {
         if (isBlank(manifestId) || createdEpochMs < 0 || assignments == null || assignments.isEmpty())
             throw new IllegalArgumentException("بيانات بيان مجموعة البيانات غير صالحة");
         java.util.ArrayList<ManifestAssignment> ordered = new java.util.ArrayList<>(assignments);
-        ordered.sort(java.util.Comparator.comparing(x -> x == null ? "" : String.valueOf(x.captureId)));
+        java.util.Collections.sort(ordered, new java.util.Comparator<ManifestAssignment>() {
+            @Override public int compare(ManifestAssignment a, ManifestAssignment b) {
+                String left = a == null || a.captureId == null ? "" : a.captureId;
+                String right = b == null || b.captureId == null ? "" : b.captureId;
+                return left.compareTo(right);
+            }
+        });
         java.util.HashSet<String> ids = new java.util.HashSet<>();
         java.util.HashMap<String,String> groupSplits = new java.util.HashMap<>();
         org.json.JSONArray entries = new org.json.JSONArray();
@@ -311,9 +317,10 @@ public final class ScientificCaptureStore {
                     || !oneOf(assignment.split, "train", "validation", "test", "shadow")
                     || !ids.add(assignment.captureId))
                 throw new IllegalArgumentException("توزيع العينات في البيان غير صالح أو مكرر");
-            String prior = groupSplits.putIfAbsent(assignment.groupKey, assignment.split);
+            String prior = groupSplits.get(assignment.groupKey);
             if (prior != null && !prior.equals(assignment.split))
                 throw new IllegalArgumentException("المجموعة المترابطة موزعة بين تقسيمات مختلفة");
+            groupSplits.put(assignment.groupKey, assignment.split);
 
             try (Cursor capture = db.rawQuery("SELECT source_type,transport_status,payload_blob,"
                     + "payload_sha256,payload_crc32,payload_length_bytes,sample_count,payload_format,"
@@ -587,9 +594,10 @@ public final class ScientificCaptureStore {
                 throw new IllegalArgumentException("عنصر تقييم غير صالح");
             if (!captureIds.add(item.captureId))
                 throw new IllegalArgumentException("لا يجوز تكرار الالتقاط داخل التقييم نفسه");
-            String oldSplit = groupSplits.putIfAbsent(item.groupKey, item.split);
+            String oldSplit = groupSplits.get(item.groupKey);
             if (oldSplit != null && !oldSplit.equals(item.split))
                 throw new IllegalArgumentException("تسرب مجموعة مترابطة بين تقسيمات التقييم");
+            groupSplits.put(item.groupKey, item.split);
         }
 
         SQLiteDatabase db = owner.scientificWritableDatabase();
