@@ -6,12 +6,17 @@ import json
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434/api/chat"
 MAX_PROMPT_CHARS = 16_000
 MAX_RESPONSE_BYTES = 1_000_000
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 class OllamaClientError(RuntimeError):
@@ -105,7 +110,8 @@ class LocalOllamaClient:
             method="POST",
         )
         try:
-            with urlopen(request, timeout=self.timeout) as response:
+            opener = build_opener(ProxyHandler({}), _NoRedirectHandler())
+            with opener.open(request, timeout=self.timeout) as response:
                 raw = response.read(self.max_response_bytes + 1)
         except HTTPError as exc:
             raise OllamaClientError(f"Ollama returned HTTP status {exc.code}") from None
