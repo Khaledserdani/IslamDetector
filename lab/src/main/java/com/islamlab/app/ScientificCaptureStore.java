@@ -183,13 +183,19 @@ public final class ScientificCaptureStore {
             String latestEventId = null;
             String lifecycle = "CAPTURED";
             String groundTruth = "UNKNOWN";
-            try (Cursor c = db.rawQuery("SELECT event_id,new_lifecycle_status,new_ground_truth_status "
-                    + "FROM review_events WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
+            String latestTargetClass = null, latestSoilClass = null;
+            Boolean latestGroundTruthPositive = null;
+            try (Cursor c = db.rawQuery("SELECT event_id,new_lifecycle_status,new_ground_truth_status,"
+                    + "target_class,soil_class,ground_truth_positive FROM review_events "
+                    + "WHERE capture_id=? ORDER BY rowid DESC LIMIT 1",
                     new String[]{input.captureId})) {
                 if (c.moveToFirst()) {
                     latestEventId = c.getString(0);
                     lifecycle = c.getString(1);
                     groundTruth = c.getString(2);
+                    latestTargetClass = c.getString(3);
+                    latestSoilClass = c.getString(4);
+                    if (!c.isNull(5)) latestGroundTruthPositive = c.getInt(5) == 1;
                 }
             }
             if (!equalsNullable(lifecycle, input.expectedLifecycle)
@@ -208,6 +214,11 @@ public final class ScientificCaptureStore {
                 throw new IllegalArgumentException("فئة الهدف أو التربة لا يجوز أن تكون فارغة");
             if (input.groundTruthPositive != null && !"CONFIRMED".equals(input.newGroundTruth))
                 throw new IllegalArgumentException("تحديد وجود الهدف يتطلب حقيقة أرضية مؤكدة");
+            String effectiveTargetClass = input.targetClass != null ? input.targetClass : latestTargetClass;
+            String effectiveSoilClass = input.soilClass != null ? input.soilClass : latestSoilClass;
+            Boolean effectiveGroundTruthPositive = input.groundTruthPositive != null
+                    ? input.groundTruthPositive
+                    : ("CONFIRMED".equals(input.newGroundTruth) ? latestGroundTruthPositive : null);
 
             ContentValues v = new ContentValues();
             v.put("event_id", input.eventId); v.put("capture_id", input.captureId);
@@ -218,9 +229,10 @@ public final class ScientificCaptureStore {
             v.put("new_ground_truth_status", input.newGroundTruth);
             v.put("reason_code", input.reasonCode); putNullable(v, "review_note", input.note);
             putNullable(v, "evidence_type", input.evidenceType); putNullable(v, "evidence_ref", input.evidenceRef);
-            putNullable(v, "target_class", input.targetClass); putNullable(v, "soil_class", input.soilClass);
-            if (input.groundTruthPositive != null)
-                v.put("ground_truth_positive", input.groundTruthPositive ? 1 : 0);
+            putNullable(v, "target_class", effectiveTargetClass); putNullable(v, "soil_class", effectiveSoilClass);
+            if (effectiveGroundTruthPositive != null)
+                v.put("ground_truth_positive", effectiveGroundTruthPositive ? 1 : 0);
+            else v.putNull("ground_truth_positive");
             putNullable(v, "previous_event_id", latestEventId);
             db.insertOrThrow("review_events", null, v);
             db.setTransactionSuccessful();
