@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -51,12 +52,12 @@ public final class EvaluationPolicyEvaluator {
         public final double maxFalsePositiveRateIncrease;
         public final double minCandidateRecall;
         public final double maxCandidateFalsePositiveRate;
-        public final boolean requireEveryStratum;
+        public final Set<String> requiredStrata;
 
         public Policy(int minTestCases, int minPositiveCases, int minNegativeCases,
                       double maxAccuracyDrop, double maxRecallDrop,
                       double maxFalsePositiveRateIncrease, double minCandidateRecall,
-                      double maxCandidateFalsePositiveRate, boolean requireEveryStratum) {
+                      double maxCandidateFalsePositiveRate, List<String> requiredStrata) {
             if (minTestCases < 1 || minPositiveCases < 1 || minNegativeCases < 1)
                 throw new IllegalArgumentException("حدود حجم الاختبار يجب أن تكون موجبة");
             checkRate(maxAccuracyDrop, "maxAccuracyDrop");
@@ -72,7 +73,14 @@ public final class EvaluationPolicyEvaluator {
             this.maxFalsePositiveRateIncrease = maxFalsePositiveRateIncrease;
             this.minCandidateRecall = minCandidateRecall;
             this.maxCandidateFalsePositiveRate = maxCandidateFalsePositiveRate;
-            this.requireEveryStratum = requireEveryStratum;
+            Set<String> required = new LinkedHashSet<>();
+            if (requiredStrata != null) {
+                for (String key : requiredStrata) {
+                    if (blank(key) || !key.contains("|") || !required.add(key))
+                        throw new IllegalArgumentException("قائمة الفئات/التربة المطلوبة غير صالحة أو مكررة");
+                }
+            }
+            this.requiredStrata = Collections.unmodifiableSet(required);
         }
     }
 
@@ -181,7 +189,14 @@ public final class EvaluationPolicyEvaluator {
             return result("REJECTED", "تراجع إجمالي أو تجاوز حد الاستدعاء/الإنذارات الكاذبة",
                     champion, candidate, strata);
 
-        if (policy.requireEveryStratum) {
+        for (String requiredKey : policy.requiredStrata) {
+            if (!strata.containsKey(requiredKey))
+                return result("INSUFFICIENT_EVIDENCE",
+                        "مجموعة الاختبار لا تغطي الفئة/التربة المطلوبة: " + requiredKey,
+                        champion, candidate, strata);
+        }
+
+        if (!policy.requiredStrata.isEmpty()) {
             for (StratumResult s : strata.values()) {
                 if (s.candidate.cases < policy.minTestCases
                         || s.candidate.positives < policy.minPositiveCases
