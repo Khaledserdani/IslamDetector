@@ -46,6 +46,17 @@ public class ScientificCaptureStoreTest {
                 evidenceType, evidenceRef, 2000L);
     }
 
+
+    private String manifestJson(String manifestId, long createdAt,
+            java.util.List<ScientificCaptureStore.EvaluationItemInput> items) {
+        java.util.List<ScientificCaptureStore.ManifestAssignment> assignments =
+                new java.util.ArrayList<>();
+        for (ScientificCaptureStore.EvaluationItemInput item : items)
+            assignments.add(new ScientificCaptureStore.ManifestAssignment(
+                    item.captureId, item.split, item.groupKey));
+        return store.buildDatasetManifest(manifestId, createdAt, assignments).json;
+    }
+
     @Test public void identicalPayloadsWithDifferentCaptureIdentityRemainSeparate() {
         byte[] payload = new byte[]{1, 2, 3, 4};
         String hash1 = store.insertCapture(capture("capture-1", 1, "instrument", payload));
@@ -261,7 +272,7 @@ public class ScientificCaptureStoreTest {
         items.add(new ScientificCaptureStore.EvaluationItemInput(
                 "pending-item", "pending-capture", "test", "field-case-16", null, null));
         store.appendEvaluation(new ScientificCaptureStore.EvaluationInput(
-                "pending-run", "{}", null, null, "candidate", "4.0",
+                "pending-run", manifestJson("pending-run", 8000L, items), null, null, "candidate", "4.0",
                 "{\"accuracy\":0.97}", "FIELD_CANDIDATE", 8000L, items));
         try {
             store.appendDeploymentEvent(new ScientificCaptureStore.DeploymentInput(
