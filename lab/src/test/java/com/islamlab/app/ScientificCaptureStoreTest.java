@@ -178,7 +178,7 @@ public class ScientificCaptureStoreTest {
         assertEquals("سجل إصدار 2", restored.name);
         assertEquals(44L, restored.createdEpochMs);
         for (String table : new String[]{"captures", "review_events", "analysis_runs",
-                "evaluation_runs", "evaluation_items", "evaluation_decisions", "deployment_events"}) {
+                "evaluation_runs", "evaluation_items", "evaluation_decisions", "deployment_events", "dataset_usage_events"}) {
             try (Cursor cursor = owner.scientificReadableDatabase().rawQuery(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
                     new String[]{table})) {
@@ -524,6 +524,23 @@ public class ScientificCaptureStoreTest {
                     "{}", "FIELD_CANDIDATE", 18000L, items));
             fail("Expected manifest assignment mismatch rejection");
         } catch (IllegalArgumentException expected) { }
+    }
+
+
+    @Test public void lifecycleOnlyReviewPreservesConfirmedTargetAndSoilLabels() {
+        store.insertCapture(capture("review-labels", 35, "instrument", new byte[]{35, 36}));
+        store.appendReviewEvent(classifiedReview("review-labels-1", "review-labels",
+                "iron", "salty-soil", true));
+        store.appendReviewEvent(review("review-labels-2", "review-labels",
+                "ELIGIBLE_FOR_TRAINING", "REVIEWED", "CONFIRMED", "CONFIRMED", null, null));
+        try (Cursor c = owner.scientificReadableDatabase().rawQuery(
+                "SELECT target_class,soil_class,ground_truth_positive FROM review_events "
+                        + "WHERE event_id='review-labels-2'", null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals("iron", c.getString(0));
+            assertEquals("salty-soil", c.getString(1));
+            assertEquals(1, c.getInt(2));
+        }
     }
 
 }
