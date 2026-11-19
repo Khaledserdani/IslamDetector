@@ -98,7 +98,7 @@ class ConductiveDiskModelTests(unittest.TestCase):
         cases = (
             (0.010, 0.012, 0.001),
             (0.010, 0.020, 0.030),
-            (0.010, 0.015, 1.500),
+            (0.010, 0.015, 0.100),
         )
         for radius_a, radius_b, gap in cases:
             with self.subTest(radius_a=radius_a, radius_b=radius_b, gap=gap):
