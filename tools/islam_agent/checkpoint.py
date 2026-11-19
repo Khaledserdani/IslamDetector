@@ -36,6 +36,7 @@ def validate_checkpoint(data: object, expected_task_id: str | None = None) -> di
         "schema_version",
         "task_id",
         "run_id",
+        "plan_digest",
         "state",
         "completed_steps",
         "last_result",
@@ -53,6 +54,9 @@ def validate_checkpoint(data: object, expected_task_id: str | None = None) -> di
         raise CheckpointError("checkpoint task_id does not match requested task")
     if not isinstance(run_id, str) or not run_id.strip() or len(run_id) > MAX_TASK_ID_CHARS:
         raise CheckpointError("invalid run_id")
+    digest = data["plan_digest"]
+    if not isinstance(digest, str) or len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        raise CheckpointError("invalid plan_digest")
     if not isinstance(data["state"], str) or data["state"] not in VALID_STATES:
         raise CheckpointError("invalid checkpoint state")
     steps = data["completed_steps"]
@@ -71,11 +75,12 @@ def validate_checkpoint(data: object, expected_task_id: str | None = None) -> di
     return json.loads(json.dumps(data, ensure_ascii=False))
 
 
-def new_checkpoint(task_id: str, run_id: str) -> dict:
+def new_checkpoint(task_id: str, run_id: str, plan_digest: str | None = None) -> dict:
     return validate_checkpoint({
         "schema_version": SCHEMA_VERSION,
         "task_id": task_id,
         "run_id": run_id,
+        "plan_digest": plan_digest or ("0" * 64),
         "state": "running",
         "completed_steps": [],
         "last_result": None,
