@@ -12,7 +12,7 @@ import java.util.List;
 /** Durable local experiment store. Raw CSV is preserved alongside searchable metadata. */
 public final class ExperimentStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "islam_lab_experiments.db";
-    private static final int DB_VERSION = 7;
+    private static final int DB_VERSION = 8;
     private static final String TABLE = "experiments";
     private static final String[] RECORD_COLUMNS = {
             "id", "name", "csv", "source_type", "acquisition_origin", "measurement_status",
@@ -99,6 +99,21 @@ public final class ExperimentStore extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE review_events ADD COLUMN soil_class TEXT");
             db.execSQL("ALTER TABLE review_events ADD COLUMN ground_truth_positive INTEGER "
                     + "CHECK(ground_truth_positive IS NULL OR ground_truth_positive IN (0,1))");
+        }
+        if (oldVersion < 8) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_gate_results ("
+                    + "gate_result_id TEXT PRIMARY KEY NOT NULL,"
+                    + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
+                    + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL, policy_json TEXT NOT NULL,"
+                    + "status TEXT NOT NULL CHECK(status IN ('ELIGIBLE_FOR_REVIEW','REJECTED','INSUFFICIENT_EVIDENCE')),"
+                    + "reason TEXT NOT NULL, metrics_json TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_gate_results_run ON evaluation_gate_results(evaluation_run_id, created_epoch_ms)");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_gate_results_no_update "
+                    + "BEFORE UPDATE ON evaluation_gate_results BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_gate_results is append-only'); END");
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_gate_results_no_delete "
+                    + "BEFORE DELETE ON evaluation_gate_results BEGIN "
+                    + "SELECT RAISE(ABORT, 'evaluation_gate_results is append-only'); END");
         }
     }
 
