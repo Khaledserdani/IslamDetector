@@ -3,7 +3,9 @@ name: ISLAM KiCad schematic validation
 on:
   push:
     branches:
-      - feature/islam-circuit-designer-pro
+      - feature/islam-circuit-designer
+      - feature/islam-circuit-designer-pro-pro
+      - feature/islam-kicad-erc
     paths:
       - 'tools/islam_agent/**'
       - '.github/workflows/islam-kicad-validation.yml'
@@ -50,4 +52,4 @@ jobs:
         run: |
           set -euo pipefail
           python3 --version
-          python3 -m unittest -v test_kicad_cli
+          python3 -m unittest -v test_kicad_cli test_kicad_validation
