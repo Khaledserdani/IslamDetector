@@ -248,7 +248,8 @@ public class MainActivity extends Activity {
                     + " • Ollama: " + health.optString("ollama")
                     + " • النموذج: " + health.optString("model")
                     + " • المتابعة الدورية: " + health.optString("continuous_worker")
-                    + " • آخر حالة: " + health.optString("worker_last_status");
+                    + " • آخر حالة: " + health.optString("worker_last_status")
+                    + " • انتظار رفع GitHub: " + health.optBoolean("github_upload_pending", false);
         });
     }
 
