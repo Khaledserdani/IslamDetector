@@ -1,0 +1,114 @@
+package com.islamlab.app;
+
+import org.junit.Test;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
+import java.util.Arrays;
+import static org.junit.Assert.*;
+
+public class EvaluationPolicyEvaluatorTest {
+    private EvaluationPolicyEvaluator.Policy policy(List<String> requiredStrata) {
+        return new EvaluationPolicyEvaluator.Policy(
+                4, 2, 2, 0.05, 0.05, 0.05, 0.80, 0.20, requiredStrata);
+    }
+
+    private List<EvaluationPolicyEvaluator.Observation> balanced() {
+        List<EvaluationPolicyEvaluator.Observation> rows = new ArrayList<>();
+        rows.add(row("g1", true, true, true, "iron", "dry"));
+        rows.add(row("g2", true, true, true, "iron", "dry"));
+        rows.add(row("g3", false, false, false, "iron", "dry"));
+        rows.add(row("g4", false, false, false, "iron", "dry"));
+        return rows;
+    }
+
+    private EvaluationPolicyEvaluator.Observation row(String group, boolean truth,
+            boolean champion, boolean candidate, String target, String soil) {
+        return new EvaluationPolicyEvaluator.Observation(
+                "test", group, target, soil, truth, champion, candidate);
+    }
+
+    @Test public void identicalCandidatePassesOnlyToHumanReview() {
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(balanced(), policy(Collections.<String>emptyList()));
+        assertEquals("ELIGIBLE_FOR_REVIEW", r.status);
+        assertEquals(1.0, r.candidate.accuracy, 0.0);
+        assertEquals(0.0, r.candidate.falsePositiveRate, 0.0);
+    }
+
+    @Test public void candidateWithRecallLossIsRejected() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced();
+        rows.set(0, row("g1", true, true, false, "iron", "dry"));
+        rows.set(1, row("g2", true, true, true, "iron", "dry"));
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
+        assertEquals("REJECTED", r.status);
+    }
+
+    @Test public void candidateWithNewFalsePositiveIsRejectedByAbsoluteLimit() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced();
+        rows.set(2, row("g3", false, false, true, "iron", "dry"));
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
+        assertEquals("REJECTED", r.status);
+    }
+
+    @Test public void repeatedGroupCannotInflateEvidence() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced();
+        rows.add(row("g1", true, true, true, "iron", "dry"));
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
+        assertEquals("REJECTED", r.status);
+    }
+
+    @Test public void insufficientIndependentCasesDoNotPass() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced().subList(0, 3);
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
+        assertEquals("INSUFFICIENT_EVIDENCE", r.status);
+    }
+
+    @Test public void missingPerStratumCoverageBlocksReviewEligibility() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced();
+        rows.add(row("g5", true, true, true, "copper", "wet-clay"));
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Arrays.asList("iron|dry", "copper|wet-clay")));
+        assertEquals("INSUFFICIENT_EVIDENCE", r.status);
+        assertTrue(r.reason.contains("copper"));
+    }
+
+    @Test public void nonTestSplitIsRejected() {
+        List<EvaluationPolicyEvaluator.Observation> rows = balanced();
+        rows.set(0, new EvaluationPolicyEvaluator.Observation(
+                "train", "g1", "iron", "dry", true, true, true));
+        EvaluationPolicyEvaluator.Result r =
+                EvaluationPolicyEvaluator.evaluate(rows, policy(Collections.<String>emptyList()));
+        assertEquals("REJECTED", r.status);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void policyRejectsInvalidThreshold() {
+        new EvaluationPolicyEvaluator.Policy(4, 2, 2,
+                1.2, 0.05, 0.05, 0.8, 0.2, Collections.<String>emptyList());
+    }
+
+    @Test public void positiveOnlyAndNegativeOnlyStrataUseApplicableMetrics() {
+        List<EvaluationPolicyEvaluator.Observation> rows = new ArrayList<>();
+        rows.add(row("p1", true, true, true, "iron", "dry"));
+        rows.add(row("p2", true, true, true, "iron", "dry"));
+        rows.add(row("n1", false, false, false, "no-target", "dry"));
+        rows.add(row("n2", false, false, false, "no-target", "dry"));
+        EvaluationPolicyEvaluator.Policy p = new EvaluationPolicyEvaluator.Policy(
+                2, 2, 2, 0.0, 0.0, 0.0, 1.0, 0.0,
+                Arrays.asList("iron|dry", "no-target|dry"));
+        EvaluationPolicyEvaluator.Result r = EvaluationPolicyEvaluator.evaluate(rows, p);
+        assertEquals("ELIGIBLE_FOR_REVIEW", r.status);
+        assertEquals(2, r.strata.get("iron|dry").candidate.positives);
+        assertEquals(0, r.strata.get("iron|dry").candidate.negatives);
+        assertEquals(0, r.strata.get("no-target|dry").candidate.positives);
+        assertEquals(2, r.strata.get("no-target|dry").candidate.negatives);
+        assertTrue(Double.isNaN(r.strata.get("iron|dry").candidate.falsePositiveRate));
+        assertTrue(Double.isNaN(r.strata.get("no-target|dry").candidate.recall));
+    }
+
+}

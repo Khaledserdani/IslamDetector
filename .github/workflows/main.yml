@@ -1,12 +1,33 @@
-name: Validate Islam Detector apps on pull requests
+name: Build and test ISLAM DETECTOR and ISLAM LAB Android apps
 on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/main.yml'
+      - 'app/**'
+      - 'lab/**'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - 'gradle/**'
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
+    paths:
+      - '.github/workflows/main.yml'
+      - 'app/**'
+      - 'lab/**'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - 'gradle/**'
 permissions:
   contents: read
+concurrency:
+  group: islam-lab-android-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: false
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  android-apps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -16,27 +37,35 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both APKs
-        run: gradle --no-daemon clean :app:assembleDebug :pro:assembleDebug
-      - name: Verify APKs
+      - name: Build Android applications
+        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug
+      - name: Verify APK packages
         shell: bash
         run: |
           set -euo pipefail
-          for APK in app/build/outputs/apk/debug/app-debug.apk pro/build/outputs/apk/debug/pro-debug.apk; do
-            test -f "$APK"
-            test "$(stat -c%s "$APK")" -gt 20000
-            unzip -t "$APK"
-            sha256sum "$APK"
-          done
-      - name: Upload original app
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          LAB_APK=lab/build/outputs/apk/debug/lab-debug.apk
+          test -s "$APP_APK"
+          test -s "$LAB_APK"
+          test "$(stat -c%s "$APP_APK")" -gt 1000
+          test "$(stat -c%s "$LAB_APK")" -gt 1000
+          unzip -t "$APP_APK"
+          unzip -t "$LAB_APK"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APP_APK" | grep -F "package: name='com.islamdetector.app'"
+          "$AAPT" dump badging "$LAB_APK" | grep -F "package: name='com.islamlab.app'"
+          sha256sum "$APP_APK" "$LAB_APK"
+      - name: Upload ISLAM DETECTOR APK
         uses: actions/upload-artifact@v4
         with:
-          name: IslamDetector-Original-APK
+          name: ISLAM-DETECTOR-Android-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-      - name: Upload Pro app
+      - name: Upload ISLAM LAB APK
         uses: actions/upload-artifact@v4
         with:
-          name: IslamDetector-Pro-APK
-          path: pro/build/outputs/apk/debug/pro-debug.apk
+          name: ISLAM-LAB-Android-APK
+          path: lab/build/outputs/apk/debug/lab-debug.apk
           retention-days: 30

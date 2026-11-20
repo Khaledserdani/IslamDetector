@@ -1,0 +1,64 @@
+name: ISLAM LAB GetDP mesh convergence
+on:
+  push:
+    branches: [ feature/islam-lab-foundation ]
+    paths:
+      - '.github/workflows/getdp-mesh-convergence.yml'
+      - 'simulation/getdp/pi_pulse_axisymmetric.pro'
+      - 'simulation/getdp/run_getdp_mesh_convergence.sh'
+      - 'simulation/getdp/analyze_getdp_mesh_convergence.py'
+      - 'simulation/getdp/derive_rx_voltage.py'
+      - 'simulation/getdp/convert_rx_probe_to_flux.py'
+      - 'simulation/getdp/test_convert_rx_probe_to_flux.py'
+      - 'simulation/getdp/sum_rx_turn_flux_linkage.py'
+      - 'simulation/getdp/test_sum_rx_turn_flux_linkage.py'
+      - 'simulation/getdp/test_derive_rx_voltage.py'
+      - 'simulation/getdp/derive_rx_linkage_voltage.py'
+      - 'simulation/getdp/test_derive_rx_linkage_voltage.py'
+      - 'simulation/elmer/pi_pulse_separate_coil.geo'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: islam-lab-getdp-mesh-${{ github.run_id }}
+  cancel-in-progress: false
+jobs:
+  mesh-convergence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GetDP and Gmsh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y getdp gmsh python3
+      - name: Test RX flux-to-voltage numerical kernel
+        run: |
+          set -euo pipefail
+          python3 -m py_compile simulation/getdp/*.py
+          python3 -m unittest discover -s simulation/getdp -p 'test_*.py' -v
+      - name: Run three independent mesh resolutions
+        run: |
+          set -euo pipefail
+          bash -n simulation/getdp/run_getdp_mesh_convergence.sh
+          bash simulation/getdp/run_getdp_mesh_convergence.sh
+      - name: Upload raw J2 histories and convergence table
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-LAB-GetDP-mesh-convergence-45mm
+          path: |
+            artifacts/getdp-mesh-convergence/gmsh-version.txt
+            artifacts/getdp-mesh-convergence/getdp-version.txt
+            artifacts/getdp-mesh-convergence/python-version.txt
+            artifacts/getdp-mesh-convergence/getdp_mesh_convergence_45mm.csv
+            artifacts/getdp-mesh-convergence/mesh-integrity-sha256.txt
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/j2.txt
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/az_rx_point.txt
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/rx_flux_per_turn.csv
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/rx_voltage_per_turn.csv
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/getdp.log
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/gmsh.log
+            artifacts/getdp-mesh-convergence/gap-45mm-refine-*/model.msh
+          if-no-files-found: warn
+          retention-days: 90

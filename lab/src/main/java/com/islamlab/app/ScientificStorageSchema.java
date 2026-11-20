@@ -1,0 +1,182 @@
+package com.islamlab.app;
+
+import android.database.sqlite.SQLiteDatabase;
+
+/** Additive schema for immutable scientific captures and append-only audit records. */
+final class ScientificStorageSchema {
+    private ScientificStorageSchema() {}
+
+    static void create(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS captures ("
+                + "capture_id TEXT PRIMARY KEY NOT NULL,"
+                + "session_id TEXT NOT NULL,"
+                + "sequence INTEGER NOT NULL CHECK(sequence >= 0),"
+                + "source_type TEXT NOT NULL CHECK(source_type IN ('synthetic','user_provided','instrument','islam_detector')),"
+                + "captured_at_utc TEXT,"
+                + "monotonic_start_tick INTEGER,"
+                + "tick_frequency_hz INTEGER CHECK(tick_frequency_hz IS NULL OR tick_frequency_hz > 0),"
+                + "device_id TEXT, stm32_firmware TEXT, esp32_firmware TEXT,"
+                + "coil_profile_id TEXT, acquisition_config_id TEXT,"
+                + "payload_format TEXT NOT NULL,"
+                + "payload_blob BLOB NOT NULL,"
+                + "payload_length_bytes INTEGER NOT NULL CHECK(payload_length_bytes >= 0),"
+                + "payload_crc32 TEXT NOT NULL,"
+                + "payload_sha256 TEXT NOT NULL CHECK(length(payload_sha256)=64),"
+                + "sample_count INTEGER NOT NULL CHECK(sample_count >= 0),"
+                + "transport_status TEXT NOT NULL CHECK(transport_status IN ('complete','incomplete','corrupted')),"
+                + "created_epoch_ms INTEGER NOT NULL,"
+                + "UNIQUE(session_id, sequence))");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_captures_session_sequence ON captures(session_id, sequence)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_captures_source_created ON captures(source_type, created_epoch_ms DESC)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS review_events ("
+                + "event_id TEXT PRIMARY KEY NOT NULL,"
+                + "capture_id TEXT NOT NULL REFERENCES captures(capture_id) ON DELETE RESTRICT,"
+                + "event_time_epoch_ms INTEGER NOT NULL,"
+                + "reviewer_id TEXT NOT NULL,"
+                + "previous_lifecycle_status TEXT,"
+                + "new_lifecycle_status TEXT NOT NULL CHECK(new_lifecycle_status IN "
+                + "('CAPTURED','NEEDS_REVIEW','REVIEWED','ELIGIBLE_FOR_TRAINING','REJECTED','INCONCLUSIVE')),"
+                + "previous_ground_truth_status TEXT,"
+                + "new_ground_truth_status TEXT NOT NULL CHECK(new_ground_truth_status IN "
+                + "('UNKNOWN','CONFIRMED','REJECTED','INCONCLUSIVE')),"
+                + "reason_code TEXT NOT NULL, review_note TEXT, evidence_type TEXT, evidence_ref TEXT,"
+                + "target_class TEXT, soil_class TEXT, ground_truth_positive INTEGER CHECK(ground_truth_positive IS NULL OR ground_truth_positive IN (0,1)),"
+                + "previous_event_id TEXT REFERENCES review_events(event_id) ON DELETE RESTRICT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_review_events_capture_time ON review_events(capture_id, event_time_epoch_ms)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS analysis_runs ("
+                + "analysis_run_id TEXT PRIMARY KEY NOT NULL,"
+                + "capture_id TEXT NOT NULL REFERENCES captures(capture_id) ON DELETE RESTRICT,"
+                + "input_payload_sha256 TEXT NOT NULL CHECK(length(input_payload_sha256)=64),"
+                + "algorithm_id TEXT NOT NULL, algorithm_version TEXT NOT NULL, model_sha256 TEXT,"
+                + "parameters_json TEXT NOT NULL, result_json TEXT,"
+                + "started_epoch_ms INTEGER NOT NULL, completed_epoch_ms INTEGER,"
+                + "run_status TEXT NOT NULL CHECK(run_status IN ('complete','failed','cancelled')))");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_analysis_capture ON analysis_runs(capture_id, started_epoch_ms)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_runs ("
+                + "evaluation_run_id TEXT PRIMARY KEY NOT NULL,"
+                + "dataset_manifest_json TEXT NOT NULL,"
+                + "dataset_manifest_sha256 TEXT NOT NULL CHECK(length(dataset_manifest_sha256)=64),"
+                + "champion_algorithm_id TEXT, champion_algorithm_version TEXT,"
+                + "candidate_algorithm_id TEXT NOT NULL, candidate_algorithm_version TEXT NOT NULL,"
+                + "metrics_json TEXT NOT NULL, decision TEXT NOT NULL,"
+                + "created_epoch_ms INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_items ("
+                + "evaluation_item_id TEXT PRIMARY KEY NOT NULL,"
+                + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
+                + "capture_id TEXT NOT NULL REFERENCES captures(capture_id) ON DELETE RESTRICT,"
+                + "split TEXT NOT NULL CHECK(split IN ('train','validation','test','shadow')),"
+                + "group_key TEXT NOT NULL, expected_result_json TEXT, actual_result_json TEXT,"
+                + "UNIQUE(evaluation_run_id, capture_id))");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_evaluation_items_group ON evaluation_items(evaluation_run_id, group_key)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_decisions ("
+                + "decision_id TEXT PRIMARY KEY NOT NULL,"
+                + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
+                + "decision TEXT NOT NULL CHECK(decision IN ('PROMOTE','REJECT','SHADOW_ONLY')),"
+                + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL,"
+                + "reviewer_id TEXT NOT NULL, rationale TEXT NOT NULL, evidence_ref TEXT NOT NULL,"
+                + "decided_epoch_ms INTEGER NOT NULL)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_policies ("
+                + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL,"
+                + "policy_json TEXT NOT NULL, policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256)=64),"
+                + "approved_by TEXT NOT NULL, approval_evidence_ref TEXT NOT NULL,"
+                + "approved_epoch_ms INTEGER NOT NULL, PRIMARY KEY(policy_id,policy_version))");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS evaluation_gate_results ("
+                + "gate_result_id TEXT PRIMARY KEY NOT NULL,"
+                + "evaluation_run_id TEXT NOT NULL REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT,"
+                + "policy_id TEXT NOT NULL, policy_version TEXT NOT NULL, policy_json TEXT NOT NULL,"
+                + "status TEXT NOT NULL CHECK(status IN ('ELIGIBLE_FOR_REVIEW','REJECTED','INSUFFICIENT_EVIDENCE')),"
+                + "reason TEXT NOT NULL, metrics_json TEXT NOT NULL, created_epoch_ms INTEGER NOT NULL)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_gate_results_run ON evaluation_gate_results(evaluation_run_id, created_epoch_ms)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS deployment_events ("
+                + "deployment_event_id TEXT PRIMARY KEY NOT NULL,"
+                + "previous_algorithm_id TEXT, previous_algorithm_version TEXT,"
+                + "new_algorithm_id TEXT NOT NULL, new_algorithm_version TEXT NOT NULL,"
+                + "model_sha256 TEXT,"
+                + "action TEXT NOT NULL CHECK(action IN ('activate','rollback','reject')),"
+                + "reason TEXT NOT NULL, actor_id TEXT NOT NULL, event_time_epoch_ms INTEGER NOT NULL,"
+                + "evaluation_run_id TEXT REFERENCES evaluation_runs(evaluation_run_id) ON DELETE RESTRICT)");
+
+        createAppendOnlyTriggers(db, "captures");
+        createAppendOnlyTriggers(db, "review_events");
+        createAppendOnlyTriggers(db, "analysis_runs");
+        createAppendOnlyTriggers(db, "evaluation_runs");
+        createAppendOnlyTriggers(db, "evaluation_items");
+        createAppendOnlyTriggers(db, "evaluation_decisions");
+        createAppendOnlyTriggers(db, "evaluation_gate_results");
+        createAppendOnlyTriggers(db, "evaluation_policies");
+        createAppendOnlyTriggers(db, "deployment_events");
+
+        // A capture group must never leak across dataset splits in the same evaluation.
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_evaluation_group_split_guard "
+                + "BEFORE INSERT ON evaluation_items "
+                + "WHEN EXISTS (SELECT 1 FROM evaluation_items old "
+                + "WHERE old.evaluation_run_id=NEW.evaluation_run_id "
+                + "AND old.group_key=NEW.group_key AND old.split<>NEW.split) "
+                + "BEGIN SELECT RAISE(ABORT, 'evaluation group split conflict'); END");
+
+        createGlobalTrainTestReuseGuard(db);
+    }
+
+
+
+    static void createDatasetUsageEvents(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS dataset_usage_events ("
+                + "event_id TEXT PRIMARY KEY NOT NULL,"
+                + "capture_id TEXT NOT NULL REFERENCES captures(capture_id) ON DELETE RESTRICT,"
+                + "dataset_manifest_id TEXT NOT NULL,"
+                + "dataset_manifest_sha256 TEXT NOT NULL CHECK(length(dataset_manifest_sha256)=64),"
+                + "usage_role TEXT NOT NULL CHECK(usage_role IN ('TRAIN','VALIDATION','TEST','SHADOW')),"
+                + "consumer_id TEXT NOT NULL, consumer_version TEXT NOT NULL,"
+                + "run_id TEXT NOT NULL,"
+                + "recorded_epoch_ms INTEGER NOT NULL CHECK(recorded_epoch_ms >= 0),"
+                + "actor_id TEXT NOT NULL, evidence_ref TEXT NOT NULL)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dataset_usage_capture ON dataset_usage_events(capture_id, usage_role)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dataset_usage_run ON dataset_usage_events(run_id)");
+        createAppendOnlyTriggers(db, "dataset_usage_events");
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_dataset_usage_role_isolation "
+                + "BEFORE INSERT ON dataset_usage_events "
+                + "WHEN EXISTS (SELECT 1 FROM dataset_usage_events old "
+                + "WHERE old.capture_id=NEW.capture_id AND old.usage_role<>NEW.usage_role) "
+                + "BEGIN SELECT RAISE(ABORT, 'capture reused across dataset usage roles'); END");
+    }
+
+
+    /** Backfills v5 evaluation assignments so v6 role isolation covers historical use. */
+    static void backfillDatasetUsageEvents(SQLiteDatabase db) {
+        db.execSQL("INSERT INTO dataset_usage_events (event_id,capture_id,dataset_manifest_id,"
+                + "dataset_manifest_sha256,usage_role,consumer_id,consumer_version,run_id,"
+                + "recorded_epoch_ms,actor_id,evidence_ref) "
+                + "SELECT 'legacy-v6:' || i.evaluation_item_id,i.capture_id,r.evaluation_run_id,"
+                + "r.dataset_manifest_sha256,upper(i.split),r.candidate_algorithm_id,"
+                + "r.candidate_algorithm_version,r.evaluation_run_id,r.created_epoch_ms,"
+                + "'migration_v6','evaluation_items:' || i.evaluation_item_id "
+                + "FROM evaluation_items i JOIN evaluation_runs r "
+                + "ON r.evaluation_run_id=i.evaluation_run_id");
+    }
+
+    static void createGlobalTrainTestReuseGuard(SQLiteDatabase db) {
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_capture_train_test_reuse_guard "
+                + "BEFORE INSERT ON evaluation_items "
+                + "WHEN EXISTS (SELECT 1 FROM evaluation_items old "
+                + "WHERE old.capture_id=NEW.capture_id "
+                + "AND ((old.split='test' AND NEW.split='train') "
+                + "OR (old.split='train' AND NEW.split='test'))) "
+                + "BEGIN SELECT RAISE(ABORT, 'capture reused across train and test'); END");
+    }
+
+    private static void createAppendOnlyTriggers(SQLiteDatabase db, String table) {
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_" + table + "_no_update "
+                + "BEFORE UPDATE ON " + table + " BEGIN "
+                + "SELECT RAISE(ABORT, '" + table + " is append-only'); END");
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS trg_" + table + "_no_delete "
+                + "BEFORE DELETE ON " + table + " BEGIN "
+                + "SELECT RAISE(ABORT, '" + table + " is append-only'); END");
+    }
+}
