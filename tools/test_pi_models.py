@@ -53,8 +53,18 @@ class FrontendSanityTests(unittest.TestCase):
 
 class ClampModelTests(unittest.TestCase):
     def test_selected_spiral_6a_clamp_energy_balance(self):
-        result = simulate(inductance_uH=175.8, current_A=6.0, coil_resistance_ohm=1.04)
+        result = simulate(inductance_uH=175.8, current_A=6.0, coil_resistance_ohm=1.064)
         self.assertAlmostEqual(result.initial_energy_mJ, 3.1644, delta=0.001)
+        self.assertLess(abs(result.energy_error_percent), 0.2)
+
+    def test_selected_spiral_5a_clamp_energy_balance(self):
+        # Same theoretical 13-turn coil values used by the coil specification.
+        result = simulate(
+            inductance_uH=175.8,
+            current_A=5.0,
+            coil_resistance_ohm=1.064,
+        )
+        self.assertAlmostEqual(result.initial_energy_mJ, 2.1975, delta=0.001)
         self.assertLess(abs(result.energy_error_percent), 0.2)
 
     def test_conservative_vbrmax_clamp_estimate(self):
