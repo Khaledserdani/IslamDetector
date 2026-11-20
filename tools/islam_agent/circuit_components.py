@@ -54,12 +54,13 @@ def component_catalog():
     return {
         name: {
             "reference_prefix": item["prefix"],
-            "pins": [{"number": p[0], "name": p[1], "electrical_type": p[2]} for p in item["pins"]],
+            "pins": [{"logical_key": p[0], "name": p[1], "electrical_type": p[2]} for p in item["pins"]],
             "value_unit": item["value_unit"],
             "required_rating": item.get("rating"),
             "spice_primitive": item["spice"],
             "simulation_model_required": item["model_required"],
             "pin_number_policy": "must be supplied from the selected package datasheet",
+            "package_pin_map_required": True,
         }
         for name, item in COMPONENT_LIBRARY.items()
     }
@@ -165,7 +166,8 @@ def validate_circuit_v2(spec):
     return {"schema_version":2,"name":name.strip(),"ground":ground,"components":normalized,
             "nodes":sorted(nodes),"component_count":len(normalized),
             "electrical_warnings":warnings,
-            "simulation_ready":len(model_refs)==0,
+            "simulation_ready":False,
             "models_requiring_independent_verification":model_refs,
+            "simulation_status":"engine integration and model verification are pending",
             "missing_bom_identity":missing_bom_identity,
             "build_ready":False}
