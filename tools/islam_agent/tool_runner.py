@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,7 @@ AGENT_DIR = ROOT / "tools" / "islam_agent"
 MAX_INSPECT_BYTES = 64_000
 MAX_OUTPUT_CHARS = 20_000
 TEST_TIMEOUT_SECONDS = 120
+ANDROID_TEST_TIMEOUT_SECONDS = 900
 AGENT_TEST_MODULES = (
     "test_task_queue", "test_ollama_client", "test_agent_policy",
     "test_tool_runner", "test_checkpoint", "test_checkpointed_runner",
@@ -109,21 +111,30 @@ class SafeToolRunner:
         }
 
     def _run_tests(self, target: str) -> dict:
-        if target != "agent_unit_tests":
+        if target == "agent_unit_tests":
+            if not self.agent_dir.is_dir():
+                raise ToolExecutionError("agent test directory is missing")
+            command = [sys.executable, "-m", "unittest", "-v", *AGENT_TEST_MODULES]
+            cwd = self.agent_dir
+            timeout = TEST_TIMEOUT_SECONDS
+        elif target == "android_unit_tests":
+            if not shutil.which("gradle"):
+                raise ToolExecutionError("Gradle is not installed; Android source changes cannot be approved for upload")
+            command = ["gradle", "--no-daemon", ":agent:testDebugUnitTest", ":agent:assembleDebug"]
+            cwd = self.root
+            timeout = ANDROID_TEST_TIMEOUT_SECONDS
+        else:
             raise PolicyViolation("test target is not allowlisted")
-        if not self.agent_dir.is_dir():
-            raise ToolExecutionError("agent test directory is missing")
-        command = [sys.executable, "-m", "unittest", "-v", *AGENT_TEST_MODULES]
         try:
             result = subprocess.run(
-                command, cwd=self.agent_dir, shell=False, text=True,
+                command, cwd=cwd, shell=False, text=True,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                timeout=TEST_TIMEOUT_SECONDS, check=False,
+                timeout=timeout, check=False,
             )
         except subprocess.TimeoutExpired:
-            raise ToolExecutionError("approved agent test suite timed out") from None
+            raise ToolExecutionError("approved test suite timed out") from None
         except OSError:
-            raise ToolExecutionError("approved agent test suite could not be started") from None
+            raise ToolExecutionError("approved test suite could not be started") from None
         output = result.stdout or ""
         return {
             "kind": "run_test", "target": target,
