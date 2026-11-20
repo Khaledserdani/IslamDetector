@@ -89,6 +89,12 @@ class CircuitComponentsTests(unittest.TestCase):
         with self.assertRaisesRegex(CircuitSchemaError, "unsupported component"):
             validate_circuit_v2(base_spec([part]))
 
+    def test_rejects_unverified_footprint_identifier_format(self):
+        part = resistor()
+        part["footprint"] = "../bad:footprint"
+        with self.assertRaisesRegex(CircuitSchemaError, "exact KiCad Library:Footprint"):
+            validate_circuit_v2(base_spec([part]))
+
     def test_rejects_nonfinite_ratings_and_values(self):
         part = resistor()
         part["rating"]["power_w"] = float("inf")
