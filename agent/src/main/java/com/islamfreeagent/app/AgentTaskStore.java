@@ -14,6 +14,7 @@ import java.util.UUID;
 final class AgentTaskStore {
     private static final String PREFS = "islam_free_agent";
     private static final String KEY_TASKS = "tasks_json";
+    static final int MAX_TASKS = 500;
     private final SharedPreferences preferences;
 
     AgentTaskStore(Context context) {
@@ -45,6 +46,9 @@ final class AgentTaskStore {
         if (clean.length() > 180) throw new IllegalArgumentException("عنوان المهمة طويل جداً");
         Task task = new Task(UUID.randomUUID().toString(), clean, false);
         List<Task> tasks = all();
+        if (tasks.size() >= MAX_TASKS) {
+            throw new IllegalStateException("وصلت إلى الحد الأقصى للمهام المحفوظة (500)");
+        }
         tasks.add(0, task);
         save(tasks);
         return task;
