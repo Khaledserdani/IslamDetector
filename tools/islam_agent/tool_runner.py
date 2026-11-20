@@ -32,7 +32,7 @@ AGENT_TEST_MODULES = (
     "test_tool_runner", "test_checkpoint", "test_checkpointed_runner",
     "test_local_agent", "test_local_workflow", "test_agent_cycle",
     "test_orchestrator", "test_review_pending", "test_bridge_server",
-    "test_safe_writer", "test_work_schedule", "test_lab_manager",
+    "test_safe_writer", "test_work_schedule", "test_lab_manager", "test_lab_catalog",
 )
 
 
