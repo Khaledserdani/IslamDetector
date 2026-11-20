@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""First-principles magnetostatic filament kernel for supplied 3D wire paths."""
+"""First-principles magnetostatic filament kernel for supplied 3D wire paths.
+
+Paths are used exactly as supplied: open spiral centerlines stay open, and
+closed loops must explicitly repeat their first vertex at the end.
+"""
 from __future__ import annotations
 import math
 from typing import Iterable
@@ -7,22 +11,20 @@ import numpy as np
 
 MU0 = 4.0e-7 * math.pi
 
-def _closed_segments(path: Iterable[Iterable[float]], name: str):
+def _wire_segments(path: Iterable[Iterable[float]], name: str):
     points = np.asarray(list(path), dtype=float)
-    if points.ndim != 2 or points.shape[1] != 3 or len(points) < 4:
-        raise ValueError(f"{name}: expected at least four 3D vertices")
+    if points.ndim != 2 or points.shape[1] != 3 or len(points) < 2:
+        raise ValueError(f"{name}: expected at least two 3D vertices")
     if not np.isfinite(points).all():
         raise ValueError(f"{name}: coordinates must be finite")
-    if np.linalg.norm(points[0] - points[-1]) > 1e-9:
-        points = np.vstack((points, points[0]))
     dl = np.diff(points, axis=0)
     if np.any(np.linalg.norm(dl, axis=1) <= 1e-12):
         raise ValueError(f"{name}: zero-length wire segment")
     return points[:-1], dl
 
 def path_length_m(path_m):
-    """Total centerline length [m] of one closed winding path."""
-    starts, dl = _closed_segments(path_m, "coil")
+    """Total centerline length [m] of the supplied wire path; no closure is inferred."""
+    starts, dl = _wire_segments(path_m, "coil")
     return float(np.sum(np.linalg.norm(dl, axis=1)))
 
 def field_at_points(path_m, points_m, current_a=1.0, turns=1, point_batch=64):
@@ -56,8 +58,8 @@ def mutual_inductance(path_a_m, path_b_m, turns_a=1, turns_b=1, segment_batch=12
         raise ValueError("turn counts must be positive integers")
     if segment_batch < 1:
         raise ValueError("segment_batch must be positive")
-    starts_a, dl_a = _closed_segments(path_a_m, "coil A")
-    starts_b, dl_b = _closed_segments(path_b_m, "coil B")
+    starts_a, dl_a = _wire_segments(path_a_m, "coil A")
+    starts_b, dl_b = _wire_segments(path_b_m, "coil B")
     mid_a, mid_b = starts_a + 0.5 * dl_a, starts_b + 0.5 * dl_b
     total = 0.0
     for first in range(0, len(mid_a), segment_batch):
