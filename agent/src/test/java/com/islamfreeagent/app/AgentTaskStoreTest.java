@@ -55,4 +55,24 @@ public class AgentTaskStoreTest {
             assertEquals("عنوان المهمة طويل جداً", expected.getMessage());
         }
     }
+
+    @Test public void corruptStoredJsonDoesNotBecomeExecutableTasks() {
+        context.getSharedPreferences("islam_free_agent", Context.MODE_PRIVATE)
+                .edit().putString("tasks_json", "{broken").commit();
+        assertTrue(store.all().isEmpty());
+    }
+
+    @Test public void taskQueueHasABoundedCapacity() {
+        for (int i = 0; i < AgentTaskStore.MAX_TASKS; i++) {
+            store.add("مهمة " + i);
+        }
+        try {
+            store.add("مهمة إضافية");
+            fail("task capacity should be enforced");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("500"));
+        }
+        assertEquals(AgentTaskStore.MAX_TASKS, store.all().size());
+    }
+
 }
