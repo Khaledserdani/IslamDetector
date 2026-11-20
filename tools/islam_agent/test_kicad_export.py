@@ -49,6 +49,9 @@ class KiCadExportTests(unittest.TestCase):
         self.assertEqual(result["component_count"], 2)
         self.assertEqual(result["pin_count"], 7)
         self.assertEqual(result["net_label_count"], 7)
+        self.assertEqual(len(result["bom"]), 2)
+        self.assertEqual(result["bom"][0]["quantity"], 1)
+        self.assertIn("U1", result["missing_bom_identity"])
         self.assertFalse(result["build_ready"])
 
     def test_each_pin_gets_one_exact_net_label(self):
