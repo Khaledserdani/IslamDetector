@@ -35,8 +35,8 @@ class ManagerAuditTests(unittest.TestCase):
             result = run_tests(Path(temp), runner)
         self.assertEqual(result.returncode, 0)
         args, kwargs = runner.call_args
-        self.assertEqual(args[0][0:3], [args[0][0], "-m", "unittest"])
-        self.assertEqual(tuple(args[0][3:]), TEST_MODULES)
+        self.assertEqual(args[0][1:4], ["-m", "unittest", "-v"])
+        self.assertEqual(tuple(args[0][4:]), TEST_MODULES)
         self.assertFalse(kwargs["shell"])
         self.assertEqual(kwargs["timeout"], 180)
 
@@ -47,7 +47,7 @@ class ManagerAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 124)
         self.assertIn("timed out", result.stdout)
 
-    def test_audit_does_not_run_tests_when_memory_is_invalid(self):
+    def test_audit_fails_closed_when_required_files_are_missing(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs/agent").mkdir(parents=True)
