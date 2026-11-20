@@ -1,4 +1,9 @@
 import json
+import http.client
+import os
+import ssl
+import subprocess
+import threading
 import tempfile
 import time
 import unittest
@@ -165,6 +170,56 @@ class BridgeServerTests(unittest.TestCase):
         self.assertFalse(self.pending.exists())
         updated_memory = json.loads(self.memory.read_text(encoding="utf-8"))
         self.assertEqual(updated_memory["next_tasks"][0]["status"], "completed")
+
+
+    def test_https_transport_pairs_and_authenticates_phone(self):
+        openssl = __import__("shutil").which("openssl")
+        if not openssl:
+            self.skipTest("OpenSSL is not available")
+        cert = self.root / "server.crt"
+        key = self.root / "server.key"
+        subprocess.run([
+            openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+            "-keyout", str(key), "-out", str(cert), "-subj", "/CN=127.0.0.1",
+            "-addext", "subjectAltName=IP:127.0.0.1", "-days", "1",
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        server = create_server(
+            "127.0.0.1", 0, self.app, cert, key, test_allow_loopback=True
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            context = ssl._create_unverified_context()
+            connection = http.client.HTTPSConnection(
+                "127.0.0.1", server.server_port, context=context, timeout=3
+            )
+            connection.request("GET", "/v1/tasks")
+            unauthorized = connection.getresponse()
+            self.assertEqual(unauthorized.status, 401)
+            unauthorized.read()
+
+            body = json.dumps({"code": "123456"})
+            connection.request(
+                "POST", "/v1/pair", body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            paired = connection.getresponse()
+            self.assertEqual(paired.status, 200)
+            token = json.loads(paired.read().decode("utf-8"))["session_token"]
+
+            connection.request(
+                "GET", "/v1/tasks",
+                headers={"Authorization": "Bearer " + token},
+            )
+            authorized = connection.getresponse()
+            self.assertEqual(authorized.status, 200)
+            payload = json.loads(authorized.read().decode("utf-8"))
+            self.assertEqual(payload["tasks"][0]["id"], "agent-011")
+            connection.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_refuses_public_network_bind_address(self):
         with self.assertRaisesRegex(ValueError, "private IPv4"):
