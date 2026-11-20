@@ -325,6 +325,8 @@ public class MainActivity extends Activity {
         });
     }
 
+    private interface Operation { String run() throws Exception; }
+
     private void runGitHubOperation(String working, Operation operation) {
         githubStatusText.setText(working);
         githubStatusText.setTextColor(Color.rgb(255, 205, 120));
