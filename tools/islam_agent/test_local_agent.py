@@ -46,6 +46,12 @@ class LocalProposalAgentTests(unittest.TestCase):
         self.assertIn("linear_ac_network", SYSTEM_PROMPT)
         self.assertIn("design_circuit", SYSTEM_PROMPT)
         self.assertIn("circuit_design", SYSTEM_PROMPT)
+        self.assertIn("validate_circuit_v2", SYSTEM_PROMPT)
+        self.assertIn("pin_numbers", SYSTEM_PROMPT)
+        self.assertIn("circuit_components.py", SYSTEM_PROMPT)
+        self.assertIn("export_kicad_schematic", SYSTEM_PROMPT)
+        self.assertIn("kicad_schematic", SYSTEM_PROMPT)
+        self.assertIn("Build-Ready", SYSTEM_PROMPT)
 
     def test_rejects_model_extra_fields(self):
         plan = valid_plan()

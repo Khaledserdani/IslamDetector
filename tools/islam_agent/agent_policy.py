@@ -6,7 +6,7 @@ allowlisted tools; model-supplied command strings are never accepted.
 from __future__ import annotations
 
 
-ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file", "simulate_circuit", "simulate_rlc", "simulate_ac_network", "design_circuit"}
+ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file", "simulate_circuit", "simulate_rlc", "simulate_ac_network", "design_circuit", "validate_circuit_v2", "export_kicad_schematic"}
 # Deliberately exact paths. The agent cannot write credentials, workflows,
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
 ALLOWED_WRITE_TARGETS = {
@@ -39,8 +39,15 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/test_ac_network.py",
     "tools/islam_agent/circuit_design.py",
     "tools/islam_agent/test_circuit_design.py",
+    "tools/islam_agent/circuit_components.py",
+    "tools/islam_agent/test_circuit_components.py",
+    "tools/islam_agent/kicad_export.py",
+    "tools/islam_agent/test_kicad_export.py",
+    "tools/islam_agent/kicad_export.py",
+    "tools/islam_agent/test_kicad_export.py",
     "docs/agent/ISLAM_COMPREHENSIVE_LAB_AR.md",
     "docs/agent/ISLAM_CIRCUIT_DESIGNER_AR.md",
+    "docs/agent/ISLAM_CIRCUIT_DESIGNER_ROADMAP_AR.md",
     "tools/islam_agent/checkpointed_runner.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
     *ALLOWED_WRITE_TARGETS,
@@ -89,7 +96,7 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("step kind is not allowlisted")
         if not isinstance(target, str):
             raise PolicyViolation("step target must be a string")
-        expected_keys = ({"kind", "target", "content"} if kind == "write_file" else {"kind", "target", "circuit"} if kind in {"simulate_circuit", "simulate_rlc", "simulate_ac_network"} else {"kind", "target", "design"} if kind == "design_circuit" else {"kind", "target"})
+        expected_keys = ({"kind", "target", "content"} if kind == "write_file" else {"kind", "target", "circuit"} if kind in {"simulate_circuit", "simulate_rlc", "simulate_ac_network"} else {"kind", "target", "design"} if kind == "design_circuit" else {"kind", "target", "design"} if kind == "validate_circuit_v2" else {"kind", "target", "design"} if kind == "export_kicad_schematic" else {"kind", "target"})
         if set(step) != expected_keys:
             if kind == "write_file":
                 raise PolicyViolation("write_file steps must contain only kind, target, and content")
@@ -98,7 +105,25 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("inspect target is not allowlisted")
         if kind == "run_test" and target not in ALLOWED_TEST_TARGETS:
             raise PolicyViolation("test target is not allowlisted")
-        if kind == "design_circuit":
+        if kind == "export_kicad_schematic":
+            if target != "kicad_schematic":
+                raise PolicyViolation("KiCad schematic target is not allowlisted")
+            from circuit_components import validate_circuit_v2, CircuitSchemaError
+            try:
+                validate_circuit_v2(step["design"])
+            except (CircuitSchemaError, KeyError, TypeError):
+                raise PolicyViolation("KiCad export specification failed schema validation") from None
+            clean_steps.append({"kind": kind, "target": target, "design": step["design"]})
+        elif kind == "validate_circuit_v2":
+            if target != "circuit_schema_v2":
+                raise PolicyViolation("circuit schema target is not allowlisted")
+            from circuit_components import validate_circuit_v2, CircuitSchemaError
+            try:
+                validate_circuit_v2(step["design"])
+            except (CircuitSchemaError, KeyError, TypeError):
+                raise PolicyViolation("multi-pin circuit specification failed validation") from None
+            clean_steps.append({"kind": kind, "target": target, "design": step["design"]})
+        elif kind == "design_circuit":
             if target != "circuit_design":
                 raise PolicyViolation("circuit design target is not allowlisted")
             from circuit_design import validate_design, CircuitDesignError
