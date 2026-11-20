@@ -4,6 +4,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
+from tool_runner import SafeToolRunner
 from kicad_validation import (
     KiCadCliUnavailable, KiCadValidationError, validate_kicad_design,
 )
@@ -55,6 +56,36 @@ class KiCadValidationTests(unittest.TestCase):
         self.assertEqual(commands[1][1:4], ["sch", "export", "netlist"])
         self.assertEqual(commands[2][1:4], ["sch", "export", "svg"])
         self.assertEqual(commands[3][1:3], ["sch", "erc"])
+
+    @patch("kicad_validation.shutil.which", return_value="/usr/bin/kicad-cli")
+    @patch("kicad_validation.subprocess.run")
+    def test_safe_runner_requires_approval_and_returns_erc_report(self, run, which):
+        def fake_run(command, **kwargs):
+            if command[1] == "version":
+                return CompletedProcess(command, 0, stdout="9.0.8")
+            output = Path(command[command.index("--output") + 1])
+            if command[3] == "netlist":
+                output.write_text("(export)", encoding="utf-8")
+            elif command[3] == "svg":
+                output.mkdir(exist_ok=True)
+                (output / "page.svg").write_text("<svg/>", encoding="utf-8")
+            else:
+                output.write_text("ERC report", encoding="utf-8")
+            return CompletedProcess(command, 0, stdout="completed")
+        run.side_effect = fake_run
+        proposal = {
+            "task_id": "erc-1",
+            "summary_ar": "فحص مخطط KiCad",
+            "steps": [{"kind": "validate_kicad_schematic", "target": "kicad_cli_validation", "design": design()}],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        with self.assertRaisesRegex(ValueError, "explicit human approval"):
+            SafeToolRunner().execute_plan(proposal, "erc-1")
+        result = SafeToolRunner().execute_plan(proposal, "erc-1", human_approved=True)
+        self.assertEqual(result[0]["kind"], "validate_kicad_schematic")
+        self.assertTrue(result[0]["result"]["erc_report_generated"])
+        self.assertFalse(result[0]["result"]["build_ready"])
 
     @patch("kicad_validation.shutil.which", return_value=None)
     def test_reports_cli_unavailable_without_claiming_validation(self, which):
