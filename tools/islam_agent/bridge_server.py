@@ -202,6 +202,18 @@ class BridgeApplication:
                 return {"status": "no_task"}
             record = json.loads(self.proposal_path.read_text(encoding="utf-8"))
             if auto_run_labs:
+                window = getattr(self, "work_window", None)
+                if isinstance(window, dict):
+                    from work_schedule import is_within_work_window
+                    if not is_within_work_window(
+                        start=window.get("start", "20:00"),
+                        end=window.get("end", "06:00"),
+                    ):
+                        return {
+                            "status": "awaiting_human_review",
+                            "proposal": self._public_proposal(record),
+                            "reason": "انتهت نافذة العمل قبل بدء المحاكاة؛ لم تُنفذ التجربة.",
+                        }
                 from autonomous_lab import run_autonomous_lab_proposal
                 lab_result = run_autonomous_lab_proposal(
                     record, report_dir=self.state_dir / "lab_runs"
