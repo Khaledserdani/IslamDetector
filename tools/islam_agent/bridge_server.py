@@ -8,6 +8,7 @@ approve/reject. It never accepts shell commands or arbitrary tool arguments.
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import hashlib
 import hmac
 import ipaddress
@@ -52,6 +53,7 @@ class BridgeApplication:
         self._pair_attempts = 0
         self._session_hash: bytes | None = None
         self._session_token: str | None = None
+        self._request_times = deque()
         self._lock = threading.RLock()
         self.model = model.strip()
         self.memory_path = Path(memory_path)
@@ -86,6 +88,16 @@ class BridgeApplication:
                 return False
             candidate = hashlib.sha256(token.encode("utf-8")).digest()
             return hmac.compare_digest(candidate, self._session_hash)
+
+    def allow_request(self) -> bool:
+        with self._lock:
+            now = time.monotonic()
+            while self._request_times and now - self._request_times[0] >= 60:
+                self._request_times.popleft()
+            if len(self._request_times) >= 60:
+                return False
+            self._request_times.append(now)
+            return True
 
     def health(self) -> dict:
         from bridge_health import probe_ollama
@@ -301,6 +313,9 @@ def create_server(host: str, port: int, app: BridgeApplication,
             token = header[7:] if header.startswith("Bearer ") else None
             if not app.authorized(token):
                 self._send(401, {"error": {"code": "unauthorized", "message_ar": "الجلسة غير صالحة أو غير مقترنة"}})
+                return False
+            if not app.allow_request():
+                self._send(429, {"error": {"code": "rate_limited", "message_ar": "تم تجاوز عدد الطلبات المسموح"}})
                 return False
             return True
 
