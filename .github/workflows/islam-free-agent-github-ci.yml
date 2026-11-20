@@ -5,6 +5,7 @@ on:
     branches:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-schedule-labs
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -110,4 +111,6 @@ jobs:
             test_orchestrator \
             test_review_pending \
             test_bridge_server \
-            test_safe_writer
+            test_safe_writer \
+            test_work_schedule \
+            test_lab_manager
