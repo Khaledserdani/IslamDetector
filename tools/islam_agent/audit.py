@@ -54,7 +54,9 @@ REQUIRED_FILES = (
     AGENT_DIR / "test_local_workflow.py",
     AGENT_DIR / "agent_cycle.py",
     AGENT_DIR / "test_agent_cycle.py",
-    AGENT_DIR / "orchestrator.py",\n    AGENT_DIR / "review_pending.py",\n    AGENT_DIR / "test_review_pending.py",
+    AGENT_DIR / "orchestrator.py",
+    AGENT_DIR / "review_pending.py",
+    AGENT_DIR / "test_review_pending.py",
     AGENT_DIR / "test_orchestrator.py",
     ROOT / "docs" / "agent" / "ISLAM_LOCAL_ORCHESTRATOR_AR.md",
 )
