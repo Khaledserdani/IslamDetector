@@ -163,6 +163,8 @@ class BridgeServerTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(result["executed"])
         self.assertFalse(self.pending.exists())
+        updated_memory = json.loads(self.memory.read_text(encoding="utf-8"))
+        self.assertEqual(updated_memory["next_tasks"][0]["status"], "completed")
 
     def test_refuses_public_network_bind_address(self):
         with self.assertRaisesRegex(ValueError, "private IPv4"):
