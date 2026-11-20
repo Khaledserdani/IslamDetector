@@ -16,6 +16,18 @@ class FilamentModelTests(unittest.TestCase):
         self.assertLess(errors[-1], 1e-5)
         self.assertTrue(all(errors[i + 1] < errors[i] for i in range(len(errors) - 1)))
 
+    def test_open_spiral_path_is_not_closed_with_a_phantom_segment(self):
+        path = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0]]
+        self.assertAlmostEqual(path_length_m(path), 2.0, places=12)
+
+    def test_open_wire_field_uses_only_supplied_segments(self):
+        path = [[-0.5, 0.0, 0.0], [0.5, 0.0, 0.0]]
+        field = field_at_points(path, [[0.0, 0.0, 0.5]])[0]
+        self.assertTrue(np.isfinite(field).all())
+        self.assertGreater(abs(field[1]), 0.0)
+        self.assertAlmostEqual(field[0], 0.0, places=15)
+        self.assertAlmostEqual(field[2], 0.0, places=15)
+
     def test_circular_path_length_matches_analytic_circumference(self):
         radius = 0.16
         path = circular_loop(radius, 2048)
