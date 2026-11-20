@@ -76,6 +76,14 @@
       "status": "in_progress",
       "acceptance": "Specify and implement an auditable experiment ledger, algorithm versioning, candidate/stable separation, held-out validation, human correction workflow, safe switching and rollback, integrated with the single-device architecture without interrupting stable detection.",
       "last_note": "قرار معماري معتمد في 2026-11-19 وموثق في docs/agent/ISLAM_SELF_LEARNING_LAB_CHARTER_AR.md. المطلوب تنفيذ سجل التعلم القابل للمراجعة وتدفق تطوير الخوارزميات واختبارها واعتمادها بأمان؛ لم تُنفذ هذه المنظومة بعد."
+    },
+    {
+      "id": "agent-007",
+      "title": "Implement repeatable local audit cycle and operator guide",
+      "status": "in_progress",
+      "acceptance": "A bounded repeatable local cycle selects the next unfinished task, runs the deterministic audit, logs each outcome durably, fails closed on invalid memory, does not mutate project memory or source, and is covered by the agent audit suite with operator documentation.",
+      "updated_at": "2026-11-20T00:00:00+00:00",
+      "last_note": "أضيف agent_cycle.py مع اختيار in_progress قبل pending، وتشغيل audit.py بمهلة 600 ثانية، وسجل JSONL، واختبارات تغطي الاختيار والنجاح والفشل وعدم تغيير الذاكرة. أضيف دليل تشغيل عربي. بانتظار نتيجة CI على رأس PR للتحقق النهائي."
     }
   ],
   "current_decisions": {
