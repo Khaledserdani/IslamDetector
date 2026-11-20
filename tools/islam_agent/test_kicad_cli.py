@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from kicad_export import compile_kicad_schematic
+from kicad_validation import validate_kicad_design
 
 
 def design():
@@ -52,6 +53,15 @@ class KiCadCliIntegrationTests(unittest.TestCase):
             self.assertIn("R1", netlist_text)
             self.assertIn("U1", netlist_text)
             self.assertIn("VOUT", netlist_text)
+
+    def test_kicad_cli_generates_real_erc_report(self):
+        result = validate_kicad_design(design())
+        self.assertEqual(result["status"], "native_validation_completed")
+        self.assertTrue(result["netlist_exported"])
+        self.assertTrue(result["svg_rendered"])
+        self.assertTrue(result["erc_report_generated"])
+        self.assertEqual(result["erc_status"], "review_required")
+        self.assertFalse(result["build_ready"])
 
     def test_kicad_cli_renders_generated_schematic_to_svg(self):
         executable = shutil.which("kicad-cli")
