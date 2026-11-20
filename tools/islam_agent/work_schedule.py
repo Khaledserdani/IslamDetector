@@ -17,9 +17,13 @@ def is_within_work_window(now: Optional[datetime] = None, start: str = "06:00", 
     else:
         current = current.astimezone(ALGIERS)
     start_time, end_time = time.fromisoformat(start), time.fromisoformat(end)
-    if start_time >= end_time:
-        raise ValueError("work window must start before it ends")
-    return start_time <= current.timetz().replace(tzinfo=None) < end_time
+    if start_time == end_time:
+        raise ValueError("work window start and end cannot be equal")
+    local_time = current.timetz().replace(tzinfo=None)
+    if start_time < end_time:
+        return start_time <= local_time < end_time
+    # Overnight window, e.g. 20:00–06:00.
+    return local_time >= start_time or local_time < end_time
 
 
 class ScheduledWorker:
