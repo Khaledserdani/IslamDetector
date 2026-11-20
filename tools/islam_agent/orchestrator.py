@@ -29,23 +29,55 @@ DEFAULT_PROPOSAL = ROOT / "artifacts" / "agent" / "pending_proposal.json"
 MAX_MODEL_NAME_CHARS = 128
 MAX_PENDING_RECORD_BYTES = 64 * 1024
 CONTEXT_TARGETS = (
+    "tools/islam_agent/local_agent.py",
+    "tools/islam_agent/orchestrator.py",
+    "tools/islam_agent/agent_cycle.py",
+    "tools/islam_agent/task_queue.py",
+    "tools/islam_agent/ollama_client.py",
     "tools/islam_agent/agent_policy.py",
     "tools/islam_agent/tool_runner.py",
     "tools/islam_agent/checkpointed_runner.py",
-    "tools/islam_agent/local_agent.py",
+    "tools/islam_agent/bridge_server.py",
+    "tools/islam_agent/run_bridge.py",
     "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
     "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
+    "agent/src/main/java/com/islamfreeagent/app/BridgeClient.java",
     "docs/agent/ISLAM_FREE_AGENT_EXECUTION_AR.md",
     "docs/agent/agent_worklog.md",
 )
 
+CONTEXT_KEYWORDS = {
+    "android": ("MainActivity.java",),
+    "github": ("GitHubClient.java", "MainActivity.java"),
+    "upload": ("GitHubClient.java", "bridge_server.py", "MainActivity.java"),
+    "bridge": ("bridge_server.py", "run_bridge.py", "BridgeClient.java"),
+    "ollama": ("ollama_client.py", "local_agent.py"),
+    "model": ("ollama_client.py", "local_agent.py"),
+    "task": ("task_queue.py", "orchestrator.py"),
+    "proposal": ("local_agent.py", "orchestrator.py", "review_pending.py"),
+    "checkpoint": ("checkpointed_runner.py", "checkpoint.py"),
+    "write": ("tool_runner.py", "agent_policy.py"),
+    "test": ("tool_runner.py", "test_tool_runner.py"),
+    "continuous": ("agent_cycle.py", "orchestrator.py", "bridge_server.py"),
+}
 
-def _bounded_project_context(project_root: Path) -> list[str]:
-    """Read a small, fixed set of project files as untrusted model context."""
+
+def _bounded_project_context(project_root: Path, task: dict | None = None) -> list[str]:
+    """Read relevant fixed project files as untrusted context, prioritizing task matches."""
     snippets = []
     total = 0
     root = Path(project_root).resolve()
-    for relative in CONTEXT_TARGETS:
+    task_text = " ".join(str(task.get(key, "")) for key in ("title", "acceptance")).lower() if isinstance(task, dict) else ""
+    preferred = set()
+    for keyword, files in CONTEXT_KEYWORDS.items():
+        if keyword in task_text:
+            preferred.update(files)
+    ranked = sorted(
+        enumerate(CONTEXT_TARGETS),
+        key=lambda item: (0 if Path(item[1]).name.lower() in task_text else
+                          1 if Path(item[1]).name in preferred else 2, item[0]),
+    )
+    for _, relative in ranked:
         if relative not in ALLOWED_INSPECT_TARGETS:
             continue
         path = root / relative
@@ -54,16 +86,17 @@ def _bounded_project_context(project_root: Path) -> list[str]:
             resolved.relative_to(root)
             if path.is_symlink() or not resolved.is_file() or resolved.stat().st_size > 64_000:
                 continue
-            body = resolved.read_text(encoding="utf-8")[:1200]
+            body = resolved.read_text(encoding="utf-8")
         except (OSError, UnicodeError, ValueError):
             continue
-        snippet = f"FILE: {relative}\n{body}"
+        score = 0 if Path(relative).name.lower() in task_text or Path(relative).name in preferred else 1
+        limit = 8_000 if score == 0 else 2_500
+        snippet = f"FILE: {relative}\n{body[:limit]}"
         if total + len(snippet) > 11_500 or len(snippets) >= 8:
-            break
+            continue
         snippets.append(snippet)
         total += len(snippet)
     return snippets
-
 
 class OrchestrationError(RuntimeError):
     """Raised when a safe proposal cycle cannot be completed."""
@@ -133,7 +166,7 @@ class LocalAgentOrchestrator:
 
         if context is None:
             project_root = Path(memory_path).resolve().parent.parent.parent
-            context = _bounded_project_context(project_root)
+            context = _bounded_project_context(project_root, task)
         pending = self.workflow.propose(task, context)
         required_result_fields = {
             "model", "proposal", "awaiting_human_approval", "executed"
