@@ -121,4 +121,5 @@ jobs:
             test_transient_circuit \
             test_ac_network \
             test_circuit_design \
-            test_circuit_components
+            test_circuit_components \
+            test_kicad_export
