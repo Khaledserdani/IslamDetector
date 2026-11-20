@@ -192,7 +192,7 @@ public class MainActivity extends Activity {
             volts = Double.parseDouble(dcVoltageInput.getText().toString().trim());
             String raw = dcResistorsInput.getText().toString().trim();
             if (raw.isEmpty()) throw new IllegalArgumentException("أدخل مقاومة واحدة على الأقل");
-            String[] rows = raw.split("[;\\n]+");
+            String[] rows = raw.split("[;\n]+");
             if (rows.length > 100) throw new IllegalArgumentException("الحد الأقصى 100 مقاومة في التجربة");
             for (String row : rows) {
                 String[] fields = row.trim().split(",");
@@ -208,14 +208,14 @@ public class MainActivity extends Activity {
         networkExecutor.execute(() -> {
             try {
                 AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", volts, resistors);
-                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\\n");
+                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\n");
                 for (java.util.Map.Entry<String, Double> entry : result.nodeVoltages.entrySet()) {
                     report.append(entry.getKey()).append(" = ")
-                            .append(String.format(java.util.Locale.US, "%.6f V", entry.getValue())).append("\\n");
+                            .append(String.format(java.util.Locale.US, "%.6f V", entry.getValue())).append("\n");
                 }
                 report.append("تيار المصدر: ")
                         .append(String.format(java.util.Locale.US, "%.9f A", result.sourceCurrentAmps))
-                        .append("\\nأقصى خطأ KCL: ")
+                        .append("\nأقصى خطأ KCL: ")
                         .append(String.format(java.util.Locale.US, "%.3e A", result.maximumKclResidualAmps));
                 final String message = report.toString();
                 runOnUiThread(() -> dcResultText.setText(message));
