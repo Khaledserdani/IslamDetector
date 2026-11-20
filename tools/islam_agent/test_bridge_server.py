@@ -83,8 +83,9 @@ class BridgeServerTests(unittest.TestCase):
 
     def test_pairing_code_expires(self):
         self.app._pair_expires = time.monotonic() - 1
-        with self.assertRaisesRegex(BridgeError, "expired"):
+        with self.assertRaises(BridgeError) as caught:
             self.app.pair("123456")
+        self.assertEqual(caught.exception.code, "pairing_expired")
 
     def test_task_listing_is_read_only_and_bounded(self):
         payload = self.app.tasks()
