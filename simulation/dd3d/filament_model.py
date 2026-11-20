@@ -33,7 +33,7 @@ def field_at_points(path_m, points_m, current_a=1.0, turns=1, point_batch=64):
         raise ValueError("current must be finite and turns a positive integer")
     if point_batch < 1:
         raise ValueError("point_batch must be positive")
-    starts, dl = _closed_segments(path_m, "coil")
+    starts, dl = _wire_segments(path_m, "coil")
     mid = starts + 0.5 * dl
     obs = np.asarray(list(points_m), dtype=float)
     if obs.ndim == 1:
