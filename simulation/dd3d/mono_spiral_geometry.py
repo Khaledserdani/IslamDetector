@@ -117,13 +117,13 @@ def build_spiral(family, turns, pitch_m, insulation_outer_diameter_m,
         for k in range(turns):
             w = outer_width_m - 2.0 * k * pitch_m
             h = outer_height_m - 2.0 * k * pitch_m
-            r = outer_corner_radius_m - k * pitch_m
-            if w <= insulation_outer_diameter_m or h <= insulation_outer_diameter_m or r < -1e-12:
-                raise ValueError(f"turn {k + 1} collapses or has negative corner radius")
-            loop = rounded_rectangle_loop(w, h, max(0.0, r), arc_step_deg)
+            r = outer_corner_radius_m
+            if w <= insulation_outer_diameter_m or h <= insulation_outer_diameter_m or 2.0 * r > min(w, h):
+                raise ValueError(f"turn {k + 1} collapses or cannot contain the fixed offset corner radius")
+            loop = rounded_rectangle_loop(w, h, r, arc_step_deg)
             loops.append(loop)
             per_turn.append({"turn": k + 1, "width_m": w, "height_m": h,
-                             "corner_radius_m": max(0.0, r)})
+                             "corner_radius_m": r})
     elif family == "circle":
         if outer_radius_m is None:
             raise ValueError("circle requires outer radius")
@@ -146,7 +146,7 @@ def build_spiral(family, turns, pitch_m, insulation_outer_diameter_m,
         else:
             if np.linalg.norm(np.asarray(path[-1]) - loop[0]) <= 1e-12:
                 raise ValueError("unexpected coincident turn endpoints")
-            path.extend(loop[1:].tolist())
+            path.append(loop[0].tolist())  # explicit radial transition to the next turn\n            path.extend(loop[1:].tolist())
     path_array = np.asarray(path, dtype=float)
     segment_lengths = np.linalg.norm(np.diff(path_array, axis=0), axis=1)
     if np.any(segment_lengths <= 1e-12):
