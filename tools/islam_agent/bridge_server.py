@@ -23,7 +23,7 @@ from urllib.parse import urlsplit
 
 from agent_cycle import select_next_task
 from orchestrator import DEFAULT_MEMORY, DEFAULT_PROPOSAL, LocalAgentOrchestrator
-from task_queue import load_memory, write_memory_atomic
+from task_queue import load_memory, transition, write_memory_atomic
 from review_pending import review_pending, approval_phrase
 
 MAX_BODY_BYTES = 16 * 1024
@@ -202,6 +202,26 @@ class BridgeApplication:
                 )
             except Exception as exc:
                 raise BridgeError(422, "execution_rejected", str(exc)[:300]) from None
+            if state.get("state") != "completed":
+                return {
+                    "status": state.get("state", "paused"),
+                    "executed": False,
+                    "completed_steps": state.get("completed_steps", []),
+                    "results": results,
+                    "proposal_remains_pending": True,
+                }
+
+            # Mark the project task complete only after every approved step passed.
+            fresh_memory = load_memory(self.memory_path)
+            fresh_task = next((t for t in fresh_memory["next_tasks"] if t["id"] == task_id), None)
+            if fresh_task is None:
+                raise BridgeError(409, "proposal_stale", "اختفت المهمة من ذاكرة المشروع")
+            if fresh_task["status"] == "pending":
+                transition(fresh_memory, task_id, "in_progress", "بدأ تنفيذ الاقتراح بعد موافقة المستخدم من الهاتف")
+            if fresh_task["status"] in {"pending", "in_progress"}:
+                transition(fresh_memory, task_id, "completed", "اكتملت جميع خطوات الاقتراح المعتمد من الهاتف")
+            write_memory_atomic(self.memory_path, fresh_memory)
+
             archive = self.proposal_path.parent / "decisions"
             archive.mkdir(parents=True, exist_ok=True)
             destination = archive / f"{digest}-approved.json"
@@ -211,9 +231,9 @@ class BridgeApplication:
             record["decided_at_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
             record["execution_state"] = state.get("state")
             record["completed_steps"] = state.get("completed_steps", [])
-            destination.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            destination.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
             self.proposal_path.unlink(missing_ok=True)
-            return {"status": state.get("state"), "executed": bool(results), "results": results}
+            return {"status": "completed", "executed": True, "results": results}
 
 
 def create_server(host: str, port: int, app: BridgeApplication,
