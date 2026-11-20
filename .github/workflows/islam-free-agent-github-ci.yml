@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/islam-free-agent-github
+      - feature/islam-free-agent-safe-write
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
