@@ -2,6 +2,9 @@ package com.islamfreeagent.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -15,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,6 +34,14 @@ public class MainActivity extends Activity {
     private EditText dcVoltageInput;
     private EditText dcResistorsInput;
     private TextView dcResultText;
+    private TextView aiStatusText;
+    private TextView aiReplyText;
+    private EditText aiPromptInput;
+    private Button aiSendButton;
+    private DownloadManager downloadManager;
+    private long modelDownloadId = -1L;
+    private OnDeviceAiEngine localAi;
+    private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
 
     @Override protected void onCreate(Bundle state) {
@@ -37,12 +49,17 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         store = new AgentTaskStore(this);
+        downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        modelDownloadId = getSharedPreferences("local_ai_model", MODE_PRIVATE).getLong("download_id", -1L);
+        localAi = new OnDeviceAiEngine(getCacheDir().getAbsolutePath());
         buildScreen();
         loadSavedGitHubSettings();
         renderTasks();
     }
 
     @Override protected void onDestroy() {
+        localAi.close();
+        modelExecutor.shutdownNow();
         networkExecutor.shutdownNow();
         super.onDestroy();
     }
@@ -71,7 +88,7 @@ public class MainActivity extends Activity {
         LinearLayout notice = panel();
         TextView noticeTitle = text("مدير محلي مستقل على الهاتف", 16, Color.rgb(255, 205, 120), true);
         notice.addView(noticeTitle, matchWrap());
-        TextView noticeBody = text("إدارة المهام ومختبر الدوائر والجدولة الليلية تعمل محلياً على الهاتف. لا يحتاج التطبيق إلى كمبيوتر أو Ollama.", 13, MUTED, false);
+        TextView noticeBody = text("إدارة المهام والمختبر الحسابي تعمل على الهاتف. ويمكن تشغيل نموذج ذكاء اصطناعي محلي بعد تنزيله مجاناً مرة واحدة؛ لا نستخدم خادماً أو اشتراكاً.", 13, MUTED, false);
         LinearLayout.LayoutParams nb = matchWrap(); nb.topMargin = dp(8);
         notice.addView(noticeBody, nb);
         addPanel(page, notice, 18);
@@ -81,7 +98,7 @@ public class MainActivity extends Activity {
         TextView state = text("واجهة الهاتف: تعمل", 14, Color.rgb(130, 220, 185), true);
         LinearLayout.LayoutParams st = matchWrap(); st.topMargin = dp(8);
         status.addView(state, st);
-        TextView engine = text("المعالجة المحلية: جاهزة للاختبارات الحسابية المتاحة", 13, MUTED, false);
+        TextView engine = text("الذكاء المحلي: نزّل النموذج المجاني أول مرة لتشغيله دون إنترنت", 13, MUTED, false);
         LinearLayout.LayoutParams en = matchWrap(); en.topMargin = dp(5);
         status.addView(engine, en);
         addPanel(page, status, 12);
@@ -128,6 +145,7 @@ public class MainActivity extends Activity {
         dcLab.addView(dcResultText, dr);
         addPanel(page, dcLab, 12);
 
+        addLocalAiPanel(page);
         addGitHubPanel(page);
 
         LinearLayout heading = new LinearLayout(this);
@@ -150,10 +168,208 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams listLp = matchWrap(); listLp.topMargin = dp(8);
         page.addView(taskList, listLp);
 
-        TextView footer = text("بيانات المهام والتجارب محفوظة محلياً على الهاتف. لا يوجد اتصال بجسر كمبيوتر أو Ollama.", 12, MUTED, false);
+        TextView footer = text("المهام والاختبارات والذكاء الاصطناعي بعد تنزيل النموذج تعمل محلياً على الهاتف. تنزيل النموذج يحتاج اتصال Wi-Fi مرة واحدة.", 12, MUTED, false);
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
+    }
+
+    private void addLocalAiPanel(LinearLayout page) {
+        LinearLayout ai = panel();
+        ai.addView(text("الذكاء الاصطناعي المحلي — Qwen3 0.6B", 17, Color.WHITE, true), matchWrap());
+        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. التنزيل عبر Wi-Fi فقط، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
+        LinearLayout.LayoutParams detailsLp = matchWrap(); detailsLp.topMargin = dp(7);
+        ai.addView(details, detailsLp);
+
+        Button download = actionButton("تنزيل النموذج المجاني (Wi-Fi فقط)");
+        download.setOnClickListener(v -> startModelDownload());
+        ai.addView(download, actionButtonParams());
+
+        Button checkDownload = actionButton("تحديث حالة التنزيل");
+        checkDownload.setOnClickListener(v -> refreshModelStatus());
+        ai.addView(checkDownload, actionButtonParams());
+
+        Button load = actionButton("التحقق من النموذج وتشغيل الذكاء المحلي");
+        load.setOnClickListener(v -> verifyAndLoadModel());
+        ai.addView(load, actionButtonParams());
+
+        aiPromptInput = textInput("اكتب سؤالك لإسلام — يعمل محلياً بعد تحميل النموذج", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        aiPromptInput.setSingleLine(false);
+        aiPromptInput.setMinLines(2);
+        aiPromptInput.setGravity(Gravity.TOP | Gravity.RIGHT);
+        addInput(ai, aiPromptInput);
+
+        aiSendButton = actionButton("إرسال إلى الذكاء المحلي");
+        aiSendButton.setEnabled(false);
+        aiSendButton.setOnClickListener(v -> sendLocalAiMessage());
+        ai.addView(aiSendButton, actionButtonParams());
+
+        Button reset = actionButton("بدء محادثة جديدة");
+        reset.setOnClickListener(v -> localAi.resetConversation(new OnDeviceAiEngine.Callback() {
+            @Override public void onSuccess(String message) {
+                runOnUiThread(() -> aiStatusText.setText(message));
+            }
+            @Override public void onFailure(String message) {
+                runOnUiThread(() -> aiStatusText.setText("تعذر إعادة المحادثة: " + message));
+            }
+        }));
+        ai.addView(reset, actionButtonParams());
+
+        aiStatusText = text("النموذج غير منزّل بعد.", 12, MUTED, false);
+        LinearLayout.LayoutParams statusLp = matchWrap(); statusLp.topMargin = dp(9);
+        ai.addView(aiStatusText, statusLp);
+        aiReplyText = text("ستظهر إجابة النموذج هنا.", 13, Color.WHITE, false);
+        LinearLayout.LayoutParams replyLp = matchWrap(); replyLp.topMargin = dp(9);
+        ai.addView(aiReplyText, replyLp);
+        addPanel(page, ai, 12);
+        refreshModelStatus();
+    }
+
+    private File modelFile() {
+        File directory = getExternalFilesDir(null);
+        return directory == null ? null : new File(directory, OnDeviceModelSpec.FILE_NAME);
+    }
+
+    private void startModelDownload() {
+        File file = modelFile();
+        if (file == null) {
+            aiStatusText.setText("مساحة ملفات التطبيق غير متاحة.");
+            return;
+        }
+        if (file.exists() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
+            aiStatusText.setText("ملف النموذج موجود. اضغط التحقق والتشغيل.");
+            return;
+        }
+        if (modelDownloadId > 0 && isDownloadActive(modelDownloadId)) {
+            refreshModelStatus();
+            return;
+        }
+        if (file.exists()) file.delete();
+        try {
+            DownloadManager.Request request =
+                    new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
+            request.setTitle("تنزيل نموذج إسلام المحلي");
+            request.setDescription("Qwen3 0.6B — 586 MB — Wi-Fi فقط");
+            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
+            request.setAllowedOverMetered(false);
+            request.setAllowedOverRoaming(false);
+            request.setNotificationVisibility(
+                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalFilesDir(this, null, OnDeviceModelSpec.FILE_NAME);
+            modelDownloadId = downloadManager.enqueue(request);
+            getSharedPreferences("local_ai_model", MODE_PRIVATE).edit()
+                    .putLong("download_id", modelDownloadId).apply();
+            aiStatusText.setText("بدأ التنزيل عبر Wi-Fi فقط. يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
+        } catch (Exception error) {
+            aiStatusText.setText("تعذر بدء التنزيل: " + error.getMessage());
+        }
+    }
+
+    private boolean isDownloadActive(long id) {
+        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(id))) {
+            if (cursor == null || !cursor.moveToFirst()) return false;
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            return status == DownloadManager.STATUS_PENDING
+                    || status == DownloadManager.STATUS_RUNNING
+                    || status == DownloadManager.STATUS_PAUSED;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void refreshModelStatus() {
+        File file = modelFile();
+        if (file != null && file.isFile() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
+            aiStatusText.setText("اكتمل تنزيل ملف النموذج (" + file.length() + " بايت). تحقّق من البصمة قبل التشغيل.");
+            return;
+        }
+        if (modelDownloadId <= 0) {
+            aiStatusText.setText("النموذج غير منزّل بعد. التنزيل المجاني يحتاج Wi-Fi.");
+            return;
+        }
+        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(modelDownloadId))) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                aiStatusText.setText("لم نعثر على مهمة التنزيل. يمكنك بدء التنزيل من جديد.");
+                return;
+            }
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                aiStatusText.setText("اكتمل التنزيل. الحجم: " + downloaded + " بايت. اضغط التحقق والتشغيل.");
+            } else if (status == DownloadManager.STATUS_FAILED) {
+                int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من Wi-Fi ثم أعد المحاولة.");
+            } else {
+                String progress = total > 0 ? (downloaded * 100 / total) + "%" : "جارٍ الاتصال";
+                aiStatusText.setText("تنزيل النموذج: " + progress + " • "
+                        + downloaded / (1024 * 1024) + " / "
+                        + (total > 0 ? total / (1024 * 1024) : 0) + " MB");
+            }
+        } catch (Exception error) {
+            aiStatusText.setText("تعذر قراءة حالة التنزيل: " + error.getMessage());
+        }
+    }
+
+    private void verifyAndLoadModel() {
+        File file = modelFile();
+        if (file == null || !file.isFile()) {
+            aiStatusText.setText("نزّل النموذج أولاً عبر Wi-Fi.");
+            return;
+        }
+        aiStatusText.setText("جارٍ فحص حجم النموذج وبصمة SHA-256…");
+        modelExecutor.execute(() -> {
+            final boolean valid;
+            try {
+                valid = OnDeviceModelSpec.isValid(file);
+            } catch (Exception error) {
+                runOnUiThread(() -> aiStatusText.setText("تعذر فحص الملف: " + error.getMessage()));
+                return;
+            }
+            runOnUiThread(() -> {
+                if (!valid) {
+                    aiStatusText.setText("ملف النموذج غير مكتمل أو بصمته غير صحيحة. احذف الملف وأعد تنزيله.");
+                    return;
+                }
+                aiStatusText.setText("البصمة صحيحة. جارٍ تحميل النموذج على معالج الهاتف…");
+                localAi.load(file.getAbsolutePath(), new OnDeviceAiEngine.Callback() {
+                    @Override public void onSuccess(String message) {
+                        runOnUiThread(() -> {
+                            aiStatusText.setText(message + " — يعمل دون إنترنت.");
+                            aiSendButton.setEnabled(true);
+                        });
+                    }
+                    @Override public void onFailure(String message) {
+                        runOnUiThread(() -> {
+                            aiStatusText.setText("تعذر تشغيل النموذج: " + message);
+                            aiSendButton.setEnabled(false);
+                        });
+                    }
+                });
+            });
+        });
+    }
+
+    private void sendLocalAiMessage() {
+        String prompt = aiPromptInput.getText().toString().trim();
+        if (prompt.isEmpty()) return;
+        aiPromptInput.setText("");
+        aiSendButton.setEnabled(false);
+        aiReplyText.setText("إسلام يفكر محلياً…");
+        localAi.sendMessage(prompt, new OnDeviceAiEngine.Callback() {
+            @Override public void onSuccess(String message) {
+                runOnUiThread(() -> {
+                    aiReplyText.setText(message);
+                    aiSendButton.setEnabled(true);
+                });
+            }
+            @Override public void onFailure(String message) {
+                runOnUiThread(() -> {
+                    aiReplyText.setText("تعذر توليد الرد: " + message);
+                    aiSendButton.setEnabled(true);
+                });
+            }
+        });
     }
 
     private java.util.ArrayList<AgentDcLab.Resistor> readDcResistors() {
