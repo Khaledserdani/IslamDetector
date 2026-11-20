@@ -91,12 +91,12 @@ jobs:
           APK_SHA256: ${{ steps.verify.outputs.apk_sha256 }}
         run: |
           set -euo pipefail
-          TAG="islam-free-agent-v0.4.0-build-${GITHUB_RUN_NUMBER}"
-          NOTES="ISLAM FREE AGENT v0.4.0 debug APK. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Includes free direct GitHub reviewed file-writing capability, checkpointed execution, and direct GitHub read-only dashboard, encrypted Android Keystore token storage, TLS-pinned computer bridge and explicit proposal review. Physical phone-to-host integration still requires user-side testing."
+          TAG="islam-free-agent-v0.4.1-build-${GITHUB_RUN_NUMBER}"
+          NOTES="ISLAM FREE AGENT v0.4.1 debug APK. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Includes free direct GitHub reviewed file-writing capability, checkpointed execution, and direct GitHub read-only dashboard, encrypted Android Keystore token storage, TLS-pinned computer bridge and explicit proposal review. Physical phone-to-host integration still requires user-side testing."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
           else
-            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.4.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
+            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.4.1 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
           fi
           echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
           echo "APK SHA-256: $APK_SHA256" >> "$GITHUB_STEP_SUMMARY"
