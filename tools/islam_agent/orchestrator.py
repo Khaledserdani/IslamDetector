@@ -62,7 +62,7 @@ CONTEXT_KEYWORDS = {
 }
 
 
-def _bounded_project_context(project_root: Path, task: dict | None = None) -> list[str]:
+def _bounded_project_context(project_root: Path, task: object = None) -> list[str]:
     """Read relevant fixed project files as untrusted context, prioritizing task matches."""
     snippets = []
     total = 0
