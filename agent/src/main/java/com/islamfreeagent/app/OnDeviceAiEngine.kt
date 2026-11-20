@@ -86,7 +86,7 @@ internal class OnDeviceAiEngine(
                 return@execute
             }
             try {
-                val reply = conversation!!.sendMessage(prompt).text
+                val reply = conversation!!.sendMessage(prompt).toString()
                 callback.onSuccess(reply)
             } catch (error: Exception) {
                 callback.onFailure(error.message ?: "تعذر توليد الرد محلياً")
