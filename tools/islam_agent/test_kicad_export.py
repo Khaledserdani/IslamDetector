@@ -3,6 +3,7 @@ import unittest
 
 from circuit_components import CircuitSchemaError
 from kicad_export import _balanced_sexpr, compile_kicad_schematic
+from tool_runner import SafeToolRunner
 
 
 def sample_design():
@@ -63,6 +64,19 @@ class KiCadExportTests(unittest.TestCase):
         design["components"][1]["pin_numbers"]["2"] = "6"
         with self.assertRaises(CircuitSchemaError):
             compile_kicad_schematic(design)
+
+    def test_safe_runner_exports_only_after_explicit_approval(self):
+        proposal = {
+            "task_id": "kicad-export-1",
+            "summary_ar": "تصدير مخطط KiCad",
+            "steps": [{"kind": "export_kicad_schematic", "target": "kicad_schematic", "design": sample_design()}],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        result = SafeToolRunner().execute_plan(proposal, "kicad-export-1", human_approved=True)
+        self.assertEqual(result[0]["kind"], "export_kicad_schematic")
+        self.assertEqual(result[0]["result"]["filename"], "ISLAM.kicad_sch")
+        self.assertIn("(kicad_sch", result[0]["result"]["kicad_sch"])
 
     def test_project_name_is_bounded(self):
         with self.assertRaisesRegex(ValueError, "project_name"):
