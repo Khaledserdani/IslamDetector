@@ -59,7 +59,7 @@ def review_pending(
     if not isinstance(task, dict) or set(task) != {"id", "title", "acceptance", "status"}:
         raise PolicyViolation("pending task metadata is invalid")
     task_id = task["id"]
-    if not isinstance(task_id, str) or not task_id.strip():
+    if not isinstance(task_id, str) or not task_id.strip() or len(task_id) > 120:
         raise PolicyViolation("pending task id is invalid")
     if any(not isinstance(task[k], str) or not task[k].strip() for k in ("title", "acceptance", "status")):
         raise PolicyViolation("pending task metadata contains invalid text")
