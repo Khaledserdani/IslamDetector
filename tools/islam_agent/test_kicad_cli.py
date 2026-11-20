@@ -60,7 +60,9 @@ class KiCadCliIntegrationTests(unittest.TestCase):
         self.assertTrue(result["netlist_exported"])
         self.assertTrue(result["svg_rendered"])
         self.assertTrue(result["erc_report_generated"])
-        self.assertEqual(result["erc_status"], "review_required")
+        self.assertIn(result["erc_status"], {"no_violations", "violations_found"})
+        self.assertEqual(result["erc_violations_found"], result["erc_exit_code"] == 5)
+        self.assertIn(result["erc_exit_code"], {0, 5})
         self.assertFalse(result["build_ready"])
 
     def test_kicad_cli_renders_generated_schematic_to_svg(self):
