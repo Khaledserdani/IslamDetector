@@ -156,3 +156,54 @@ def resistance_matrix_ohm(
         row[i] = diagonal
         result.append(tuple(row))
     return tuple(result)
+
+
+def self_inductance_h(
+    cell: MeridionalCell,
+    order: int = 6,
+) -> float:
+    """Integrate one rectangular cell's self-inductance using difference polar coordinates.
+
+    For source/field meridional coordinates x=(r,z), y=x+(u,v), the
+    four-dimensional domain is transformed to (rho,theta,r,z). The polar
+    Jacobian rho regularizes the logarithmic angular-kernel singularity at
+    u=v=0. Gauss nodes are interior, so the singular point is never sampled.
+    This is a dedicated self-cell integral, not an epsilon-regularized kernel.
+    """
+    nodes, weights = _gauss_legendre(order)
+    theta_rule = _interval_rule(0.0, 2.0 * math.pi, nodes, weights)
+    dr = cell.r1_m - cell.r0_m
+    dz = cell.z1_m - cell.z0_m
+    total = 0.0
+
+    for theta, wtheta in theta_rule:
+        ct, st = math.cos(theta), math.sin(theta)
+        abs_ct, abs_st = abs(ct), abs(st)
+        limits = []
+        if abs_ct > 1.0e-14:
+            limits.append(dr / abs_ct)
+        if abs_st > 1.0e-14:
+            limits.append(dz / abs_st)
+        rho_max = min(limits)
+        for rho_unit, wrho in zip(nodes, weights):
+            rho = 0.5 * rho_max * (rho_unit + 1.0)
+            wr = 0.5 * rho_max * wrho
+            u, v = rho * ct, rho * st
+            r_lo = max(cell.r0_m, cell.r0_m - u)
+            r_hi = min(cell.r1_m, cell.r1_m - u)
+            z_lo = max(cell.z0_m, cell.z0_m - v)
+            z_hi = min(cell.z1_m, cell.z1_m - v)
+            if r_hi <= r_lo or z_hi <= z_lo:
+                continue
+            r_rule = _interval_rule(r_lo, r_hi, nodes, weights)
+            z_rule = _interval_rule(z_lo, z_hi, nodes, weights)
+            for r, wr_base in r_rule:
+                for z, wz_base in z_rule:
+                    density = finite_cell_inductance_integrand_h_per_m4(
+                        r, z, r + u, z + v,
+                        cell.area_m2, cell.area_m2,
+                    )
+                    total += (
+                        wtheta * wr * wr_base * wz_base * rho * density
+                    )
+    return total
