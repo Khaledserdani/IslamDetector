@@ -382,6 +382,13 @@ public class MainActivity extends Activity {
         JSONArray steps = proposal == null ? null : proposal.optJSONArray("steps");
         if (steps == null) throw new IllegalStateException("تفاصيل الملفات المعتمدة غير موجودة");
         GitHubClient client = new GitHubClient(token);
+        JSONArray allFiles = new JSONArray();
+        for (int i = 0; i < steps.length(); i++) {
+            JSONObject step = steps.optJSONObject(i);
+            if (step != null && "write_file".equals(step.optString("kind"))) {
+                allFiles.put(step.optString("target"));
+            }
+        }
         int uploaded = 0;
         String summary = proposal.optString("summary_ar", "تعديل معتمد");
         for (int i = lastUploadStepIndex; i < steps.length(); i++) {
@@ -393,11 +400,13 @@ public class MainActivity extends Activity {
             lastUploadStepIndex = i + 1;
             persistPendingUpload();
         }
+        JSONObject ack = bridgeClient(true).completeUpload(wrapper.optString("proposal_id"), allFiles);
         lastApprovedProposal = null;
         lastUploadStepIndex = 0;
         getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().commit();
-        return "نجح التنفيذ والاختبار، ورُفعت " + uploaded
-                + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج.";
+        return "نجح التنفيذ والاختبار، وأكد الجسر رفع " + allFiles.length()
+                + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج. (" 
+                + ack.optString("status") + ")";
     }
 
     private void persistPendingUpload() {
