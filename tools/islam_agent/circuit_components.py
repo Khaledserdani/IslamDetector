@@ -82,7 +82,7 @@ def validate_circuit_v2(spec):
     net_roles = {}
     warnings = []
     for part in parts:
-        if not isinstance(part,dict) or set(part)-{"ref","type","pins","pin_numbers","value","unit","rating","model_id","package","manufacturer_part","pinout_source","model_source"}:
+        if not isinstance(part,dict) or set(part)-{"ref","type","pins","pin_numbers","value","unit","rating","model_id","package","footprint","manufacturer_part","pinout_source","model_source"}:
             raise CircuitSchemaError("component fields are invalid")
         kind=part.get("type")
         if kind not in COMPONENT_LIBRARY:
@@ -150,6 +150,9 @@ def validate_circuit_v2(spec):
             value=part.get(optional)
             if value is not None and (not isinstance(value,str) or not value.strip() or len(value)>160):
                 raise CircuitSchemaError(f"{ref} {optional} must be non-empty text")
+        footprint=part.get("footprint")
+        if footprint is not None and (not isinstance(footprint,str) or not re.fullmatch(r"[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+",footprint)):
+            raise CircuitSchemaError(f"{ref} footprint must be an exact KiCad Library:Footprint identifier")
         normalized.append(dict(part))
     for node, roles in net_roles.items():
         outputs = [(ref, pin) for ref, pin, role in roles if role == "output"]
@@ -162,7 +165,7 @@ def validate_circuit_v2(spec):
     if ground not in net_roles:
         warnings.append(f"reference ground node {ground} is not connected to any component pin")
     model_refs = [p["ref"] for p in normalized if COMPONENT_LIBRARY[p["type"]]["model_required"]]
-    missing_bom_identity = [p["ref"] for p in normalized if not p.get("package") or not p.get("manufacturer_part")]
+    missing_bom_identity = [p["ref"] for p in normalized if not p.get("package") or not p.get("manufacturer_part") or not p.get("footprint")]
     return {"schema_version":2,"name":name.strip(),"ground":ground,"components":normalized,
             "nodes":sorted(nodes),"component_count":len(normalized),
             "electrical_warnings":warnings,
