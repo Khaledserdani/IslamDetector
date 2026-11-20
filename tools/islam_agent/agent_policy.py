@@ -12,6 +12,7 @@ ALLOWED_INSPECT_TARGETS = {
     "docs/agent/agent_memory.json",
     "tools/islam_agent/ollama_client.py",
     "tools/islam_agent/task_queue.py",
+    "tools/islam_agent/agent_cycle.py",
 }
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
