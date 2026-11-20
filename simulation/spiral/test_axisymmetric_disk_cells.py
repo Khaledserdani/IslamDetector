@@ -6,6 +6,8 @@ from axisymmetric_disk_cells import (
     converged_mutual_inductance_h,
     mutual_inductance_h,
     resistance_matrix_ohm,
+    self_inductance_h,
+    converged_self_inductance_h,
 )
 
 
@@ -32,6 +34,29 @@ class FiniteCellAssemblyTests(unittest.TestCase):
     def test_self_cell_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "singularity-aware"):
             mutual_inductance_h(self.a, self.a)
+
+
+    def test_self_inductance_is_finite_and_positive(self):
+        value = self_inductance_h(self.a, order=4)
+        self.assertTrue(math.isfinite(value))
+        self.assertGreater(value, 0.0)
+
+    def test_self_inductance_scales_linearly_with_geometry(self):
+        scale = 2.5
+        enlarged = MeridionalCell(
+            self.a.r0_m * scale, self.a.r1_m * scale,
+            self.a.z0_m * scale, self.a.z1_m * scale,
+        )
+        base_l = self_inductance_h(self.a, order=4)
+        enlarged_l = self_inductance_h(enlarged, order=4)
+        self.assertAlmostEqual(enlarged_l / base_l, scale, delta=2.0e-9)
+
+    def test_self_inductance_convergence_api(self):
+        value, order = converged_self_inductance_h(
+            self.a, orders=(4, 6, 8, 10), relative_tolerance=5.0e-3
+        )
+        self.assertGreater(value, 0.0)
+        self.assertIn(order, (6, 8, 10))
 
     def test_resistance_uses_cylindrical_volume_weighting(self):
         sigma = 3.5e6
