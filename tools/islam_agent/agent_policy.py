@@ -11,8 +11,6 @@ ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file"}
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
 ALLOWED_WRITE_TARGETS = {
     "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
-    "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
-    "agent/src/main/java/com/islamfreeagent/app/BridgeClient.java",
     "tools/islam_agent/local_agent.py",
     "tools/islam_agent/orchestrator.py",
     "tools/islam_agent/agent_cycle.py",
@@ -28,6 +26,8 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/orchestrator.py",
     "tools/islam_agent/review_pending.py",
     "tools/islam_agent/agent_policy.py",
+    "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
+    "agent/src/main/java/com/islamfreeagent/app/BridgeClient.java",
     "tools/islam_agent/tool_runner.py",
     "tools/islam_agent/checkpointed_runner.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
