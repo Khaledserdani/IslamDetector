@@ -68,9 +68,9 @@ class KiCadValidationTests(unittest.TestCase):
             if command[1] == "version":
                 return CompletedProcess(command, 0, stdout="9.0.8")
             output = Path(command[command.index("--output") + 1])
-            if command[2:4] == ["sch", "export"] and command[4] == "netlist":
+            if command[1:3] == ["sch", "export"] and command[3] == "netlist":
                 output.write_text("(export)", encoding="utf-8")
-            elif command[2:4] == ["sch", "export"] and command[4] == "svg":
+            elif command[1:3] == ["sch", "export"] and command[3] == "svg":
                 output.mkdir(exist_ok=True)
                 (output / "page.svg").write_text("<svg/>", encoding="utf-8")
             else:
@@ -90,9 +90,9 @@ class KiCadValidationTests(unittest.TestCase):
             if command[1] == "version":
                 return CompletedProcess(command, 0, stdout="9.0.8")
             output = Path(command[command.index("--output") + 1])
-            if command[2:4] == ["sch", "export"] and command[4] == "netlist":
+            if command[1:3] == ["sch", "export"] and command[3] == "netlist":
                 output.write_text("(export)", encoding="utf-8")
-            elif command[2:4] == ["sch", "export"] and command[4] == "svg":
+            elif command[1:3] == ["sch", "export"] and command[3] == "svg":
                 output.mkdir(exist_ok=True)
                 (output / "page.svg").write_text("<svg/>", encoding="utf-8")
             else:
