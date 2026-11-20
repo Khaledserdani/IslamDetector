@@ -73,8 +73,8 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--model", required=True, help="exact model name from ollama list")
     parser.add_argument("--interval-seconds", type=int, default=300, help="proposal scan interval inside work hours")
-    parser.add_argument("--work-start", default="06:00", help="daily start time in Algeria")
-    parser.add_argument("--work-end", default="14:00", help="daily end time in Algeria")
+    parser.add_argument("--work-start", default="20:00", help="daily start time in Algeria (supports overnight windows)")
+    parser.add_argument("--work-end", default="06:00", help="daily end time in Algeria (supports overnight windows)")
     parser.add_argument("--schedule-check-seconds", type=int, default=30)
     parser.add_argument("--no-continuous", action="store_true", help="disable scheduled automatic scanning")
     args = parser.parse_args()
@@ -107,7 +107,7 @@ def main() -> int:
     print(f"النموذج المحلي: {args.model}", flush=True)
     print("يبقى Ollama على 127.0.0.1:11434 ولا تفتح منفذه للإنترنت.", flush=True)
     if not args.no_continuous:
-        print(f"العمل التلقائي يومياً {args.work_start}-{args.work_end} بتوقيت الجزائر؛ فحص كل {args.interval_seconds} ثانية داخل النافذة، مع موافقة بشرية لكل اقتراح.", flush=True)
+        print(f"العمل التلقائي يومياً {args.work_start}-{args.work_end} بتوقيت الجزائر؛ فحص كل {args.interval_seconds} ثانية داخل النافذة، مع موافقة بشرية لكل اقتراح أو تعديل.", flush=True)
     else:
         print("المتابعة الدورية معطلة؛ يمكن طلب الاقتراح يدوياً من الهاتف.", flush=True)
     print("أوقف الجسر بـ Ctrl+C. إعادة التشغيل تنهي جلسة الهاتف الحالية.", flush=True)
