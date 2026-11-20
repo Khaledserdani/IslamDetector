@@ -17,7 +17,7 @@ from bridge_server import BridgeApplication, create_server
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TLS_DIR = ROOT / "artifacts" / "agent" / "bridge-tls"
+TLS_DIR = Path.home() / ".islam-free-agent" / "bridge-tls"
 
 
 def discover_lan_ipv4() -> str:
