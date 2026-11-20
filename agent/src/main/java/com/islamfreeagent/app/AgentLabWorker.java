@@ -9,8 +9,8 @@ import androidx.work.WorkerParameters;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.ArrayList;
 
 public final class AgentLabWorker extends Worker {
@@ -19,8 +19,10 @@ public final class AgentLabWorker extends Worker {
     }
 
     @NonNull @Override public Result doWork() {
-        LocalTime algiersTime = LocalTime.now(ZoneId.of("Africa/Algiers"));
-        if (!AgentWorkWindow.isOpen(algiersTime,
+        Calendar algiersTime = Calendar.getInstance(TimeZone.getTimeZone("Africa/Algiers"));
+        int minuteOfDay = algiersTime.get(Calendar.HOUR_OF_DAY) * 60
+                + algiersTime.get(Calendar.MINUTE);
+        if (!AgentWorkWindow.isOpen(minuteOfDay,
                 AgentWorkWindow.DEFAULT_START, AgentWorkWindow.DEFAULT_END)) {
             return Result.success();
         }
