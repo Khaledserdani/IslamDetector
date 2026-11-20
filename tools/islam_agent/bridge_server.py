@@ -60,6 +60,9 @@ class BridgeApplication:
         self.proposal_path = Path(proposal_path)
         self.state_dir = Path(state_dir) if state_dir else self.proposal_path.parent / "review"
         self.orchestrator = None
+        self._worker_stop = None
+        self._worker_thread = None
+        self._worker_last_status = "not_started"
 
     def pair(self, code: object) -> str:
         with self._lock:
@@ -110,7 +113,51 @@ class BridgeApplication:
             "model": self.model,
             "phone_pairing": "paired" if self._session_hash else "waiting",
             "proposal_execution": "human_approval_required",
+            "continuous_worker": "running" if self._worker_thread and self._worker_thread.is_alive() else "stopped",
+            "worker_last_status": self._worker_last_status,
+            "worker_interval_seconds": getattr(self, "_worker_interval_seconds", None),
         }
+
+    def start_continuous_worker(self, interval_seconds: int = 300) -> None:
+        """Prepare at most one proposal per interval; never approve or execute it."""
+        if isinstance(interval_seconds, bool) or not isinstance(interval_seconds, int):
+            raise ValueError("worker interval must be an integer")
+        if interval_seconds < 300 or interval_seconds > 86_400:
+            raise ValueError("worker interval must be between 300 and 86400 seconds")
+        with self._lock:
+            if self._worker_thread and self._worker_thread.is_alive():
+                return
+            self._worker_stop = threading.Event()
+            self._worker_interval_seconds = interval_seconds
+
+            def work() -> None:
+                while not self._worker_stop.wait(interval_seconds):
+                    if self.proposal_path.exists():
+                        self._worker_last_status = "waiting_for_human_review"
+                        continue
+                    try:
+                        result = self.create_proposal()
+                        self._worker_last_status = result.get("status", "proposal_cycle_finished")
+                    except BridgeError as exc:
+                        self._worker_last_status = exc.code
+                    except Exception as exc:
+                        self._worker_last_status = type(exc).__name__
+
+            self._worker_thread = threading.Thread(
+                target=work, name="islam-agent-proposal-worker", daemon=True
+            )
+            self._worker_thread.start()
+            self._worker_last_status = "started"
+
+    def stop_continuous_worker(self) -> None:
+        with self._lock:
+            stop = self._worker_stop
+            thread = self._worker_thread
+            if stop is not None:
+                stop.set()
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2)
+        self._worker_last_status = "stopped"
 
     def tasks(self) -> dict:
         memory = load_memory(self.memory_path)
