@@ -40,6 +40,8 @@ class LocalProposalAgentTests(unittest.TestCase):
         sent = json.loads(client.messages[1]["content"])
         self.assertNotIn("private_extra", sent["task"])
         self.assertIn("JSON", SYSTEM_PROMPT)
+        self.assertIn("simulate_rlc", SYSTEM_PROMPT)
+        self.assertIn("series_rlc", SYSTEM_PROMPT)
 
     def test_rejects_model_extra_fields(self):
         plan = valid_plan()
