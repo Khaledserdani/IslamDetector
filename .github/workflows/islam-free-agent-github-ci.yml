@@ -6,6 +6,7 @@ on:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
       - feature/islam-free-agent-schedule-labs
+      - feature/islam-free-agent-android-native
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
