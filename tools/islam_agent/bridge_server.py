@@ -2,8 +2,8 @@
 """TLS-only LAN bridge for ISLAM FREE AGENT.
 
 Ollama remains on 127.0.0.1. The bridge exposes a private-LAN HTTPS endpoint,
-one-time pairing, read-only task listing, proposal creation, and explicit
-approve/reject. It never accepts shell commands or arbitrary tool arguments.
+one-time pairing, task listing, reviewed proposals, and explicit approve/reject.
+It accepts only fixed allowlisted file writes and named tests; never shell commands.
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from orchestrator import DEFAULT_MEMORY, DEFAULT_PROPOSAL, LocalAgentOrchestrato
 from task_queue import load_memory, transition, write_memory_atomic
 from review_pending import review_pending, approval_phrase
 
-MAX_BODY_BYTES = 16 * 1024
+MAX_BODY_BYTES = 80 * 1024
 MAX_TASKS = 100
 PAIR_WINDOW_SECONDS = 300
 MAX_PAIR_ATTEMPTS = 5
