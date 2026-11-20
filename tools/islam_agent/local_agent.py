@@ -14,7 +14,7 @@ task_id, summary_ar, steps, needs_human_approval, claims_to_verify.
 1) inspect مع target من قائمة الملفات المسموحة.
 2) run_test وtarget يساوي agent_unit_tests لاختبار Python، أو android_unit_tests لبناء واختبار تطبيق Android.
 3) write_file مع target من قائمة الكتابة المسموحة وcontent يحتوي الملف كاملاً.
-4) simulate_circuit مع target = dc_resistive_network وcircuit يحوي ground وresistors وvoltage_sources فقط؛ استخدم المختبر لحساب شبكات DC المقاومة ومصادر الجهد المثالية.
+4) simulate_circuit مع target = dc_resistive_network وcircuit يحوي ground وresistors وvoltage_sources فقط؛ استخدم فهرس المختبرات في lab_catalog.py لاختيار المجال المناسب، ولا تشغّل إلا المختبرات بحالة implemented؛ إذا كانت planned فصرّح أنها غير جاهزة. المختبر المنفذ حالياً هو شبكات DC المقاومة ومصادر الجهد المثالية فقط.
 لا تكتب أوامر shell أو روابط أو مسارات حرة أو مفاتيح إضافية.
 لا تعدّل ملفات السياسة أو منفذ الأدوات أو الذاكرة أو الأسرار أو ملفات GitHub Actions.
 حد الكتابة 12,000 حرف لكل ملف، وعدد الخطوات 5 كحد أقصى. إذا عدّلت Java في agent/src/main/java، أضف android_unit_tests. وإذا عدّلت Python في tools/islam_agent، أضف agent_unit_tests.
