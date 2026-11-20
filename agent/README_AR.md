@@ -109,13 +109,12 @@ python tools/islam_agent/run_bridge.py --model "اسم-النموذج-المثب
 - الكتابة ذرية، وتقتصر على قائمة مسارات ثابتة في سياسة الوكيل.
 - لا يمكن للوكيل حذف الملفات أو تعديل الأسرار أو رموز GitHub أو ملفات Actions أو سياسة الأمان أو منفذ الأدوات.
 - كل خطوة ناجحة تُحفظ في checkpoint. إذا فشل الاختبار، تتوقف الخطة ويمكن إعادة المحاولة دون تكرار الخطوات المكتملة.
+- تعديلات Java تتطلب `android_unit_tests` (Gradle + Android SDK)، وتعديلات Python تتطلب `agent_unit_tests`؛ ترفض السياسة خطة الكتابة إذا غاب اختبار النوع المناسب.
 - يرسل الجسر ردوداً محدودة الحجم ويظل Ollama على loopback.
 
 ### الملفات التي يمكن تعديلها في هذه المرحلة
 
 - `agent/src/main/java/com/islamfreeagent/app/MainActivity.java`
-- `agent/src/main/java/com/islamfreeagent/app/GitHubClient.java`
-- `agent/src/main/java/com/islamfreeagent/app/BridgeClient.java`
 - `tools/islam_agent/local_agent.py`
 - `tools/islam_agent/orchestrator.py`
 - `tools/islam_agent/agent_cycle.py`
