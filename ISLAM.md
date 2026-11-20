@@ -1699,3 +1699,38 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 ## 49. تدقيق موضع حقل profile_crc32 — 2026-11-19
 
 أثناء مراجعة التغيير قبل البناء، تم اكتشاف أن حقل profile_crc32 أُضيف أولاً إلى بنية session العامة بدلاً من بنية سجل القياس. صُحح موضعه إلى rev_a_session_measurement_t حيث ينسجم مع decoded.profile_crc32 ويصبح متاحاً مع كل Sweep مقبول. لم يتم ادعاء نجاح compile؛ CI ما زال يتوقف قبل إنشاء jobs.
+
+
+## 50. تدقيق يومي Rev A — 2026-11-20
+
+### الحالة المرجعية
+- DD32 هو baseline الحالي لـRev A كما في تعليمات التشغيل الحالية: TX=25m/0.60mm/20 لفة وRX=35m/0.40mm/30 لفة، كلها أهداف تصميم وليست قياسات أو مواصفات شراء نهائية.
+- DCR لمسار نحاسي واحد عند20°C: TX≈1.52–1.75Ω وRX≈4.80–5.93Ω، تقديرات حسابية فقط؛ التوصيل الفعلي والقياس بأربع أسلاك إن أمكن يحسمان.
+- Mono Spiral محفوظ كبديل مستقل؛ يمنع نقل قيم L/R/clamp/الطاقة منه إلى DD32.
+- الفرع hardware/rev-a-measurement-design عند HEAD d17a0f3d5077a29299b45e94c1b67f87a1b901d7.
+
+### تدقيق Pull Requests
+- PR #6 حالته الفعلية في GitHub: **closed, not merged**. لم يُفتح مجدداً ولم يُدمج.
+- PR #7 هو المفتوح حالياً بوضع **Draft**، ورأسه يطابق HEAD أعلاه. يبقى Draft ولا دمج إلى main.
+- لا تُعامل الحالة المذكورة في أي سجل أقدم على أنها أحدث من حالة GitHub الفعلية.
+
+### CI الفعلي على HEAD
+- أحدث تشغيلين للرأس d17a0f3: #1802 (push) و#1803 (pull_request)، وكلاهما startup_failure.
+- التشغيل #1803 انتهى قبل إنشاء أي Job: total_count=0، ولا توجد artifacts. لذلك لا توجد سجلات خطوات قابلة للتشخيص ولا إثبات بناء Android أو ESP32 أو RP2040، ولا UF2/APK لهذا الرأس.
+- ملف workflow موجود ويحتوي وظائف protocol-tests وrp2040-firmware وandroid-app وesp32-s3-bridge. لا نستنتج سبب startup_failure من غياب jobs؛ السبب الجذري غير محسوم.
+- لا يُسجل نجاح بناء أو اختبار جديد اعتماداً على CI #1802/#1803.
+
+### مراجعة الملفات الفعلية
+- RP2040: main.c ما زال اختبار منطق فقط؛ GP4=TX_TEST وGP5=SAMPLE_MARKER وGP6=PIO_ECHO. التوقيت الاسمي 100Hz، TOP=62499، divider=20، نبضة20µs، tick=160ns، والجدول 8/12/16/24/36/52/72/100µs.
+- ملف ADS8861 PIO/DMA موجود في CMake ومصدره، لكن ENABLE_ADS8861_CAPTURE=0؛ لا يُقرأ ADC ولا يُرسل MEASUREMENT. DEVICE_INFO يعلن ADC_NONE وSTART مرفوض بـTX_NOT_ARMED.
+- ESP32-S3 parser/session وجسر UART موجودة برمجياً، لكن إعداد الجسر disabled وGPIO TX/RX غير معينة؛ لا توجد Wi-Fi AP أو HTTP /status و/control بعد.
+- Android source set الفعلي app/src/main تمت مراجعته: Manifest وصلاحيات INTERNET/ACCESS_NETWORK_STATE وcleartext، RTL، network executor منفصل، storage executor، SQLite وCSV share. لم يظهر خطأ Java/Manifest/Gradle مؤكد من المراجعة النصية؛ لكن لا يوجد build CI جديد ولا APK مثبت. التطبيق ما زال ينتظر /status و/control غير الموجودتين في ESP32 حالياً.
+- pin map ما زال draft؛ أرجل ESP32-S3 وRP2040 لا تُعتبر pinout تصنيع معتمداً دون مطابقة اللوحات وcontinuity/logic-analyzer.
+
+### بوابة الأمان والخطوة التالية
+1. لا تفعيل ADC capture قبل تركيب ADS8861 والمرجع والحماية والتحقق من المداخل والتوقيت على العتاد.
+2. استعادة تشغيل CI يبدأ Jobs ثم فحص logs لكل وظيفة وإثبات UF2/APK artifacts.
+3. بعد CI: استكمال MEASUREMENT producer على RP2040، ثم اختبار UART منخفض الجهد، ثم Wi-Fi/WebServer وربط Android.
+4. لا MOSFET/ملف TX عالي الطاقة، ولا KiCad/BOM نهائي قبل قياس DD32 الفعلي وإغلاق حماية RX/TX والطاقة والـclip-release.
+
+لا توجد قياسات مادية جديدة أو شراء أو توصيل قدرة في هذا التشغيل.

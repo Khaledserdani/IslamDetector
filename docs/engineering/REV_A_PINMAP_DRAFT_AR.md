@@ -239,3 +239,13 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - جميع GP0/GP1 وGP8/GP9/GP10 وGP11 تظل اقتراحات firmware/bench وليست pin map منتج معتمدة. أرجل ESP32-S3 TX/RX تبقى غير معينة وKconfig disabled حتى مطابقة مخطط لوحة التطوير الفعلية وقياس continuity.
 - `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO=ADC_NONE؛ لا ADC capture ولا TX. لا توصل GP4 إلى MOSFET أو ملف، ولا توصل ملف RX مباشرة إلى THS4521.
 - لا يصدر KiCad أو BOM قابل للتجميع من هذه الوثيقة قبل اختيار طوبولوجيا الملف، وإعادة تصميم AFE والحماية، وقياس transient وclip-release.
+
+
+## 13. حالة Pin Map الفعلية — 2026-11-20
+
+- لا يوجد pin map تصنيع معتمد حتى الآن.
+- RP2040-Zero: GP0/GP1 UART0 وGP4/GP5/GP6 لا تزال تعيينات اختبار/bench مؤقتة. GP8/GP9/GP10 تخص مسار ADS8861 المرشح، لكن capture معطل افتراضياً ولم يثبت على لوحة.
+- ESP32-S3-N16R8: UART TX/RX غير معينتين في firmware؛ إعداد الجسر disabled وGPIO=-1 حتى مطابقة مخطط نسخة اللوحة الفعلية.
+- لا تعتمد أسماء GPIO وحدها كدليل على إتاحة الرجل أو عدم تعارضها مع flash/PSRAM/USB/strap أو peripheral أخرى.
+- بوابة الاعتماد: تحديد رقم/نسخة اللوحة، مراجعة schematic الرسمي، continuity وهي غير موصولة بالطاقة، ثم UART loopback 3.3V وقياس CONVST/SCLK/DOUT بمحلل منطقي. لا توصيل MOSFET أو ملف بحث خلال هذه الاختبارات.
+- CI #1803 على HEAD d17a0f3d انتهى بـstartup_failure قبل إنشاء Jobs؛ لا يوجد UF2/APK artifact جديد.

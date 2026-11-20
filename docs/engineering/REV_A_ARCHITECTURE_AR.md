@@ -418,3 +418,14 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 DOUT في ADS8861 يرسل الكلمة MSB-first. يجب أن يكون sm_config_in_shift(..., true, true, 16u) حتى يجمع PIO البتات باتجاه اليسار ويترك الكلمة الأصلية في ISR[15:0]. الإعداد السابق shift-right كان سيعكس ترتيب تسلسل MSB-first ويضعه في الجزء العلوي من ISR؛ لذلك صُحح مع اختبار guard على 0xA55A. راجع ADS8861_PIO_TIMING_AUDIT_AR.md، القسم10.
 
 هذا تصحيح برمجي مدقق بالمرجع الرسمي واختبار ساكن، وليس اختباراً على لوحة فعلية. يبقى ADC capture معطلاً افتراضياً.
+
+
+## 28. نقطة تحقق تنفيذية — 2026-11-20
+
+DD32 هو baseline Rev A الحالي: TX=25m/0.60mm/20 لفة وRX=35m/0.40mm/30 لفة كأهداف تصميم فقط. تقديرات DCR لمسار واحد عند20°C هي TX≈1.52–1.75Ω وRX≈4.80–5.93Ω، وليست قياسات؛ لا تعتمد قبل توثيق طوبولوجيا اللفات وقياس DCR/L/Q/القطبية والاقتران.
+
+HEAD الحالي على فرع العمل هو d17a0f3d5077a29299b45e94c1b67f87a1b901d7. CI #1802 و#1803 انتهيا بـstartup_failure؛ تشغيل #1803 لم ينشئ Jobs ولم ينتج artifacts، لذلك لا يوجد إثبات build أو UF2/APK جديد. PR #6 مغلق وغير مدمج، وPR #7 هو Draft المفتوح؛ لا تعديل على main ولا دمج.
+
+المراجعة النصية أكدت أن RP2040 يبقى logic-only وأن ENABLE_ADS8861_CAPTURE=0، وDEVICE_INFO=ADC_NONE، وSTART مرفوض بـTX_NOT_ARMED. جسر ESP32-S3 معطل وGPIO غير معينة، ولا توجد Wi-Fi/HTTP endpoints بعد. تطبيق Android لديه source وManifest وSQLite/CSV، لكنه ينتظر endpoints غير المنفذة. لا توجد نتائج loopback أو قياس ADC أو اختبار لوحة.
+
+**بوابة الاستكمال:** إصلاح/استعادة بدء CI أولاً، ثم إثبات UF2 وAPK، ثم MEASUREMENT producer وUART loopback، ثم Wi-Fi/WebServer، وبعدها القياسات الفعلية وإغلاق الحماية قبل KiCad/BOM.

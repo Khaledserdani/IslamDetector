@@ -297,3 +297,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - يجب أن يطابق MEASUREMENT.profile_id قيمة DEVICE_INFO.active_profile_id؛ اختلافهما يعني أن توقيتات النوافذ غير معروفة لهذه العينة، لذلك ترفضها جلسة ESP32-S3 بدلاً من تفسيرها بملف خاطئ.
 - أضيفت نتيجة REV_A_SESSION_PROFILE_MISMATCH وعدّاد رفض، كما يحمل كل سجل مقبول profile_crc32 وinfo_generation إلى جانب ADC metadata.
 - أضيف اختبار C يثبت رفض profile mismatch وقبول profile المطابق مع حفظ CRC. لا توجد نتيجة CI ناجحة لهذا التغيير حتى الآن، ولا يثبت الاختبار البرمجي اتصال اللوحتين.
+
+
+## 9.8 مراجعة جلسة القياس ونتيجة CI — 2026-11-20
+
+- HEAD الحالي d17a0f3d5077a29299b45e94c1b67f87a1b901d7 يتضمن رفض MEASUREMENT عندما لا يطابق profile_id قيمة DEVICE_INFO.active_profile_id، ويضيف profile_crc32 وinfo_generation إلى سجل القياس المقبول.
+- CRC32 للـprofile 1 ما زال معرفاً في firmware الحالي على ثمانية تأخيرات ns بصيغة uint32 little-endian؛ القيمة الموثقة 0x71E6D9DD. لا تغيّر تفسير CRC أو نسخته دون تحديث الطرفين والاختبارات.
+- RP2040 يعلن حالياً ADC_NONE وSAMPLE_UNKNOWN وresolution=0 وVREF=0. لا يوجد MEASUREMENT producer حقيقي من ADC؛ لذلك أي عينات فعلية تبقى غير متاحة.
+- PIO ADS8861 موجود لكنه معطل افتراضياً بـENABLE_ADS8861_CAPTURE=0. تصحيح shift-left واختبار 0xA55A يثبتان اتساقاً برمجياً فقط، لا قياس DOUT/SCLK/CONVST على لوحة.
+- CI #1802 و#1803 على HEAD أعلاه انتهيا بـstartup_failure. #1803 لم ينشئ أي Job أو artifact؛ لا يمكن استخراج job logs من تشغيل لم يبدأ jobs. لا يسجل نجاح build جديد.
+- لا يبدأ UART loopback إلا بعد مراجعة pinout الفعلي والجهود المشتركة والأرضي و3.3V، وباختبار منخفض الجهد. لا تُوصل مرحلة TX أو ملف قدرة.
