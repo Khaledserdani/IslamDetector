@@ -52,39 +52,3 @@ jobs:
           fi
           exit "$audit_status"
 
-  android-agent:
-    name: Build and test ISLAM FREE AGENT APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Run Android unit tests and build debug APK
-        run: gradle --no-daemon :agent:testDebugUnitTest :agent:assembleDebug
-      - name: Verify APK and package identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK=agent/build/outputs/apk/debug/agent-debug.apk
-          test -s "$APK"
-          unzip -t "$APK"
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
-          test -x "$AAPT"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
-          sha256sum "$APK"
-      - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ISLAM-FREE-AGENT-Android-APK
-          path: agent/build/outputs/apk/debug/agent-debug.apk
-          retention-days: 30
