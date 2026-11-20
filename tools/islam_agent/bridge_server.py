@@ -114,6 +114,7 @@ class BridgeApplication:
             "model": self.model,
             "phone_pairing": "paired" if self._session_hash else "waiting",
             "proposal_execution": "human_approval_required",
+            "autonomous_lab_execution": "validated_simulations_only",
             "continuous_worker": "running" if self._worker_thread and self._worker_thread.is_alive() else "stopped",
             "worker_last_status": self._worker_last_status,
             "worker_interval_seconds": getattr(self, "_worker_interval_seconds", None),
@@ -121,7 +122,7 @@ class BridgeApplication:
         }
 
     def start_continuous_worker(self, interval_seconds: int = 300) -> None:
-        """Prepare at most one proposal per interval; never approve or execute it."""
+        """Prepare proposals and auto-run only validated, non-actuating lab simulations."""
         if isinstance(interval_seconds, bool) or not isinstance(interval_seconds, int):
             raise ValueError("worker interval must be an integer")
         if interval_seconds < 300 or interval_seconds > 86_400:
@@ -138,7 +139,7 @@ class BridgeApplication:
                         self._worker_last_status = "waiting_for_human_review"
                         continue
                     try:
-                        result = self.create_proposal()
+                        result = self.create_proposal(auto_run_labs=True)
                         self._worker_last_status = result.get("status", "proposal_cycle_finished")
                     except BridgeError as exc:
                         self._worker_last_status = exc.code
@@ -174,7 +175,10 @@ class BridgeApplication:
             })
         return {"tasks": tasks, "updated_at": memory.get("updated_at")}
 
-    def create_proposal(self) -> dict:
+    def create_proposal(self, *, auto_run_labs: bool = False) -> dict:
+        """Create a proposal; the scheduled worker may auto-run lab-only simulations."""
+        if not isinstance(auto_run_labs, bool):
+            raise ValueError("auto_run_labs must be a boolean")
         with self._lock:
             if self.upload_pending_path.exists():
                 raise BridgeError(409, "github_upload_pending", "ينتظر تعديل معتمد رفعه إلى GitHub قبل بدء المهمة التالية")
@@ -196,6 +200,23 @@ class BridgeApplication:
             if result.get("status") == "no_task":
                 return {"status": "no_task"}
             record = json.loads(self.proposal_path.read_text(encoding="utf-8"))
+            if auto_run_labs:
+                from autonomous_lab import run_autonomous_lab_proposal
+                lab_result = run_autonomous_lab_proposal(
+                    record, report_dir=self.state_dir / "lab_runs"
+                )
+                if lab_result["status"] != "needs_human_review":
+                    # The full proposal and reproducible circuit inputs are now
+                    # preserved in the immutable lab evidence report.
+                    self.proposal_path.unlink()
+                    return {
+                        "status": "lab_experiment_" + lab_result["status"],
+                        "lab_run": lab_result,
+                    }
+                return {
+                    "status": "awaiting_human_review",
+                    "proposal": self._public_proposal(record),
+                }
             return {"status": "proposal_created", "proposal": self._public_proposal(record)}
 
     @staticmethod
