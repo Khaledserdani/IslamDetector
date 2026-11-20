@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MEMORY = ROOT / "docs" / "agent" / "agent_memory.json"
 DEFAULT_PROPOSAL = ROOT / "artifacts" / "agent" / "pending_proposal.json"
 MAX_MODEL_NAME_CHARS = 128
-MAX_PENDING_RECORD_BYTES = 16 * 1024
+MAX_PENDING_RECORD_BYTES = 64 * 1024
 
 
 class OrchestrationError(RuntimeError):
