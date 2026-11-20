@@ -96,12 +96,12 @@ def azimuthally_integrated_neumann_kernel_per_m(
     )
 
 
-def finite_cell_inductance_integrand_h_per_m2(
+def finite_cell_inductance_integrand_h_per_m4(
     radius_a_m: float, z_a_m: float,
     radius_b_m: float, z_b_m: float,
     area_a_m2: float, area_b_m2: float,
 ) -> float:
-    """Point-pair density for unit-current uniform meridional cell bases.
+    """Point-pair density for unit-current uniform meridional cell bases [H/m^4].
 
     This is the integrand multiplying dr dz dr' dz' in the finite-cell
     inductance double integral. It is not a cell inductance. Do not evaluate
