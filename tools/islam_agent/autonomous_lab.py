@@ -97,6 +97,26 @@ def run_autonomous_lab_proposal(
     if any(not isinstance(step, dict) or step.get("kind") not in LAB_KINDS for step in proposal["steps"]):
         return {"status": "needs_human_review", "reason": "proposal includes a non-laboratory operation"}
 
+    canonical = json.dumps(
+        {"task_id": task["id"], "proposal": proposal},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")
+    digest = hashlib.sha256(canonical).hexdigest()
+    output_dir = Path(report_dir)
+    for existing in output_dir.glob(f"*-{digest[:12]}.json"):
+        try:
+            previous = json.loads(existing.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            continue
+        if isinstance(previous, dict) and previous.get("run_id") == digest[:16]:
+            return {
+                "status": "duplicate",
+                "run_id": digest[:16],
+                "report_path": str(existing),
+                "verified_numerically": previous.get("verified_numerically") is True,
+                "error": "لم تُعد التجربة نفسها؛ استُخدم سجلها السابق.",
+            }
+
     executor = runner or SafeToolRunner()
     # The dedicated runner method revalidates every input and rejects all non-lab steps.
     results = []
@@ -112,11 +132,6 @@ def run_autonomous_lab_proposal(
         error = f"{type(exc).__name__}: {str(exc)[:500]}"
 
     now = clock().astimezone(timezone.utc)
-    canonical = json.dumps(
-        {"task_id": task["id"], "proposal": proposal},
-        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
-    ).encode("utf-8")
-    digest = hashlib.sha256(canonical).hexdigest()
     report = {
         "schema_version": 1,
         "run_id": digest[:16],
