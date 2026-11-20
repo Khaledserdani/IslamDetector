@@ -6,6 +6,7 @@ on:
       - feature/islam-free-agent-foundation
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-schedule-labs
     paths:
       - 'agent/**'
       - 'build.gradle'
@@ -80,7 +81,7 @@ jobs:
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
-          "$AAPT" dump badging "$APK" | grep -F "versionName='0.4.2'"
+          "$AAPT" dump badging "$APK" | grep -F "versionName='0.5.0'"
           sha256sum "$APK" | tee /tmp/islam-agent-sha256.txt
           echo "apk_sha256=$(cut -d' ' -f1 /tmp/islam-agent-sha256.txt)" >> "$GITHUB_OUTPUT"
 
@@ -91,12 +92,12 @@ jobs:
           APK_SHA256: ${{ steps.verify.outputs.apk_sha256 }}
         run: |
           set -euo pipefail
-          TAG="islam-free-agent-v0.4.2-build-${GITHUB_RUN_NUMBER}"
-          NOTES="ISLAM FREE AGENT v0.4.2 debug APK. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Includes free direct GitHub reviewed file-writing capability, checkpointed execution, and direct GitHub read-only dashboard, encrypted Android Keystore token storage, TLS-pinned computer bridge and explicit proposal review. Physical phone-to-host integration still requires user-side testing."
+          TAG="islam-free-agent-v0.5.0-build-${GITHUB_RUN_NUMBER}"
+          NOTES="ISLAM FREE AGENT v0.5.0 debug APK built from source commit $GITHUB_SHA. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Adds Algeria overnight scheduling (20:00-06:00 by default), automatic validated DC/RLC/AC computational laboratory runs with saved evidence, and Android health display for work-window/lab status. Project source writes and non-lab operations still require explicit human approval. Physical phone-to-host integration still requires user-side testing."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
           else
-            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.4.2 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
+            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.5.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
           fi
           echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
           echo "APK SHA-256: $APK_SHA256" >> "$GITHUB_STEP_SUMMARY"
