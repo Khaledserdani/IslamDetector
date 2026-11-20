@@ -146,6 +146,30 @@ class SafeToolRunner:
             "truncated": len(output) > MAX_OUTPUT_CHARS,
         }
 
+    @staticmethod
+    def _execute_lab_step(step: dict) -> dict:
+        """Execute one validated, non-actuating computational laboratory step."""
+        if step["kind"] == "simulate_ac_network":
+            result = simulate_ac_network(step["circuit"])
+        elif step["kind"] == "simulate_rlc":
+            result = simulate_series_rlc(step["circuit"])
+        elif step["kind"] == "simulate_circuit":
+            result = simulate_dc_resistive_network(step["circuit"])
+        else:
+            raise PolicyViolation("step is not a computational laboratory operation")
+        return {
+            "kind": step["kind"], "target": step["target"],
+            "status": "passed", "result": result,
+        }
+
+    def execute_autonomous_lab_plan(self, proposal: object, expected_task_id: str) -> list[dict]:
+        """Run only bounded software simulations; never writes files or touches hardware."""
+        approved = validate_proposal(proposal, expected_task_id)
+        lab_kinds = {"simulate_circuit", "simulate_rlc", "simulate_ac_network"}
+        if not approved["steps"] or any(step["kind"] not in lab_kinds for step in approved["steps"]):
+            raise PolicyViolation("autonomous mode accepts lab simulations only; other steps need human approval")
+        return [self._execute_lab_step(step) for step in approved["steps"]]
+
     def execute_plan(self, proposal: object, expected_task_id: str, *, human_approved: bool = False) -> list[dict]:
         approved = validate_proposal(proposal, expected_task_id)
         if human_approved is not True:
@@ -158,24 +182,8 @@ class SafeToolRunner:
                 result = self._write_file(step["target"], step["content"])
             elif step["kind"] == "run_test":
                 result = self._run_tests(step["target"])
-            elif step["kind"] == "simulate_ac_network":
-                result = {
-                    "kind": "simulate_ac_network", "target": step["target"],
-                    "status": "passed",
-                    "result": simulate_ac_network(step["circuit"]),
-                }
-            elif step["kind"] == "simulate_rlc":
-                result = {
-                    "kind": "simulate_rlc", "target": step["target"],
-                    "status": "passed",
-                    "result": simulate_series_rlc(step["circuit"]),
-                }
-            elif step["kind"] == "simulate_circuit":
-                result = {
-                    "kind": "simulate_circuit", "target": step["target"],
-                    "status": "passed",
-                    "result": simulate_dc_resistive_network(step["circuit"]),
-                }
+            elif step["kind"] in {"simulate_ac_network", "simulate_rlc", "simulate_circuit"}:
+                result = self._execute_lab_step(step)
             else:
                 raise PolicyViolation("step kind is not executable")
             results.append(result)
