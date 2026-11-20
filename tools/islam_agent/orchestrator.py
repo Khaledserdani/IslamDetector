@@ -226,9 +226,9 @@ class LocalAgentOrchestrator:
 
         if context is None:
             project_root = Path(memory_path).resolve().parent.parent.parent
-            context = _bounded_project_context(project_root, task)
+            context = _bounded_project_context(project_root, task)[:6]
             history = _recent_lab_context(project_root, task["id"])
-            context.extend(history[:max(0, 8 - len(context))])
+            context.extend(history[:2])
         pending = self.workflow.propose(task, context)
         required_result_fields = {
             "model", "proposal", "awaiting_human_approval", "executed"
