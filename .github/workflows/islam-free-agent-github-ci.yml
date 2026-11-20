@@ -1,0 +1,74 @@
+name: ISLAM FREE AGENT GitHub integration checks
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-github
+    paths:
+      - 'agent/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/islam-free-agent-github-ci.yml'
+  pull_request:
+    branches:
+      - feature/islam-free-agent-foundation
+    paths:
+      - 'agent/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-free-agent-github-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Fetch exact source commit without third-party actions
+        env:
+          SOURCE_REF: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git init source
+          cd source
+          git remote add origin "https://github.com/$REPOSITORY.git"
+          git fetch --depth 1 origin "$SOURCE_REF"
+          git checkout --detach FETCH_HEAD
+
+      - name: Prepare Java, Android SDK and Gradle
+        working-directory: source
+        run: |
+          set -euo pipefail
+          if [ -n "${JAVA_HOME_17_X64:-}" ]; then
+            echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+            echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          fi
+          java -version
+          test -n "${ANDROID_HOME:-}"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n1)"
+          if [ -n "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+            "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          fi
+          GRADLE_VERSION=8.9
+          curl -fsSLo /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"
+          curl -fsSLo /tmp/gradle.zip.sha256 "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip.sha256"
+          echo "$(cat /tmp/gradle.zip.sha256)  /tmp/gradle.zip" | sha256sum -c -
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-$GRADLE_VERSION/bin" >> "$GITHUB_PATH"
+
+      - name: Run Android tests and build APK
+        working-directory: source
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :agent:testDebugUnitTest :agent:assembleDebug
+          test -s agent/build/outputs/apk/debug/agent-debug.apk
+          unzip -t agent/build/outputs/apk/debug/agent-debug.apk

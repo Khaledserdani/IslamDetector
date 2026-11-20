@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
         store = new AgentTaskStore(this);
         buildScreen();
         loadSavedBridgeSettings();
+        loadSavedGitHubSettings();
         renderTasks();
     }
 
@@ -131,6 +132,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams bsp = matchWrap(); bsp.topMargin = dp(10);
         bridge.addView(bridgeStatusText, bsp);
         addPanel(page, bridge, 12);
+
+        addGitHubPanel(page);
 
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
@@ -365,6 +368,103 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     bridgeStatusText.setText("لم يكتمل الاتصال: " + message);
                     bridgeStatusText.setTextColor(Color.rgb(255, 150, 140));
+                });
+            }
+        });
+    }
+
+
+    private EditText githubTokenInput;
+    private TextView githubStatusText;
+
+    private void addGitHubPanel(LinearLayout page) {
+        LinearLayout github = panel();
+        github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
+        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. النسخة الحالية للقراءة والمتابعة فقط: الفروع وطلبات الدمج ونتائج Actions. لا تنشئ رمزاً بصلاحية كاملة.", 12, MUTED, false);
+        LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
+        github.addView(explanation, explainLp);
+
+        githubTokenInput = bridgeInput("ألصق Fine-grained token هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        githubTokenInput.setSingleLine(true);
+        LinearLayout.LayoutParams tokenLp = matchWrap(); tokenLp.topMargin = dp(8);
+        github.addView(githubTokenInput, tokenLp);
+
+        Button connect = bridgeButton("تحقق من الرمز واحفظه بأمان");
+        connect.setOnClickListener(v -> connectGitHub());
+        github.addView(connect, bridgeButtonParams());
+
+        Button refresh = bridgeButton("تحديث بيانات GitHub");
+        refresh.setOnClickListener(v -> refreshGitHub());
+        github.addView(refresh, bridgeButtonParams());
+
+        Button disconnect = bridgeButton("فصل GitHub وحذف الرمز من الهاتف");
+        disconnect.setOnClickListener(v -> {
+            GitHubTokenStore.clear(this);
+            githubTokenInput.setText("");
+            githubStatusText.setText("تم فصل الربط محلياً. أعد إنشاء الرمز أو ربطه عند الحاجة.");
+            githubStatusText.setTextColor(MUTED);
+        });
+        github.addView(disconnect, bridgeButtonParams());
+
+        githubStatusText = text("GitHub غير مربوط. المهام المحلية لا تتأثر.", 12, MUTED, false);
+        LinearLayout.LayoutParams statusLp = matchWrap(); statusLp.topMargin = dp(10);
+        github.addView(githubStatusText, statusLp);
+        addPanel(page, github, 12);
+    }
+
+    private void loadSavedGitHubSettings() {
+        try {
+            String savedToken = GitHubTokenStore.load(this);
+            if (savedToken != null && !savedToken.isEmpty()) {
+                githubStatusText.setText("رمز GitHub محفوظ ومشفّر على الهاتف. اضغط «تحديث بيانات GitHub» للتحقق من الجلسة.");
+                githubStatusText.setTextColor(Color.rgb(130, 220, 185));
+            }
+        } catch (Exception error) {
+            GitHubTokenStore.clear(this);
+            githubStatusText.setText("تعذر فتح الرمز المحفوظ؛ احذفه وأنشئ رمزاً جديداً.");
+            githubStatusText.setTextColor(Color.rgb(255, 150, 140));
+        }
+    }
+
+    private void connectGitHub() {
+        String token = githubTokenInput.getText().toString().trim();
+        runGitHubOperation("جارٍ التحقق من GitHub…", () -> {
+            GitHubClient client = new GitHubClient(token);
+            String dashboard = client.dashboard();
+            GitHubTokenStore.save(this, token);
+            runOnUiThread(() -> githubTokenInput.setText(""));
+            return dashboard;
+        });
+    }
+
+    private void refreshGitHub() {
+        runGitHubOperation("جارٍ تحديث بيانات المستودع…", () -> {
+            String token = GitHubTokenStore.load(this);
+            if (token == null) throw new SecurityException("أدخل رمز GitHub واربط الحساب أولاً.");
+            return new GitHubClient(token).dashboard();
+        });
+    }
+
+    private void runGitHubOperation(String working, BridgeOperation operation) {
+        githubStatusText.setText(working);
+        githubStatusText.setTextColor(Color.rgb(255, 205, 120));
+        networkExecutor.execute(() -> {
+            try {
+                String result = operation.run();
+                runOnUiThread(() -> {
+                    githubStatusText.setText("تم الاتصال بنجاح — بيانات مباشرة من GitHub.");
+                    githubStatusText.setTextColor(Color.rgb(130, 220, 185));
+                    new AlertDialog.Builder(this)
+                            .setTitle("لوحة GitHub")
+                            .setMessage(result)
+                            .setPositiveButton("إغلاق", null)
+                            .show();
+                });
+            } catch (Exception error) {
+                String message = error.getMessage() == null ? "تعذر الاتصال بـ GitHub" : error.getMessage();
+                runOnUiThread(() -> {
+                    githubStatusText.setText("لم ينجح الاتصال: " + message);
+                    githubStatusText.setTextColor(Color.rgb(255, 150, 140));
                 });
             }
         });
