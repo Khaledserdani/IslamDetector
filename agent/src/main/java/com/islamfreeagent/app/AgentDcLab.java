@@ -44,7 +44,7 @@ final class AgentDcLab {
         requireName(ground, "ground");
         requireName(sourceNode, "source node");
         if (ground.equals(sourceNode)) throw new IllegalArgumentException("source node cannot be ground");
-        if (!Double.isFinite(sourceVolts)) throw new IllegalArgumentException("source voltage must be finite");
+        if (!isFinite(sourceVolts)) throw new IllegalArgumentException("source voltage must be finite");
         if (resistors == null || resistors.isEmpty() || resistors.size() > 500) {
             throw new IllegalArgumentException("resistor count must be between 1 and 500");
         }
@@ -55,7 +55,7 @@ final class AgentDcLab {
             requireName(r.a, "resistor node");
             requireName(r.b, "resistor node");
             if (r.a.equals(r.b)) throw new IllegalArgumentException("resistor endpoints must differ");
-            if (!Double.isFinite(r.ohms) || r.ohms <= 0.0 || r.ohms > 1.0e12) {
+            if (!isFinite(r.ohms) || r.ohms <= 0.0 || r.ohms > 1.0e12) {
                 throw new IllegalArgumentException("resistance must be finite and in (0, 1e12]");
             }
             if (!r.a.equals(ground) && !r.a.equals(sourceNode)) indexes.putIfAbsent(r.a, indexes.size());
@@ -107,13 +107,13 @@ final class AgentDcLab {
         sourceCurrent = kcl.get(sourceNode);
         double maxResidual = 0.0;
         for (String node : indexes.keySet()) maxResidual = Math.max(maxResidual, Math.abs(kcl.get(node)));
-        if (!Double.isFinite(sourceCurrent) || !Double.isFinite(maxResidual)) {
+        if (!isFinite(sourceCurrent) || !isFinite(maxResidual)) {
             throw new ArithmeticException("non-finite result");
         }
         return new Result(voltages, sourceCurrent, maxResidual);
     }
 
-    private static boolean touchesSource(List<Resistor> resistors, String source) {
+    private static boolean isFinite(double value) {\n        return !Double.isNaN(value) && !Double.isInfinite(value);\n    }\n\n    private static boolean touchesSource(List<Resistor> resistors, String source) {
         for (Resistor r : resistors) if (r.a.equals(source) || r.b.equals(source)) return true;
         return false;
     }
@@ -151,7 +151,7 @@ final class AgentDcLab {
                 b[row] -= factor * b[col];
             }
         }
-        for (double value : b) if (!Double.isFinite(value)) throw new ArithmeticException("non-finite solution");
+        for (double value : b) if (!isFinite(value)) throw new ArithmeticException("non-finite solution");
         return b;
     }
 }
