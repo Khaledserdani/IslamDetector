@@ -87,6 +87,12 @@ class BridgeServerTests(unittest.TestCase):
             self.app.pair("123456")
         self.assertEqual(caught.exception.code, "pairing_expired")
 
+
+    def test_authenticated_requests_are_rate_limited(self):
+        for _ in range(60):
+            self.assertTrue(self.app.allow_request())
+        self.assertFalse(self.app.allow_request())
+
     def test_task_listing_is_read_only_and_bounded(self):
         payload = self.app.tasks()
         self.assertEqual(len(payload["tasks"]), 1)
