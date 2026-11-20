@@ -6,6 +6,7 @@ on:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
       - feature/islam-free-agent-schedule-labs
+      - feature/islam-circuit-designer
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -16,6 +17,7 @@ on:
   pull_request:
     branches:
       - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-schedule-labs
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -116,4 +118,5 @@ jobs:
             test_lab_manager \
             test_lab_catalog \
             test_transient_circuit \
-            test_ac_network
+            test_ac_network \
+            test_circuit_design
