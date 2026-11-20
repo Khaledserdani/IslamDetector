@@ -245,7 +245,9 @@ public class MainActivity extends Activity {
             JSONObject health = bridgeClient(false).health();
             return "الجسر: " + health.optString("bridge")
                     + " • Ollama: " + health.optString("ollama")
-                    + " • النموذج: " + health.optString("model");
+                    + " • النموذج: " + health.optString("model")
+                    + " • المتابعة الدورية: " + health.optString("continuous_worker")
+                    + " • آخر حالة: " + health.optString("worker_last_status");
         });
     }
 
