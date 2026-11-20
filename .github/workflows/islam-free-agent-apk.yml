@@ -1,0 +1,84 @@
+name: Build ISLAM FREE AGENT APK
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+    paths:
+      - 'agent/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/islam-free-agent-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-free-agent-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-agent:
+    name: Test and package the standalone Android assistant
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Run agent unit tests and build APK
+        run: gradle --no-daemon :agent:testDebugUnitTest :agent:assembleDebug
+
+      - name: Verify APK identity and archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=agent/build/outputs/apk/debug/agent-debug.apk
+          test -s "$APK"
+          test "$(stat -c%s "$APK")" -gt 1000
+          unzip -t "$APK"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
+          sha256sum "$APK" | tee agent-apk.sha256
+          echo "APK_BYTES=$(stat -c%s "$APK")" >> "$GITHUB_ENV"
+
+      - name: Publish APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-FREE-AGENT-APK
+          path: |
+            agent/build/outputs/apk/debug/agent-debug.apk
+            agent-apk.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build summary
+        if: success()
+        run: |
+          {
+            echo "## ISLAM FREE AGENT APK"
+            echo
+            echo "- Package: `com.islamfreeagent.app`"
+            echo "- APK size: ${APK_BYTES} bytes"
+            echo "- SHA-256:"
+            echo "```"
+            cat agent-apk.sha256
+            echo "```"
+            echo "- Build type: debug (installable test build)"
+            echo "- Scope: local task manager; secure phone-to-agent bridge is not yet integrated."
+          } >> "$GITHUB_STEP_SUMMARY"
