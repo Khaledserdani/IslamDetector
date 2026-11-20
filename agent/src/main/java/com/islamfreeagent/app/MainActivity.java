@@ -15,9 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,14 +27,9 @@ public class MainActivity extends Activity {
     private AgentTaskStore store;
     private LinearLayout taskList;
     private TextView countText;
-    private TextView bridgeStatusText;
     private EditText dcVoltageInput;
     private EditText dcResistorsInput;
     private TextView dcResultText;
-    private EditText bridgeHostInput;
-    private EditText bridgePortInput;
-    private EditText bridgePinInput;
-    private EditText bridgeCodeInput;
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
 
     @Override protected void onCreate(Bundle state) {
@@ -46,9 +38,7 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         store = new AgentTaskStore(this);
         buildScreen();
-        loadSavedBridgeSettings();
         loadSavedGitHubSettings();
-        loadSavedApprovedUpload();
         renderTasks();
     }
 
@@ -79,9 +69,9 @@ public class MainActivity extends Activity {
         page.addView(subtitle, sub);
 
         LinearLayout notice = panel();
-        TextView noticeTitle = text("إدارة محلية + اتصال آمن اختياري", 16, Color.rgb(255, 205, 120), true);
+        TextView noticeTitle = text("مدير محلي مستقل على الهاتف", 16, Color.rgb(255, 205, 120), true);
         notice.addView(noticeTitle, matchWrap());
-        TextView noticeBody = text("المهام المحلية تعمل دون إنترنت. عند تشغيل جسر الكمبيوتر واقتران الهاتف، يمكن عرض مهام المشروع وطلب اقتراح من Ollama ومراجعته. لا يُنفذ أي اقتراح دون موافقتك الصريحة.", 13, MUTED, false);
+        TextView noticeBody = text("إدارة المهام ومختبر الدوائر والجدولة الليلية تعمل محلياً على الهاتف. لا يحتاج التطبيق إلى كمبيوتر أو Ollama.", 13, MUTED, false);
         LinearLayout.LayoutParams nb = matchWrap(); nb.topMargin = dp(8);
         notice.addView(noticeBody, nb);
         addPanel(page, notice, 18);
@@ -91,7 +81,7 @@ public class MainActivity extends Activity {
         TextView state = text("واجهة الهاتف: تعمل", 14, Color.rgb(130, 220, 185), true);
         LinearLayout.LayoutParams st = matchWrap(); st.topMargin = dp(8);
         status.addView(state, st);
-        TextView engine = text("محرك الكمبيوتر: افحص الاتصال أدناه", 13, MUTED, false);
+        TextView engine = text("المعالجة المحلية: جاهزة للاختبارات الحسابية المتاحة", 13, MUTED, false);
         LinearLayout.LayoutParams en = matchWrap(); en.topMargin = dp(5);
         status.addView(engine, en);
         addPanel(page, status, 12);
@@ -101,16 +91,16 @@ public class MainActivity extends Activity {
         TextView dcHelp = text("مصدر جهد مثالي بين vcc والأرضي 0. اكتب المقاومات كسطور مفصولة بفاصلة منقوطة، وكل سطر: العقدة الأولى,العقدة الثانية,المقاومة بالأوم. مثال: vcc,mid,1000;mid,0,1000", 12, MUTED, false);
         LinearLayout.LayoutParams dh = matchWrap(); dh.topMargin = dp(7);
         dcLab.addView(dcHelp, dh);
-        dcVoltageInput = bridgeInput("جهد المصدر بالفولت — مثال 10", InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        dcVoltageInput = textInput("جهد المصدر بالفولت — مثال 10", InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         dcResistorsInput = bridgeInput("vcc,mid,1000;mid,0,1000", InputType.TYPE_CLASS_TEXT);
         dcResistorsInput.setSingleLine(false);
         dcResistorsInput.setMinLines(2);
         dcResistorsInput.setGravity(Gravity.TOP | Gravity.LEFT);
         addInput(dcLab, dcVoltageInput);
         addInput(dcLab, dcResistorsInput);
-        Button runDc = bridgeButton("تشغيل محاكاة DC على الهاتف");
+        Button runDc = actionButton("تشغيل محاكاة DC على الهاتف");
         runDc.setOnClickListener(v -> runDcLabSimulation());
-        dcLab.addView(runDc, bridgeButtonParams());
+        dcLab.addView(runDc, actionButtonParams());
         Button queueDc = bridgeButton("حفظ التجربة لتعمل ليلاً");
         queueDc.setOnClickListener(v -> enqueueDcLab());
         dcLab.addView(queueDc, bridgeButtonParams());
@@ -138,47 +128,6 @@ public class MainActivity extends Activity {
         dcLab.addView(dcResultText, dr);
         addPanel(page, dcLab, 12);
 
-        LinearLayout bridge = panel();
-        bridge.addView(text("ربط محرك الكمبيوتر", 18, Color.WHITE, true), matchWrap());
-        TextView help = text("أدخل عنوان IPv4 الخاص الذي يعرضه برنامج run_bridge.py، ثم بصمة الشهادة ورمز الاقتران. الاتصال HTTPS مع تثبيت البصمة فقط.", 12, MUTED, false);
-        LinearLayout.LayoutParams helpLp = matchWrap(); helpLp.topMargin = dp(7);
-        bridge.addView(help, helpLp);
-
-        bridgeHostInput = bridgeInput("عنوان الكمبيوتر مثل 192.168.1.5", InputType.TYPE_CLASS_TEXT);
-        bridgePortInput = bridgeInput("المنفذ", InputType.TYPE_CLASS_NUMBER);
-        bridgePortInput.setText("8765");
-        bridgePinInput = bridgeInput("بصمة شهادة SHA-256 (64 خانة)", InputType.TYPE_CLASS_TEXT);
-        bridgeCodeInput = bridgeInput("رمز الاقتران المؤقت (6 أرقام)", InputType.TYPE_CLASS_NUMBER);
-        addInput(bridge, bridgeHostInput);
-        addInput(bridge, bridgePortInput);
-        addInput(bridge, bridgePinInput);
-        addInput(bridge, bridgeCodeInput);
-
-        Button pair = bridgeButton("اقتران الهاتف بالكمبيوتر");
-        pair.setOnClickListener(v -> pairBridge());
-        bridge.addView(pair, bridgeButtonParams());
-
-        Button health = bridgeButton("فحص حالة المحرك");
-        health.setOnClickListener(v -> checkBridgeHealth());
-        bridge.addView(health, bridgeButtonParams());
-
-        Button tasks = bridgeButton("عرض مهام المشروع على الكمبيوتر");
-        tasks.setOnClickListener(v -> loadRemoteTasks());
-        bridge.addView(tasks, bridgeButtonParams());
-
-        Button propose = bridgeButton("اطلب اقتراحاً من Ollama");
-        propose.setOnClickListener(v -> requestProposal());
-        bridge.addView(propose, bridgeButtonParams());
-
-        Button pending = bridgeButton("مراجعة الاقتراح المعلق");
-        pending.setOnClickListener(v -> loadPendingProposal());
-        bridge.addView(pending, bridgeButtonParams());
-
-        bridgeStatusText = text("غير متصل — المهام المحلية تعمل بشكل مستقل", 12, MUTED, false);
-        LinearLayout.LayoutParams bsp = matchWrap(); bsp.topMargin = dp(10);
-        bridge.addView(bridgeStatusText, bsp);
-        addPanel(page, bridge, 12);
-
         addGitHubPanel(page);
 
         LinearLayout heading = new LinearLayout(this);
@@ -201,7 +150,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams listLp = matchWrap(); listLp.topMargin = dp(8);
         page.addView(taskList, listLp);
 
-        TextView footer = text("بيانات المهام المحلية تبقى على الهاتف. اتصال الكمبيوتر لا يرسل رموز الاقتران إلى السجلات ولا يفتح منفذ Ollama للشبكة.", 12, MUTED, false);
+        TextView footer = text("بيانات المهام والتجارب محفوظة محلياً على الهاتف. لا يوجد اتصال بجسر كمبيوتر أو Ollama.", 12, MUTED, false);
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
@@ -273,7 +222,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private EditText bridgeInput(String hint, int type) {
+    private EditText textInput(String hint, int type) {
         EditText input = new EditText(this);
         input.setSingleLine(true);
         input.setTextSize(13);
@@ -292,303 +241,18 @@ public class MainActivity extends Activity {
         parent.addView(input, lp);
     }
 
-    private Button bridgeButton(String title) {
+    private Button actionButton(String title) {
         Button b = button(title, Color.rgb(40, 83, 112));
         b.setTextSize(13);
         return b;
     }
 
-    private LinearLayout.LayoutParams bridgeButtonParams() {
+    private LinearLayout.LayoutParams actionButtonParams() {
         LinearLayout.LayoutParams lp = matchWrap();
         lp.height = dp(44);
         lp.topMargin = dp(6);
         return lp;
     }
-
-    private void loadSavedBridgeSettings() {
-        try {
-            String[] saved = BridgeSecretStore.load(this);
-            if (saved != null) {
-                bridgeHostInput.setText(saved[0]);
-                bridgePortInput.setText(saved[1]);
-                bridgePinInput.setText(saved[2]);
-                bridgeStatusText.setText("جلسة اقتران محفوظة على الهاتف");
-                bridgeStatusText.setTextColor(Color.rgb(130, 220, 185));
-            }
-        } catch (Exception error) {
-            BridgeSecretStore.clear(this);
-            bridgeStatusText.setText("تعذر فتح الجلسة المحفوظة؛ أعد الاقتران");
-        }
-    }
-
-    private BridgeClient bridgeClient(boolean authenticated) throws Exception {
-        String host = bridgeHostInput.getText().toString().trim();
-        int port = Integer.parseInt(bridgePortInput.getText().toString().trim());
-        String pin = bridgePinInput.getText().toString().trim().replace(":", "").replace(" ", "");
-        String token = null;
-        if (authenticated) {
-            String[] saved = BridgeSecretStore.load(this);
-            if (saved == null || !saved[0].equals(host) || !saved[1].equals(String.valueOf(port))
-                    || !saved[2].equalsIgnoreCase(pin)) {
-                throw new SecurityException("أكمل الاقتران أولاً أو أعد إدخال إعدادات المضيف المحفوظة");
-            }
-            token = saved[3];
-        }
-        return new BridgeClient(host, port, pin, token);
-    }
-
-    private void pairBridge() {
-        final String code = bridgeCodeInput.getText().toString().trim();
-        runBridgeOperation("جارٍ تنفيذ الاقتران الآمن…", () -> {
-            BridgeClient client = bridgeClient(false);
-            JSONObject response = client.pair(code);
-            String token = response.getString("session_token");
-            String host = bridgeHostInput.getText().toString().trim();
-            int port = Integer.parseInt(bridgePortInput.getText().toString().trim());
-            String pin = bridgePinInput.getText().toString().trim().replace(":", "").replace(" ", "");
-            BridgeSecretStore.save(this, host, port, pin, token);
-            runOnUiThread(() -> bridgeCodeInput.setText(""));
-            return "تم اقتران الهاتف بنجاح. الجلسة محفوظة مشفرة في Android Keystore.";
-        });
-    }
-
-    private void checkBridgeHealth() {
-        runBridgeOperation("جارٍ فحص الكمبيوتر وOllama…", () -> {
-            JSONObject health = bridgeClient(false).health();
-            JSONObject window = health.optJSONObject("work_window");
-            String windowText = window == null ? "غير محددة"
-                    : window.optString("start", "—") + "–" + window.optString("end", "—")
-                    + " (" + window.optString("timezone", "local") + ")";
-            return "الجسر: " + health.optString("bridge")
-                    + " • Ollama: " + health.optString("ollama")
-                    + " • النموذج: " + health.optString("model")
-                    + " • نافذة العمل: " + windowText
-                    + " • المختبر التلقائي: " + health.optString("autonomous_lab_execution")
-                    + " • المتابعة الدورية: " + health.optString("continuous_worker")
-                    + " • آخر حالة: " + health.optString("worker_last_status")
-                    + " • انتظار رفع GitHub: " + health.optBoolean("github_upload_pending", false);
-        });
-    }
-
-    private void loadRemoteTasks() {
-        runBridgeOperation("جارٍ تحميل مهام الكمبيوتر…", () -> {
-            JSONObject response = bridgeClient(true).tasks();
-            JSONArray tasks = response.optJSONArray("tasks");
-            StringBuilder message = new StringBuilder();
-            if (tasks == null || tasks.length() == 0) return "لا توجد مهام مشروع في قائمة الكمبيوتر.";
-            for (int i = 0; i < tasks.length(); i++) {
-                JSONObject task = tasks.getJSONObject(i);
-                message.append(i + 1).append(". ")
-                        .append(task.optString("title")).append("\n")
-                        .append("الحالة: ").append(task.optString("status")).append("\n")
-                        .append("المعرّف: ").append(task.optString("id")).append("\n\n");
-            }
-            String value = message.toString();
-            runOnUiThread(() -> new AlertDialog.Builder(this)
-                    .setTitle("مهام المشروع")
-                    .setMessage(value)
-                    .setPositiveButton("إغلاق", null)
-                    .show());
-            return "تم تحميل " + tasks.length() + " مهمة من الكمبيوتر.";
-        });
-    }
-
-    private void requestProposal() {
-        runBridgeOperation("Ollama يعمل على إعداد اقتراح آمن…", () -> {
-            JSONObject response = bridgeClient(true).createProposal();
-            if ("no_task".equals(response.optString("status"))) return "لا توجد مهمة قابلة للعمل حالياً.";
-            JSONObject proposal = response.optJSONObject("proposal");
-            if (proposal == null) throw new IllegalStateException("رد الخادم لا يحتوي على اقتراح صالح");
-            runOnUiThread(() -> showProposalDialog(proposal));
-            return "وصل اقتراح جديد. راجعه قبل الموافقة.";
-        });
-    }
-
-    private void loadPendingProposal() {
-        runBridgeOperation("جارٍ تحميل الاقتراح المعلق…", () -> {
-            JSONObject response = bridgeClient(true).pendingProposal();
-            JSONObject proposal = response.optJSONObject("proposal");
-            if (proposal == null) return "لا يوجد اقتراح معلق.";
-            runOnUiThread(() -> showProposalDialog(proposal));
-            return "تم تحميل الاقتراح للمراجعة.";
-        });
-    }
-
-    private void showProposalDialog(JSONObject wrapper) {
-        JSONObject task = wrapper.optJSONObject("task");
-        JSONObject proposal = wrapper.optJSONObject("proposal");
-        if (task == null || proposal == null) {
-            showMessage("اقتراح غير صالح", "لم تصل تفاصيل الاقتراح كاملة.");
-            return;
-        }
-        String taskId = task.optString("id");
-        StringBuilder details = new StringBuilder();
-        details.append("المهمة: ").append(task.optString("title")).append("\n\n");
-        details.append("النموذج: ").append(wrapper.optString("model")).append("\n\n");
-        details.append(proposal.optString("summary_ar")).append("\n\n");
-        JSONArray steps = proposal.optJSONArray("steps");
-        details.append("الخطوات المقترحة:\n");
-        if (steps != null) {
-            for (int i = 0; i < steps.length(); i++) {
-                JSONObject step = steps.optJSONObject(i);
-                if (step != null) {
-                    details.append("• ").append(step.optString("kind"))
-                            .append(": ").append(step.optString("target")).append("\n");
-                    if ("write_file".equals(step.optString("kind"))) {
-                        details.append("المحتوى الكامل الذي سيُكتب (راجعه قبل الموافقة):\n")
-                                .append(step.optString("content")).append("\n--- نهاية الملف ---\n");
-                    }
-                }
-            }
-        }
-        JSONArray claims = proposal.optJSONArray("claims_to_verify");
-        if (claims != null && claims.length() > 0) {
-            details.append("\nنقاط تحتاج تحققاً:\n");
-            for (int i = 0; i < claims.length(); i++) details.append("• ").append(claims.optString(i)).append("\n");
-        }
-        details.append("\nالموافقة لا تعني أن التنفيذ نجح؛ ستظهر النتيجة بعد تشغيل الخطوات.");
-        EditText confirmation = bridgeInput("اكتب: أوافق على تنفيذ الاقتراح " + taskId, InputType.TYPE_CLASS_TEXT);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.addView(confirmation, matchWrap());
-        new AlertDialog.Builder(this)
-                .setTitle("مراجعة اقتراح المدير")
-                .setMessage(details.toString())
-                .setView(content)
-                .setPositiveButton("موافقة وتنفيذ", (dialog, which) ->
-                        sendProposalDecision(wrapper, "approve", confirmation.getText().toString().trim()))
-                .setNeutralButton("رفض الاقتراح", (dialog, which) ->
-                        sendProposalDecision(wrapper, "reject", ""))
-                .setNegativeButton("إغلاق", null)
-                .show();
-    }
-
-    private volatile JSONObject lastApprovedProposal;
-    private volatile int lastUploadStepIndex;
-
-    private void sendProposalDecision(JSONObject wrapper, String decision, String confirmation) {
-        String proposalId = wrapper.optString("proposal_id");
-        runBridgeOperation(decision.equals("approve") ? "جارٍ التحقق من الموافقة وتنفيذ الخطوات المسموحة…" : "جارٍ رفض الاقتراح…", () -> {
-            JSONObject result = bridgeClient(true).decide(proposalId, decision, confirmation);
-            if (!"approve".equals(decision) || !"completed".equals(result.optString("status"))) {
-                return "نتيجة القرار: " + result.optString("status")
-                        + " • تم التنفيذ: " + result.optBoolean("executed", false);
-            }
-            JSONObject proposal = wrapper.optJSONObject("proposal");
-            JSONArray steps = proposal == null ? null : proposal.optJSONArray("steps");
-            boolean hasWrites = false;
-            if (steps != null) {
-                for (int i = 0; i < steps.length(); i++) {
-                    JSONObject step = steps.optJSONObject(i);
-                    if (step != null && "write_file".equals(step.optString("kind"))) hasWrites = true;
-                }
-            }
-            if (!hasWrites) return "اكتملت جميع الخطوات والاختبارات بنجاح.";
-            lastApprovedProposal = wrapper;
-            lastUploadStepIndex = 0;
-            persistPendingUpload();
-            return uploadApprovedFiles(wrapper);
-        });
-    }
-
-    private String uploadApprovedFiles(JSONObject wrapper) throws Exception {
-        String token = GitHubTokenStore.load(this);
-        if (token == null || token.isEmpty()) {
-            throw new SecurityException("اكتمل التنفيذ المحلي. اربط GitHub برمز يملك Contents: Read and write ثم اضغط إعادة رفع آخر تعديل.");
-        }
-        JSONObject proposal = wrapper.optJSONObject("proposal");
-        JSONArray steps = proposal == null ? null : proposal.optJSONArray("steps");
-        if (steps == null) throw new IllegalStateException("تفاصيل الملفات المعتمدة غير موجودة");
-        GitHubClient client = new GitHubClient(token);
-        JSONArray allFiles = new JSONArray();
-        for (int i = 0; i < steps.length(); i++) {
-            JSONObject step = steps.optJSONObject(i);
-            if (step != null && "write_file".equals(step.optString("kind"))) {
-                allFiles.put(step.optString("target"));
-            }
-        }
-        int uploaded = 0;
-        String summary = proposal.optString("summary_ar", "تعديل معتمد");
-        for (int i = lastUploadStepIndex; i < steps.length(); i++) {
-            JSONObject step = steps.optJSONObject(i);
-            if (step != null && "write_file".equals(step.optString("kind"))) {
-                client.commitApprovedFile(step.optString("target"), step.optString("content"), summary);
-                uploaded++;
-            }
-            lastUploadStepIndex = i + 1;
-            persistPendingUpload();
-        }
-        JSONObject ack = bridgeClient(true).completeUpload(wrapper.optString("proposal_id"), allFiles);
-        lastApprovedProposal = null;
-        lastUploadStepIndex = 0;
-        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().commit();
-        return "نجح التنفيذ والاختبار، وأكد الجسر رفع " + allFiles.length()
-                + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج. (" 
-                + ack.optString("status") + ")";
-    }
-
-    private void persistPendingUpload() {
-        if (lastApprovedProposal == null) return;
-        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit()
-                .putString("proposal", lastApprovedProposal.toString())
-                .putInt("next_step", lastUploadStepIndex)
-                .commit();
-    }
-
-    private void loadSavedApprovedUpload() {
-        try {
-            android.content.SharedPreferences prefs =
-                    getSharedPreferences("approved_upload_retry", MODE_PRIVATE);
-            String saved = prefs.getString("proposal", null);
-            if (saved != null && !saved.isEmpty()) {
-                lastApprovedProposal = new JSONObject(saved);
-                lastUploadStepIndex = Math.max(0, prefs.getInt("next_step", 0));
-            }
-        } catch (Exception error) {
-            lastApprovedProposal = null;
-            lastUploadStepIndex = 0;
-            getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().apply();
-        }
-    }
-
-    private void retryLastApprovedUpload() {
-        if (lastApprovedProposal == null) {
-            showMessage("لا يوجد رفع معلّق", "لا توجد ملفات معتمدة تنتظر الرفع حالياً.");
-            return;
-        }
-        runGitHubOperation("جارٍ استكمال رفع الملفات المعتمدة…", () ->
-                uploadApprovedFiles(lastApprovedProposal));
-    }
-
-    private void showMessage(String title, String message) {
-        new AlertDialog.Builder(this).setTitle(title).setMessage(message)
-                .setPositiveButton("حسناً", null).show();
-    }
-
-    private interface BridgeOperation {
-        String run() throws Exception;
-    }
-
-    private void runBridgeOperation(String working, BridgeOperation operation) {
-        bridgeStatusText.setText(working);
-        bridgeStatusText.setTextColor(Color.rgb(255, 205, 120));
-        networkExecutor.execute(() -> {
-            try {
-                String result = operation.run();
-                runOnUiThread(() -> {
-                    bridgeStatusText.setText(result);
-                    bridgeStatusText.setTextColor(Color.rgb(130, 220, 185));
-                });
-            } catch (Exception error) {
-                String message = error.getMessage() == null ? "تعذر إكمال العملية" : error.getMessage();
-                runOnUiThread(() -> {
-                    bridgeStatusText.setText("لم يكتمل الاتصال: " + message);
-                    bridgeStatusText.setTextColor(Color.rgb(255, 150, 140));
-                });
-            }
-        });
-    }
-
 
     private EditText githubTokenInput;
     private TextView githubStatusText;
@@ -596,7 +260,7 @@ public class MainActivity extends Activity {
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
         github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
-        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. بعد موافقتك ونجاح الاختبارات، يرفع التطبيق الملفات إلى فرع العمل فقط. يلزم Contents: Read and write؛ لا دمج ولا تعديل للفرع الرئيسي.", 12, MUTED, false);
+        TextView explanation = text("لوحة اختيارية لقراءة حالة مستودع GitHub مباشرة من الهاتف. لا تنفذ تعديلات أو دمجاً تلقائياً.", 12, MUTED, false);
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
@@ -612,10 +276,6 @@ public class MainActivity extends Activity {
         Button refresh = bridgeButton("تحديث بيانات GitHub");
         refresh.setOnClickListener(v -> refreshGitHub());
         github.addView(refresh, bridgeButtonParams());
-
-        Button retryUpload = bridgeButton("إعادة رفع آخر تعديل معتمد إلى GitHub");
-        retryUpload.setOnClickListener(v -> retryLastApprovedUpload());
-        github.addView(retryUpload, bridgeButtonParams());
 
         Button disconnect = bridgeButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {
@@ -665,7 +325,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void runGitHubOperation(String working, BridgeOperation operation) {
+    private void runGitHubOperation(String working, Operation operation) {
         githubStatusText.setText(working);
         githubStatusText.setTextColor(Color.rgb(255, 205, 120));
         networkExecutor.execute(() -> {
