@@ -81,6 +81,7 @@ jobs:
           unzip -t agent/build/outputs/apk/debug/agent-debug.apk
 
       - name: Upload verified debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: islam-free-agent-debug-apk
