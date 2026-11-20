@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-github
     paths:
       - 'agent/**'
       - 'build.gradle'
@@ -25,8 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Avoid third-party Actions: repository's simple runner-git workflows start,
-      # while workflows requiring external actions currently fail before jobs exist.
       - name: Fetch exact source commit
         env:
           SOURCE_REF: ${{ github.sha }}
@@ -80,6 +79,7 @@ jobs:
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
+          "$AAPT" dump badging "$APK" | grep -F "versionName='0.3.0'"
           sha256sum "$APK" | tee /tmp/islam-agent-sha256.txt
           echo "apk_sha256=$(cut -d' ' -f1 /tmp/islam-agent-sha256.txt)" >> "$GITHUB_OUTPUT"
 
@@ -90,12 +90,12 @@ jobs:
           APK_SHA256: ${{ steps.verify.outputs.apk_sha256 }}
         run: |
           set -euo pipefail
-          TAG="islam-free-agent-v0.2.0-build-${GITHUB_RUN_NUMBER}"
-          NOTES="Experimental debug APK v0.2.0. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Includes TLS-pinned Android bridge, one-time pairing and explicit proposal review. A physical phone-to-host end-to-end test is still required."
+          TAG="islam-free-agent-v0.3.0-build-${GITHUB_RUN_NUMBER}"
+          NOTES="ISLAM FREE AGENT v0.3.0 debug APK. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Includes free direct GitHub read-only dashboard, encrypted Android Keystore token storage, TLS-pinned computer bridge and explicit proposal review. Physical phone-to-host integration still requires user-side testing."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
           else
-            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.2.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
+            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.3.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES"
           fi
           echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
           echo "APK SHA-256: $APK_SHA256" >> "$GITHUB_STEP_SUMMARY"
