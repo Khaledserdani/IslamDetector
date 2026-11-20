@@ -5,6 +5,7 @@ on:
     branches:
       - feature/islam-free-agent-foundation
       - feature/islam-free-agent-github
+      - feature/islam-free-agent-safe-write
     paths:
       - 'agent/**'
       - 'build.gradle'
