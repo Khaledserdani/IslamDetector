@@ -49,7 +49,8 @@ public class AgentLabQueueTest {
     @Test public void invalidCircuitCannotEnterPersistentQueue() {
         try {
             AgentLabQueue.enqueue(context, 5.0, Arrays.asList(
-                    new AgentDcLab.Resistor("vcc", "floating", 1000.0)));
+                    new AgentDcLab.Resistor("vcc", "0", 1000.0),
+                    new AgentDcLab.Resistor("floating_a", "floating_b", 1000.0)));
             fail("singular circuit must be rejected");
         } catch (IllegalArgumentException expected) {
             assertTrue(AgentLabQueue.summary(context).contains("انتظار: 0"));
