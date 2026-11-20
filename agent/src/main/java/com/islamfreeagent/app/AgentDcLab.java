@@ -68,7 +68,6 @@ final class AgentDcLab {
         int n = indexes.size();
         double[][] matrix = new double[n][n];
         double[] rhs = new double[n];
-        double gSource = 0.0;
         for (Resistor r : resistors) {
             double g = 1.0 / r.ohms;
             boolean aUnknown = indexes.containsKey(r.a);
@@ -85,7 +84,6 @@ final class AgentDcLab {
                 if (aUnknown) matrix[i][indexes.get(r.a)] -= g;
                 else if (r.a.equals(sourceNode)) rhs[i] += g * sourceVolts;
             }
-            if (r.a.equals(sourceNode) || r.b.equals(sourceNode)) gSource += g;
         }
 
         double[] solution = gaussianSolve(matrix, rhs);
@@ -113,7 +111,11 @@ final class AgentDcLab {
         return new Result(voltages, sourceCurrent, maxResidual);
     }
 
-    private static boolean isFinite(double value) {\n        return !Double.isNaN(value) && !Double.isInfinite(value);\n    }\n\n    private static boolean touchesSource(List<Resistor> resistors, String source) {
+    private static boolean isFinite(double value) {
+        return !Double.isNaN(value) && !Double.isInfinite(value);
+    }
+
+    private static boolean touchesSource(List<Resistor> resistors, String source) {
         for (Resistor r : resistors) if (r.a.equals(source) || r.b.equals(source)) return true;
         return false;
     }
