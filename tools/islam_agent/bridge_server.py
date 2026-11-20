@@ -136,8 +136,17 @@ class BridgeApplication:
             return {"status": "proposal_created", "proposal": self._public_proposal(record)}
 
     @staticmethod
-    def _public_proposal(record: dict) -> dict:
+    def _proposal_id(record: dict) -> str:
+        canonical = json.dumps(
+            {"task_id": record["task"]["id"], "proposal": record["proposal"]},
+            ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()[:16]
+
+    @classmethod
+    def _public_proposal(cls, record: dict) -> dict:
         return {
+            "proposal_id": cls._proposal_id(record),
             "task": record["task"],
             "model": record["model"],
             "proposal": record["proposal"],
@@ -161,10 +170,7 @@ class BridgeApplication:
                 raise BridgeError(404, "no_pending_proposal", "لا يوجد اقتراح معلق")
             record = json.loads(self.proposal_path.read_text(encoding="utf-8"))
             task_id = record["task"]["id"]
-            digest = hashlib.sha256(json.dumps(
-                {"task_id": task_id, "proposal": record["proposal"]},
-                ensure_ascii=False, sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")).hexdigest()[:16]
+            digest = self._proposal_id(record)
             if proposal_id != digest:
                 raise BridgeError(409, "proposal_stale", "معرّف الاقتراح لا يطابق الخطة الحالية")
             if decision == "reject":
