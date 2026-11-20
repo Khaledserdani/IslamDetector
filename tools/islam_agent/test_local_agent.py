@@ -51,6 +51,9 @@ class LocalProposalAgentTests(unittest.TestCase):
         self.assertIn("circuit_components.py", SYSTEM_PROMPT)
         self.assertIn("export_kicad_schematic", SYSTEM_PROMPT)
         self.assertIn("kicad_schematic", SYSTEM_PROMPT)
+        self.assertIn("validate_kicad_schematic", SYSTEM_PROMPT)
+        self.assertIn("kicad_cli_validation", SYSTEM_PROMPT)
+        self.assertIn("تقرير ERC", SYSTEM_PROMPT)
         self.assertIn("Build-Ready", SYSTEM_PROMPT)
 
     def test_rejects_model_extra_fields(self):
