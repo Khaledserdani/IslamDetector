@@ -69,7 +69,7 @@ class SafeToolRunnerTests(unittest.TestCase):
         self.assertEqual(kwargs["timeout"], 120)
         self.assertEqual(command[1:4], ["-m", "unittest", "-v"])
         self.assertEqual(tuple(command[4:]), AGENT_TEST_MODULES)
-        self.assertEqual(len(AGENT_TEST_MODULES), 11)
+        self.assertEqual(len(AGENT_TEST_MODULES), 12)
         self.assertIn("test_agent_cycle", AGENT_TEST_MODULES)
         self.assertIn("test_orchestrator", AGENT_TEST_MODULES)
         self.assertIn("test_review_pending", AGENT_TEST_MODULES)
