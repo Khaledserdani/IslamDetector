@@ -115,4 +115,5 @@ jobs:
             test_work_schedule \
             test_lab_manager \
             test_lab_catalog \
-            test_transient_circuit
+            test_transient_circuit \
+            test_ac_network
