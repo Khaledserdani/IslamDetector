@@ -23,7 +23,8 @@ class MonoSpiralGeometryTests(unittest.TestCase):
             arc_step_deg=1.0, outer_radius_m=0.16)
         self.assertEqual(report["turns"], 5)
         self.assertTrue(report["path_is_open"])
-        self.assertAlmostEqual(path_length_m(path), report["centerline_length_m"], delta=1e-10)\n        self.assertGreater(path_length_m(path), sum(report["turn_lengths_m"]))
+        self.assertAlmostEqual(path_length_m(path), report["centerline_length_m"], delta=1e-10)
+        self.assertGreater(path_length_m(path), sum(report["turn_lengths_m"]))
         self.assertEqual(path.shape[1], 3)
         self.assertGreater(report["path_vertices"], 5 * 100)
 
@@ -36,8 +37,32 @@ class MonoSpiralGeometryTests(unittest.TestCase):
             outer_height_m=0.32, outer_corner_radius_m=0.025)
         self.assertEqual(len(report["per_turn"]), 6)
         self.assertAlmostEqual(report["per_turn"][1]["width_m"], 0.312)
-        self.assertAlmostEqual(report["per_turn"][1]["corner_radius_m"], 0.025)\n        self.assertAlmostEqual(path_length_m(path), report["centerline_length_m"], delta=1e-10)\n        self.assertGreater(report["centerline_length_m"], 6.0)
+        self.assertAlmostEqual(report["per_turn"][1]["corner_radius_m"], 0.021)
+        self.assertAlmostEqual(path_length_m(path), report["centerline_length_m"], delta=1e-10)
+        self.assertGreater(report["centerline_length_m"], 6.0)
         self.assertTrue(np.isfinite(path).all())
+
+
+    def test_rounded_square_arc_discretization_converges(self):
+        w, h, r = 0.30, 0.28, 0.04
+        exact = 2 * (w + h - 4 * r) + 2 * math.pi * r
+        errors = []
+        for step in (2.0, 1.0, 0.5, 0.25):
+            path = rounded_rectangle_loop(w, h, r, arc_step_deg=step)
+            errors.append(abs(path_length_m(path) - exact))
+        self.assertGreater(errors[0], errors[1])
+        self.assertGreater(errors[1], errors[2])
+        self.assertGreater(errors[2], errors[3])
+        self.assertLess(errors[-1], 2e-7)
+
+    def test_rounded_square_rejects_negative_inward_corner_radius(self):
+        with self.assertRaises(ValueError):
+            build_spiral(
+                "rounded-square", turns=8, pitch_m=0.004,
+                insulation_outer_diameter_m=0.001,
+                min_surface_clearance_m=0.002,
+                arc_step_deg=1.0, outer_width_m=0.32,
+                outer_height_m=0.32, outer_corner_radius_m=0.025)
 
     def test_rejects_insufficient_turn_clearance(self):
         with self.assertRaises(ValueError):
