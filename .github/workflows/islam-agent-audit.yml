@@ -54,7 +54,7 @@ jobs:
 
   android-agent:
     name: Build and test ISLAM FREE AGENT APK
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout repository
