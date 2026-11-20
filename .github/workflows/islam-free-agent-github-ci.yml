@@ -113,4 +113,6 @@ jobs:
             test_bridge_server \
             test_safe_writer \
             test_work_schedule \
-            test_lab_manager
+            test_lab_manager \
+            test_lab_catalog \
+            test_transient_circuit
