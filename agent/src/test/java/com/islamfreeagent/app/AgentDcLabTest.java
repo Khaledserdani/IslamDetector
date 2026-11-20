@@ -26,7 +26,8 @@ public class AgentDcLabTest {
         try {
             AgentDcLab.solve("0", "vcc", 5.0, Arrays.asList(
                     new AgentDcLab.Resistor("vcc", "a", 1000.0),
-                    new AgentDcLab.Resistor("b", "0", 1000.0)));
+                    new AgentDcLab.Resistor("b", "0", 1000.0),
+                    new AgentDcLab.Resistor("c", "d", 1000.0)));
             fail("floating network must fail");
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().contains("singular"));
