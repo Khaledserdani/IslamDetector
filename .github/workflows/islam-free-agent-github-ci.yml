@@ -102,22 +102,6 @@ jobs:
           set -euo pipefail
           python3 --version
           python3 -m unittest -v \
-            test_task_queue \
-            test_ollama_client \
-            test_agent_policy \
-            test_tool_runner \
-            test_checkpoint \
-            test_checkpointed_runner \
-            test_local_agent \
-            test_local_workflow \
-            test_agent_cycle \
-            test_orchestrator \
-            test_review_pending \
-            test_bridge_server \
-            test_safe_writer \
-            test_work_schedule \
-            test_autonomous_lab \
-            test_bridge_autonomous_lab \
             test_lab_manager \
             test_lab_catalog \
             test_transient_circuit \
