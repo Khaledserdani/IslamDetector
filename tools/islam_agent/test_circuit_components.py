@@ -70,7 +70,7 @@ class CircuitComponentsTests(unittest.TestCase):
             "pins": {"1": "ANODE", "2": "CATHODE"},
             "pin_numbers": {"1": "1", "2": "2"},
         }
-        with self.assertRaisesRegex(CircuitSchemaError, "verified model_id"):
+        with self.assertRaisesRegex(CircuitSchemaError, "requires a model_id"):
             validate_circuit_v2(base_spec([part]))
 
     def test_rejects_pin_count_or_number_mismatch(self):
