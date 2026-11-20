@@ -1,0 +1,53 @@
+name: Build and deploy ISLAM LAB
+on:
+  push:
+    branches:
+      - lab/islam-spice-platform-foundation
+    paths:
+      - "lab/web/**"
+      - ".github/workflows/islam-lab-pages.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: islam-lab-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify GitHub Pages configuration
+        uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        working-directory: lab/web
+        run: npm install --no-audit --no-fund
+      - name: Validate application JavaScript
+        working-directory: lab/web
+        run: node --check app.js && node --check simulation.worker.js
+      - name: Build local application bundle
+        working-directory: lab/web
+        run: npm run build
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site
+          cp -R dist/. _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

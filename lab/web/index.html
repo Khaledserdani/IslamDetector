@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="description" content="مختبر إسلام للدارات الإلكترونية">
+<link rel="manifest" href="./manifest.webmanifest"><title>ISLAM LAB</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121e30;--line:#26364c;--muted:#9fb0c5;--text:#edf4ff;--accent:#53c7a5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,Arial,sans-serif}
+header{padding:18px 16px;background:#101b2b;border-bottom:1px solid var(--line)}h1{margin:0;font-size:23px}header p{margin:6px 0 0;color:var(--muted)}
+main{max-width:1000px;margin:auto;padding:14px;display:grid;gap:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+h2{font-size:17px;margin:0 0 10px}.status{color:var(--accent);font-size:13px}
+textarea{width:100%;min-height:230px;resize:vertical;background:#08111e;color:#d9f3e9;border:1px solid var(--line);border-radius:9px;padding:12px;direction:ltr;text-align:left;font:13px ui-monospace,monospace}
+button{border:0;border-radius:9px;padding:11px 15px;background:var(--accent);color:#06251d;font-weight:700;margin:5px 4px 0 0}
+button.secondary{background:#26364c;color:var(--text)}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#c9d8ea;direction:ltr;text-align:left}
+.error{color:#ff9b9b}small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.tag{display:inline-block;padding:4px 8px;border-radius:20px;background:#183c37;color:#9ef0d4;font-size:12px}
+</style></head>
+<body><header><h1>ISLAM LAB</h1><p>مختبر الدارات الإلكترونية — نسخة تأسيسية محلية</p></header>
+<main>
+<section class="panel"><span class="tag">مجاني • يعمل محلياً</span><h2 style="margin-top:10px">مساحة العمل</h2>
+<p>هذه النسخة هي واجهة تأسيسية لحفظ ملفات التجارب وفتحها. محرك ngspice WASM مضمّن في نسخة المختبر ويجري التحقق من تشغيله محلياً؛ لا تُعتمد النتائج هندسياً قبل اجتياز الاختبارات المرجعية.</p>
+<div class="grid"><div><b>المشروع</b><p class="muted">ISLAM 2 — Mono Spiral PI</p></div><div><b>حالة المحرك</b><p class="status">قيد الدمج والاختبار</p></div><div><b>الاتصال الخارجي</b><p class="muted">غير مطلوب للتشغيل المحلي</p></div></div></section>
+<section class="panel"><h2>ملف تجربة SPICE</h2><p class="muted">اكتب أو الصق netlist واحفظه محلياً بصيغة .cir. تشغيله سيُفعّل بعد دمج محرك ngspice WASM.</p>
+<textarea id="netlist" spellcheck="false">* ISLAM LAB - sample RLC netlist
+V1 in 0 PULSE(0 12 0 1n 1n 50u 1m)
+R1 in coil 1.5
+L1 coil 0 180u
+.tran 0.2u 100u
+.end</textarea>
+<button id="run">تشغيل محاكاة SPICE</button><button id="save">حفظ ملف .cir</button><button class="secondary" id="export">تصدير مشروع JSON</button><button class="secondary" id="validate">فحص بنية الملف</button><button class="secondary" id="saveDraft">حفظ المسودة محلياً</button><div id="validation" aria-live="polite"></div><p id="simStatus" class="muted" aria-live="polite">محرك SPICE لم يُختبر بعد في هذا المتصفح.</p><div id="simResults"></div><canvas id="plot" width="900" height="260" style="width:100%;max-width:100%;background:#08111e;border-radius:9px;display:none"></canvas><p id="message" class="status" aria-live="polite"></p></section>
+<section class="panel"><h2>ملفات المختبر</h2><p class="muted">يمكنك الاحتفاظ بملف المشروع ونتائج CSV وnetlist على جهازك. لا تُرسل البيانات إلى خادم.</p><input id="open" type="file" accept=".cir,.txt,.json" /></section>
+<section class="panel"><h2>خطة دمج المحرك</h2><ol><li>دمج ngspice WebAssembly بترخيص متوافق.</li><li>تشغيل المحرك داخل Web Worker.</li><li>قراءة نتائج التحليل وعرض الموجات.</li><li>إضافة واجهة MCP اختيارية بعد تجهيز الأمان والمصادقة.</li></ol></section>
+<footer class="muted">ISLAM LAB • Prototype • لا يمثل نتائج قياس عتادي</footer>
+</main><script type="module" src="./app.js"></script></body></html>

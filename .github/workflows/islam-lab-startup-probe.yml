@@ -1,0 +1,18 @@
+name: ISLAM LAB startup probe
+on:
+  push:
+    branches:
+      - lab/islam-spice-platform-foundation
+    paths:
+      - ".github/workflows/islam-lab-startup-probe.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm GitHub-hosted runner starts
+        run: |
+          echo "ISLAM LAB startup probe: runner started"
+          echo "UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
