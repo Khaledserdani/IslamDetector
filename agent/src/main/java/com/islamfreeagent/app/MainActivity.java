@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
         buildScreen();
         loadSavedBridgeSettings();
         loadSavedGitHubSettings();
+        loadSavedApprovedUpload();
         renderTasks();
     }
 
@@ -367,6 +368,7 @@ public class MainActivity extends Activity {
             if (!hasWrites) return "اكتملت جميع الخطوات والاختبارات بنجاح.";
             lastApprovedProposal = wrapper;
             lastUploadStepIndex = 0;
+            persistPendingUpload();
             return uploadApprovedFiles(wrapper);
         });
     }
@@ -389,11 +391,37 @@ public class MainActivity extends Activity {
                 uploaded++;
             }
             lastUploadStepIndex = i + 1;
+            persistPendingUpload();
         }
         lastApprovedProposal = null;
         lastUploadStepIndex = 0;
+        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().apply();
         return "نجح التنفيذ والاختبار، ورُفعت " + uploaded
                 + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج.";
+    }
+
+    private void persistPendingUpload() {
+        if (lastApprovedProposal == null) return;
+        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit()
+                .putString("proposal", lastApprovedProposal.toString())
+                .putInt("next_step", lastUploadStepIndex)
+                .apply();
+    }
+
+    private void loadSavedApprovedUpload() {
+        try {
+            android.content.SharedPreferences prefs =
+                    getSharedPreferences("approved_upload_retry", MODE_PRIVATE);
+            String saved = prefs.getString("proposal", null);
+            if (saved != null && !saved.isEmpty()) {
+                lastApprovedProposal = new JSONObject(saved);
+                lastUploadStepIndex = Math.max(0, prefs.getInt("next_step", 0));
+            }
+        } catch (Exception error) {
+            lastApprovedProposal = null;
+            lastUploadStepIndex = 0;
+            getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().apply();
+        }
     }
 
     private void retryLastApprovedUpload() {
