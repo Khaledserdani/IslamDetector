@@ -78,8 +78,10 @@ def validate_circuit_v2(spec):
     if not isinstance(parts,list) or not 1<=len(parts)<=256:
         raise CircuitSchemaError("component count must be between 1 and 256")
     refs, nodes, normalized = set(), {ground}, []
+    net_roles = {}
+    warnings = []
     for part in parts:
-        if not isinstance(part,dict) or set(part)-{"ref","type","pins","pin_numbers","value","unit","rating","model_id","package","manufacturer_part"}:
+        if not isinstance(part,dict) or set(part)-{"ref","type","pins","pin_numbers","value","unit","rating","model_id","package","manufacturer_part","pinout_source","model_source"}:
             raise CircuitSchemaError("component fields are invalid")
         kind=part.get("type")
         if kind not in COMPONENT_LIBRARY:
@@ -106,6 +108,8 @@ def validate_circuit_v2(spec):
                 raise CircuitSchemaError(f"invalid package pin number for {ref} logical pin {pin}")
             physical.append(physical_number)
             nodes.add(node)
+            role = next(p[2] for p in definition["pins"] if p[0] == pin)
+            net_roles.setdefault(node, []).append((ref, pin, role))
         if len(set(physical))!=len(physical):
             raise CircuitSchemaError(f"{ref} maps multiple logical pins to one physical package pin")
         if len(nodes)>512:
@@ -131,7 +135,14 @@ def validate_circuit_v2(spec):
             raise CircuitSchemaError(f"{ref} does not accept this rating field")
         model_id=part.get("model_id")
         if definition["model_required"] and (not isinstance(model_id,str) or not model_id.strip() or len(model_id)>160):
-            raise CircuitSchemaError(f"{ref} requires a verified model_id before simulation")
+            raise CircuitSchemaError(f"{ref} requires a model_id before simulation")
+        if definition["model_required"]:
+            pinout_source=part.get("pinout_source")
+            if not isinstance(pinout_source,str) or not pinout_source.strip() or len(pinout_source)>500:
+                raise CircuitSchemaError(f"{ref} requires a pinout_source identifying the exact datasheet and package revision")
+        model_source=part.get("model_source")
+        if model_source is not None and (not isinstance(model_source,str) or not model_source.strip() or len(model_source)>500):
+            raise CircuitSchemaError(f"{ref} model_source must identify a source within 500 characters")
         if not definition["model_required"] and model_id is not None and (not isinstance(model_id,str) or len(model_id)>160):
             raise CircuitSchemaError(f"{ref} model_id is invalid")
         for optional in ("package","manufacturer_part"):
@@ -139,6 +150,22 @@ def validate_circuit_v2(spec):
             if value is not None and (not isinstance(value,str) or not value.strip() or len(value)>160):
                 raise CircuitSchemaError(f"{ref} {optional} must be non-empty text")
         normalized.append(dict(part))
+    for node, roles in net_roles.items():
+        outputs = [(ref, pin) for ref, pin, role in roles if role == "output"]
+        if len(outputs) > 1:
+            raise CircuitSchemaError(f"net {node} has multiple push-pull output drivers: {outputs}")
+        if all(role in {"input", "power_in"} for _, _, role in roles):
+            warnings.append(f"net {node} may be floating; it contains only input/power-input pins")
+        if len(roles) == 1 and roles[0][2] == "passive":
+            warnings.append(f"net {node} has a single passive pin and may be an unconnected stub")
+    if ground not in net_roles:
+        warnings.append(f"reference ground node {ground} is not connected to any component pin")
+    model_refs = [p["ref"] for p in normalized if COMPONENT_LIBRARY[p["type"]]["model_required"]]
+    missing_bom_identity = [p["ref"] for p in normalized if not p.get("package") or not p.get("manufacturer_part")]
     return {"schema_version":2,"name":name.strip(),"ground":ground,"components":normalized,
             "nodes":sorted(nodes),"component_count":len(normalized),
-            "simulation_ready":all(not COMPONENT_LIBRARY[p["type"]]["model_required"] or bool(p.get("model_id")) for p in normalized)}
+            "electrical_warnings":warnings,
+            "simulation_ready":len(model_refs)==0,
+            "models_requiring_independent_verification":model_refs,
+            "missing_bom_identity":missing_bom_identity,
+            "build_ready":False}
