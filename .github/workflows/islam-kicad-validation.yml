@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - feature/islam-circuit-designer
-      - feature/islam-circuit-designer-pro-pro
+      - feature/islam-circuit-designer-pro
       - feature/islam-kicad-erc
     paths:
       - 'tools/islam_agent/**'
@@ -12,6 +12,7 @@ on:
   pull_request:
     branches:
       - feature/islam-circuit-designer
+      - feature/islam-circuit-designer-pro
     paths:
       - 'tools/islam_agent/**'
       - '.github/workflows/islam-kicad-validation.yml'
