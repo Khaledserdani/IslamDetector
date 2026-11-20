@@ -171,23 +171,26 @@ def self_inductance_h(
     This is a dedicated self-cell integral, not an epsilon-regularized kernel.
     """
     nodes, weights = _gauss_legendre(order)
-    theta_rule = _interval_rule(0.0, 2.0 * math.pi, nodes, weights)
     dr = cell.r1_m - cell.r0_m
     dz = cell.z1_m - cell.z0_m
     total = 0.0
-
-    for theta, wtheta in theta_rule:
+    # The limiting radius changes branch at atan(dz/dr). Split each
+    # quadrant there so Gauss-Legendre never spans that derivative kink.
+    switch = math.atan2(dz, dr)
+    angular_rules = (
+        (0.0, switch), (switch, 0.5 * math.pi),
+    )
+    for theta_lo, theta_hi in angular_rules:
+      for theta, wtheta in _interval_rule(theta_lo, theta_hi, nodes, weights):
         ct, st = math.cos(theta), math.sin(theta)
         abs_ct, abs_st = abs(ct), abs(st)
-        limits = []
-        if abs_ct > 1.0e-14:
-            limits.append(dr / abs_ct)
-        if abs_st > 1.0e-14:
-            limits.append(dz / abs_st)
-        rho_max = min(limits)
+        rho_max = min(dr / abs_ct if abs_ct > 1.0e-14 else math.inf,
+                      dz / abs_st if abs_st > 1.0e-14 else math.inf)
+        # rho = rho_max*t^2 smooths the rho*log(rho) endpoint behaviour.
         for rho_unit, wrho in zip(nodes, weights):
-            rho = 0.5 * rho_max * (rho_unit + 1.0)
-            wr = 0.5 * rho_max * wrho
+            t = 0.5 * (rho_unit + 1.0)
+            rho = rho_max * t * t
+            wr = rho_max * t * wrho
             u, v = rho * ct, rho * st
             r_lo = max(cell.r0_m, cell.r0_m - u)
             r_hi = min(cell.r1_m, cell.r1_m - u)
@@ -204,7 +207,7 @@ def self_inductance_h(
                         cell.area_m2, cell.area_m2,
                     )
                     total += (
-                        wtheta * wr * wr_base * wz_base * rho * density
+                        4.0 * wtheta * wr * wr_base * wz_base * rho * density
                     )
     return total
 
