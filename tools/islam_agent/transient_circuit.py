@@ -22,8 +22,8 @@ def validate_rlc(spec):
     if not isinstance(spec, dict):
         raise RLCInputError("RLC input must be an object")
     mode = spec.get("mode")
-    common = {"mode", "resistance_ohm", "inductance_h", "capacitance_f", "source_voltage_v"}
-    required = common | ({"duration_s", "time_step_s", "initial_current_a", "initial_capacitor_voltage_v"} if mode == "transient" else {"frequency_hz"} if mode == "ac" else set())
+    common = {"mode", "resistance_ohm", "inductance_h", "capacitance_f"}
+    required = common | ({"source_step_voltage_v", "duration_s", "time_step_s", "initial_current_a", "initial_capacitor_voltage_v"} if mode == "transient" else {"source_voltage_rms_v", "frequency_hz"} if mode == "ac" else set())
     if not required or set(spec) != required:
         raise RLCInputError("RLC fields do not match the selected mode")
     def number(key, low, high, *, inclusive=True):
@@ -36,24 +36,28 @@ def validate_rlc(spec):
     r = number("resistance_ohm", 0.0, MAX_COMPONENT)
     l = number("inductance_h", 0.0, MAX_COMPONENT, inclusive=False)
     c = number("capacitance_f", 0.0, MAX_COMPONENT, inclusive=False)
-    v = number("source_voltage_v", -MAX_VOLTAGE, MAX_VOLTAGE)
     if mode == "transient":
+        v = number("source_step_voltage_v", -MAX_VOLTAGE, MAX_VOLTAGE)
         duration = number("duration_s", 1e-7, MAX_DURATION_S, inclusive=False)
         dt = number("time_step_s", 1e-9, MAX_STEP_S, inclusive=False)
         if math.ceil(duration / dt) + 1 > MAX_SAMPLES:
             raise RLCInputError("transient sample count exceeds the 100000 point limit")
+        stiffness = max(r / l, 1.0 / math.sqrt(l * c))
+        if dt * stiffness > 0.5:
+            raise RLCInputError("time step is too coarse for the circuit time constants; reduce time_step_s")
         i0 = number("initial_current_a", -1e4, 1e4)
         vc0 = number("initial_capacitor_voltage_v", -MAX_VOLTAGE, MAX_VOLTAGE)
         return mode, r, l, c, v, duration, dt, i0, vc0
+    voltage_rms = number("source_voltage_rms_v", -MAX_VOLTAGE, MAX_VOLTAGE)
     frequency = number("frequency_hz", 1e-6, 1e7, inclusive=False)
-    return mode, r, l, c, v, frequency
+    return mode, r, l, c, voltage_rms, frequency
 
 
 def simulate_series_rlc(spec):
     values = validate_rlc(spec)
     mode = values[0]
     if mode == "ac":
-        _, r, l, c, voltage, frequency = values
+        _, r, l, c, voltage_rms, frequency = values
         omega = 2.0 * math.pi * frequency
         x_l = omega * l
         x_c = 1.0 / (omega * c)
@@ -61,7 +65,7 @@ def simulate_series_rlc(spec):
         impedance = math.hypot(r, reactance)
         if impedance < 1e-15:
             raise RLCInputError("ideal zero-impedance resonance is unbounded; add realistic series resistance")
-        current = abs(voltage) / impedance
+        current = abs(voltage_rms) / impedance
         phase = -math.atan2(reactance, r)
         pf = (r / impedance) if impedance else 0.0
         return {
