@@ -76,7 +76,6 @@ final class GitHubClient {
     private static final String WRITE_BRANCH = "feature/islam-free-agent-safe-write";
     private static final java.util.Set<String> ALLOWED_WRITE_PATHS = new java.util.HashSet<>(
             java.util.Arrays.asList(
-                    "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
                     "tools/islam_agent/local_agent.py",
                     "tools/islam_agent/orchestrator.py",
                     "tools/islam_agent/agent_cycle.py",
