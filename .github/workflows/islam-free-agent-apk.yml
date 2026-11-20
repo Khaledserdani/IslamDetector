@@ -73,9 +73,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="islam-free-agent-v0.1.1-build-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk \
-            --title "ISLAM FREE AGENT v0.1.1 — build ${GITHUB_RUN_NUMBER}" \
-            --notes "Experimental debug APK v0.1.1. Package: com.islamfreeagent.app. Built only after unit tests and APK identity verification. The secure phone-to-agent bridge is not yet integrated."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
+          else
+            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk \
+              --title "ISLAM FREE AGENT v0.1.1 — build ${GITHUB_RUN_NUMBER}" \
+              --notes "Experimental debug APK v0.1.1. Package: com.islamfreeagent.app. Built only after unit tests and APK identity verification. The secure phone-to-agent bridge is not yet integrated."
+          fi
 
       - name: Build summary
         if: success()
