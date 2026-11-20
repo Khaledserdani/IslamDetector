@@ -244,9 +244,15 @@ public class MainActivity extends Activity {
     private void checkBridgeHealth() {
         runBridgeOperation("جارٍ فحص الكمبيوتر وOllama…", () -> {
             JSONObject health = bridgeClient(false).health();
+            JSONObject window = health.optJSONObject("work_window");
+            String windowText = window == null ? "غير محددة"
+                    : window.optString("start", "—") + "–" + window.optString("end", "—")
+                    + " (" + window.optString("timezone", "local") + ")";
             return "الجسر: " + health.optString("bridge")
                     + " • Ollama: " + health.optString("ollama")
                     + " • النموذج: " + health.optString("model")
+                    + " • نافذة العمل: " + windowText
+                    + " • المختبر التلقائي: " + health.optString("autonomous_lab_execution")
                     + " • المتابعة الدورية: " + health.optString("continuous_worker")
                     + " • آخر حالة: " + health.optString("worker_last_status")
                     + " • انتظار رفع GitHub: " + health.optBoolean("github_upload_pending", false);
