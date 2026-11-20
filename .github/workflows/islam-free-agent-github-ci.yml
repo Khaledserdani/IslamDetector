@@ -8,6 +8,7 @@ on:
       - feature/islam-free-agent-schedule-labs
       - feature/islam-circuit-designer
       - feature/islam-circuit-designer-pro
+      - feature/islam-kicad-erc
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -19,6 +20,7 @@ on:
     branches:
       - feature/islam-free-agent-foundation
       - feature/islam-free-agent-schedule-labs
+      - feature/islam-circuit-designer-pro
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
