@@ -16,6 +16,7 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/orchestrator.py",
     "tools/islam_agent/review_pending.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
+    *ALLOWED_WRITE_TARGETS,
 }
 # Deliberately exact paths. The agent cannot write credentials, workflows,
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
