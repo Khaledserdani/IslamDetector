@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_cycle import select_next_task
-from agent_policy import PolicyViolation, validate_proposal
+from agent_policy import ALLOWED_INSPECT_TARGETS, PolicyViolation, validate_proposal
 from ollama_client import LocalOllamaClient
 from local_agent import LocalProposalAgent
 from local_workflow import LocalAgentWorkflow
@@ -28,6 +28,41 @@ DEFAULT_MEMORY = ROOT / "docs" / "agent" / "agent_memory.json"
 DEFAULT_PROPOSAL = ROOT / "artifacts" / "agent" / "pending_proposal.json"
 MAX_MODEL_NAME_CHARS = 128
 MAX_PENDING_RECORD_BYTES = 64 * 1024
+CONTEXT_TARGETS = (
+    "tools/islam_agent/agent_policy.py",
+    "tools/islam_agent/tool_runner.py",
+    "tools/islam_agent/checkpointed_runner.py",
+    "tools/islam_agent/local_agent.py",
+    "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
+    "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
+    "docs/agent/ISLAM_FREE_AGENT_EXECUTION_AR.md",
+    "docs/agent/agent_worklog.md",
+)
+
+
+def _bounded_project_context(project_root: Path) -> list[str]:
+    """Read a small, fixed set of project files as untrusted model context."""
+    snippets = []
+    total = 0
+    root = Path(project_root).resolve()
+    for relative in CONTEXT_TARGETS:
+        if relative not in ALLOWED_INSPECT_TARGETS:
+            continue
+        path = root / relative
+        try:
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(root)
+            if path.is_symlink() or not resolved.is_file() or resolved.stat().st_size > 64_000:
+                continue
+            body = resolved.read_text(encoding="utf-8")[:1200]
+        except (OSError, UnicodeError, ValueError):
+            continue
+        snippet = f"FILE: {relative}\n{body}"
+        if total + len(snippet) > 11_500 or len(snippets) >= 8:
+            break
+        snippets.append(snippet)
+        total += len(snippet)
+    return snippets
 
 
 class OrchestrationError(RuntimeError):
@@ -96,6 +131,9 @@ class LocalAgentOrchestrator:
             item for item in memory["next_tasks"] if item["id"] == selected["id"]
         )
 
+        if context is None:
+            project_root = Path(memory_path).resolve().parent.parent.parent
+            context = _bounded_project_context(project_root)
         pending = self.workflow.propose(task, context)
         required_result_fields = {
             "model", "proposal", "awaiting_human_approval", "executed"
