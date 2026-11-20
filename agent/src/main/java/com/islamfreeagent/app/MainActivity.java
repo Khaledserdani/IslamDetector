@@ -310,8 +310,14 @@ public class MainActivity extends Activity {
         if (steps != null) {
             for (int i = 0; i < steps.length(); i++) {
                 JSONObject step = steps.optJSONObject(i);
-                if (step != null) details.append("• ").append(step.optString("kind"))
-                        .append(": ").append(step.optString("target")).append("\n");
+                if (step != null) {
+                    details.append("• ").append(step.optString("kind"))
+                            .append(": ").append(step.optString("target")).append("\n");
+                    if ("write_file".equals(step.optString("kind"))) {
+                        details.append("المحتوى الكامل الذي سيُكتب (راجعه قبل الموافقة):\n")
+                                .append(step.optString("content")).append("\n--- نهاية الملف ---\n");
+                    }
+                }
             }
         }
         JSONArray claims = proposal.optJSONArray("claims_to_verify");
@@ -380,7 +386,7 @@ public class MainActivity extends Activity {
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
         github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
-        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. النسخة الحالية للقراءة والمتابعة فقط: الفروع وطلبات الدمج ونتائج Actions. لا تنشئ رمزاً بصلاحية كاملة.", 12, MUTED, false);
+        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. هذه اللوحة حالياً للقراءة والمتابعة؛ أما كتابة ملفات المشروع فتتم عبر محرك الكمبيوتر بعد مراجعتك وموافقتك الصريحة.", 12, MUTED, false);
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
