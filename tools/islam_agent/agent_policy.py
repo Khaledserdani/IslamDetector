@@ -6,7 +6,7 @@ allowlisted tools; model-supplied command strings are never accepted.
 from __future__ import annotations
 
 
-ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file"}
+ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file", "simulate_circuit"}
 # Deliberately exact paths. The agent cannot write credentials, workflows,
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
 ALLOWED_WRITE_TARGETS = {
@@ -79,7 +79,7 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("step kind is not allowlisted")
         if not isinstance(target, str):
             raise PolicyViolation("step target must be a string")
-        expected_keys = {"kind", "target", "content"} if kind == "write_file" else {"kind", "target"}
+        expected_keys = ({"kind", "target", "content"} if kind == "write_file" else {"kind", "target", "circuit"} if kind == "simulate_circuit" else {"kind", "target"})
         if set(step) != expected_keys:
             if kind == "write_file":
                 raise PolicyViolation("write_file steps must contain only kind, target, and content")
@@ -88,14 +88,23 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("inspect target is not allowlisted")
         if kind == "run_test" and target not in ALLOWED_TEST_TARGETS:
             raise PolicyViolation("test target is not allowlisted")
-        if kind == "write_file":
+        if kind == "simulate_circuit":
+            if target != "dc_resistive_network":
+                raise PolicyViolation("laboratory target is not allowlisted")
+            from lab_manager import validate_circuit, LabInputError
+            try:
+                validate_circuit(step["circuit"])
+            except (LabInputError, KeyError, TypeError):
+                raise PolicyViolation("circuit specification failed laboratory validation") from None
+            clean_steps.append({"kind": kind, "target": target, "circuit": step["circuit"]})
+        elif kind == "write_file":
             if target not in ALLOWED_WRITE_TARGETS:
                 raise PolicyViolation("write target is not allowlisted")
             content = step["content"]
             if not isinstance(content, str) or not content.strip() or len(content) > MAX_WRITE_CHARS:
                 raise PolicyViolation("write content must be non-empty text within the 12,000 character limit")
             clean_steps.append({"kind": kind, "target": target, "content": content})
-        else:
+        elif kind != "simulate_circuit":
             clean_steps.append({"kind": kind, "target": target})
 
     write_targets = [step["target"] for step in clean_steps if step["kind"] == "write_file"]
