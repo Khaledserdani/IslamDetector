@@ -111,6 +111,28 @@ public class MainActivity extends Activity {
         Button runDc = bridgeButton("تشغيل محاكاة DC على الهاتف");
         runDc.setOnClickListener(v -> runDcLabSimulation());
         dcLab.addView(runDc, bridgeButtonParams());
+        Button queueDc = bridgeButton("حفظ التجربة لتعمل ليلاً");
+        queueDc.setOnClickListener(v -> enqueueDcLab());
+        dcLab.addView(queueDc, bridgeButtonParams());
+        Button enableNight = bridgeButton("تفعيل الجدولة الليلية 20:00–06:00");
+        enableNight.setOnClickListener(v -> {
+            try {
+                AgentLabScheduler.enable(this);
+                dcResultText.setText("تم تفعيل الجدولة الدورية؛ التنفيذ داخل نافذة الجزائر الليلية فقط، وقد يؤخر Android وقت التشغيل.");
+            } catch (Exception error) {
+                dcResultText.setText("تعذر تفعيل الجدولة: " + error.getMessage());
+            }
+        });
+        dcLab.addView(enableNight, bridgeButtonParams());
+        Button disableNight = bridgeButton("إيقاف الجدولة الليلية");
+        disableNight.setOnClickListener(v -> {
+            AgentLabScheduler.disable(this);
+            dcResultText.setText("تم طلب إيقاف الجدولة الليلية.");
+        });
+        dcLab.addView(disableNight, bridgeButtonParams());
+        Button queueStatus = bridgeButton("تحديث حالة تجارب المختبر");
+        queueStatus.setOnClickListener(v -> dcResultText.setText(AgentLabQueue.summary(this)));
+        dcLab.addView(queueStatus, bridgeButtonParams());
         dcResultText = text("لم تُشغّل محاكاة بعد.", 13, MUTED, false);
         LinearLayout.LayoutParams dr = matchWrap(); dr.topMargin = dp(9);
         dcLab.addView(dcResultText, dr);
@@ -183,6 +205,32 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
+    }
+
+    private java.util.ArrayList<AgentDcLab.Resistor> readDcResistors() {
+        java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
+        String raw = dcResistorsInput.getText().toString().trim();
+        if (raw.isEmpty()) throw new IllegalArgumentException("أدخل مقاومة واحدة على الأقل");
+        String[] rows = raw.split("[;\\n]+");
+        if (rows.length > 100) throw new IllegalArgumentException("الحد الأقصى 100 مقاومة في التجربة");
+        for (String row : rows) {
+            String[] fields = row.trim().split(",");
+            if (fields.length != 3) throw new IllegalArgumentException("صيغة كل مقاومة: عقدة,عقدة,أوم");
+            resistors.add(new AgentDcLab.Resistor(fields[0].trim(), fields[1].trim(),
+                    Double.parseDouble(fields[2].trim())));
+        }
+        return resistors;
+    }
+
+    private void enqueueDcLab() {
+        try {
+            double volts = Double.parseDouble(dcVoltageInput.getText().toString().trim());
+            String id = AgentLabQueue.enqueue(this, volts, readDcResistors());
+            dcResultText.setText("حُفظت التجربة في قائمة العمل الليلي. المعرّف: " + id
+                    + "\\n" + AgentLabQueue.summary(this));
+        } catch (Exception error) {
+            dcResultText.setText("تعذر حفظ التجربة: " + error.getMessage());
+        }
     }
 
     private void runDcLabSimulation() {
