@@ -84,7 +84,7 @@ class AgentPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PolicyViolation, "non-empty bounded string"):
             validate_proposal(proposal, "agent-003")
 
-    def test_android_source_write_requires_android_tests(self):
+    def test_android_ui_source_is_not_writable_by_agent(self):
         proposal = {
             "task_id": "agent-003",
             "summary_ar": "تعديل واجهة Android",
@@ -96,10 +96,8 @@ class AgentPolicyTests(unittest.TestCase):
             "needs_human_approval": True,
             "claims_to_verify": [],
         }
-        with self.assertRaisesRegex(PolicyViolation, "require android_unit_tests"):
+        with self.assertRaisesRegex(PolicyViolation, "write target is not allowlisted"):
             validate_proposal(proposal, "agent-003")
-        proposal["steps"].append({"kind": "run_test", "target": "android_unit_tests"})
-        self.assertEqual(len(validate_proposal(proposal, "agent-003")["steps"]), 2)
 
     def test_python_agent_write_requires_python_tests(self):
         proposal = {
