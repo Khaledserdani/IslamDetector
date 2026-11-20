@@ -28,8 +28,13 @@ class AnnularCell:
         values = (self.r_inner_m, self.r_outer_m, self.z_lower_m, self.z_upper_m)
         if not all(math.isfinite(value) for value in values):
             raise ValueError("cell bounds must be finite")
-        if self.r_inner_m <= 0.0 or self.r_outer_m <= self.r_inner_m:
-            raise ValueError("cell radii must satisfy 0 < inner < outer")
+        if self.r_inner_m < 0.0 or self.r_outer_m <= self.r_inner_m:
+            raise ValueError("cell radii must satisfy 0 <= inner < outer")
+        if self.r_inner_m == 0.0:
+            raise ValueError(
+                "axis-touching cells require an axis-regular current basis; "
+                "the thin-loop GMD kernel does not support r=0"
+            )
         if self.z_upper_m <= self.z_lower_m:
             raise ValueError("cell axial bounds must satisfy lower < upper")
 
