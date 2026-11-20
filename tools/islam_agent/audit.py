@@ -54,6 +54,8 @@ REQUIRED_FILES = (
     AGENT_DIR / "test_local_workflow.py",
     AGENT_DIR / "agent_cycle.py",
     AGENT_DIR / "test_agent_cycle.py",
+    AGENT_DIR / "orchestrator.py",
+    AGENT_DIR / "test_orchestrator.py",
 )
 
 
@@ -91,7 +93,7 @@ def load_memory() -> tuple[dict | None, str | None]:
 def run_tests() -> subprocess.CompletedProcess[str]:
     commands = (
         (SPIRAL_DIR, [sys.executable, "-m", "unittest", "-v", "test_mono_spiral_geometry", "test_mono_spiral_disk", "test_conductor_effects", "test_greenhouse_inductance", "test_rectangular_cross_section_gmd", "test_rectangular_segment_inductance", "test_rectangular_segment_general_mutual"]),
-        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent", "test_local_workflow", "test_agent_cycle"]),
+        (AGENT_DIR, [sys.executable, "-m", "unittest", "-v", "test_task_queue", "test_ollama_client", "test_agent_policy", "test_tool_runner", "test_checkpoint", "test_checkpointed_runner", "test_local_agent", "test_local_workflow", "test_agent_cycle", "test_orchestrator"]),
     )
     outputs = []
     exit_code = 0
