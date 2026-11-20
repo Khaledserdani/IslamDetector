@@ -87,8 +87,12 @@ final class GitHubClient {
             )
     );
 
+    static boolean isAllowedWritePath(String path) {
+        return path != null && ALLOWED_WRITE_PATHS.contains(path);
+    }
+
     String commitApprovedFile(String path, String content, String summary) throws Exception {
-        if (!ALLOWED_WRITE_PATHS.contains(path)) {
+        if (!isAllowedWritePath(path)) {
             throw new SecurityException("مسار الملف غير مسموح للرفع");
         }
         if (content == null || content.trim().isEmpty() || content.length() > 12000) {
