@@ -72,10 +72,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="islam-free-agent-v0.1.0-build-${GITHUB_RUN_NUMBER}"
+          TAG="islam-free-agent-v0.1.1-build-${GITHUB_RUN_NUMBER}"
           gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk \
-            --title "ISLAM FREE AGENT v0.1.0 — build ${GITHUB_RUN_NUMBER}" \
-            --notes "Experimental debug APK. Package: com.islamfreeagent.app. Built only after unit tests and APK identity verification. The secure phone-to-agent bridge is not yet integrated."
+            --title "ISLAM FREE AGENT v0.1.1 — build ${GITHUB_RUN_NUMBER}" \
+            --notes "Experimental debug APK v0.1.1. Package: com.islamfreeagent.app. Built only after unit tests and APK identity verification. The secure phone-to-agent bridge is not yet integrated."
 
       - name: Build summary
         if: success()
@@ -90,6 +90,6 @@ jobs:
             cat agent-apk.sha256
             echo "```"
             echo "- Build type: debug (installable test build)"
-            echo "- Direct download: https://github.com/Khaledserdani/IslamDetector/releases/download/islam-free-agent-v0.1.0-build-${GITHUB_RUN_NUMBER}/agent-debug.apk"
+            echo "- Direct download: https://github.com/Khaledserdani/IslamDetector/releases/download/islam-free-agent-v0.1.1-build-${GITHUB_RUN_NUMBER}/agent-debug.apk"
             echo "- Scope: local task manager; secure phone-to-agent bridge is not yet integrated."
           } >> "$GITHUB_STEP_SUMMARY"
