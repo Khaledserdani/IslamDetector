@@ -12,22 +12,31 @@ from agent_cycle import run_cycle, select_next_task
 class AgentCycleTests(unittest.TestCase):
     def test_resumes_in_progress_before_pending(self):
         memory = {"next_tasks": [
-            {"id": "p1", "title": "Pending", "status": "pending"},
-            {"id": "i1", "title": "Resume", "status": "in_progress"},
+            {"id": "e1", "title": "Engineering", "status": "in_progress", "scope": "engineering"},
+            {"id": "p1", "title": "Pending", "status": "pending", "scope": "manager"},
+            {"id": "i1", "title": "Resume", "status": "in_progress", "scope": "manager"},
         ]}
         self.assertEqual(select_next_task(memory)["id"], "i1")
 
     def test_selects_first_pending_when_no_in_progress(self):
         memory = {"next_tasks": [
-            {"id": "b1", "title": "Blocked", "status": "blocked"},
-            {"id": "p1", "title": "Pending", "status": "pending"},
+            {"id": "e1", "title": "Engineering", "status": "in_progress", "scope": "engineering"},
+            {"id": "b1", "title": "Blocked", "status": "blocked", "scope": "manager"},
+            {"id": "p1", "title": "Pending", "status": "pending", "scope": "manager"},
+        ]}
+        self.assertEqual(select_next_task(memory)["id"], "p1")
+
+    def test_ignores_engineering_tasks_even_when_they_are_in_progress(self):
+        memory = {"next_tasks": [
+            {"id": "e1", "title": "Engineering", "status": "in_progress", "scope": "engineering"},
+            {"id": "p1", "title": "Manager pending", "status": "pending", "scope": "manager"},
         ]}
         self.assertEqual(select_next_task(memory)["id"], "p1")
 
     def test_returns_none_when_queue_has_no_runnable_task(self):
         self.assertIsNone(select_next_task({"next_tasks": [
-            {"id": "b1", "status": "blocked"},
-            {"id": "c1", "status": "completed"},
+            {"id": "e1", "status": "in_progress", "scope": "engineering"},
+            {"id": "c1", "status": "completed", "scope": "manager"},
         ]}))
 
     def test_cycle_runs_audit_and_appends_durable_event(self):
@@ -40,7 +49,7 @@ class AgentCycleTests(unittest.TestCase):
                 "project": "test",
                 "updated_at": "2026-11-20",
                 "known_constraints": [],
-                "next_tasks": [{"id": "t1", "title": "Task", "status": "pending", "acceptance": "pass"}],
+                "next_tasks": [{"id": "t1", "title": "Task", "status": "pending", "acceptance": "pass", "scope": "manager"}],
             }), encoding="utf-8")
             runner = Mock(return_value=SimpleNamespace(returncode=0, stdout="audit ok"))
             log = root / "cycle.jsonl"
@@ -50,6 +59,9 @@ class AgentCycleTests(unittest.TestCase):
             self.assertEqual(event["audit_status"], "passed")
             self.assertEqual(event["task"]["id"], "t1")
             runner.assert_called_once()
+            command = runner.call_args.args[0]
+            self.assertTrue(command[1].endswith("manager_audit.py"))
+            self.assertFalse(command[1].endswith("/audit.py"))
             saved = json.loads(log.read_text(encoding="utf-8").strip())
             self.assertEqual(saved["exit_code"], 0)
             self.assertEqual(saved["task"]["id"], "t1")
@@ -65,7 +77,7 @@ class AgentCycleTests(unittest.TestCase):
                 "project": "test",
                 "updated_at": "2026-11-20",
                 "known_constraints": [],
-                "next_tasks": [{"id": "t1", "title": "Task", "status": "in_progress", "acceptance": "pass"}],
+                "next_tasks": [{"id": "t1", "title": "Task", "status": "in_progress", "acceptance": "pass", "scope": "manager"}],
             }
             memory_file = memory_dir / "agent_memory.json"
             original = json.dumps(memory)
