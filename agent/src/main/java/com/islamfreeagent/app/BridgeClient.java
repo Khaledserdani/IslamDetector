@@ -1,5 +1,6 @@
 package com.islamfreeagent.app;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -118,6 +119,13 @@ final class BridgeClient {
         body.put("decision", decision);
         body.put("confirmation_text", confirmationText == null ? "" : confirmationText);
         return request("POST", "/v1/proposals/" + proposalId + "/decision", body, true);
+    }
+
+    JSONObject completeUpload(String proposalId, JSONArray files) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("proposal_id", proposalId);
+        body.put("files", files);
+        return request("POST", "/v1/uploads/complete", body, true);
     }
 
     private JSONObject request(String method, String path, JSONObject body, boolean authenticated)
