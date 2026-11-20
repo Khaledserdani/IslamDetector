@@ -1,5 +1,7 @@
 import unittest
 from lab_manager import LabInputError, simulate_dc_resistive_network
+from agent_policy import validate_proposal
+from tool_runner import SafeToolRunner
 
 
 class CircuitLabTests(unittest.TestCase):
@@ -15,6 +17,24 @@ class CircuitLabTests(unittest.TestCase):
         self.assertAlmostEqual(result["node_voltages_v"]["mid"], 5.0, places=8)
         self.assertTrue(result["verified_numerically"])
         self.assertLess(result["max_kcl_residual_a"], 1e-8)
+
+    def test_agent_can_run_only_the_validated_circuit_lab(self):
+        proposal = {
+            "task_id": "lab-1", "summary_ar": "اختبار مختبر الدارة",
+            "steps": [{
+                "kind": "simulate_circuit", "target": "dc_resistive_network",
+                "circuit": {
+                    "ground": "0",
+                    "resistors": [{"a": "v", "b": "0", "ohms": 1000}],
+                    "voltage_sources": [{"positive": "v", "negative": "0", "volts": 5}],
+                },
+            }],
+            "needs_human_approval": True, "claims_to_verify": [],
+        }
+        validate_proposal(proposal, "lab-1")
+        result = SafeToolRunner().execute_plan(proposal, "lab-1", human_approved=True)
+        self.assertEqual(result[0]["kind"], "simulate_circuit")
+        self.assertAlmostEqual(result[0]["result"]["node_voltages_v"]["v"], 5.0)
 
     def test_refuses_singular_floating_network(self):
         with self.assertRaises(LabInputError):
