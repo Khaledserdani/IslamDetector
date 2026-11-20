@@ -56,6 +56,7 @@ REQUIRED_FILES = (
     AGENT_DIR / "test_agent_cycle.py",
     AGENT_DIR / "orchestrator.py",
     AGENT_DIR / "test_orchestrator.py",
+    ROOT / "docs" / "agent" / "ISLAM_LOCAL_ORCHESTRATOR_AR.md",
 )
 
 
