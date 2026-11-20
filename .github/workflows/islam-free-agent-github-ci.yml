@@ -115,3 +115,5 @@ jobs:
             test_lab_catalog \
             test_transient_circuit \
             test_ac_network
+
+# Fresh push-triggered validation attempt after prior GitHub runner startup failures.
