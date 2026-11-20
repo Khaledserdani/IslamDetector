@@ -1,5 +1,6 @@
 import unittest
 
+from tool_runner import SafeToolRunner
 from circuit_components import (
     COMPONENT_LIBRARY, CircuitSchemaError, component_catalog, validate_circuit_v2,
 )
@@ -94,6 +95,20 @@ class CircuitComponentsTests(unittest.TestCase):
         part["value"] = float("nan")
         with self.assertRaisesRegex(CircuitSchemaError, "finite positive"):
             validate_circuit_v2(base_spec([part]))
+
+    def test_agent_runner_validates_multi_pin_design_with_approval(self):
+        design = base_spec([resistor(), opamp()])
+        proposal = {
+            "task_id": "circuit-v2-1",
+            "summary_ar": "التحقق من مخطط متعدد الأرجل",
+            "steps": [{"kind": "validate_circuit_v2", "target": "circuit_schema_v2", "design": design}],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        result = SafeToolRunner().execute_plan(proposal, "circuit-v2-1", human_approved=True)
+        self.assertEqual(result[0]["kind"], "validate_circuit_v2")
+        self.assertEqual(result[0]["result"]["component_count"], 2)
+        self.assertIn("opamp", result[0]["component_catalog"])
 
     def test_rejects_duplicate_reference_and_unknown_schema_version(self):
         first, second = resistor(), resistor()
