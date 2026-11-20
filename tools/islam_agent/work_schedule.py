@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import threading
 from datetime import datetime, time
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 ALGIERS = ZoneInfo("Africa/Algiers")
 
 
-def is_within_work_window(now: datetime | None = None, start: str = "06:00", end: str = "14:00") -> bool:
+def is_within_work_window(now: Optional[datetime] = None, start: str = "06:00", end: str = "14:00") -> bool:
     """Return True inside [start, end), using Africa/Algiers by default."""
     current = now or datetime.now(ALGIERS)
     if current.tzinfo is None:
