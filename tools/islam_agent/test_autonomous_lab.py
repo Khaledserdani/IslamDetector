@@ -86,6 +86,29 @@ class AutonomousLabTests(unittest.TestCase):
             self.assertEqual(result["status"], "failed")
             self.assertFalse(result["verified_numerically"])
 
+
+    def test_identical_experiment_is_not_run_twice(self):
+        proposal = record([{
+            "kind": "simulate_circuit",
+            "target": "dc_resistive_network",
+            "circuit": {
+                "ground": "0",
+                "resistors": [{"a": "v", "b": "0", "ohms": 1000}],
+                "voltage_sources": [{"positive": "v", "negative": "0", "volts": 5}],
+            },
+        }])
+        class NeverRun:
+            def execute_autonomous_lab_plan(self, *_args):
+                raise AssertionError("duplicate experiment must not be simulated again")
+        with tempfile.TemporaryDirectory() as directory:
+            first = run_autonomous_lab_proposal(proposal, report_dir=Path(directory))
+            second = run_autonomous_lab_proposal(
+                proposal, report_dir=Path(directory), runner=NeverRun()
+            )
+            self.assertEqual(first["status"], "verified")
+            self.assertEqual(second["status"], "duplicate")
+            self.assertEqual(first["report_path"], second["report_path"])
+
     def test_long_numeric_trace_is_compacted(self):
         result = _compact_result({"trace": list(range(1500))})
         self.assertEqual(result["trace"]["sample_count"], 1500)
