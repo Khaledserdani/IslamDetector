@@ -117,9 +117,10 @@ def build_spiral(family, turns, pitch_m, insulation_outer_diameter_m,
         for k in range(turns):
             w = outer_width_m - 2.0 * k * pitch_m
             h = outer_height_m - 2.0 * k * pitch_m
-            r = outer_corner_radius_m
-            if w <= insulation_outer_diameter_m or h <= insulation_outer_diameter_m or 2.0 * r > min(w, h):
-                raise ValueError(f"turn {k + 1} collapses or cannot contain the fixed offset corner radius")
+            r = outer_corner_radius_m - k * pitch_m
+            if (w <= insulation_outer_diameter_m or h <= insulation_outer_diameter_m
+                    or r < 0.0 or 2.0 * r > min(w, h)):
+                raise ValueError(f"turn {k + 1} collapses or cannot contain the inward-offset corner radius")
             loop = rounded_rectangle_loop(w, h, r, arc_step_deg)
             loops.append(loop)
             per_turn.append({"turn": k + 1, "width_m": w, "height_m": h,
@@ -146,7 +147,8 @@ def build_spiral(family, turns, pitch_m, insulation_outer_diameter_m,
         else:
             if np.linalg.norm(np.asarray(path[-1]) - loop[0]) <= 1e-12:
                 raise ValueError("unexpected coincident turn endpoints")
-            path.append(loop[0].tolist())  # explicit radial transition to the next turn\n            path.extend(loop[1:].tolist())
+            path.append(loop[0].tolist())  # explicit radial transition to the next turn
+            path.extend(loop[1:].tolist())
     path_array = np.asarray(path, dtype=float)
     segment_lengths = np.linalg.norm(np.diff(path_array, axis=0), axis=1)
     if np.any(segment_lengths <= 1e-12):
@@ -212,7 +214,8 @@ def main():
     np.savetxt(args.out / "centerline_xyz_m.csv", path, delimiter=",",
                header="x_m,y_m,z_m", comments="")
     (args.out / "geometry_report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        json.dumps(report, indent=2, ensure_ascii=False) + "
+", encoding="utf-8")
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
 
