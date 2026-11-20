@@ -28,27 +28,42 @@ def path_length_m(path_m):
     return float(np.sum(np.linalg.norm(dl, axis=1)))
 
 def field_at_points(path_m, points_m, current_a=1.0, turns=1, point_batch=64):
-    """B [T] at observation points using midpoint Biot-Savart quadrature."""
+    """B [T] from exact finite straight-segment Biot-Savart integration.
+
+    The polyline is the actual supplied conductor centerline. turns is only
+    a multiplier for coincident identical paths, not a count of turns already
+    represented geometrically in the path.
+    """
     if not math.isfinite(current_a) or not isinstance(turns, int) or turns < 1:
         raise ValueError("current must be finite and turns a positive integer")
     if point_batch < 1:
         raise ValueError("point_batch must be positive")
     starts, dl = _wire_segments(path_m, "coil")
-    mid = starts + 0.5 * dl
+    lengths = np.linalg.norm(dl, axis=1)
+    directions = dl / lengths[:, None]
     obs = np.asarray(list(points_m), dtype=float)
     if obs.ndim == 1:
         obs = obs.reshape(1, 3)
     if obs.ndim != 2 or obs.shape[1] != 3 or not np.isfinite(obs).all():
         raise ValueError("observation points must be finite Nx3 coordinates")
-    result = np.empty((len(obs), 3), dtype=float)
+    result = np.zeros((len(obs), 3), dtype=float)
     scale = MU0 * current_a * turns / (4.0 * math.pi)
     for first in range(0, len(obs), point_batch):
         batch = obs[first:first + point_batch]
-        r = batch[:, None, :] - mid[None, :, :]
-        distance = np.linalg.norm(r, axis=2)
-        if np.any(distance <= 1e-10):
-            raise ValueError("field is singular at a wire-segment midpoint")
-        terms = np.cross(dl[None, :, :], r) / distance[:, :, None] ** 3
+        r0 = batch[:, None, :] - starts[None, :, :]
+        axial = np.einsum("bsi,si->bs", r0, directions)
+        rho = r0 - axial[:, :, None] * directions[None, :, :]
+        rho2 = np.einsum("bsi,bsi->bs", rho, rho)
+        on_segment = (rho2 <= 1e-24) & (axial >= -1e-12) & (axial <= lengths[None, :] + 1e-12)
+        if np.any(on_segment):
+            raise ValueError("field is singular on a wire segment")
+        valid = rho2 > 1e-24
+        safe_rho2 = np.where(valid, rho2, 1.0)
+        end_axial = axial - lengths[None, :]
+        factor = (axial / (safe_rho2 * np.sqrt(safe_rho2 + axial**2))
+                  - end_axial / (safe_rho2 * np.sqrt(safe_rho2 + end_axial**2)))
+        factor = np.where(valid, factor, 0.0)
+        terms = np.cross(directions[None, :, :], rho) * factor[:, :, None]
         result[first:first + len(batch)] = scale * np.sum(terms, axis=1)
     return result
 
