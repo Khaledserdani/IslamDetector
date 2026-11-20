@@ -5,6 +5,8 @@ on:
     branches:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-schedule-labs
+      - feature/islam-free-agent-android-native
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -13,8 +15,10 @@ on:
       - 'gradle.properties'
       - '.github/workflows/islam-free-agent-github-ci.yml'
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-schedule-labs
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -27,7 +31,7 @@ permissions:
 
 concurrency:
   group: islam-free-agent-github-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   android:
@@ -76,6 +80,15 @@ jobs:
           test -s agent/build/outputs/apk/debug/agent-debug.apk
           unzip -t agent/build/outputs/apk/debug/agent-debug.apk
 
+      - name: Upload verified debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: islam-free-agent-debug-apk
+          path: source/agent/build/outputs/apk/debug/agent-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
   python-agent-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -98,16 +111,9 @@ jobs:
           set -euo pipefail
           python3 --version
           python3 -m unittest -v \
-            test_task_queue \
-            test_ollama_client \
-            test_agent_policy \
-            test_tool_runner \
-            test_checkpoint \
-            test_checkpointed_runner \
-            test_local_agent \
-            test_local_workflow \
-            test_agent_cycle \
-            test_orchestrator \
-            test_review_pending \
-            test_bridge_server \
-            test_safe_writer
+            test_lab_manager \
+            test_lab_catalog \
+            test_transient_circuit \
+            test_ac_network
+
+# Fresh push-triggered validation attempt after prior GitHub runner startup failures.
