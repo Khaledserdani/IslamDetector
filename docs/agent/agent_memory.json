@@ -39,14 +39,16 @@
       "title": "Stabilize GitHub Actions audit startup",
       "status": "completed",
       "acceptance": "The PR-triggered audit runs without external actions, obtains a real hosted runner, validates required files and memory, and executes the complete engineering and agent unit-test suites with a recorded exit status.",
-      "last_note": "تم تجاوز تعطل الإجراءات الخارجية نهائياً لهذه workflows باستعمال git وpython3 من Runner مباشرة. آخر تدقيق push 44507098737 وPR 44507108575 على commit 49ebe864 نجحا؛ 45 اختباراً هندسياً و62 اختبار وكيل نجحت، 107 إجمالاً، وفحص 26 ملفاً وذاكرة المشروع PASS."
+      "last_note": "تم تجاوز تعطل الإجراءات الخارجية نهائياً لهذه workflows باستعمال git وpython3 من Runner مباشرة. آخر تدقيق push 44507098737 وPR 44507108575 على commit 49ebe864 نجحا؛ 45 اختباراً هندسياً و62 اختبار وكيل نجحت، 107 إجمالاً، وفحص 26 ملفاً وذاكرة المشروع PASS.",
+      "scope": "manager"
     },
     {
       "id": "agent-002",
       "title": "Implement Greenhouse-style coil inductance study",
       "status": "in_progress",
       "acceptance": "A path-specific Greenhouse estimator with finite round-wire self terms, signed finite-length mutual terms and cross-section averaging is implemented and tested; quadrature convergence passes; no Coil default changes until LCR measurement, lead/return geometry and PI-frequency skin/proximity effects are assessed.",
-      "last_note": "المحرك المرجعي واختباراته 19 نجحت؛ تقارب 2x8/4x16/8x32 أعطى 172.067220922 µH عند الرتبتين الأخيرتين وتغير 1.194e-13. أضيف بروتوكول قياس LCR. لا توجد قياسات ميدانية بعد، ولم تتغير Coil defaults. تم اجتياز 46 اختباراً هندسياً و62 اختبار وكيل (108 إجمالاً) في CI؛ أضيف بروتوكول LCR ومستندات حدود AC/skin-proximity."
+      "last_note": "المحرك المرجعي واختباراته 19 نجحت؛ تقارب 2x8/4x16/8x32 أعطى 172.067220922 µH عند الرتبتين الأخيرتين وتغير 1.194e-13. أضيف بروتوكول قياس LCR. لا توجد قياسات ميدانية بعد، ولم تتغير Coil defaults. تم اجتياز 46 اختباراً هندسياً و62 اختبار وكيل (108 إجمالاً) في CI؛ أضيف بروتوكول LCR ومستندات حدود AC/skin-proximity.",
+      "scope": "engineering"
     },
     {
       "id": "agent-003",
@@ -54,28 +56,32 @@
       "status": "in_progress",
       "acceptance": "عميل localhost فقط، اقتراح نموذج محلي يمر عبر بوابة JSON ولا ينفذ تلقائياً، منفذ محدود بموافقة بشرية صريحة، checkpoint ذري واستئناف مرتبط ببصمة الخطة، وجميع الاختبارات تنجح فعلياً قبل إعلان الجاهزية.",
       "updated_at": "2026-11-19T00:00:00+00:00",
-      "last_note": "الأساس المحلي proposal-only/checkpoint/resume اختُبر بنجاح ضمن 62 اختبار وكيل في GitHub Actions. لم يُشغّل Ollama حقيقياً ولم يُنزّل نموذج؛ ما زالت المصادقة البشرية الفعلية وواجهة الموافقة وتجربة نموذج محلي حقيقي مراحل لاحقة."
+      "last_note": "الأساس المحلي proposal-only/checkpoint/resume اختُبر بنجاح ضمن 62 اختبار وكيل في GitHub Actions. لم يُشغّل Ollama حقيقياً ولم يُنزّل نموذج؛ ما زالت المصادقة البشرية الفعلية وواجهة الموافقة وتجربة نموذج محلي حقيقي مراحل لاحقة.",
+      "scope": "manager"
     },
     {
       "id": "agent-004",
       "title": "Implement local persistent task queue",
       "status": "completed",
       "acceptance": "Task listing, next pending task selection, guarded status transitions, atomic memory writes, and unit tests pass.",
-      "last_note": "طابور المهام المحلي مع transitions مقيدة وحفظ ذري يعمل ضمن تدقيق ناجح؛ مجموعة test_task_queue (8) مرت ضمن إجمالي 62 اختبار وكيل ناجح."
+      "last_note": "طابور المهام المحلي مع transitions مقيدة وحفظ ذري يعمل ضمن تدقيق ناجح؛ مجموعة test_task_queue (8) مرت ضمن إجمالي 62 اختبار وكيل ناجح.",
+      "scope": "manager"
     },
     {
       "id": "agent-005",
       "title": "Diagnose and improve energy consistency of the conductive-disk surrogate",
       "status": "in_progress",
       "acceptance": "Determine whether rejected target fixtures recover under finer ring polygon quadrature; if not, identify and redesign the inconsistent annular self/mutual basis. Preserve positive-definiteness rejection and do not hide failures with diagonal loading or arbitrary clamps.",
-      "last_note": "تم تعميم mutual إلى قطعتين متوازيتين بإزاحة عرضية وطولية، مع مقطع مستطيل متماثل وتيار منتظم. التكامل الطولي تحليلي، والتكامل العرضي يقسم كثافة الفرق المثلثية عند الصفر. اختبارات الاختزال إلى الحالة المتجاورة، والتبادلية، وحد المجال البعيد نجحت. CI: audit run 44514197646 PASS (30 ملفاً، 63 اختباراً هندسياً +62 وكيل =125، منها 11 اختباراً للقطعة والاقتران). Geometry 44514197758 وtransient 44514197566 PASS. Convergence run 44513960162 اكتمل PASS بكل المراحل بما فيها Greenhouse وCSV. تشغيل أحدث على head 72c36bd... run 44514197623: unit tests وdisk convergence PASS، timestep sensitivity قيد التنفيذ عند آخر فحص. الدالة لم تدمج في نموذج القرص أو Greenhouse؛ ما زال الاقتران غير المتوازي والمنحني وتدوير المقاطع غير مدعوم. أضيف أيضاً مرجع Neumann سداسي الأبعاد لقطعتين مستقيمتين غير متوازيتين بمقاطع مستطيلة، مع خمسة اختبارات أولية، وسُجل في audit. CI على الرأس الجديد لم يُتحقق منه بعد؛ الأداة لا تدعم الانحناء/التداخل أو التيار غير المنتظم، ولم تُدمج في نموذج الطاقة."
+      "last_note": "تم تعميم mutual إلى قطعتين متوازيتين بإزاحة عرضية وطولية، مع مقطع مستطيل متماثل وتيار منتظم. التكامل الطولي تحليلي، والتكامل العرضي يقسم كثافة الفرق المثلثية عند الصفر. اختبارات الاختزال إلى الحالة المتجاورة، والتبادلية، وحد المجال البعيد نجحت. CI: audit run 44514197646 PASS (30 ملفاً، 63 اختباراً هندسياً +62 وكيل =125، منها 11 اختباراً للقطعة والاقتران). Geometry 44514197758 وtransient 44514197566 PASS. Convergence run 44513960162 اكتمل PASS بكل المراحل بما فيها Greenhouse وCSV. تشغيل أحدث على head 72c36bd... run 44514197623: unit tests وdisk convergence PASS، timestep sensitivity قيد التنفيذ عند آخر فحص. الدالة لم تدمج في نموذج القرص أو Greenhouse؛ ما زال الاقتران غير المتوازي والمنحني وتدوير المقاطع غير مدعوم. أضيف أيضاً مرجع Neumann سداسي الأبعاد لقطعتين مستقيمتين غير متوازيتين بمقاطع مستطيلة، مع خمسة اختبارات أولية، وسُجل في audit. CI على الرأس الجديد لم يُتحقق منه بعد؛ الأداة لا تدعم الانحناء/التداخل أو التيار غير المنتظم، ولم تُدمج في نموذج الطاقة.",
+      "scope": "engineering"
     },
     {
       "id": "agent-006",
       "title": "Design reviewable self-learning lab and safe live algorithm evolution",
       "status": "in_progress",
       "acceptance": "Specify and implement an auditable experiment ledger, algorithm versioning, candidate/stable separation, held-out validation, human correction workflow, safe switching and rollback, integrated with the single-device architecture without interrupting stable detection.",
-      "last_note": "قرار معماري معتمد في 2026-11-19 وموثق في docs/agent/ISLAM_SELF_LEARNING_LAB_CHARTER_AR.md. المطلوب تنفيذ سجل التعلم القابل للمراجعة وتدفق تطوير الخوارزميات واختبارها واعتمادها بأمان؛ لم تُنفذ هذه المنظومة بعد."
+      "last_note": "قرار معماري معتمد في 2026-11-19 وموثق في docs/agent/ISLAM_SELF_LEARNING_LAB_CHARTER_AR.md. المطلوب تنفيذ سجل التعلم القابل للمراجعة وتدفق تطوير الخوارزميات واختبارها واعتمادها بأمان؛ لم تُنفذ هذه المنظومة بعد.",
+      "scope": "manager"
     },
     {
       "id": "agent-007",
@@ -83,7 +89,8 @@
       "status": "completed",
       "acceptance": "A bounded repeatable local cycle selects the next unfinished task, runs the deterministic audit, logs each outcome durably, fails closed on invalid memory, does not mutate project memory or source, and is covered by the agent audit suite with operator documentation.",
       "updated_at": "2026-11-20T10:30:00Z",
-      "last_note": "دورة التدقيق المتكررة ودليل التشغيل موجودان، واكتملت اختبارات دورة التدقيق ضمن تدقيق CI ناجح. تم إغلاق المهمة بعد اكتمال سجل الأحداث واختبارات fail-closed وعدم تعديل الذاكرة/المصدر."
+      "last_note": "دورة التدقيق المتكررة ودليل التشغيل موجودان، واكتملت اختبارات دورة التدقيق ضمن تدقيق CI ناجح. تم إغلاق المهمة بعد اكتمال سجل الأحداث واختبارات fail-closed وعدم تعديل الذاكرة/المصدر.",
+      "scope": "manager"
     },
     {
       "id": "agent-008",
@@ -91,7 +98,8 @@
       "status": "completed",
       "acceptance": "The orchestrator independently validates the complete workflow result and proposal schema before persistence, rejects malformed/non-object results, wrong task IDs, unexpected fields, oversized model/proposal data and invalid approval flags, preserves the no-overwrite atomic write, and has focused regression tests. No execution or memory mutation is introduced.",
       "last_note": "اكتمل تقوية حد الثقة في orchestrator: صار يعيد التحقق مستقلاً من مخطط النتيجة، هوية المهمة، allowlist، أعلام الموافقة والتنفيذ، واسم النموذج وحدود حجم السجل قبل الحفظ الذري. أضيفت اختبارات رفض النتائج غير الكائنية والحقول الزائدة والمهمة الخاطئة والمسارات غير المسموحة واسم النموذج غير الصالح/الكبير. CI audit run 44719037853 على commit 19775b28cc0d3cf7c2658872160a88e2330fb9e4 نجح: 79 اختبار وكيل PASS. لم ينفذ المنسّق أي اقتراح.",
-      "updated_at": "2026-11-20T10:25:00Z"
+      "updated_at": "2026-11-20T10:25:00Z",
+      "scope": "manager"
     },
     {
       "id": "agent-009",
@@ -99,7 +107,8 @@
       "status": "completed",
       "acceptance": "Provide a local CLI that previews a pending proposal, validates its exact schema and task identity, requires an exact typed human approval phrase before execution, uses only the fixed allowlisted checkpointed runner, and is covered by regression tests and operator documentation.",
       "updated_at": "2026-11-20T10:30:00Z",
-      "last_note": "أضيف review_pending.py مع عرض تفاصيل الاقتراح واشتراط كتابة العبارة العربية الحرفية «أوافق على تنفيذ الاقتراح <task_id>». يعيد التحقق من السجل والمهمة والـallowlist قبل التنفيذ، ويستعمل checkpoint ثابتاً مشتقاً من بصمة الخطة للاستئناف. اختبارات الرفض والتنفيذ الآمن أضيفت إلى audit وtool_runner. CI run 44719732452 على commit 825041a97737e1589cab806f0cb20d9d0b985d09 نجح: 84 اختبار وكيل و73 اختبار هندسي؛ الهندسة الهندسية العابرة وgeometry نجحت. فحص disk convergence لا يزال جارياً. لم يُشغّل Ollama حقيقياً."
+      "last_note": "أضيف review_pending.py مع عرض تفاصيل الاقتراح واشتراط كتابة العبارة العربية الحرفية «أوافق على تنفيذ الاقتراح <task_id>». يعيد التحقق من السجل والمهمة والـallowlist قبل التنفيذ، ويستعمل checkpoint ثابتاً مشتقاً من بصمة الخطة للاستئناف. اختبارات الرفض والتنفيذ الآمن أضيفت إلى audit وtool_runner. CI run 44719732452 على commit 825041a97737e1589cab806f0cb20d9d0b985d09 نجح: 84 اختبار وكيل و73 اختبار هندسي؛ الهندسة الهندسية العابرة وgeometry نجحت. فحص disk convergence لا يزال جارياً. لم يُشغّل Ollama حقيقياً.",
+      "scope": "manager"
     },
     {
       "id": "agent-010",
@@ -107,7 +116,8 @@
       "status": "in_progress",
       "acceptance": "A real Android Gradle job starts on a hosted runner, unit tests pass, agent-debug.apk is produced and package-verified as com.islamfreeagent.app, artifact is retrievable, then installation and launch are verified on a physical Android device before calling the app installable.",
       "updated_at": "2026-11-20T00:00:00+00:00",
-      "last_note": "تم بناء الإصدار 0.2.0 بنجاح على hosted runner: Android unit tests وassembleDebug وZIP integrity وaapt package identity PASS للحزمة com.islamfreeagent.app، versionCode 3، versionName 0.2.0. نُشر Release islam-free-agent-v0.2.0-build-20 مع agent-debug.apk، SHA-256 654addf6bf71d8c6d19e39eb4a3abf81d0e16ca8d29099c0187d374695ab336c. لا يزال القبول الميداني يتطلب تثبيتاً وتشغيلاً فعلياً على هاتف Android للمستخدم."
+      "last_note": "تم بناء الإصدار 0.2.0 بنجاح على hosted runner: Android unit tests وassembleDebug وZIP integrity وaapt package identity PASS للحزمة com.islamfreeagent.app، versionCode 3، versionName 0.2.0. نُشر Release islam-free-agent-v0.2.0-build-20 مع agent-debug.apk، SHA-256 654addf6bf71d8c6d19e39eb4a3abf81d0e16ca8d29099c0187d374695ab336c. لا يزال القبول الميداني يتطلب تثبيتاً وتشغيلاً فعلياً على هاتف Android للمستخدم.",
+      "scope": "manager"
     },
     {
       "id": "agent-011",
@@ -115,7 +125,8 @@
       "status": "in_progress",
       "acceptance": "Implement a Python bridge API and Android client using TLS certificate pinning, one-time pairing and session credentials stored securely; expose health, read-only task listing, proposal creation and explicit approval/rejection only after backend security tests pass. Ollama remains bound to host loopback; no secrets or shell commands in APK.",
       "updated_at": "2026-11-20T00:00:00+00:00",
-      "last_note": "خادم HTTPS وعميل Android وواجهة الاقتران والمراجعة منفذة أولياً. CI audit على commit 45cb292a نجح: 115 اختبار وكيل PASS، بينها اختبار HTTPS فعلي محلي للاقران ورفض الجلسة غير المصرح بها وقراءة المهام، واختبار rate limit. Android build 0.2.0 نجح ونُشر. لم يُجر اختبار فعلي بين هاتف المستخدم وحاسوبه أو مع Ollama المثبت لديه؛ يلزم ذلك قبل إعلان الجاهزية الميدانية. تنفيذ الأداة محدود بقراءة ملفات محددة واختبار suite ثابت فقط."
+      "last_note": "خادم HTTPS وعميل Android وواجهة الاقتران والمراجعة منفذة أولياً. CI audit على commit 45cb292a نجح: 115 اختبار وكيل PASS، بينها اختبار HTTPS فعلي محلي للاقران ورفض الجلسة غير المصرح بها وقراءة المهام، واختبار rate limit. Android build 0.2.0 نجح ونُشر. لم يُجر اختبار فعلي بين هاتف المستخدم وحاسوبه أو مع Ollama المثبت لديه؛ يلزم ذلك قبل إعلان الجاهزية الميدانية. تنفيذ الأداة محدود بقراءة ملفات محددة واختبار suite ثابت فقط.",
+      "scope": "manager"
     }
   ],
   "current_decisions": {
@@ -151,5 +162,6 @@
       ],
       "adopted_at": "2026-11-19"
     }
-  }
+  },
+  "agent_scope": "Manager cycle selects only tasks with scope=manager. Engineering tasks with scope=engineering are excluded and require the separate engineering/lab runner."
 }
