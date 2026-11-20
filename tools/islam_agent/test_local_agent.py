@@ -42,6 +42,8 @@ class LocalProposalAgentTests(unittest.TestCase):
         self.assertIn("JSON", SYSTEM_PROMPT)
         self.assertIn("simulate_rlc", SYSTEM_PROMPT)
         self.assertIn("series_rlc", SYSTEM_PROMPT)
+        self.assertIn("simulate_ac_network", SYSTEM_PROMPT)
+        self.assertIn("linear_ac_network", SYSTEM_PROMPT)
 
     def test_rejects_model_extra_fields(self):
         plan = valid_plan()
