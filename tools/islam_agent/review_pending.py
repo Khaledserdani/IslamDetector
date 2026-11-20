@@ -40,8 +40,8 @@ def review_pending(
         raw = path.read_bytes()
     except OSError as exc:
         raise PolicyViolation(f"cannot read pending proposal: {exc}") from None
-    if len(raw) > 16 * 1024:
-        raise PolicyViolation("pending proposal exceeds the 16 KiB limit")
+    if len(raw) > 64 * 1024:
+        raise PolicyViolation("pending proposal exceeds the 64 KiB limit")
     try:
         record = json.loads(raw.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError):
