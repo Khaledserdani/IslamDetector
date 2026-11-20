@@ -114,14 +114,13 @@ python tools/islam_agent/run_bridge.py --model "اسم-النموذج-المثب
 
 ### الملفات التي يمكن تعديلها في هذه المرحلة
 
-- `agent/src/main/java/com/islamfreeagent/app/MainActivity.java`
 - `tools/islam_agent/local_agent.py`
 - `tools/islam_agent/orchestrator.py`
 - `tools/islam_agent/agent_cycle.py`
 - `docs/agent/ISLAM_FREE_AGENT_EXECUTION_AR.md`
 - `docs/agent/agent_worklog.md`
 
-القائمة ثابتة داخل `agent_policy.py`، ولا يستطيع النموذج توسيعها بنفسه.
+القائمة ثابتة داخل `agent_policy.py`، ولا يستطيع النموذج توسيعها بنفسه. ملفات Android الكبيرة وعميل GitHub والجسر وملفات السياسة ومنفذ الأدوات تبقى للقراءة فقط في هذه المرحلة؛ لن نسمح باستبدالها بملف جزئي.
 
 ### حدود مهمة يجب عدم إخفائها
 
