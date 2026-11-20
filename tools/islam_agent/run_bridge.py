@@ -71,6 +71,8 @@ def main() -> int:
     parser.add_argument("--host", help="private LAN IPv4; auto-detected if omitted")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--model", required=True, help="exact model name from ollama list")
+    parser.add_argument("--interval-seconds", type=int, default=300, help="continuous proposal scan interval; minimum 300 seconds")
+    parser.add_argument("--no-continuous", action="store_true", help="disable automatic proposal scanning")
     args = parser.parse_args()
     try:
         host = args.host or discover_lan_ipv4()
@@ -78,6 +80,8 @@ def main() -> int:
         pair_code = f"{secrets.randbelow(1_000_000):06d}"
         app = BridgeApplication(pair_code, args.model)
         server = create_server(host, args.port, app, cert, key)
+        if not args.no_continuous:
+            app.start_continuous_worker(args.interval_seconds)
         der = ssl.PEM_cert_to_DER_cert(cert.read_text(encoding="ascii"))
         fingerprint = hashlib.sha256(der).hexdigest()
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
@@ -90,12 +94,17 @@ def main() -> int:
     print(f"رمز الاقتران لمرة واحدة (5 دقائق): {pair_code}", flush=True)
     print(f"النموذج المحلي: {args.model}", flush=True)
     print("يبقى Ollama على 127.0.0.1:11434 ولا تفتح منفذه للإنترنت.", flush=True)
+    if not args.no_continuous:
+        print(f"المتابعة الدورية مفعّلة: اقتراح واحد كل {args.interval_seconds} ثانية عند عدم وجود اقتراح معلّق؛ الموافقة البشرية مطلوبة دائماً.", flush=True)
+    else:
+        print("المتابعة الدورية معطلة؛ يمكن طلب الاقتراح يدوياً من الهاتف.", flush=True)
     print("أوقف الجسر بـ Ctrl+C. إعادة التشغيل تنهي جلسة الهاتف الحالية.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nتم إيقاف جسر إسلام.", flush=True)
     finally:
+        app.stop_continuous_worker()
         server.server_close()
     return 0
 

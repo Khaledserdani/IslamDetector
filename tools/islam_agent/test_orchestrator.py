@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from orchestrator import LocalAgentOrchestrator, OrchestrationError
+from orchestrator import LocalAgentOrchestrator, OrchestrationError, _bounded_project_context
 
 
 class FakeWorkflow:
@@ -55,6 +55,23 @@ class OrchestratorTests(unittest.TestCase):
             with self.assertRaises(OrchestrationError):
                 LocalAgentOrchestrator(FakeWorkflow(result=result)).run_once(memory, proposal)
             self.assertFalse(proposal.exists())
+
+    def test_context_prioritizes_named_file_and_keeps_full_small_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            target = root / "tools/islam_agent/orchestrator.py"
+            target.parent.mkdir(parents=True)
+            source = "# context marker\\n" + ("x" * 2500)
+            target.write_text(source, encoding="utf-8")
+            (root / "tools/islam_agent/local_agent.py").write_text(
+                "# secondary context", encoding="utf-8"
+            )
+            context = _bounded_project_context(
+                root, {"title": "Improve orchestrator.py", "acceptance": "keep task context"}
+            )
+            self.assertTrue(context)
+            self.assertTrue(context[0].startswith("FILE: tools/islam_agent/orchestrator.py"))
+            self.assertIn("x" * 2000, context[0])
 
     def test_selects_task_and_persists_pending_proposal(self):
         with tempfile.TemporaryDirectory() as temp:

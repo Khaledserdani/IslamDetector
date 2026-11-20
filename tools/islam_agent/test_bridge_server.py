@@ -97,6 +97,14 @@ class BridgeServerTests(unittest.TestCase):
             self.assertTrue(self.app.allow_request())
         self.assertFalse(self.app.allow_request())
 
+    def test_continuous_worker_is_bounded_and_stoppable(self):
+        with self.assertRaisesRegex(ValueError, "between 300"):
+            self.app.start_continuous_worker(299)
+        self.app.start_continuous_worker(300)
+        self.assertEqual(self.app.health()["continuous_worker"], "running")
+        self.app.stop_continuous_worker()
+        self.assertEqual(self.app.health()["continuous_worker"], "stopped")
+
     def test_task_listing_is_read_only_and_bounded(self):
         payload = self.app.tasks()
         self.assertEqual(len(payload["tasks"]), 1)
@@ -151,6 +159,38 @@ class BridgeServerTests(unittest.TestCase):
                 )
             self.assertEqual(caught.exception.code, "proposal_stale")
         executor.assert_not_called()
+
+    def test_continuous_worker_waits_for_github_upload_ack(self):
+        record = proposal_record()
+        record["proposal"]["steps"] = [{
+            "kind": "write_file",
+            "target": "docs/agent/agent_worklog.md",
+            "content": "# approved\\n",
+        }]
+        self.pending.write_text(json.dumps(record), encoding="utf-8")
+        proposal_id = self.app._proposal_id(record)
+        with patch("bridge_server.review_pending", return_value=(
+            {"state": "completed", "completed_steps": ["001:write_file:docs/agent/agent_worklog.md"]},
+            [{"kind": "write_file", "status": "written"}],
+        )):
+            result = self.app.decide(
+                proposal_id, "approve", approval_phrase("agent-011")
+            )
+        self.assertEqual(result["status"], "completed")
+        self.assertTrue(self.app.upload_pending_path.is_file())
+        self.assertTrue(self.app.health()["github_upload_pending"])
+        with self.assertRaises(BridgeError) as caught:
+            self.app.create_proposal()
+        self.assertEqual(caught.exception.code, "github_upload_pending")
+        with self.assertRaises(BridgeError) as mismatch:
+            self.app.complete_github_upload(proposal_id, ["wrong/path"])
+        self.assertEqual(mismatch.exception.code, "upload_file_list_mismatch")
+        ack = self.app.complete_github_upload(
+            proposal_id, ["docs/agent/agent_worklog.md"]
+        )
+        self.assertEqual(ack["status"], "upload_confirmed")
+        self.assertFalse(self.app.upload_pending_path.exists())
+        self.assertFalse(self.app.health()["github_upload_pending"])
 
     def test_approval_calls_fixed_review_gate_only_after_explicit_phrase(self):
         record = proposal_record()

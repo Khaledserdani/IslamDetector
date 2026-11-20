@@ -76,6 +76,8 @@ class CheckpointedPlanRunner:
                 try:
                     if step["kind"] == "inspect":
                         result = self.runner._inspect(step["target"])
+                    elif step["kind"] == "write_file":
+                        result = self.runner._write_file(step["target"], step["content"])
                     elif step["kind"] == "run_test":
                         result = self.runner._run_tests(step["target"])
                     else:

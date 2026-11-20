@@ -2,8 +2,8 @@
 """TLS-only LAN bridge for ISLAM FREE AGENT.
 
 Ollama remains on 127.0.0.1. The bridge exposes a private-LAN HTTPS endpoint,
-one-time pairing, read-only task listing, proposal creation, and explicit
-approve/reject. It never accepts shell commands or arbitrary tool arguments.
+one-time pairing, task listing, reviewed proposals, and explicit approve/reject.
+It accepts only fixed allowlisted file writes and named tests; never shell commands.
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from orchestrator import DEFAULT_MEMORY, DEFAULT_PROPOSAL, LocalAgentOrchestrato
 from task_queue import load_memory, transition, write_memory_atomic
 from review_pending import review_pending, approval_phrase
 
-MAX_BODY_BYTES = 16 * 1024
+MAX_BODY_BYTES = 80 * 1024
 MAX_TASKS = 100
 PAIR_WINDOW_SECONDS = 300
 MAX_PAIR_ATTEMPTS = 5
@@ -59,7 +59,11 @@ class BridgeApplication:
         self.memory_path = Path(memory_path)
         self.proposal_path = Path(proposal_path)
         self.state_dir = Path(state_dir) if state_dir else self.proposal_path.parent / "review"
+        self.upload_pending_path = self.proposal_path.parent / "upload_pending.json"
         self.orchestrator = None
+        self._worker_stop = None
+        self._worker_thread = None
+        self._worker_last_status = "not_started"
 
     def pair(self, code: object) -> str:
         with self._lock:
@@ -110,7 +114,52 @@ class BridgeApplication:
             "model": self.model,
             "phone_pairing": "paired" if self._session_hash else "waiting",
             "proposal_execution": "human_approval_required",
+            "continuous_worker": "running" if self._worker_thread and self._worker_thread.is_alive() else "stopped",
+            "worker_last_status": self._worker_last_status,
+            "worker_interval_seconds": getattr(self, "_worker_interval_seconds", None),
+            "github_upload_pending": self.upload_pending_path.exists(),
         }
+
+    def start_continuous_worker(self, interval_seconds: int = 300) -> None:
+        """Prepare at most one proposal per interval; never approve or execute it."""
+        if isinstance(interval_seconds, bool) or not isinstance(interval_seconds, int):
+            raise ValueError("worker interval must be an integer")
+        if interval_seconds < 300 or interval_seconds > 86_400:
+            raise ValueError("worker interval must be between 300 and 86400 seconds")
+        with self._lock:
+            if self._worker_thread and self._worker_thread.is_alive():
+                return
+            self._worker_stop = threading.Event()
+            self._worker_interval_seconds = interval_seconds
+
+            def work() -> None:
+                while not self._worker_stop.wait(interval_seconds):
+                    if self.proposal_path.exists():
+                        self._worker_last_status = "waiting_for_human_review"
+                        continue
+                    try:
+                        result = self.create_proposal()
+                        self._worker_last_status = result.get("status", "proposal_cycle_finished")
+                    except BridgeError as exc:
+                        self._worker_last_status = exc.code
+                    except Exception as exc:
+                        self._worker_last_status = type(exc).__name__
+
+            self._worker_thread = threading.Thread(
+                target=work, name="islam-agent-proposal-worker", daemon=True
+            )
+            self._worker_thread.start()
+            self._worker_last_status = "started"
+
+    def stop_continuous_worker(self) -> None:
+        with self._lock:
+            stop = self._worker_stop
+            thread = self._worker_thread
+            if stop is not None:
+                stop.set()
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2)
+        self._worker_last_status = "stopped"
 
     def tasks(self) -> dict:
         memory = load_memory(self.memory_path)
@@ -127,6 +176,8 @@ class BridgeApplication:
 
     def create_proposal(self) -> dict:
         with self._lock:
+            if self.upload_pending_path.exists():
+                raise BridgeError(409, "github_upload_pending", "ينتظر تعديل معتمد رفعه إلى GitHub قبل بدء المهمة التالية")
             if self.proposal_path.exists():
                 raise BridgeError(409, "proposal_already_pending", "يوجد اقتراح ينتظر المراجعة")
             try:
@@ -166,6 +217,21 @@ class BridgeApplication:
             "executed": record["executed"],
         }
 
+    def complete_github_upload(self, proposal_id: object, files: object) -> dict:
+        with self._lock:
+            if not self.upload_pending_path.exists():
+                return {"status": "already_completed"}
+            try:
+                record = json.loads(self.upload_pending_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                raise BridgeError(500, "upload_record_invalid", "سجل رفع GitHub غير صالح") from None
+            if proposal_id != record.get("proposal_id"):
+                raise BridgeError(409, "upload_proposal_mismatch", "معرّف الرفع لا يطابق التعديل المعتمد")
+            if not isinstance(files, list) or files != record.get("files"):
+                raise BridgeError(400, "upload_file_list_mismatch", "قائمة الملفات المرفوعة لا تطابق الخطة المعتمدة")
+            self.upload_pending_path.unlink()
+            return {"status": "upload_confirmed", "task_id": record.get("task_id")}
+
     def pending_proposal(self) -> dict:
         if not self.proposal_path.exists():
             return {"status": "none", "proposal": None}
@@ -177,6 +243,8 @@ class BridgeApplication:
 
     def decide(self, proposal_id: str, decision: object, confirmation_text: object = "") -> dict:
         with self._lock:
+            if self.upload_pending_path.exists():
+                raise BridgeError(409, "github_upload_pending", "أكمل رفع التعديل السابق إلى GitHub أولاً")
             pending = self.pending_proposal()
             if pending["status"] != "pending":
                 raise BridgeError(404, "no_pending_proposal", "لا يوجد اقتراح معلق")
@@ -222,6 +290,24 @@ class BridgeApplication:
                     "results": results,
                     "proposal_remains_pending": True,
                 }
+
+            # Hold the continuous worker until every locally approved file reaches GitHub.
+            write_steps = [
+                step for step in record["proposal"]["steps"]
+                if step.get("kind") == "write_file"
+            ]
+            if write_steps:
+                upload_record = {
+                    "proposal_id": digest,
+                    "task_id": task_id,
+                    "files": [step["target"] for step in write_steps],
+                    "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                }
+                self.upload_pending_path.parent.mkdir(parents=True, exist_ok=True)
+                self.upload_pending_path.write_text(
+                    json.dumps(upload_record, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
 
             # Mark the project task complete only after every approved step passed.
             fresh_memory = load_memory(self.memory_path)
@@ -357,6 +443,11 @@ def create_server(host: str, port: int, app: BridgeApplication,
                     self._send(200, {"session_token": token, "api_version": "0.2"})
                     return
                 if not self._require_auth():
+                    return
+                if self.path == "/v1/uploads/complete":
+                    if set(body) != {"proposal_id", "files"}:
+                        raise BridgeError(400, "invalid_upload_confirmation", "بيانات تأكيد الرفع غير صحيحة")
+                    self._send(200, app.complete_github_upload(body["proposal_id"], body["files"]))
                     return
                 if self.path == "/v1/proposals":
                     if body:

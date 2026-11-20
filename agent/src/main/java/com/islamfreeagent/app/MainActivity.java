@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
         buildScreen();
         loadSavedBridgeSettings();
         loadSavedGitHubSettings();
+        loadSavedApprovedUpload();
         renderTasks();
     }
 
@@ -245,7 +246,10 @@ public class MainActivity extends Activity {
             JSONObject health = bridgeClient(false).health();
             return "الجسر: " + health.optString("bridge")
                     + " • Ollama: " + health.optString("ollama")
-                    + " • النموذج: " + health.optString("model");
+                    + " • النموذج: " + health.optString("model")
+                    + " • المتابعة الدورية: " + health.optString("continuous_worker")
+                    + " • آخر حالة: " + health.optString("worker_last_status")
+                    + " • انتظار رفع GitHub: " + health.optBoolean("github_upload_pending", false);
         });
     }
 
@@ -310,8 +314,14 @@ public class MainActivity extends Activity {
         if (steps != null) {
             for (int i = 0; i < steps.length(); i++) {
                 JSONObject step = steps.optJSONObject(i);
-                if (step != null) details.append("• ").append(step.optString("kind"))
-                        .append(": ").append(step.optString("target")).append("\n");
+                if (step != null) {
+                    details.append("• ").append(step.optString("kind"))
+                            .append(": ").append(step.optString("target")).append("\n");
+                    if ("write_file".equals(step.optString("kind"))) {
+                        details.append("المحتوى الكامل الذي سيُكتب (راجعه قبل الموافقة):\n")
+                                .append(step.optString("content")).append("\n--- نهاية الملف ---\n");
+                    }
+                }
             }
         }
         JSONArray claims = proposal.optJSONArray("claims_to_verify");
@@ -329,19 +339,108 @@ public class MainActivity extends Activity {
                 .setMessage(details.toString())
                 .setView(content)
                 .setPositiveButton("موافقة وتنفيذ", (dialog, which) ->
-                        sendProposalDecision(wrapper.optString("proposal_id"), "approve", confirmation.getText().toString().trim()))
+                        sendProposalDecision(wrapper, "approve", confirmation.getText().toString().trim()))
                 .setNeutralButton("رفض الاقتراح", (dialog, which) ->
-                        sendProposalDecision(wrapper.optString("proposal_id"), "reject", ""))
+                        sendProposalDecision(wrapper, "reject", ""))
                 .setNegativeButton("إغلاق", null)
                 .show();
     }
 
-    private void sendProposalDecision(String proposalId, String decision, String confirmation) {
+    private volatile JSONObject lastApprovedProposal;
+    private volatile int lastUploadStepIndex;
+
+    private void sendProposalDecision(JSONObject wrapper, String decision, String confirmation) {
+        String proposalId = wrapper.optString("proposal_id");
         runBridgeOperation(decision.equals("approve") ? "جارٍ التحقق من الموافقة وتنفيذ الخطوات المسموحة…" : "جارٍ رفض الاقتراح…", () -> {
             JSONObject result = bridgeClient(true).decide(proposalId, decision, confirmation);
-            return "نتيجة القرار: " + result.optString("status")
-                    + " • تم تنفيذ خطوة: " + result.optBoolean("executed", false);
+            if (!"approve".equals(decision) || !"completed".equals(result.optString("status"))) {
+                return "نتيجة القرار: " + result.optString("status")
+                        + " • تم التنفيذ: " + result.optBoolean("executed", false);
+            }
+            JSONObject proposal = wrapper.optJSONObject("proposal");
+            JSONArray steps = proposal == null ? null : proposal.optJSONArray("steps");
+            boolean hasWrites = false;
+            if (steps != null) {
+                for (int i = 0; i < steps.length(); i++) {
+                    JSONObject step = steps.optJSONObject(i);
+                    if (step != null && "write_file".equals(step.optString("kind"))) hasWrites = true;
+                }
+            }
+            if (!hasWrites) return "اكتملت جميع الخطوات والاختبارات بنجاح.";
+            lastApprovedProposal = wrapper;
+            lastUploadStepIndex = 0;
+            persistPendingUpload();
+            return uploadApprovedFiles(wrapper);
         });
+    }
+
+    private String uploadApprovedFiles(JSONObject wrapper) throws Exception {
+        String token = GitHubTokenStore.load(this);
+        if (token == null || token.isEmpty()) {
+            throw new SecurityException("اكتمل التنفيذ المحلي. اربط GitHub برمز يملك Contents: Read and write ثم اضغط إعادة رفع آخر تعديل.");
+        }
+        JSONObject proposal = wrapper.optJSONObject("proposal");
+        JSONArray steps = proposal == null ? null : proposal.optJSONArray("steps");
+        if (steps == null) throw new IllegalStateException("تفاصيل الملفات المعتمدة غير موجودة");
+        GitHubClient client = new GitHubClient(token);
+        JSONArray allFiles = new JSONArray();
+        for (int i = 0; i < steps.length(); i++) {
+            JSONObject step = steps.optJSONObject(i);
+            if (step != null && "write_file".equals(step.optString("kind"))) {
+                allFiles.put(step.optString("target"));
+            }
+        }
+        int uploaded = 0;
+        String summary = proposal.optString("summary_ar", "تعديل معتمد");
+        for (int i = lastUploadStepIndex; i < steps.length(); i++) {
+            JSONObject step = steps.optJSONObject(i);
+            if (step != null && "write_file".equals(step.optString("kind"))) {
+                client.commitApprovedFile(step.optString("target"), step.optString("content"), summary);
+                uploaded++;
+            }
+            lastUploadStepIndex = i + 1;
+            persistPendingUpload();
+        }
+        JSONObject ack = bridgeClient(true).completeUpload(wrapper.optString("proposal_id"), allFiles);
+        lastApprovedProposal = null;
+        lastUploadStepIndex = 0;
+        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().commit();
+        return "نجح التنفيذ والاختبار، وأكد الجسر رفع " + allFiles.length()
+                + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج. (" 
+                + ack.optString("status") + ")";
+    }
+
+    private void persistPendingUpload() {
+        if (lastApprovedProposal == null) return;
+        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit()
+                .putString("proposal", lastApprovedProposal.toString())
+                .putInt("next_step", lastUploadStepIndex)
+                .commit();
+    }
+
+    private void loadSavedApprovedUpload() {
+        try {
+            android.content.SharedPreferences prefs =
+                    getSharedPreferences("approved_upload_retry", MODE_PRIVATE);
+            String saved = prefs.getString("proposal", null);
+            if (saved != null && !saved.isEmpty()) {
+                lastApprovedProposal = new JSONObject(saved);
+                lastUploadStepIndex = Math.max(0, prefs.getInt("next_step", 0));
+            }
+        } catch (Exception error) {
+            lastApprovedProposal = null;
+            lastUploadStepIndex = 0;
+            getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().apply();
+        }
+    }
+
+    private void retryLastApprovedUpload() {
+        if (lastApprovedProposal == null) {
+            showMessage("لا يوجد رفع معلّق", "لا توجد ملفات معتمدة تنتظر الرفع حالياً.");
+            return;
+        }
+        runGitHubOperation("جارٍ استكمال رفع الملفات المعتمدة…", () ->
+                uploadApprovedFiles(lastApprovedProposal));
     }
 
     private void showMessage(String title, String message) {
@@ -380,7 +479,7 @@ public class MainActivity extends Activity {
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
         github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
-        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. النسخة الحالية للقراءة والمتابعة فقط: الفروع وطلبات الدمج ونتائج Actions. لا تنشئ رمزاً بصلاحية كاملة.", 12, MUTED, false);
+        TextView explanation = text("اتصال مباشر وآمن بمستودع Khaledserdani/IslamDetector. بعد موافقتك ونجاح الاختبارات، يرفع التطبيق الملفات إلى فرع العمل فقط. يلزم Contents: Read and write؛ لا دمج ولا تعديل للفرع الرئيسي.", 12, MUTED, false);
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
@@ -396,6 +495,10 @@ public class MainActivity extends Activity {
         Button refresh = bridgeButton("تحديث بيانات GitHub");
         refresh.setOnClickListener(v -> refreshGitHub());
         github.addView(refresh, bridgeButtonParams());
+
+        Button retryUpload = bridgeButton("إعادة رفع آخر تعديل معتمد إلى GitHub");
+        retryUpload.setOnClickListener(v -> retryLastApprovedUpload());
+        github.addView(retryUpload, bridgeButtonParams());
 
         Button disconnect = bridgeButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {

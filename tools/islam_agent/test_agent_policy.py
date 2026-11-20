@@ -84,6 +84,38 @@ class AgentPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PolicyViolation, "non-empty bounded string"):
             validate_proposal(proposal, "agent-003")
 
+    def test_android_ui_source_is_not_writable_by_agent(self):
+        proposal = {
+            "task_id": "agent-003",
+            "summary_ar": "تعديل واجهة Android",
+            "steps": [{
+                "kind": "write_file",
+                "target": "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
+                "content": "class MainActivity {}",
+            }],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        with self.assertRaisesRegex(PolicyViolation, "write target is not allowlisted"):
+            validate_proposal(proposal, "agent-003")
+
+    def test_python_agent_write_requires_python_tests(self):
+        proposal = {
+            "task_id": "agent-003",
+            "summary_ar": "تعديل منسق Python",
+            "steps": [{
+                "kind": "write_file",
+                "target": "tools/islam_agent/local_agent.py",
+                "content": "print('safe')",
+            }],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        with self.assertRaisesRegex(PolicyViolation, "require agent_unit_tests"):
+            validate_proposal(proposal, "agent-003")
+        proposal["steps"].append({"kind": "run_test", "target": "agent_unit_tests"})
+        self.assertEqual(len(validate_proposal(proposal, "agent-003")["steps"]), 2)
+
     def test_rejects_non_object_proposal(self):
         with self.assertRaisesRegex(PolicyViolation, "JSON object"):
             validate_proposal([], "agent-003")

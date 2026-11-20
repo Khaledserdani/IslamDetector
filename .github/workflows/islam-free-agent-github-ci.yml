@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - feature/islam-free-agent-github
+      - feature/islam-free-agent-safe-write
     paths:
       - 'agent/**'
+      - 'tools/islam_agent/**'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
@@ -15,6 +17,7 @@ on:
       - feature/islam-free-agent-foundation
     paths:
       - 'agent/**'
+      - 'tools/islam_agent/**'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
@@ -72,3 +75,39 @@ jobs:
           gradle --no-daemon :agent:testDebugUnitTest :agent:assembleDebug
           test -s agent/build/outputs/apk/debug/agent-debug.apk
           unzip -t agent/build/outputs/apk/debug/agent-debug.apk
+
+  python-agent-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch exact source commit
+        env:
+          SOURCE_REF: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git init source
+          cd source
+          git remote add origin "https://github.com/$REPOSITORY.git"
+          git fetch --depth 1 origin "$SOURCE_REF"
+          git checkout --detach FETCH_HEAD
+
+      - name: Run bounded agent unit tests
+        working-directory: source/tools/islam_agent
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m unittest -v \
+            test_task_queue \
+            test_ollama_client \
+            test_agent_policy \
+            test_tool_runner \
+            test_checkpoint \
+            test_checkpointed_runner \
+            test_local_agent \
+            test_local_workflow \
+            test_agent_cycle \
+            test_orchestrator \
+            test_review_pending \
+            test_bridge_server \
+            test_safe_writer
