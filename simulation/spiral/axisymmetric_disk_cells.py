@@ -207,3 +207,23 @@ def self_inductance_h(
                         wtheta * wr * wr_base * wz_base * rho * density
                     )
     return total
+
+
+
+def converged_self_inductance_h(
+    cell: MeridionalCell,
+    orders: tuple[int, ...] = (4, 6, 8, 10),
+    relative_tolerance: float = 2.0e-4,
+) -> tuple[float, int]:
+    """Return self-inductance and quadrature order after successive-order agreement."""
+    if not math.isfinite(relative_tolerance) or relative_tolerance <= 0.0:
+        raise ValueError("relative_tolerance must be finite and positive")
+    previous = None
+    for order in orders:
+        current = self_inductance_h(cell, order)
+        if previous is not None:
+            scale = max(abs(current), abs(previous), 1.0e-30)
+            if abs(current - previous) <= relative_tolerance * scale:
+                return current, order
+        previous = current
+    raise ArithmeticError("self-cell quadrature did not converge")
