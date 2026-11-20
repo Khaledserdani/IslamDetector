@@ -45,8 +45,6 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/test_kicad_export.py",
     "tools/islam_agent/kicad_validation.py",
     "tools/islam_agent/test_kicad_validation.py",
-    "tools/islam_agent/kicad_validation.py",
-    "tools/islam_agent/test_kicad_validation.py",
     "tools/islam_agent/kicad_export.py",
     "tools/islam_agent/test_kicad_export.py",
     "docs/agent/ISLAM_COMPREHENSIVE_LAB_AR.md",
