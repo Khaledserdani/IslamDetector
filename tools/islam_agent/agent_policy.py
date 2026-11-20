@@ -8,14 +8,28 @@ from __future__ import annotations
 
 ALLOWED_STEP_KINDS = {"inspect", "run_test"}
 ALLOWED_INSPECT_TARGETS = {
-    "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md",
+    # Project memory and operator documentation.
     "docs/agent/agent_memory.json",
-    "tools/islam_agent/ollama_client.py",
-    "tools/islam_agent/task_queue.py",
+    "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md",
+    "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
+    "docs/agent/ISLAM_AGENT_CYCLE_AR.md",
+    "docs/agent/ANDROID_AGENT_BRIDGE_API_AR.md",
+    # Read-only manager implementation and its safety boundaries.
+    "tools/islam_agent/audit.py",
+    "tools/islam_agent/agent_policy.py",
     "tools/islam_agent/agent_cycle.py",
+    "tools/islam_agent/bridge_health.py",
+    "tools/islam_agent/bridge_server.py",
+    "tools/islam_agent/checkpoint.py",
+    "tools/islam_agent/checkpointed_runner.py",
+    "tools/islam_agent/local_agent.py",
+    "tools/islam_agent/local_workflow.py",
+    "tools/islam_agent/ollama_client.py",
+    "tools/islam_agent/ollama_preflight.py",
     "tools/islam_agent/orchestrator.py",
     "tools/islam_agent/review_pending.py",
-    "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
+    "tools/islam_agent/task_queue.py",
+    "tools/islam_agent/tool_runner.py",
 }
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
