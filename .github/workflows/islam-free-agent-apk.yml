@@ -80,7 +80,7 @@ jobs:
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
-          "$AAPT" dump badging "$APK" | grep -F "versionName='0.4.0'"
+          "$AAPT" dump badging "$APK" | grep -F "versionName='0.4.1'"
           sha256sum "$APK" | tee /tmp/islam-agent-sha256.txt
           echo "apk_sha256=$(cut -d' ' -f1 /tmp/islam-agent-sha256.txt)" >> "$GITHUB_OUTPUT"
 
