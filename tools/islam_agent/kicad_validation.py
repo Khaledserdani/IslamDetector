@@ -40,11 +40,34 @@ def _run(command, cwd):
     return result.stdout or ""
 
 
-def validate_kicad_design(spec, project_name="ISLAM"):
-    """Compile, parse, netlist-export, SVG-render, and ERC-report one design.
+def _run_erc(command, cwd):
+    """Run ERC while treating KiCad's documented violation exit code as data.
 
-    ERC is reported for engineering review; a generated report is not treated
-    as a zero-violation pass and never upgrades the design to Build-Ready.
+    KiCad returns 0 when no violations exist and 5 when violations exist if
+    --exit-code-violations is enabled. Other non-zero codes are execution errors.
+    """
+    try:
+        result = subprocess.run(
+            command, cwd=cwd, shell=False, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=CLI_TIMEOUT_SECONDS, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise KiCadValidationError("KiCad ERC validation timed out") from None
+    except OSError:
+        raise KiCadValidationError("KiCad ERC command could not be started") from None
+    if result.returncode not in (0, 5):
+        detail = (result.stdout or "")[-4000:]
+        raise KiCadValidationError(f"KiCad ERC command failed: {detail}")
+    return result.stdout or "", result.returncode
+
+
+def validate_kicad_design(spec, project_name="ISLAM"):
+    """Compile, parse, netlist-export, SVG-render, and run classified ERC.
+
+    ERC violations are explicitly reported; even zero KiCad ERC violations do
+    not certify electrical safety, model accuracy, thermal margins, or readiness
+    for manufacturing.
     """
     design = validate_circuit_v2(spec)
     compiled = compile_kicad_schematic(spec, project_name=project_name)
@@ -66,7 +89,11 @@ def validate_kicad_design(spec, project_name="ISLAM"):
         version_output = _run([executable, "version"], root).strip()
         _run([executable, "sch", "export", "netlist", "--output", str(netlist), str(source)], root)
         _run([executable, "sch", "export", "svg", "--output", str(svg_dir), str(source)], root)
-        erc_output = _run([executable, "sch", "erc", "--output", str(erc_report), str(source)], root)
+        erc_output, erc_exit_code = _run_erc(
+            [executable, "sch", "erc", "--severity-all", "--exit-code-violations",
+             "--output", str(erc_report), str(source)],
+            root,
+        )
         if not netlist.is_file() or not erc_report.is_file():
             raise KiCadValidationError("KiCad CLI completed without producing all expected reports")
         svg_files = sorted(svg_dir.glob("*.svg"))
@@ -74,6 +101,7 @@ def validate_kicad_design(spec, project_name="ISLAM"):
             raise KiCadValidationError("KiCad CLI did not render an SVG page")
         netlist_text = netlist.read_text(encoding="utf-8", errors="replace")
         erc_text = erc_report.read_text(encoding="utf-8", errors="replace")
+        violations_found = erc_exit_code == 5
         return {
             "status": "native_validation_completed",
             "kicad_cli_version": version_output[:120],
@@ -82,7 +110,9 @@ def validate_kicad_design(spec, project_name="ISLAM"):
             "svg_rendered": True,
             "svg_page_count": len(svg_files),
             "erc_report_generated": True,
-            "erc_status": "review_required",
+            "erc_status": "violations_found" if violations_found else "no_violations",
+            "erc_violations_found": violations_found,
+            "erc_exit_code": erc_exit_code,
             "erc_report": erc_text[-MAX_REPORT_CHARS:],
             "erc_console_output": erc_output[-4000:],
             "netlist": netlist_text[-MAX_REPORT_CHARS:],
