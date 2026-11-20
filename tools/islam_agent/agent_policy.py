@@ -38,7 +38,7 @@ MAX_STEPS = 5
 MAX_SUMMARY_CHARS = 500
 MAX_CLAIMS = 20
 MAX_CLAIM_CHARS = 500
-MAX_WRITE_CHARS = 48_000
+MAX_WRITE_CHARS = 12_000
 
 
 class PolicyViolation(ValueError):
@@ -79,7 +79,9 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("step target must be a string")
         expected_keys = {"kind", "target", "content"} if kind == "write_file" else {"kind", "target"}
         if set(step) != expected_keys:
-            raise PolicyViolation("step fields do not match the exact schema for its kind")
+            if kind == "write_file":
+                raise PolicyViolation("write_file steps must contain only kind, target, and content")
+            raise PolicyViolation("each step must contain only kind and target")
         if kind == "inspect" and target not in ALLOWED_INSPECT_TARGETS:
             raise PolicyViolation("inspect target is not allowlisted")
         if kind == "run_test" and target not in ALLOWED_TEST_TARGETS:
@@ -89,7 +91,7 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
                 raise PolicyViolation("write target is not allowlisted")
             content = step["content"]
             if not isinstance(content, str) or not content.strip() or len(content) > MAX_WRITE_CHARS:
-                raise PolicyViolation("write content must be non-empty text within the 48,000 character limit")
+                raise PolicyViolation("write content must be non-empty text within the 12,000 character limit")
             clean_steps.append({"kind": kind, "target": target, "content": content})
         else:
             clean_steps.append({"kind": kind, "target": target})
