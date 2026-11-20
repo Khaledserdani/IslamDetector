@@ -42,9 +42,9 @@ def _write_new_json(path: Path, payload: dict) -> None:
         prefix=path.name + ".", suffix=".tmp", dir=path.parent
     )
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as handle:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2, sort_keys=True)
-            handle.write("\\n")
+            handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         # A hard link is an atomic, no-overwrite publish on the same filesystem.
