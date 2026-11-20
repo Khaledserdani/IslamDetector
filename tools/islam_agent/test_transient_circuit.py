@@ -12,7 +12,7 @@ class SeriesRLCLabTests(unittest.TestCase):
         f0 = 1.0 / (2.0 * math.pi * math.sqrt(l*c))
         result = simulate_series_rlc({
             "mode": "ac", "resistance_ohm": r, "inductance_h": l,
-            "capacitance_f": c, "source_voltage_v": 12.0, "frequency_hz": f0,
+            "capacitance_f": c, "source_voltage_rms_v": 12.0, "frequency_hz": f0,
         })
         self.assertAlmostEqual(result["impedance_magnitude_ohm"], r, places=7)
         self.assertAlmostEqual(result["current_rms_a"], 1.0, places=7)
@@ -20,7 +20,7 @@ class SeriesRLCLabTests(unittest.TestCase):
 
     def test_ac_inductive_and_capacitive_phase_signs(self):
         base = {"mode": "ac", "resistance_ohm": 10.0, "inductance_h": 0.1,
-                "capacitance_f": 1e-3, "source_voltage_v": 5.0}
+                "capacitance_f": 1e-3, "source_voltage_rms_v": 5.0}
         low = simulate_series_rlc(dict(base, frequency_hz=1.0))
         high = simulate_series_rlc(dict(base, frequency_hz=100.0))
         self.assertGreater(low["current_phase_deg"], 0.0)
@@ -30,7 +30,7 @@ class SeriesRLCLabTests(unittest.TestCase):
         result = simulate_series_rlc({
             "mode": "transient", "resistance_ohm": 100.0,
             "inductance_h": 0.01, "capacitance_f": 1e-3,
-            "source_voltage_v": 5.0, "duration_s": 0.5,
+            "source_step_voltage_v": 5.0, "duration_s": 0.5,
             "time_step_s": 1e-5, "initial_current_a": 0.0,
             "initial_capacitor_voltage_v": 0.0,
         })
@@ -43,7 +43,7 @@ class SeriesRLCLabTests(unittest.TestCase):
             "task_id": "rlc-lab-1", "summary_ar": "تشغيل مختبر RLC",
             "steps": [{"kind": "simulate_rlc", "target": "series_rlc", "circuit": {
                 "mode": "ac", "resistance_ohm": 10.0, "inductance_h": 0.01,
-                "capacitance_f": 100e-6, "source_voltage_v": 10.0,
+                "capacitance_f": 100e-6, "source_voltage_rms_v": 10.0,
                 "frequency_hz": 50.0,
             }}],
             "needs_human_approval": True, "claims_to_verify": [],
@@ -67,7 +67,7 @@ class SeriesRLCLabTests(unittest.TestCase):
             simulate_series_rlc({
                 "mode": "transient", "resistance_ohm": 1.0,
                 "inductance_h": 1.0, "capacitance_f": 1.0,
-                "source_voltage_v": 1.0, "duration_s": 20.0,
+                "source_step_voltage_v": 1.0, "duration_s": 20.0,
                 "time_step_s": 1e-9, "initial_current_a": 0.0,
                 "initial_capacitor_voltage_v": 0.0,
             })
@@ -75,7 +75,7 @@ class SeriesRLCLabTests(unittest.TestCase):
             simulate_series_rlc({
                 "mode": "ac", "resistance_ohm": 0.0,
                 "inductance_h": 0.01, "capacitance_f": 100e-6,
-                "source_voltage_v": 1.0,
+                "source_voltage_rms_v": 1.0,
                 "frequency_hz": 1.0/(2.0*math.pi*math.sqrt(0.01*100e-6)),
             })
 
