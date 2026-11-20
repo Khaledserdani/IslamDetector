@@ -84,6 +84,11 @@ def main() -> int:
         cert, key = ensure_certificate(host)
         pair_code = f"{secrets.randbelow(1_000_000):06d}"
         app = BridgeApplication(pair_code, args.model)
+        app.work_window = {
+            "start": args.work_start,
+            "end": args.work_end,
+            "timezone": "Africa/Algiers",
+        }
         server = create_server(host, args.port, app, cert, key)
         if not args.no_continuous:
             schedule = ScheduledWorker(
