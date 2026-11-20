@@ -69,15 +69,17 @@ class BridgeServerTests(unittest.TestCase):
         self.assertGreaterEqual(len(token), 32)
         self.assertTrue(self.app.authorized(token))
         self.assertFalse(self.app.authorized("wrong-token"))
-        with self.assertRaisesRegex(BridgeError, "already"):
+        with self.assertRaises(BridgeError) as caught:
             self.app.pair("123456")
+        self.assertEqual(caught.exception.code, "already_paired")
 
     def test_invalid_pairing_attempts_are_bounded(self):
         for _ in range(5):
             with self.assertRaises(BridgeError):
                 self.app.pair("000000")
-        with self.assertRaisesRegex(BridgeError, "expired"):
+        with self.assertRaises(BridgeError) as caught:
             self.app.pair("123456")
+        self.assertEqual(caught.exception.code, "pairing_expired")
 
     def test_pairing_code_expires(self):
         self.app._pair_expires = time.monotonic() - 1
@@ -120,8 +122,9 @@ class BridgeServerTests(unittest.TestCase):
         record = proposal_record()
         self.pending.write_text(json.dumps(record), encoding="utf-8")
         with patch("bridge_server.review_pending") as executor:
-            with self.assertRaisesRegex(BridgeError, "confirmation"):
+            with self.assertRaises(BridgeError) as caught:
                 self.app.decide(self.app._proposal_id(record), "approve", "نعم")
+            self.assertEqual(caught.exception.code, "approval_phrase_mismatch")
         executor.assert_not_called()
         self.assertTrue(self.pending.exists())
 
@@ -130,11 +133,12 @@ class BridgeServerTests(unittest.TestCase):
         self.pending.write_text(json.dumps(record), encoding="utf-8")
         memory_fixture(self.memory, status="completed")
         with patch("bridge_server.review_pending") as executor:
-            with self.assertRaisesRegex(BridgeError, "not"):
+            with self.assertRaises(BridgeError) as caught:
                 self.app.decide(
                     self.app._proposal_id(record), "approve",
                     approval_phrase("agent-011"),
                 )
+            self.assertEqual(caught.exception.code, "proposal_stale")
         executor.assert_not_called()
 
     def test_approval_calls_fixed_review_gate_only_after_explicit_phrase(self):
