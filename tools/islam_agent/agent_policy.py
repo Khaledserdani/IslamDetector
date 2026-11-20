@@ -7,17 +7,6 @@ from __future__ import annotations
 
 
 ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file"}
-ALLOWED_INSPECT_TARGETS = {
-    "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md",
-    "docs/agent/agent_memory.json",
-    "tools/islam_agent/ollama_client.py",
-    "tools/islam_agent/task_queue.py",
-    "tools/islam_agent/agent_cycle.py",
-    "tools/islam_agent/orchestrator.py",
-    "tools/islam_agent/review_pending.py",
-    "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
-    *ALLOWED_WRITE_TARGETS,
-}
 # Deliberately exact paths. The agent cannot write credentials, workflows,
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
 ALLOWED_WRITE_TARGETS = {
@@ -29,6 +18,20 @@ ALLOWED_WRITE_TARGETS = {
     "tools/islam_agent/agent_cycle.py",
     "docs/agent/ISLAM_FREE_AGENT_EXECUTION_AR.md",
     "docs/agent/agent_worklog.md",
+}
+ALLOWED_INSPECT_TARGETS = {
+    "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md",
+    "docs/agent/agent_memory.json",
+    "tools/islam_agent/ollama_client.py",
+    "tools/islam_agent/task_queue.py",
+    "tools/islam_agent/agent_cycle.py",
+    "tools/islam_agent/orchestrator.py",
+    "tools/islam_agent/review_pending.py",
+    "tools/islam_agent/agent_policy.py",
+    "tools/islam_agent/tool_runner.py",
+    "tools/islam_agent/checkpointed_runner.py",
+    "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
+    *ALLOWED_WRITE_TARGETS,
 }
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
