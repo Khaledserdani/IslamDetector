@@ -21,6 +21,12 @@ internal class OnDeviceAiEngine(
         fun onFailure(message: String)
     }
 
+    private val systemInstruction = "أنت إسلام، مساعد عربي يعمل محلياً دون إنترنت. " +
+        "أجب بالعربية الواضحة والدارجة الجزائرية عند الحاجة. " +
+        "كن دقيقاً، لا تخترع نتائج اختبارات أو قدرات غير موجودة. " +
+        "في المسائل الهندسية افصل بين الحساب النظري والقياس الفعلي، " +
+        "واطلب التحقق قبل أي إجراء يؤثر في الملفات أو الأجهزة."
+
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var engine: Engine? = null
     private var conversation: Conversation? = null
@@ -56,13 +62,12 @@ internal class OnDeviceAiEngine(
             try {
                 conversation = candidate.createConversation(
                     ConversationConfig(
-                        systemInstruction = Contents.of(
-                            "أنت إسلام، مساعد عربي يعمل محلياً دون إنترنت. " +
-                            "أجب بالعربية الواضحة والدارجة الجزائرية عند الحاجة. " +
-                            "كن دقيقاً، لا تخترع نتائج اختبارات أو قدرات غير موجودة. " +
-                            "في المسائل الهندسية افصل بين الحساب النظري والقياس الفعلي، " +
-                            "واطلب التحقق قبل أي إجراء يؤثر في الملفات أو الأجهزة."
-                        )
+                        systemInstruction = Contents.of(systemInstruction),
+                        thinkingConfig = com.google.ai.edge.litertlm.ThinkingConfig(
+                            enableThinking = false,
+                            thinkingTokenBudget = 0
+                        ),
+                        maxOutputToken = 512
                     )
                 )
                 loadedPath = modelPath
@@ -81,7 +86,7 @@ internal class OnDeviceAiEngine(
                 return@execute
             }
             try {
-                val reply = conversation!!.sendMessage(prompt).toString()
+                val reply = conversation!!.sendMessage(prompt).text
                 callback.onSuccess(reply)
             } catch (error: Exception) {
                 callback.onFailure(error.message ?: "تعذر توليد الرد محلياً")
@@ -100,10 +105,12 @@ internal class OnDeviceAiEngine(
                 conversation?.close()
                 conversation = activeEngine.createConversation(
                     ConversationConfig(
-                        systemInstruction = Contents.of(
-                            "أنت إسلام، مساعد عربي يعمل محلياً دون إنترنت. " +
-                            "أجب بدقة، ولا تدّع تنفيذ ما لم تنفذه فعلاً."
-                        )
+                        systemInstruction = Contents.of(systemInstruction),
+                        thinkingConfig = com.google.ai.edge.litertlm.ThinkingConfig(
+                            enableThinking = false,
+                            thinkingTokenBudget = 0
+                        ),
+                        maxOutputToken = 512
                     )
                 )
                 callback.onSuccess("بدأت محادثة جديدة")
