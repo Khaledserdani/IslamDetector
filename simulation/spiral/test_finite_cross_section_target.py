@@ -72,9 +72,13 @@ class FiniteCrossSectionTargetTests(unittest.TestCase):
         self.assertTrue(math.isfinite(mutual[0]))
         self.assertEqual(diagnostics["cell_count"], 1)
 
-    def test_invalid_cell_bounds_are_rejected(self):
-        with self.assertRaises(ValueError):
+    def test_axis_touching_cell_is_rejected_with_physical_reason(self):
+        with self.assertRaisesRegex(ValueError, "axis-regular current basis"):
             AnnularCell(0.0, 0.01, 0.0, 0.01).validate()
+
+    def test_negative_radius_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "cell radii"):
+            AnnularCell(-0.001, 0.01, 0.0, 0.01).validate()
 
 
 if __name__ == "__main__":
