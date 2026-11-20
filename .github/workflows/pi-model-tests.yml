@@ -1,0 +1,28 @@
+name: ISLAM PI model checks
+
+on:
+  pull_request:
+    paths:
+      - "tools/pi_*.py"
+      - "tools/test_pi_models.py"
+      - ".github/workflows/pi-model-tests.yml"
+  push:
+    branches:
+      - "hardware/islam-nextgen-final-platform"
+    paths:
+      - "tools/pi_*.py"
+      - "tools/test_pi_models.py"
+      - ".github/workflows/pi-model-tests.yml"
+
+jobs:
+  sanity-models:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run PI regression tests
+        run: python -m unittest discover -s tools -p 'test_*.py' -v
