@@ -41,7 +41,6 @@ REQUIRED_FILES = (
     ROOT / "docs" / "agent" / "ANDROID_AGENT_BRIDGE_API_AR.md",
     AGENT_DIR / "agent_policy.py",
     AGENT_DIR / "agent_cycle.py",
-    AGENT_DIR / "audit.py",
     AGENT_DIR / "bridge_health.py",
     AGENT_DIR / "bridge_server.py",
     AGENT_DIR / "checkpoint.py",
