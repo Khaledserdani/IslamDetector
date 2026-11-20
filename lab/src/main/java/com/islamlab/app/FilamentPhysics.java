@@ -1,8 +1,12 @@
 package com.islamlab.app;
 
 /**
- * Geometry-driven 3D wire-path reference calculations. Open paths remain open; closed loops must repeat their first vertex.
+ * Geometry-driven 3D wire-path reference calculations. Open paths remain open;
+ * closed loops must repeat their first vertex. B is integrated exactly for each
+ * straight segment; accuracy still depends on how finely a curved wire is polygonized.
  * Coordinates are metres, current is amperes, B is tesla and M is henry.
+ * The turns multiplier represents coincident identical paths only. A complete
+ * multi-turn spiral centerline must be supplied once with turns=1.
  * This is a thin-filament magnetostatic kernel, not a transient PI/soil solver.
  */
 public final class FilamentPhysics {
