@@ -83,7 +83,7 @@
       "status": "in_progress",
       "acceptance": "A bounded repeatable local cycle selects the next unfinished task, runs the deterministic audit, logs each outcome durably, fails closed on invalid memory, does not mutate project memory or source, and is covered by the agent audit suite with operator documentation.",
       "updated_at": "2026-11-20T00:00:00+00:00",
-      "last_note": "أضيف agent_cycle.py مع اختيار in_progress قبل pending، وتشغيل audit.py بمهلة 600 ثانية، وسجل JSONL، واختبارات تغطي الاختيار والنجاح والفشل وعدم تغيير الذاكرة. أضيف دليل تشغيل عربي. بانتظار نتيجة CI على رأس PR للتحقق النهائي."
+      "last_note": "تمت إضافة دورة تدقيق متكررة مع سجل JSONL متين ودليل عربي واختبارات. رُبط test_agent_cycle أيضاً بمجموعة الاختبارات الثابتة SafeToolRunner، وأُضيف agent_cycle.py لقائمة الملفات التي يستطيع الوكيل فحصها قراءةً فقط. التحقق النهائي ينتظر CI."
     }
   ],
   "current_decisions": {
