@@ -40,6 +40,7 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/circuit_design.py",
     "tools/islam_agent/test_circuit_design.py",
     "docs/agent/ISLAM_COMPREHENSIVE_LAB_AR.md",
+    "docs/agent/ISLAM_CIRCUIT_DESIGNER_AR.md",
     "tools/islam_agent/checkpointed_runner.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
     *ALLOWED_WRITE_TARGETS,
