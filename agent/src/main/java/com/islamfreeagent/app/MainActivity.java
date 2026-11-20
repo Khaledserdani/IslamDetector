@@ -241,15 +241,36 @@ public class MainActivity extends Activity {
             aiStatusText.setText("مساحة ملفات التطبيق غير متاحة.");
             return;
         }
-        if (file.exists() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
-            aiStatusText.setText("ملف النموذج موجود. اضغط التحقق والتشغيل.");
-            return;
-        }
         if (modelDownloadId > 0 && isDownloadActive(modelDownloadId)) {
             refreshModelStatus();
             return;
         }
+        if (file.exists() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
+            aiStatusText.setText("جارٍ التحقق من الملف الموجود قبل إعادة استخدامه…");
+            modelExecutor.execute(() -> {
+                boolean valid;
+                try {
+                    valid = OnDeviceModelSpec.isValid(file);
+                } catch (Exception error) {
+                    valid = false;
+                }
+                final boolean fileValid = valid;
+                runOnUiThread(() -> {
+                    if (fileValid) {
+                        aiStatusText.setText("النموذج موجود وبصمته صحيحة. اضغط التحقق والتشغيل.");
+                    } else {
+                        file.delete();
+                        enqueueModelDownload(file);
+                    }
+                });
+            });
+            return;
+        }
         if (file.exists()) file.delete();
+        enqueueModelDownload(file);
+    }
+
+    private void enqueueModelDownload(File file) {
         try {
             DownloadManager.Request request =
                     new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
