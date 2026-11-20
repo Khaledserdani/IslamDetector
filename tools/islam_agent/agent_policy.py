@@ -1,12 +1,12 @@
 """Strict policy gate for model-proposed plans.
 
-This module validates data only. It does not execute tools, shell commands,
-read files, or contact GitHub.
+This module validates proposal data only. Execution is delegated to fixed,
+allowlisted tools; model-supplied command strings are never accepted.
 """
 from __future__ import annotations
 
 
-ALLOWED_STEP_KINDS = {"inspect", "run_test"}
+ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file"}
 ALLOWED_INSPECT_TARGETS = {
     "docs/agent/OLLAMA_LOCAL_AGENT_DESIGN_AR.md",
     "docs/agent/agent_memory.json",
@@ -17,11 +17,24 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/review_pending.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
 }
+# Deliberately exact paths. The agent cannot write credentials, workflows,
+# policy/runner code, project memory, arbitrary paths, or files outside this list.
+ALLOWED_WRITE_TARGETS = {
+    "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
+    "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
+    "agent/src/main/java/com/islamfreeagent/app/BridgeClient.java",
+    "tools/islam_agent/local_agent.py",
+    "tools/islam_agent/orchestrator.py",
+    "tools/islam_agent/agent_cycle.py",
+    "docs/agent/ISLAM_FREE_AGENT_EXECUTION_AR.md",
+    "docs/agent/agent_worklog.md",
+}
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
 MAX_SUMMARY_CHARS = 500
 MAX_CLAIMS = 20
 MAX_CLAIM_CHARS = 500
+MAX_WRITE_CHARS = 48_000
 
 
 class PolicyViolation(ValueError):
@@ -29,59 +42,53 @@ class PolicyViolation(ValueError):
 
 
 def validate_proposal(proposal: object, expected_task_id: str) -> dict:
-    """Validate an exact proposal schema and return a defensive copy.
-
-    Only read-only inspect targets and one named test suite are accepted.
-    No command text, arbitrary paths, write operations, or tool arguments
-    are part of this schema.
-    """
+    """Validate an exact schema and return a defensive, bounded copy."""
     if not isinstance(expected_task_id, str) or not expected_task_id.strip():
         raise PolicyViolation("expected_task_id must be a non-empty string")
     if not isinstance(proposal, dict):
         raise PolicyViolation("proposal must be a JSON object")
 
-    required = {
-        "task_id",
-        "summary_ar",
-        "steps",
-        "needs_human_approval",
-        "claims_to_verify",
-    }
+    required = {"task_id", "summary_ar", "steps", "needs_human_approval", "claims_to_verify"}
     if set(proposal) != required:
         raise PolicyViolation("proposal fields do not match the exact allowed schema")
-
     task_id = proposal["task_id"]
     if not isinstance(task_id, str) or task_id != expected_task_id:
         raise PolicyViolation("proposal task_id does not match the active task")
-
     summary = proposal["summary_ar"]
     if not isinstance(summary, str) or not summary.strip() or len(summary) > MAX_SUMMARY_CHARS:
         raise PolicyViolation("summary_ar must be a non-empty string within the size limit")
-
-    approval = proposal["needs_human_approval"]
-    if not isinstance(approval, bool):
-        raise PolicyViolation("needs_human_approval must be a boolean")
-    if approval is not True:
+    if proposal["needs_human_approval"] is not True:
         raise PolicyViolation("human approval must remain required in this version")
 
     steps = proposal["steps"]
     if not isinstance(steps, list) or not 1 <= len(steps) <= MAX_STEPS:
         raise PolicyViolation("steps must contain between 1 and 5 entries")
-
     clean_steps = []
     for step in steps:
-        if not isinstance(step, dict) or set(step) != {"kind", "target"}:
-            raise PolicyViolation("each step must contain only kind and target")
-        kind, target = step["kind"], step["target"]
+        if not isinstance(step, dict):
+            raise PolicyViolation("each step must be an object")
+        kind = step.get("kind")
+        target = step.get("target")
         if not isinstance(kind, str) or kind not in ALLOWED_STEP_KINDS:
             raise PolicyViolation("step kind is not allowlisted")
         if not isinstance(target, str):
             raise PolicyViolation("step target must be a string")
+        expected_keys = {"kind", "target", "content"} if kind == "write_file" else {"kind", "target"}
+        if set(step) != expected_keys:
+            raise PolicyViolation("step fields do not match the exact schema for its kind")
         if kind == "inspect" and target not in ALLOWED_INSPECT_TARGETS:
             raise PolicyViolation("inspect target is not allowlisted")
         if kind == "run_test" and target not in ALLOWED_TEST_TARGETS:
             raise PolicyViolation("test target is not allowlisted")
-        clean_steps.append({"kind": kind, "target": target})
+        if kind == "write_file":
+            if target not in ALLOWED_WRITE_TARGETS:
+                raise PolicyViolation("write target is not allowlisted")
+            content = step["content"]
+            if not isinstance(content, str) or not content.strip() or len(content) > MAX_WRITE_CHARS:
+                raise PolicyViolation("write content must be non-empty text within the 48,000 character limit")
+            clean_steps.append({"kind": kind, "target": target, "content": content})
+        else:
+            clean_steps.append({"kind": kind, "target": target})
 
     claims = proposal["claims_to_verify"]
     if not isinstance(claims, list) or len(claims) > MAX_CLAIMS:
