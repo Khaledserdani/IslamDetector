@@ -118,5 +118,5 @@ jobs:
             test_lab_manager \
             test_lab_catalog \
             test_transient_circuit \
-            test_ac_network \\
+            test_ac_network \
             test_circuit_design
