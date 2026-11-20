@@ -6,7 +6,7 @@ allowlisted tools; model-supplied command strings are never accepted.
 from __future__ import annotations
 
 
-ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file", "simulate_circuit"}
+ALLOWED_STEP_KINDS = {"inspect", "run_test", "write_file", "simulate_circuit", "simulate_rlc"}
 # Deliberately exact paths. The agent cannot write credentials, workflows,
 # policy/runner code, project memory, arbitrary paths, or files outside this list.
 ALLOWED_WRITE_TARGETS = {
@@ -33,6 +33,8 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/tool_runner.py",
     "tools/islam_agent/lab_catalog.py",
     "tools/islam_agent/test_lab_catalog.py",
+    "tools/islam_agent/transient_circuit.py",
+    "tools/islam_agent/test_transient_circuit.py",
     "docs/agent/ISLAM_COMPREHENSIVE_LAB_AR.md",
     "tools/islam_agent/checkpointed_runner.py",
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
@@ -82,7 +84,7 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("step kind is not allowlisted")
         if not isinstance(target, str):
             raise PolicyViolation("step target must be a string")
-        expected_keys = ({"kind", "target", "content"} if kind == "write_file" else {"kind", "target", "circuit"} if kind == "simulate_circuit" else {"kind", "target"})
+        expected_keys = ({"kind", "target", "content"} if kind == "write_file" else {"kind", "target", "circuit"} if kind in {"simulate_circuit", "simulate_rlc"} else {"kind", "target"})
         if set(step) != expected_keys:
             if kind == "write_file":
                 raise PolicyViolation("write_file steps must contain only kind, target, and content")
@@ -91,7 +93,16 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             raise PolicyViolation("inspect target is not allowlisted")
         if kind == "run_test" and target not in ALLOWED_TEST_TARGETS:
             raise PolicyViolation("test target is not allowlisted")
-        if kind == "simulate_circuit":
+        if kind == "simulate_rlc":
+            if target != "series_rlc":
+                raise PolicyViolation("laboratory target is not allowlisted")
+            from transient_circuit import validate_rlc, RLCInputError
+            try:
+                validate_rlc(step["circuit"])
+            except (RLCInputError, KeyError, TypeError):
+                raise PolicyViolation("RLC specification failed laboratory validation") from None
+            clean_steps.append({"kind": kind, "target": target, "circuit": step["circuit"]})
+        elif kind == "simulate_circuit":
             if target != "dc_resistive_network":
                 raise PolicyViolation("laboratory target is not allowlisted")
             from lab_manager import validate_circuit, LabInputError
