@@ -74,6 +74,23 @@ class SafeToolRunnerTests(unittest.TestCase):
         self.assertIn("test_orchestrator", AGENT_TEST_MODULES)
         self.assertIn("test_review_pending", AGENT_TEST_MODULES)
 
+    @patch("tool_runner.shutil.which", return_value="/usr/bin/gradle")
+    @patch("tool_runner.subprocess.run")
+    def test_android_target_runs_only_fixed_gradle_tasks(self, run, which):
+        run.return_value = CompletedProcess(
+            args=["gradle"], returncode=0, stdout="BUILD SUCCESSFUL"
+        )
+        result = SafeToolRunner(root=Path.cwd())._run_tests("android_unit_tests")
+        self.assertEqual(result["status"], "passed")
+        command = run.call_args.args[0]
+        self.assertEqual(command, [
+            "gradle", "--no-daemon",
+            ":agent:testDebugUnitTest", ":agent:assembleDebug",
+        ])
+        self.assertIs(run.call_args.kwargs["shell"], False)
+        self.assertEqual(run.call_args.kwargs["timeout"], 900)
+        which.assert_called_once_with("gradle")
+
     def test_failed_tests_stop_later_steps(self):
         with patch("tool_runner.subprocess.run") as run:
             run.return_value = CompletedProcess(args=["python"], returncode=1, stdout="failure")
