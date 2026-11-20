@@ -112,10 +112,10 @@
     {
       "id": "agent-011",
       "title": "Implement secure Android-to-local-agent bridge",
-      "status": "pending",
+      "status": "in_progress",
       "acceptance": "Implement a Python bridge API and Android client using TLS certificate pinning, one-time pairing and session credentials stored securely; expose health, read-only task listing, proposal creation and explicit approval/rejection only after backend security tests pass. Ollama remains bound to host loopback; no secrets or shell commands in APK.",
       "updated_at": "2026-11-20T00:00:00+00:00",
-      "last_note": "عقد API الأولي موثق في docs/agent/ANDROID_AGENT_BRIDGE_API_AR.md؛ لا يوجد خادم Bridge أو عميل شبكة Android بعد. لا تفتح Ollama على LAN ولا تستخدم HTTP مكشوفاً."
+      "last_note": "تم تنفيذ مرحلة BRIDGE-01 كخادم صحة محلي فقط على 127.0.0.1 مع فحص Ollama عبر /api/tags، ورفض Origin وHost غير محلي، وتعطيل جميع عمليات التعديل والاقتران وتنفيذ المقترحات. أضيفت اختبارات مستقلة وأدرجت في audit.py؛ يلزم CI ناجح قبل اعتبارها مجتازة. لا يوجد TLS أو عميل Android أو اتصال LAN بعد."
     }
   ],
   "current_decisions": {
