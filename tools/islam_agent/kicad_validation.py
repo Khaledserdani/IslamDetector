@@ -47,7 +47,7 @@ def validate_kicad_design(spec, project_name="ISLAM"):
     as a zero-violation pass and never upgrades the design to Build-Ready.
     """
     design = validate_circuit_v2(spec)
-    compiled = compile_kicad_schematic(design, project_name=project_name)
+    compiled = compile_kicad_schematic(spec, project_name=project_name)
     source_text = compiled["kicad_sch"]
     if len(source_text.encode("utf-8")) > MAX_SCHEMATIC_BYTES:
         raise KiCadValidationError("generated schematic exceeds the 2 MB limit")
