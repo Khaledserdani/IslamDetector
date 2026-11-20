@@ -8,7 +8,7 @@ from orchestrator import LocalAgentOrchestrator, OrchestrationError
 
 class FakeWorkflow:
     def __init__(self, result=None, error=None):
-        self.result = result or {
+        self.result = result if result is not None else {
             "model": "fake-model",
             "proposal": {
                 "task_id": "agent-007",
@@ -47,6 +47,15 @@ def write_memory(path, status="pending"):
 
 
 class OrchestratorTests(unittest.TestCase):
+    def _run_bad_result(self, result):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            memory, proposal = root / "memory.json", root / "pending.json"
+            write_memory(memory)
+            with self.assertRaises(OrchestrationError):
+                LocalAgentOrchestrator(FakeWorkflow(result=result)).run_once(memory, proposal)
+            self.assertFalse(proposal.exists())
+
     def test_selects_task_and_persists_pending_proposal(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -94,15 +103,37 @@ class OrchestratorTests(unittest.TestCase):
             self.assertFalse(proposal.exists())
 
     def test_rejects_workflow_result_that_claims_execution(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            memory, proposal = root / "memory.json", root / "pending.json"
-            write_memory(memory)
-            bad = FakeWorkflow()
-            bad.result["executed"] = True
-            with self.assertRaisesRegex(OrchestrationError, "unexecuted"):
-                LocalAgentOrchestrator(bad).run_once(memory, proposal)
-            self.assertFalse(proposal.exists())
+        result = FakeWorkflow().result
+        result["executed"] = True
+        self._run_bad_result(result)
+
+    def test_rejects_non_object_workflow_result(self):
+        self._run_bad_result(["not", "an", "object"])
+
+    def test_rejects_extra_workflow_result_fields(self):
+        result = FakeWorkflow().result
+        result["unexpected"] = "must not pass"
+        self._run_bad_result(result)
+
+    def test_rejects_proposal_for_another_task(self):
+        result = FakeWorkflow().result
+        result["proposal"]["task_id"] = "agent-999"
+        self._run_bad_result(result)
+
+    def test_rejects_unallowlisted_proposal_step(self):
+        result = FakeWorkflow().result
+        result["proposal"]["steps"][0]["target"] = "../../secrets"
+        self._run_bad_result(result)
+
+    def test_rejects_invalid_model_name(self):
+        result = FakeWorkflow().result
+        result["model"] = " "
+        self._run_bad_result(result)
+
+    def test_rejects_oversized_model_name(self):
+        result = FakeWorkflow().result
+        result["model"] = "m" * 129
+        self._run_bad_result(result)
 
 
 if __name__ == "__main__":
