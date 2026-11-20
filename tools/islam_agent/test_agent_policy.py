@@ -45,6 +45,16 @@ class AgentPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PolicyViolation, "step kind"):
             validate_proposal(proposal, "agent-003")
 
+    def test_allows_manager_bridge_and_safety_sources_for_read_only_review(self):
+        proposal = valid_proposal()
+        proposal["steps"] = [
+            {"kind": "inspect", "target": "tools/islam_agent/bridge_server.py"},
+            {"kind": "inspect", "target": "tools/islam_agent/checkpointed_runner.py"},
+            {"kind": "inspect", "target": "docs/agent/ANDROID_AGENT_BRIDGE_API_AR.md"},
+        ]
+        result = validate_proposal(proposal, "agent-003")
+        self.assertEqual(len(result["steps"]), 3)
+
     def test_rejects_arbitrary_inspection_path(self):
         proposal = valid_proposal()
         proposal["steps"][0]["target"] = "../../.env"
