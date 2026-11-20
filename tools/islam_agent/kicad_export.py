@@ -207,14 +207,32 @@ def compile_kicad_schematic(spec, project_name="ISLAM"):
     label_count = len(labels)
     if pin_count != label_count:
         raise ValueError("not every logical pin received exactly one net label")
+    bom_groups = {}
+    for part in design["components"]:
+        if part["type"] in {"ground", "test_point"}:
+            continue
+        rating = tuple(sorted((part.get("rating") or {}).items()))
+        key = (part["type"], part.get("value"), part.get("unit"), part.get("package"),
+               part.get("footprint"), part.get("manufacturer_part"), rating)
+        if key not in bom_groups:
+            bom_groups[key] = {"quantity": 0, "references": [], "type": part["type"],
+                               "value": part.get("value"), "unit": part.get("unit"),
+                               "package": part.get("package"), "footprint": part.get("footprint"),
+                               "manufacturer_part": part.get("manufacturer_part"), "rating": dict(rating)}
+        bom_groups[key]["quantity"] += 1
+        bom_groups[key]["references"].append(part["ref"])
+    bom = sorted(bom_groups.values(), key=lambda row: (row["type"], str(row["value"]), str(row["manufacturer_part"])))
     return {
         "filename": project_name.replace(" ", "_") + ".kicad_sch",
         "kicad_sch": source,
         "component_count": len(design["components"]),
         "pin_count": pin_count,
         "net_label_count": label_count,
+        "bom": bom,
+        "electrical_warnings": design["electrical_warnings"],
+        "missing_bom_identity": design["missing_bom_identity"],
         "format_version": FORMAT_VERSION,
         "parser_check": "balanced S-expression",
-        "kicad_cli_validation": "pending; not claimed",
+        "kicad_cli_validation": "requires the dedicated KiCad CLI integration check",
         "build_ready": False,
     }
