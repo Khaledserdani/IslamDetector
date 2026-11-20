@@ -1,0 +1,53 @@
+name: ISLAM KiCad schematic validation
+
+on:
+  push:
+    branches:
+      - feature/islam-circuit-designer-pro
+    paths:
+      - 'tools/islam_agent/**'
+      - '.github/workflows/islam-kicad-validation.yml'
+  pull_request:
+    branches:
+      - feature/islam-circuit-designer
+    paths:
+      - 'tools/islam_agent/**'
+      - '.github/workflows/islam-kicad-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-kicad-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kicad-cli-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch exact source commit
+        env:
+          SOURCE_REF: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git init source
+          cd source
+          git remote add origin "https://github.com/$REPOSITORY.git"
+          git fetch --depth 1 origin "$SOURCE_REF"
+          git checkout --detach FETCH_HEAD
+
+      - name: Install KiCad command-line tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y kicad
+          kicad-cli version
+
+      - name: Validate generated schematic with KiCad itself
+        working-directory: source/tools/islam_agent
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m unittest -v test_kicad_cli
