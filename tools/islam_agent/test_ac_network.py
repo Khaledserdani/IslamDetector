@@ -61,8 +61,8 @@ class ACNetworkTests(unittest.TestCase):
         with self.assertRaises(ACNetworkError):
             simulate_ac_network({
                 "ground": "0", "frequency_hz": 100.0,
-                "resistors": [], "capacitors": [], "inductors": [],
-                "voltage_sources": [{"positive": "x", "negative": "0", "voltage_rms_v": 5.0}],
+                "resistors": [{"a": "x", "b": "y", "value": 100.0}],
+                "capacitors": [], "inductors": [], "voltage_sources": [],
             })
         with self.assertRaises(ACNetworkError):
             simulate_ac_network({
