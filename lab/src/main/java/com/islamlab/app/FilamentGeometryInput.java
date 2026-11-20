@@ -30,6 +30,7 @@ public final class FilamentGeometryInput {
         JSONObject turns=root.getJSONObject("turns");
         double[][] tx=coordinates(paths.getJSONArray("TX"),"TX");
         double[][] rx=coordinates(paths.getJSONArray("RX"),"RX");
+        if(tx.length<2 || rx.length<2) throw new IllegalArgumentException("كل مسار سلك يجب أن يحتوي نقطتين على الأقل");
         double[][] points=coordinates(root.getJSONArray("observation_points_m"),"observation_points_m");
         int ntx=turns.getInt("TX"), nrx=turns.getInt("RX");
         if(ntx<1 || nrx<1) throw new IllegalArgumentException("عدد اللفات يجب أن يكون موجباً");
