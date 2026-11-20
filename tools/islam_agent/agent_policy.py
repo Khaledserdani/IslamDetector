@@ -24,6 +24,8 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/agent_cycle.py",
     "tools/islam_agent/orchestrator.py",
     "tools/islam_agent/review_pending.py",
+    "tools/islam_agent/bridge_server.py",
+    "tools/islam_agent/run_bridge.py",
     "tools/islam_agent/agent_policy.py",
     "agent/src/main/java/com/islamfreeagent/app/MainActivity.java",
     "agent/src/main/java/com/islamfreeagent/app/GitHubClient.java",
