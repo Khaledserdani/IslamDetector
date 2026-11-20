@@ -14,7 +14,8 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/task_queue.py",
     "tools/islam_agent/agent_cycle.py",
     "tools/islam_agent/orchestrator.py",
-)
+    "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
+}
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
 MAX_SUMMARY_CHARS = 500
