@@ -345,8 +345,8 @@ public class MainActivity extends Activity {
                 .show();
     }
 
-    private JSONObject lastApprovedProposal;
-    private int lastUploadStepIndex;
+    private volatile JSONObject lastApprovedProposal;
+    private volatile int lastUploadStepIndex;
 
     private void sendProposalDecision(JSONObject wrapper, String decision, String confirmation) {
         String proposalId = wrapper.optString("proposal_id");
