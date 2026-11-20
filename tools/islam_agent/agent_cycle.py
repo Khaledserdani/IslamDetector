@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -47,6 +48,7 @@ def _append_event(path: Path, event: dict) -> None:
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
         handle.flush()
+        os.fsync(handle.fileno())
 
 
 def run_cycle(
@@ -62,10 +64,11 @@ def run_cycle(
     memory_path = root / "docs" / "agent" / "agent_memory.json"
     log_path = Path(log_path) if log_path is not None else root / "artifacts" / "agent" / "cycle_log.jsonl"
     report_dir = Path(report_dir) if report_dir is not None else root / "artifacts" / "agent" / "reports"
-    stamp = clock().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    now = clock().astimezone(timezone.utc)
+    stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     report_path = report_dir / f"audit-{stamp}.md"
     event = {
-        "timestamp_utc": clock().astimezone(timezone.utc).isoformat(timespec="seconds"),
+        "timestamp_utc": now.isoformat(timespec="seconds"),
         "task": None,
         "audit_status": "error",
         "exit_code": None,
@@ -92,7 +95,7 @@ def run_cycle(
         event["output_tail"] = output
     except subprocess.TimeoutExpired:
         event["error"] = f"audit timed out after {AUDIT_TIMEOUT_SECONDS} seconds"
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
         event["error"] = f"{type(exc).__name__}: {str(exc)[:500]}"
     _append_event(log_path, event)
     return event
