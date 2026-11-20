@@ -27,6 +27,7 @@ AGENT_TEST_MODULES = (
     "test_local_workflow",
     "test_agent_cycle",
     "test_orchestrator",
+    "test_review_pending",
 )
 
 
