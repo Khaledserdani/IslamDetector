@@ -30,7 +30,7 @@ class SeriesRLCLabTests(unittest.TestCase):
         result = simulate_series_rlc({
             "mode": "transient", "resistance_ohm": 100.0,
             "inductance_h": 0.01, "capacitance_f": 1e-3,
-            "source_step_voltage_v": 5.0, "duration_s": 0.8,
+            "source_step_voltage_v": 5.0, "duration_s": 0.95,
             "time_step_s": 1e-5, "initial_current_a": 0.0,
             "initial_capacitor_voltage_v": 0.0,
         })
