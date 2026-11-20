@@ -33,13 +33,14 @@ class KiCadValidationTests(unittest.TestCase):
             if command[1] == "version":
                 return CompletedProcess(command, 0, stdout="9.0.8")
             output = Path(command[command.index("--output") + 1])
-            if command[3] == "netlist":
+            if command[2:4] == ["sch", "export"] and command[4] == "netlist":
                 output.write_text("(export (components (comp (ref R1))))", encoding="utf-8")
-            elif command[3] == "svg":
+            elif command[2:4] == ["sch", "export"] and command[4] == "svg":
                 output.mkdir(exist_ok=True)
                 (output / "page.svg").write_text("<svg/>", encoding="utf-8")
-            elif command[2] == "erc":
+            elif command[2:3] == ["erc"]:
                 output.write_text("ERC report: 0 errors, 1 warning", encoding="utf-8")
+                return CompletedProcess(command, 5, stdout="violations found")
             return CompletedProcess(command, 0, stdout="completed")
         run.side_effect = fake_run
         result = validate_kicad_design(design())
@@ -48,14 +49,39 @@ class KiCadValidationTests(unittest.TestCase):
         self.assertTrue(result["netlist_exported"])
         self.assertTrue(result["svg_rendered"])
         self.assertTrue(result["erc_report_generated"])
-        self.assertEqual(result["erc_status"], "review_required")
+        self.assertEqual(result["erc_status"], "violations_found")
+        self.assertTrue(result["erc_violations_found"])
+        self.assertEqual(result["erc_exit_code"], 5)
         self.assertIn("1 warning", result["erc_report"])
         self.assertFalse(result["build_ready"])
         commands = [call.args[0] for call in run.call_args_list]
         self.assertEqual(commands[0][1:], ["version"])
         self.assertEqual(commands[1][1:4], ["sch", "export", "netlist"])
         self.assertEqual(commands[2][1:4], ["sch", "export", "svg"])
-        self.assertEqual(commands[3][1:3], ["sch", "erc"])
+        self.assertIn("--severity-all", commands[3])
+        self.assertIn("--exit-code-violations", commands[3])
+
+    @patch("kicad_validation.shutil.which", return_value="/usr/bin/kicad-cli")
+    @patch("kicad_validation.subprocess.run")
+    def test_zero_erc_violations_are_distinguished_from_execution_success(self, run, which):
+        def fake_run(command, **kwargs):
+            if command[1] == "version":
+                return CompletedProcess(command, 0, stdout="9.0.8")
+            output = Path(command[command.index("--output") + 1])
+            if command[2:4] == ["sch", "export"] and command[4] == "netlist":
+                output.write_text("(export)", encoding="utf-8")
+            elif command[2:4] == ["sch", "export"] and command[4] == "svg":
+                output.mkdir(exist_ok=True)
+                (output / "page.svg").write_text("<svg/>", encoding="utf-8")
+            else:
+                output.write_text("ERC report: 0 violations", encoding="utf-8")
+            return CompletedProcess(command, 0, stdout="completed")
+        run.side_effect = fake_run
+        result = validate_kicad_design(design())
+        self.assertEqual(result["erc_status"], "no_violations")
+        self.assertFalse(result["erc_violations_found"])
+        self.assertEqual(result["erc_exit_code"], 0)
+        self.assertFalse(result["build_ready"])
 
     @patch("kicad_validation.shutil.which", return_value="/usr/bin/kicad-cli")
     @patch("kicad_validation.subprocess.run")
@@ -64,13 +90,13 @@ class KiCadValidationTests(unittest.TestCase):
             if command[1] == "version":
                 return CompletedProcess(command, 0, stdout="9.0.8")
             output = Path(command[command.index("--output") + 1])
-            if command[3] == "netlist":
+            if command[2:4] == ["sch", "export"] and command[4] == "netlist":
                 output.write_text("(export)", encoding="utf-8")
-            elif command[3] == "svg":
+            elif command[2:4] == ["sch", "export"] and command[4] == "svg":
                 output.mkdir(exist_ok=True)
                 (output / "page.svg").write_text("<svg/>", encoding="utf-8")
             else:
-                output.write_text("ERC report", encoding="utf-8")
+                output.write_text("ERC report: 0 violations", encoding="utf-8")
             return CompletedProcess(command, 0, stdout="completed")
         run.side_effect = fake_run
         proposal = {
@@ -85,6 +111,7 @@ class KiCadValidationTests(unittest.TestCase):
         result = SafeToolRunner().execute_plan(proposal, "erc-1", human_approved=True)
         self.assertEqual(result[0]["kind"], "validate_kicad_schematic")
         self.assertTrue(result[0]["result"]["erc_report_generated"])
+        self.assertEqual(result[0]["result"]["erc_status"], "no_violations")
         self.assertFalse(result[0]["result"]["build_ready"])
 
     @patch("kicad_validation.shutil.which", return_value=None)
@@ -101,9 +128,9 @@ class KiCadValidationTests(unittest.TestCase):
             validate_kicad_design(spec)
         run.assert_not_called()
 
-    @patch("kicad_validation.shutil.which", return_value="/usr/bin/kicad-cli")
     @patch("kicad_validation.subprocess.run")
-    def test_timeout_is_reported_as_validation_failure(self, run, which):
+    @patch("kicad_validation.shutil.which", return_value="/usr/bin/kicad-cli")
+    def test_timeout_is_reported_as_validation_failure(self, which, run):
         from subprocess import TimeoutExpired
         run.side_effect = TimeoutExpired("kicad-cli", 120)
         with self.assertRaisesRegex(KiCadValidationError, "timed out"):
