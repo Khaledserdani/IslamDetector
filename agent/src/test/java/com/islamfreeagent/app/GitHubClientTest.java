@@ -16,6 +16,15 @@ public class GitHubClientTest {
         catch (IllegalArgumentException expected) { }
     }
 
+    @Test public void writeAllowlistContainsOnlyApprovedProjectFiles() {
+        assertTrue(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/MainActivity.java"));
+        assertTrue(GitHubClient.isAllowedWritePath("docs/agent/agent_worklog.md"));
+        assertFalse(GitHubClient.isAllowedWritePath(".github/workflows/release.yml"));
+        assertFalse(GitHubClient.isAllowedWritePath("docs/agent/agent_memory.json"));
+        assertFalse(GitHubClient.isAllowedWritePath("../../.env"));
+        assertFalse(GitHubClient.isAllowedWritePath(null));
+    }
+
     @Test public void acceptsOpaqueFineGrainedTokenWithoutLoggingIt() {
         GitHubClient client = new GitHubClient("github_pat_example_valid_length_1234567890");
         assertNotNull(client);
