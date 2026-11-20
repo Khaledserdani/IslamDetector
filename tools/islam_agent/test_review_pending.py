@@ -44,6 +44,7 @@ class ReviewPendingTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.pending = self.root / "pending.json"
         self.state = self.root / "state"
+        (self.root / "tools" / "islam_agent").mkdir(parents=True)
         self.pending.write_text(json.dumps(record()), encoding="utf-8")
         self.workflow = LocalAgentWorkflow(
             NoProposalAgent(),
