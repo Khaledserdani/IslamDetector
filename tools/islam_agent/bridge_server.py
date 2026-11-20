@@ -249,11 +249,17 @@ class BridgeApplication:
 
 
 def create_server(host: str, port: int, app: BridgeApplication,
-                  certfile: Path, keyfile: Path) -> ThreadingHTTPServer:
+                  certfile: Path, keyfile: Path, *, test_allow_loopback: bool = False) -> ThreadingHTTPServer:
     address = ipaddress.ip_address(host)
-    if address.version != 4 or not address.is_private or address.is_loopback or address.is_multicast:
+    allowed_address = address.version == 4 and address.is_private and not address.is_multicast
+    if test_allow_loopback and address.is_loopback:
+        allowed_address = True
+    if not allowed_address:
         raise ValueError("host must be a private IPv4 address on the local network")
-    if isinstance(port, bool) or not isinstance(port, int) or not 1024 <= port <= 65535:
+    valid_port = isinstance(port, int) and not isinstance(port, bool) and 1024 <= port <= 65535
+    if test_allow_loopback and port == 0:
+        valid_port = True
+    if not valid_port:
         raise ValueError("port must be between 1024 and 65535")
     certfile, keyfile = Path(certfile), Path(keyfile)
     if not certfile.is_file() or not keyfile.is_file():
