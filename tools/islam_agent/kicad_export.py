@@ -122,11 +122,13 @@ def _lib_symbol(part, definition, layout, bounds):
             f'(name {_q(pin_name)} (effects (font (size 1.0 1.0))))'
             f'(number {_q(physical)} (effects (font (size 1.0 1.0)))))'
         )
+    in_bom = "no" if kind in {"ground", "test_point"} else "yes"
+    on_board = "no" if kind == "ground" else "yes"
     return (
-        f'(symbol {_q("ISLAM:"+symbol_name)} (pin_names (offset 1.016)) (in_bom yes) (on_board yes)'
+        f'(symbol {_q("ISLAM:"+symbol_name)} (pin_names (offset 1.016)) (in_bom {in_bom}) (on_board {on_board})'
         f'(property "Reference" {_q(ref)} (id 0) (at 0 -14 0) (effects (font (size 1.27 1.27))))'
         f'(property "Value" {_q(part.get("value", kind))} (id 1) (at 0 14 0) (effects (font (size 1.27 1.27))))'
-        f'(property "Footprint" {_q(part.get("package", ""))} (id 2) (at 0 0 0) (effects (font (size 1 1)) hide))'
+        f'(property "Footprint" {_q(part.get("footprint", ""))} (id 2) (at 0 0 0) (effects (font (size 1 1)) hide))'
         f'(property "Datasheet" {_q(part.get("pinout_source", ""))} (id 3) (at 0 0 0) (effects (font (size 1 1)) hide))'
         f'(symbol {_q(symbol_name+"_0_1")} {graphics})'
         f'(symbol {_q(symbol_name+"_1_1")} {"".join(pin_lines)})'
@@ -141,17 +143,23 @@ def _placed_symbol(part, definition, layout, x, y, root_uuid, project_name):
     for key, _, _ in definition["pins"]:
         pin_uuids[part["pin_numbers"][key]] = _uid()
     value = str(part.get("value", kind))
-    footprint = str(part.get("package", ""))
+    footprint = str(part.get("footprint", ""))
+    in_bom = "no" if kind in {"ground", "test_point"} else "yes"
+    on_board = "no" if kind == "ground" else "yes"
     props = (
         f'(property "Reference" {_q(ref)} (id 0) (at {_num(x)} {_num(y-12)} 0) (effects (font (size 1.27 1.27))))'
         f'(property "Value" {_q(value)} (id 1) (at {_num(x)} {_num(y+12)} 0) (effects (font (size 1.27 1.27))))'
         f'(property "Footprint" {_q(footprint)} (id 2) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
         f'(property "Datasheet" {_q(part.get("pinout_source", ""))} (id 3) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
+        f'(property "ISLAM_Package" {_q(part.get("package", ""))} (id 4) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
+        f'(property "Manufacturer_Part" {_q(part.get("manufacturer_part", ""))} (id 5) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
+        f'(property "Simulation_Model_ID" {_q(part.get("model_id", ""))} (id 6) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
+        f'(property "Simulation_Model_Source" {_q(part.get("model_source", ""))} (id 7) (at {_num(x)} {_num(y)} 0) (effects (font (size 1 1)) hide))'
     )
     pins = "".join(f'(pin {_q(number)} (uuid {_q(pin_uuid)}))' for number,pin_uuid in pin_uuids.items())
     instance = (
         f'(symbol (lib_id {_q("ISLAM:ISLAM_"+ref)}) (at {_num(x)} {_num(y)} 0) (unit 1)'
-        f'(in_bom yes) (on_board yes) (uuid {_q(symbol_uuid)}) {props} {pins}'
+        f'(in_bom {in_bom}) (on_board {on_board}) (uuid {_q(symbol_uuid)}) {props} {pins}'
         f'(instances (project {_q(project_name)} (path {_q("/"+root_uuid)} (reference {_q(ref)}) (unit 1))))'
         ')'
     )
