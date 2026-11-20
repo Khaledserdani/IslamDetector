@@ -57,6 +57,11 @@ public class MainActivity extends Activity {
         renderTasks();
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (aiStatusText != null) refreshModelStatus();
+    }
+
     @Override protected void onDestroy() {
         localAi.close();
         modelExecutor.shutdownNow();
