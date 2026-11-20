@@ -65,13 +65,25 @@ public final class FilamentPhysics {
             for (double value : point) if (!finite(value)) throw new IllegalArgumentException("observation coordinates must be finite");
             double bx=0, by=0, bz=0;
             for (int i = 0; i < s.mid.length; i++) {
-                double rx=point[0]-s.mid[i][0], ry=point[1]-s.mid[i][1], rz=point[2]-s.mid[i][2];
-                double r2=rx*rx+ry*ry+rz*rz;
-                if (r2 <= 1e-20) throw new IllegalArgumentException("field is singular at a wire-segment midpoint");
-                double invR3 = 1.0 / (r2 * Math.sqrt(r2));
-                bx += (s.dl[i][1]*rz - s.dl[i][2]*ry) * invR3;
-                by += (s.dl[i][2]*rx - s.dl[i][0]*rz) * invR3;
-                bz += (s.dl[i][0]*ry - s.dl[i][1]*rx) * invR3;
+                double length = Math.sqrt(s.dl[i][0]*s.dl[i][0] + s.dl[i][1]*s.dl[i][1] + s.dl[i][2]*s.dl[i][2]);
+                double ux=s.dl[i][0]/length, uy=s.dl[i][1]/length, uz=s.dl[i][2]/length;
+                double rx=point[0]-(s.mid[i][0]-0.5*s.dl[i][0]);
+                double ry=point[1]-(s.mid[i][1]-0.5*s.dl[i][1]);
+                double rz=point[2]-(s.mid[i][2]-0.5*s.dl[i][2]);
+                double axial=rx*ux+ry*uy+rz*uz;
+                double px=rx-axial*ux, py=ry-axial*uy, pz=rz-axial*uz;
+                double rho2=px*px+py*py+pz*pz;
+                if (rho2 <= 1e-24) {
+                    if (axial >= -1e-12 && axial <= length+1e-12)
+                        throw new IllegalArgumentException("field is singular on a wire segment");
+                    continue;
+                }
+                double end=axial-length;
+                double factor=axial/(rho2*Math.sqrt(rho2+axial*axial))
+                        - end/(rho2*Math.sqrt(rho2+end*end));
+                bx += (uy*pz-uz*py)*factor;
+                by += (uz*px-ux*pz)*factor;
+                bz += (ux*py-uy*px)*factor;
             }
             result[p][0]=scale*bx; result[p][1]=scale*by; result[p][2]=scale*bz;
         }
