@@ -1,0 +1,37 @@
+name: Axisymmetric finite-cell kernel tests
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+    paths:
+      - "simulation/spiral/axisymmetric_disk_kernel.py"
+      - "simulation/spiral/axisymmetric_disk_cells.py"
+      - "simulation/spiral/test_axisymmetric_disk_kernel.py"
+      - "simulation/spiral/test_axisymmetric_disk_cells.py"
+      - ".github/workflows/axisymmetric-finite-cell-tests.yml"
+  pull_request:
+    paths:
+      - "simulation/spiral/axisymmetric_disk_kernel.py"
+      - "simulation/spiral/axisymmetric_disk_cells.py"
+      - "simulation/spiral/test_axisymmetric_disk_kernel.py"
+      - "simulation/spiral/test_axisymmetric_disk_cells.py"
+      - ".github/workflows/axisymmetric-finite-cell-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  finite-cell-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run angular-kernel and finite-cell unit tests
+        working-directory: simulation/spiral
+        run: |
+          python -m unittest -v test_axisymmetric_disk_kernel test_axisymmetric_disk_cells
