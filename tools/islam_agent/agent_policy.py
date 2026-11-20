@@ -33,7 +33,7 @@ ALLOWED_INSPECT_TARGETS = {
     "docs/agent/ISLAM_LOCAL_ORCHESTRATOR_AR.md",
     *ALLOWED_WRITE_TARGETS,
 }
-ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
+ALLOWED_TEST_TARGETS = {"agent_unit_tests", "android_unit_tests"}
 MAX_STEPS = 5
 MAX_SUMMARY_CHARS = 500
 MAX_CLAIMS = 20
@@ -95,6 +95,15 @@ def validate_proposal(proposal: object, expected_task_id: str) -> dict:
             clean_steps.append({"kind": kind, "target": target, "content": content})
         else:
             clean_steps.append({"kind": kind, "target": target})
+
+    write_targets = [step["target"] for step in clean_steps if step["kind"] == "write_file"]
+    test_targets = {step["target"] for step in clean_steps if step["kind"] == "run_test"}
+    if any(target.startswith("agent/src/main/java/") for target in write_targets):
+        if "android_unit_tests" not in test_targets:
+            raise PolicyViolation("Android source edits require android_unit_tests in the same approved plan")
+    if any(target.startswith("tools/islam_agent/") for target in write_targets):
+        if "agent_unit_tests" not in test_targets:
+            raise PolicyViolation("Python agent edits require agent_unit_tests in the same approved plan")
 
     claims = proposal["claims_to_verify"]
     if not isinstance(claims, list) or len(claims) > MAX_CLAIMS:
