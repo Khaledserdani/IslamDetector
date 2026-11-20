@@ -21,7 +21,7 @@ from task_queue import load_memory
 
 
 ROOT = Path(__file__).resolve().parents[2]
-AUDIT_SCRIPT = ROOT / "tools" / "islam_agent" / "audit.py"
+AUDIT_SCRIPT = ROOT / "tools" / "islam_agent" / "manager_audit.py"
 DEFAULT_LOG = ROOT / "artifacts" / "agent" / "cycle_log.jsonl"
 DEFAULT_REPORT_DIR = ROOT / "artifacts" / "agent" / "reports"
 AUDIT_TIMEOUT_SECONDS = 600
@@ -32,13 +32,18 @@ def select_next_task(memory: dict) -> dict | None:
     tasks = memory.get("next_tasks")
     if not isinstance(tasks, list):
         raise ValueError("memory next_tasks must be a list")
+    # Fail closed: this cycle is for the assistant only. Engineering/lab
+    # tasks must be handled by their own isolated runner.
+    manager_tasks = [task for task in tasks
+                     if isinstance(task, dict) and task.get("scope") == "manager"]
     for status in ("in_progress", "pending"):
-        for task in tasks:
-            if isinstance(task, dict) and task.get("status") == status:
+        for task in manager_tasks:
+            if task.get("status") == status:
                 return {
                     "id": task.get("id"),
                     "title": task.get("title"),
                     "status": status,
+                    "scope": "manager",
                 }
     return None
 
@@ -81,7 +86,7 @@ def run_cycle(
         event["task"] = task
         report_path.parent.mkdir(parents=True, exist_ok=True)
         result = runner(
-            [sys.executable, str(root / "tools" / "islam_agent" / "audit.py"), "--report", str(report_path)],
+            [sys.executable, str(AUDIT_SCRIPT), "--report", str(report_path)],
             cwd=root,
             text=True,
             stdout=subprocess.PIPE,
