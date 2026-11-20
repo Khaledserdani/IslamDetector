@@ -211,7 +211,7 @@ public class MainActivity extends Activity {
         java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
         String raw = dcResistorsInput.getText().toString().trim();
         if (raw.isEmpty()) throw new IllegalArgumentException("أدخل مقاومة واحدة على الأقل");
-        String[] rows = raw.split("[;\\n]+");
+        String[] rows = raw.split("[;\n]+");
         if (rows.length > 100) throw new IllegalArgumentException("الحد الأقصى 100 مقاومة في التجربة");
         for (String row : rows) {
             String[] fields = row.trim().split(",");
@@ -227,7 +227,7 @@ public class MainActivity extends Activity {
             double volts = Double.parseDouble(dcVoltageInput.getText().toString().trim());
             String id = AgentLabQueue.enqueue(this, volts, readDcResistors());
             dcResultText.setText("حُفظت التجربة في قائمة العمل الليلي. المعرّف: " + id
-                    + "\\n" + AgentLabQueue.summary(this));
+                    + "\n" + AgentLabQueue.summary(this));
         } catch (Exception error) {
             dcResultText.setText("تعذر حفظ التجربة: " + error.getMessage());
         }
