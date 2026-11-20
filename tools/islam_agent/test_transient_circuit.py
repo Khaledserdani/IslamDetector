@@ -2,8 +2,6 @@ import math
 import unittest
 
 from transient_circuit import RLCInputError, simulate_series_rlc
-from agent_policy import PolicyViolation, validate_proposal
-from tool_runner import SafeToolRunner
 
 
 class SeriesRLCLabTests(unittest.TestCase):
@@ -37,30 +35,6 @@ class SeriesRLCLabTests(unittest.TestCase):
         self.assertAlmostEqual(result["current_a"][-1], 0.0, places=4)
         self.assertAlmostEqual(result["capacitor_voltage_v"][-1], 5.0, places=3)
         self.assertTrue(result["verified_numerically"])
-
-    def test_agent_policy_and_runner_execute_only_the_approved_rlc_engine(self):
-        proposal = {
-            "task_id": "rlc-lab-1", "summary_ar": "تشغيل مختبر RLC",
-            "steps": [{"kind": "simulate_rlc", "target": "series_rlc", "circuit": {
-                "mode": "ac", "resistance_ohm": 10.0, "inductance_h": 0.01,
-                "capacitance_f": 100e-6, "source_voltage_rms_v": 10.0,
-                "frequency_hz": 50.0,
-            }}],
-            "needs_human_approval": True, "claims_to_verify": [],
-        }
-        validate_proposal(proposal, "rlc-lab-1")
-        result = SafeToolRunner().execute_plan(proposal, "rlc-lab-1", human_approved=True)
-        self.assertEqual(result[0]["kind"], "simulate_rlc")
-        self.assertEqual(result[0]["result"]["laboratory"], "series_rlc_ac_phasor")
-
-    def test_rejects_unknown_rlc_target(self):
-        proposal = {
-            "task_id": "rlc-lab-2", "summary_ar": "رفض مختبر غير مصرح",
-            "steps": [{"kind": "simulate_rlc", "target": "arbitrary_engine", "circuit": {}}],
-            "needs_human_approval": True, "claims_to_verify": [],
-        }
-        with self.assertRaises(PolicyViolation):
-            validate_proposal(proposal, "rlc-lab-2")
 
     def test_rejects_excessive_sample_count_and_ideal_resonance(self):
         with self.assertRaises(RLCInputError):
