@@ -97,6 +97,14 @@ class BridgeServerTests(unittest.TestCase):
             self.assertTrue(self.app.allow_request())
         self.assertFalse(self.app.allow_request())
 
+    def test_continuous_worker_is_bounded_and_stoppable(self):
+        with self.assertRaisesRegex(ValueError, "between 300"):
+            self.app.start_continuous_worker(299)
+        self.app.start_continuous_worker(300)
+        self.assertEqual(self.app.health()["continuous_worker"], "running")
+        self.app.stop_continuous_worker()
+        self.assertEqual(self.app.health()["continuous_worker"], "stopped")
+
     def test_task_listing_is_read_only_and_bounded(self):
         payload = self.app.tasks()
         self.assertEqual(len(payload["tasks"]), 1)
