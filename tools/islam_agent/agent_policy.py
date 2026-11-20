@@ -13,7 +13,8 @@ ALLOWED_INSPECT_TARGETS = {
     "tools/islam_agent/ollama_client.py",
     "tools/islam_agent/task_queue.py",
     "tools/islam_agent/agent_cycle.py",
-}
+    "tools/islam_agent/orchestrator.py",
+)
 ALLOWED_TEST_TARGETS = {"agent_unit_tests"}
 MAX_STEPS = 5
 MAX_SUMMARY_CHARS = 500
