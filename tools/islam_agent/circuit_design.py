@@ -115,12 +115,16 @@ def _svg_symbol(kind, x, y):
                (x+37, y-8), (x+47, y+8), (x+54, y), (x+64, y)]
         return '<polyline points="' + " ".join(f"{a},{b}" for a,b in pts) + '" fill="none" stroke="#172b4d" stroke-width="2"/>'
     if kind == "capacitor":
-        return (f'<line x1="{x+30}" y1="{y-12}" x2="{x+30}" y2="{y+12}" stroke="#172b4d" stroke-width="2"/>'
-                f'<line x1="{x+38}" y1="{y-12}" x2="{x+38}" y2="{y+12}" stroke="#172b4d" stroke-width="2"/>')
+        return (f'<line x1="{x}" y1="{y}" x2="{x+30}" y2="{y}" stroke="#172b4d" stroke-width="2"/>'
+                f'<line x1="{x+30}" y1="{y-12}" x2="{x+30}" y2="{y+12}" stroke="#172b4d" stroke-width="2"/>'
+                f'<line x1="{x+38}" y1="{y-12}" x2="{x+38}" y2="{y+12}" stroke="#172b4d" stroke-width="2"/>'
+                f'<line x1="{x+38}" y1="{y}" x2="{x+64}" y2="{y}" stroke="#172b4d" stroke-width="2"/>')
     if kind == "inductor":
         return (f'<path d="M{x} {y} h8 c0 -16 16 -16 16 0 c0 -16 16 -16 16 0 c0 -16 16 -16 16 0 h8" '
                 'fill="none" stroke="#172b4d" stroke-width="2"/>')
-    return (f'<circle cx="{x+34}" cy="{y}" r="13" fill="white" stroke="#172b4d" stroke-width="2"/>'
+    return (f'<line x1="{x}" y1="{y}" x2="{x+21}" y2="{y}" stroke="#172b4d" stroke-width="2"/>'
+            f'<circle cx="{x+34}" cy="{y}" r="13" fill="white" stroke="#172b4d" stroke-width="2"/>'
+            f'<line x1="{x+47}" y1="{y}" x2="{x+64}" y2="{y}" stroke="#172b4d" stroke-width="2"/>'
             f'<text x="{x+34}" y="{y+5}" text-anchor="middle" font-size="14">+</text>')
 
 
