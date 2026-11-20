@@ -2,9 +2,9 @@
 """Proposal-only orchestrator for the ISLAM local assistant.
 
 It selects the next unfinished task, asks the local proposal workflow for a
-validated plan, and atomically stores that plan for human review. It never
-executes tools, changes project memory, contacts GitHub, or overwrites a
-pending proposal.
+validated plan, independently revalidates the returned data, and atomically
+stores that plan for human review. It never executes tools, changes project
+memory, contacts GitHub, or overwrites a pending proposal.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_cycle import select_next_task
+from agent_policy import PolicyViolation, validate_proposal
 from ollama_client import LocalOllamaClient
 from local_agent import LocalProposalAgent
 from local_workflow import LocalAgentWorkflow
@@ -25,6 +26,8 @@ from task_queue import load_memory
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MEMORY = ROOT / "docs" / "agent" / "agent_memory.json"
 DEFAULT_PROPOSAL = ROOT / "artifacts" / "agent" / "pending_proposal.json"
+MAX_MODEL_NAME_CHARS = 128
+MAX_PENDING_RECORD_BYTES = 16 * 1024
 
 
 class OrchestrationError(RuntimeError):
@@ -39,9 +42,9 @@ def _write_new_json(path: Path, payload: dict) -> None:
         prefix=path.name + ".", suffix=".tmp", dir=path.parent
     )
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2, sort_keys=True)
-            handle.write("\n")
+            handle.write("\\n")
             handle.flush()
             os.fsync(handle.fileno())
         # A hard link is an atomic, no-overwrite publish on the same filesystem.
@@ -92,9 +95,29 @@ class LocalAgentOrchestrator:
         task = next(
             item for item in memory["next_tasks"] if item["id"] == selected["id"]
         )
+
         pending = self.workflow.propose(task, context)
-        if pending.get("awaiting_human_approval") is not True or pending.get("executed") is not False:
+        required_result_fields = {
+            "model", "proposal", "awaiting_human_approval", "executed"
+        }
+        if not isinstance(pending, dict) or set(pending) != required_result_fields:
+            raise OrchestrationError("workflow result does not match the exact pending schema")
+        if pending["awaiting_human_approval"] is not True or pending["executed"] is not False:
             raise OrchestrationError("workflow did not return an unexecuted pending proposal")
+
+        model_name = pending["model"]
+        if (
+            not isinstance(model_name, str)
+            or not model_name.strip()
+            or len(model_name) > MAX_MODEL_NAME_CHARS
+        ):
+            raise OrchestrationError("workflow returned an invalid or oversized model name")
+
+        try:
+            clean_proposal = validate_proposal(pending["proposal"], task["id"])
+        except PolicyViolation as exc:
+            raise OrchestrationError(f"workflow proposal rejected by policy: {exc}") from exc
+
         record = {
             "schema_version": 1,
             "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -104,11 +127,17 @@ class LocalAgentOrchestrator:
                 "acceptance": task["acceptance"],
                 "status": task["status"],
             },
-            "model": pending["model"],
-            "proposal": pending["proposal"],
+            "model": model_name,
+            "proposal": clean_proposal,
             "awaiting_human_approval": True,
             "executed": False,
         }
+        encoded_size = len(
+            json.dumps(record, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        )
+        if encoded_size > MAX_PENDING_RECORD_BYTES:
+            raise OrchestrationError("pending proposal exceeds the 16 KiB record limit")
+
         _write_new_json(Path(proposal_path), record)
         return {
             "status": "proposal_saved",
