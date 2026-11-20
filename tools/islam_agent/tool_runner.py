@@ -18,6 +18,7 @@ from agent_policy import (
     ALLOWED_INSPECT_TARGETS, ALLOWED_WRITE_TARGETS, MAX_WRITE_CHARS,
     PolicyViolation, validate_proposal,
 )
+from lab_manager import simulate_dc_resistive_network
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,7 +32,7 @@ AGENT_TEST_MODULES = (
     "test_tool_runner", "test_checkpoint", "test_checkpointed_runner",
     "test_local_agent", "test_local_workflow", "test_agent_cycle",
     "test_orchestrator", "test_review_pending", "test_bridge_server",
-    "test_safe_writer",
+    "test_safe_writer", "test_work_schedule", "test_lab_manager",
 )
 
 
@@ -155,6 +156,12 @@ class SafeToolRunner:
                 result = self._write_file(step["target"], step["content"])
             elif step["kind"] == "run_test":
                 result = self._run_tests(step["target"])
+            elif step["kind"] == "simulate_circuit":
+                result = {
+                    "kind": "simulate_circuit", "target": step["target"],
+                    "status": "passed",
+                    "result": simulate_dc_resistive_network(step["circuit"]),
+                }
             else:
                 raise PolicyViolation("step kind is not executable")
             results.append(result)
