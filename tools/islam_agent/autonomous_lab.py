@@ -124,6 +124,7 @@ def run_autonomous_lab_proposal(
         "task": {"id": task["id"], "title": str(task.get("title", ""))[:500]},
         "model": str(record["model"])[:128],
         "proposal_summary_ar": str(proposal.get("summary_ar", ""))[:500],
+        "proposal": proposal,
         "execution_scope": "computational laboratory simulation only; no source writes, shell, network, GitHub, or physical hardware",
         "status": "verified" if error is None else "failed",
         "verified_numerically": error is None,
