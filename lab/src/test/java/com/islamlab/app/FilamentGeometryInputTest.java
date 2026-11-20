@@ -39,6 +39,11 @@ public class FilamentGeometryInputTest {
     }
 
     @Test(expected=IllegalArgumentException.class)
+    public void rejectsSinglePointWirePath() throws Exception {
+        FilamentGeometryInput.parse(VALID.replace("\"TX\":[[0.1,0,0],[0,0.1,0],[-0.1,0,0],[0,-0.1,0],[0.1,0,0]]", "\"TX\":[[0.1,0,0]]"));
+    }
+
+    @Test(expected=IllegalArgumentException.class)
     public void rejectsMalformedCoordinateDimension() throws Exception {
         FilamentGeometryInput.parse(VALID.replace("[0.1,0,0]","[0.1,0]"));
     }
