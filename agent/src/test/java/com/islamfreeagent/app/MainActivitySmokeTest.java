@@ -27,6 +27,8 @@ public class MainActivitySmokeTest {
             assertTrue(findButton(root, "حفظ التجربة لتعمل ليلاً"));
             assertTrue(findButton(root, "تفعيل الجدولة الليلية 20:00–06:00"));
             assertTrue(findButton(root, "إيقاف الجدولة الليلية"));
+            assertFalse(findText(root, "ربط محرك الكمبيوتر"));
+            assertFalse(findText(root, "اطلب اقتراحاً من Ollama"));
         }
     }
 
