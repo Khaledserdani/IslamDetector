@@ -395,7 +395,7 @@ public class MainActivity extends Activity {
         }
         lastApprovedProposal = null;
         lastUploadStepIndex = 0;
-        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit().clear().commit();
         return "نجح التنفيذ والاختبار، ورُفعت " + uploaded
                 + " ملفات إلى فرع العمل feature/islam-free-agent-safe-write. لم يحدث أي دمج.";
     }
@@ -405,7 +405,7 @@ public class MainActivity extends Activity {
         getSharedPreferences("approved_upload_retry", MODE_PRIVATE).edit()
                 .putString("proposal", lastApprovedProposal.toString())
                 .putInt("next_step", lastUploadStepIndex)
-                .apply();
+                .commit();
     }
 
     private void loadSavedApprovedUpload() {
