@@ -1,6 +1,7 @@
 import unittest
 
 from circuit_design import CircuitDesignError, compile_circuit_design, validate_design
+from tool_runner import SafeToolRunner
 
 
 def divider():
@@ -54,6 +55,19 @@ class CircuitDesignTests(unittest.TestCase):
         spec["components"][0]["unit"] = "kohm"
         with self.assertRaises(CircuitDesignError):
             validate_design(spec)
+
+    def test_agent_plan_runs_only_validated_design_compiler(self):
+        proposal = {
+            "task_id": "design-1",
+            "summary_ar": "إنشاء مخطط مقسم مقاومات",
+            "steps": [{"kind": "design_circuit", "target": "circuit_design", "design": divider()}],
+            "needs_human_approval": True,
+            "claims_to_verify": [],
+        }
+        result = SafeToolRunner().execute_plan(proposal, "design-1", human_approved=True)
+        self.assertEqual(result[0]["kind"], "design_circuit")
+        self.assertEqual(result[0]["result"]["component_count"], 3)
+        self.assertIn(".end", result[0]["result"]["spice_netlist"])
 
     def test_rejects_nonfinite_and_out_of_range_values(self):
         spec = divider()
