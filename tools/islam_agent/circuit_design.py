@@ -73,7 +73,7 @@ def validate_design(spec):
         pins = part["pins"]
         if not isinstance(pins, dict) or set(pins) != {"1", "2"}:
             raise CircuitDesignError("two-terminal parts require pins 1 and 2")
-        if not all(isinstance(pins[p]) and NODE_RE.fullmatch(pins[p]) for p in ("1", "2")):
+        if not all(isinstance(pins[p], str) and NODE_RE.fullmatch(pins[p]) for p in ("1", "2")):
             raise CircuitDesignError("pin nodes must be valid labels")
         if pins["1"] == pins["2"]:
             raise CircuitDesignError("both component pins cannot connect to the same node")
