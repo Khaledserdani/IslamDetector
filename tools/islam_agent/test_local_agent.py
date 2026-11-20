@@ -44,6 +44,8 @@ class LocalProposalAgentTests(unittest.TestCase):
         self.assertIn("series_rlc", SYSTEM_PROMPT)
         self.assertIn("simulate_ac_network", SYSTEM_PROMPT)
         self.assertIn("linear_ac_network", SYSTEM_PROMPT)
+        self.assertIn("design_circuit", SYSTEM_PROMPT)
+        self.assertIn("circuit_design", SYSTEM_PROMPT)
 
     def test_rejects_model_extra_fields(self):
         plan = valid_plan()
