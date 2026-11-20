@@ -1,7 +1,7 @@
 package com.islamlab.app;
 
 /**
- * Geometry-driven 3D filament reference calculations.
+ * Geometry-driven 3D wire-path reference calculations. Open paths remain open; closed loops must repeat their first vertex.
  * Coordinates are metres, current is amperes, B is tesla and M is henry.
  * This is a thin-filament magnetostatic kernel, not a transient PI/soil solver.
  */
@@ -17,8 +17,8 @@ public final class FilamentPhysics {
     }
 
     private static Segments segments(double[][] path, String name) {
-        if (path == null || path.length < 4) throw new IllegalArgumentException(name + ": at least four 3D vertices required");
-        double[][] points = new double[path.length + 1][3];
+        if (path == null || path.length < 2) throw new IllegalArgumentException(name + ": at least two 3D vertices required");
+        double[][] points = new double[path.length][3];
         for (int i = 0; i < path.length; i++) {
             if (path[i] == null || path[i].length != 3) throw new IllegalArgumentException(name + ": each vertex must have three coordinates");
             for (int j = 0; j < 3; j++) {
@@ -26,14 +26,9 @@ public final class FilamentPhysics {
                 points[i][j] = path[i][j];
             }
         }
-        int count = path.length;
-        if (distance(points[0], points[count - 1]) > 1e-9) {
-            points[count] = points[0].clone();
-            count++;
-        }
-        double[][] mid = new double[count - 1][3];
-        double[][] dl = new double[count - 1][3];
-        for (int i = 0; i < count - 1; i++) {
+        double[][] mid = new double[path.length - 1][3];
+        double[][] dl = new double[path.length - 1][3];
+        for (int i = 0; i < path.length - 1; i++) {
             double length2 = 0;
             for (int j = 0; j < 3; j++) {
                 dl[i][j] = points[i + 1][j] - points[i][j];
