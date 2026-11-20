@@ -23,6 +23,7 @@ from transient_circuit import simulate_series_rlc
 from ac_network import simulate_ac_network
 from circuit_design import compile_circuit_design
 from circuit_components import validate_circuit_v2, component_catalog
+from kicad_export import compile_kicad_schematic
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +37,7 @@ AGENT_TEST_MODULES = (
     "test_tool_runner", "test_checkpoint", "test_checkpointed_runner",
     "test_local_agent", "test_local_workflow", "test_agent_cycle",
     "test_orchestrator", "test_review_pending", "test_bridge_server",
-    "test_safe_writer", "test_work_schedule", "test_lab_manager", "test_lab_catalog", "test_transient_circuit", "test_ac_network", "test_circuit_design", "test_circuit_components",
+    "test_safe_writer", "test_work_schedule", "test_lab_manager", "test_lab_catalog", "test_transient_circuit", "test_ac_network", "test_circuit_design", "test_circuit_components", "test_kicad_export",
 )
 
 
@@ -160,6 +161,12 @@ class SafeToolRunner:
                 result = self._write_file(step["target"], step["content"])
             elif step["kind"] == "run_test":
                 result = self._run_tests(step["target"])
+            elif step["kind"] == "export_kicad_schematic":
+                result = {
+                    "kind": "export_kicad_schematic", "target": step["target"],
+                    "status": "generated",
+                    "result": compile_kicad_schematic(step["design"]),
+                }
             elif step["kind"] == "validate_circuit_v2":
                 validated = validate_circuit_v2(step["design"])
                 result = {
