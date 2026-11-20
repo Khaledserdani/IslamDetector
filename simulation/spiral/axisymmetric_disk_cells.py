@@ -58,6 +58,10 @@ def _gauss_legendre(order: int) -> tuple[tuple[float, ...], tuple[float, ...]]:
                 break
         else:
             raise ArithmeticError("Gauss-Legendre root iteration did not converge")
+        p0, p1 = 1.0, x
+        for degree in range(2, order + 1):
+            p0, p1 = p1, ((2 * degree - 1) * x * p1 - (degree - 1) * p0) / degree
+        derivative = order * (x * p1 - p0) / (x * x - 1.0)
         weight = 2.0 / ((1.0 - x * x) * derivative * derivative)
         nodes[i], nodes[order - 1 - i] = -x, x
         weights[i] = weights[order - 1 - i] = weight
@@ -141,7 +145,9 @@ def resistance_matrix_ohm(
     result = []
     for i, cell in enumerate(cells):
         for other in cells[:i]:
-            if _meridional_gap(cell, other) <= 0.0:
+            radial_overlap = min(cell.r1_m, other.r1_m) - max(cell.r0_m, other.r0_m)
+            axial_overlap = min(cell.z1_m, other.z1_m) - max(cell.z0_m, other.z0_m)
+            if radial_overlap > 0.0 and axial_overlap > 0.0:
                 raise ValueError("resistance basis requires non-overlapping cell interiors")
         radial_integral = 0.5 * (cell.r1_m**2 - cell.r0_m**2)
         volume = 2.0 * math.pi * radial_integral * (cell.z1_m - cell.z0_m)
