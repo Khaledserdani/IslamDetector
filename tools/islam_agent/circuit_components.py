@@ -9,7 +9,7 @@ import math
 import re
 
 NODE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,31}$")
-REF_RE = re.compile(r"^([A-Z]{1,2})([0-9]{1,4})$")
+REF_RE = re.compile(r"^([A-Z]{1,3})([0-9]{1,4})$")
 
 # Pin order is explicit and stable; SPICE order is deliberately not inferred
 # from symbol artwork. Each component has a documented pin-number sequence.
@@ -59,6 +59,7 @@ def component_catalog():
             "required_rating": item.get("rating"),
             "spice_primitive": item["spice"],
             "simulation_model_required": item["model_required"],
+            "pin_number_policy": "must be supplied from the selected package datasheet",
         }
         for name, item in COMPONENT_LIBRARY.items()
     }
@@ -78,7 +79,7 @@ def validate_circuit_v2(spec):
         raise CircuitSchemaError("component count must be between 1 and 256")
     refs, nodes, normalized = set(), {ground}, []
     for part in parts:
-        if not isinstance(part,dict) or set(part)-{"ref","type","pins","value","unit","rating","model_id","package","manufacturer_part"}:
+        if not isinstance(part,dict) or set(part)-{"ref","type","pins","pin_numbers","value","unit","rating","model_id","package","manufacturer_part"}:
             raise CircuitSchemaError("component fields are invalid")
         kind=part.get("type")
         if kind not in COMPONENT_LIBRARY:
@@ -86,17 +87,27 @@ def validate_circuit_v2(spec):
         definition=COMPONENT_LIBRARY[kind]
         ref=part.get("ref")
         match=REF_RE.fullmatch(ref) if isinstance(ref,str) else None
-        if not match or not ref.startswith(definition["prefix"]) or ref in refs:
+        if not match or match.group(1) != definition["prefix"] or ref in refs:
             raise CircuitSchemaError("reference designator is invalid, mismatched, or duplicated")
         refs.add(ref)
         pins=part.get("pins")
         required_pin_numbers={p[0] for p in definition["pins"]}
         if not isinstance(pins,dict) or set(pins)!=required_pin_numbers:
-            raise CircuitSchemaError(f"{kind} requires exact pin numbers {sorted(required_pin_numbers)}")
+            raise CircuitSchemaError(f"{kind} requires exact logical pin keys {sorted(required_pin_numbers)}")
+        pin_numbers=part.get("pin_numbers")
+        if not isinstance(pin_numbers,dict) or set(pin_numbers)!=required_pin_numbers:
+            raise CircuitSchemaError(f"{ref} requires a physical pin-number map for every logical pin")
+        physical=[]
         for pin,node in pins.items():
             if not isinstance(node,str) or not NODE_RE.fullmatch(node):
-                raise CircuitSchemaError(f"invalid net label on {ref} pin {pin}")
+                raise CircuitSchemaError(f"invalid net label on {ref} logical pin {pin}")
+            physical_number=pin_numbers[pin]
+            if not isinstance(physical_number,str) or not re.fullmatch(r"[A-Za-z0-9_]{1,8}",physical_number):
+                raise CircuitSchemaError(f"invalid package pin number for {ref} logical pin {pin}")
+            physical.append(physical_number)
             nodes.add(node)
+        if len(set(physical))!=len(physical):
+            raise CircuitSchemaError(f"{ref} maps multiple logical pins to one physical package pin")
         if len(nodes)>512:
             raise CircuitSchemaError("circuit exceeds 512 distinct nets")
         unit=definition["value_unit"]
