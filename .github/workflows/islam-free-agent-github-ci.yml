@@ -80,6 +80,14 @@ jobs:
           test -s agent/build/outputs/apk/debug/agent-debug.apk
           unzip -t agent/build/outputs/apk/debug/agent-debug.apk
 
+      - name: Upload verified debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: islam-free-agent-debug-apk
+          path: source/agent/build/outputs/apk/debug/agent-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
   python-agent-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
