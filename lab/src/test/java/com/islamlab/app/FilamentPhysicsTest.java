@@ -50,6 +50,14 @@ public class FilamentPhysicsTest {
         assertEquals(2.0,FilamentPhysics.pathLengthMetres(path),1e-12);
     }
 
+    @Test public void finiteStraightWireMatchesExactBiotSavartSolution() {
+        double length=1.0, rho=0.5;
+        double[][] path={{0,0,0},{length,0,0}};
+        double exact=(2e-7/rho)*(length/2.0)/Math.sqrt(rho*rho+(length/2.0)*(length/2.0))*2.0;
+        double actual=FilamentPhysics.fieldAtPoints(path,new double[][]{{length/2.0,0,rho}},1.0,1)[0][1];
+        assertEquals(-exact,actual,Math.abs(exact)*1e-12);
+    }
+
     @Test public void openWireFieldUsesOnlySuppliedSegment() {
         double[][] path={{-0.5,0,0},{0.5,0,0}};
         double[] field=FilamentPhysics.fieldAtPoints(path,new double[][]{{0,0,0.5}},1.0,1)[0];
