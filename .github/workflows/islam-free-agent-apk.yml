@@ -6,7 +6,6 @@ on:
       - feature/islam-free-agent-foundation
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
-      - feature/islam-free-agent-schedule-labs
     paths:
       - 'agent/**'
       - 'build.gradle'
