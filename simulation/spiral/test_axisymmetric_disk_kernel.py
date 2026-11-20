@@ -4,7 +4,7 @@ import unittest
 from axisymmetric_disk_kernel import (
     azimuthal_cosine_kernel_per_m,
     azimuthally_integrated_neumann_kernel_per_m,
-    finite_cell_inductance_integrand_h_per_m2,
+    finite_cell_inductance_integrand_h_per_m4,
 )
 
 
@@ -43,7 +43,7 @@ class AxisymmetricDiskKernelTests(unittest.TestCase):
             azimuthally_integrated_neumann_kernel_per_m(0.01, 0.02, 0.01, 0.02)
 
     def test_finite_cell_density_is_positive_and_finite_off_diagonal(self):
-        value = finite_cell_inductance_integrand_h_per_m2(
+        value = finite_cell_inductance_integrand_h_per_m4(
             0.012, 0.003, 0.007, 0.021, 1.0e-6, 2.0e-6
         )
         self.assertTrue(math.isfinite(value))
@@ -51,7 +51,7 @@ class AxisymmetricDiskKernelTests(unittest.TestCase):
 
     def test_invalid_cell_area_is_rejected(self):
         with self.assertRaises(ValueError):
-            finite_cell_inductance_integrand_h_per_m2(
+            finite_cell_inductance_integrand_h_per_m4(
                 0.012, 0.003, 0.007, 0.021, 0.0, 2.0e-6
             )
 
