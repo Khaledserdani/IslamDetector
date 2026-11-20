@@ -17,7 +17,7 @@ def sample_design():
                 "pins": {"1": "VIN", "2": "VPLUS"},
                 "pin_numbers": {"1": "1", "2": "2"},
                 "value": 10000, "unit": "ohm", "rating": {"power_w": 0.25},
-                "package": "0603", "manufacturer_part": "GENERIC-10K",
+                "package": "0603", "footprint": "Resistor_SMD:R_0603_1608Metric", "manufacturer_part": "GENERIC-10K",
             },
             {
                 "ref": "U1", "type": "opamp",
@@ -42,6 +42,9 @@ class KiCadExportTests(unittest.TestCase):
         self.assertIn('(number "6"', source)
         self.assertIn('(label "VOUT"', source)
         self.assertIn('(label "GND"', source)
+        self.assertIn('(property "Footprint" "Resistor_SMD:R_0603_1608Metric"', source)
+        self.assertIn('(property "ISLAM_Package" "SOIC-8"', source)
+        self.assertIn('(property "Simulation_Model_ID" "vendor.example:OPAMP_MODEL"', source)
         self.assertIn('(instances (project "ISLAM"', source)
         self.assertEqual(result["component_count"], 2)
         self.assertEqual(result["pin_count"], 7)
