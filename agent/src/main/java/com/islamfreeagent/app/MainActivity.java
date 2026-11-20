@@ -92,7 +92,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams dh = matchWrap(); dh.topMargin = dp(7);
         dcLab.addView(dcHelp, dh);
         dcVoltageInput = textInput("جهد المصدر بالفولت — مثال 10", InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
-        dcResistorsInput = bridgeInput("vcc,mid,1000;mid,0,1000", InputType.TYPE_CLASS_TEXT);
+        dcResistorsInput = textInput("vcc,mid,1000;mid,0,1000", InputType.TYPE_CLASS_TEXT);
         dcResistorsInput.setSingleLine(false);
         dcResistorsInput.setMinLines(2);
         dcResistorsInput.setGravity(Gravity.TOP | Gravity.LEFT);
@@ -101,10 +101,10 @@ public class MainActivity extends Activity {
         Button runDc = actionButton("تشغيل محاكاة DC على الهاتف");
         runDc.setOnClickListener(v -> runDcLabSimulation());
         dcLab.addView(runDc, actionButtonParams());
-        Button queueDc = bridgeButton("حفظ التجربة لتعمل ليلاً");
+        Button queueDc = actionButton("حفظ التجربة لتعمل ليلاً");
         queueDc.setOnClickListener(v -> enqueueDcLab());
-        dcLab.addView(queueDc, bridgeButtonParams());
-        Button enableNight = bridgeButton("تفعيل الجدولة الليلية 20:00–06:00");
+        dcLab.addView(queueDc, actionButtonParams());
+        Button enableNight = actionButton("تفعيل الجدولة الليلية 20:00–06:00");
         enableNight.setOnClickListener(v -> {
             try {
                 AgentLabScheduler.enable(this);
@@ -113,16 +113,16 @@ public class MainActivity extends Activity {
                 dcResultText.setText("تعذر تفعيل الجدولة: " + error.getMessage());
             }
         });
-        dcLab.addView(enableNight, bridgeButtonParams());
-        Button disableNight = bridgeButton("إيقاف الجدولة الليلية");
+        dcLab.addView(enableNight, actionButtonParams());
+        Button disableNight = actionButton("إيقاف الجدولة الليلية");
         disableNight.setOnClickListener(v -> {
             AgentLabScheduler.disable(this);
             dcResultText.setText("تم طلب إيقاف الجدولة الليلية.");
         });
-        dcLab.addView(disableNight, bridgeButtonParams());
-        Button queueStatus = bridgeButton("تحديث حالة تجارب المختبر");
+        dcLab.addView(disableNight, actionButtonParams());
+        Button queueStatus = actionButton("تحديث حالة تجارب المختبر");
         queueStatus.setOnClickListener(v -> dcResultText.setText(AgentLabQueue.summary(this)));
-        dcLab.addView(queueStatus, bridgeButtonParams());
+        dcLab.addView(queueStatus, actionButtonParams());
         dcResultText = text("لم تُشغّل محاكاة بعد.", 13, MUTED, false);
         LinearLayout.LayoutParams dr = matchWrap(); dr.topMargin = dp(9);
         dcLab.addView(dcResultText, dr);
@@ -264,27 +264,27 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
-        githubTokenInput = bridgeInput("ألصق Fine-grained token هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        githubTokenInput = textInput("ألصق Fine-grained token هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         githubTokenInput.setSingleLine(true);
         LinearLayout.LayoutParams tokenLp = matchWrap(); tokenLp.topMargin = dp(8);
         github.addView(githubTokenInput, tokenLp);
 
-        Button connect = bridgeButton("تحقق من الرمز واحفظه بأمان");
+        Button connect = actionButton("تحقق من الرمز واحفظه بأمان");
         connect.setOnClickListener(v -> connectGitHub());
-        github.addView(connect, bridgeButtonParams());
+        github.addView(connect, actionButtonParams());
 
-        Button refresh = bridgeButton("تحديث بيانات GitHub");
+        Button refresh = actionButton("تحديث بيانات GitHub");
         refresh.setOnClickListener(v -> refreshGitHub());
-        github.addView(refresh, bridgeButtonParams());
+        github.addView(refresh, actionButtonParams());
 
-        Button disconnect = bridgeButton("فصل GitHub وحذف الرمز من الهاتف");
+        Button disconnect = actionButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {
             GitHubTokenStore.clear(this);
             githubTokenInput.setText("");
             githubStatusText.setText("تم فصل الربط محلياً. أعد إنشاء الرمز أو ربطه عند الحاجة.");
             githubStatusText.setTextColor(MUTED);
         });
-        github.addView(disconnect, bridgeButtonParams());
+        github.addView(disconnect, actionButtonParams());
 
         githubStatusText = text("GitHub غير مربوط. المهام المحلية لا تتأثر.", 12, MUTED, false);
         LinearLayout.LayoutParams statusLp = matchWrap(); statusLp.topMargin = dp(10);
