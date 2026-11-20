@@ -42,6 +42,7 @@ def write_memory(path, status="pending"):
             "title": "Build proposal orchestrator",
             "acceptance": "Validated proposal awaits human approval",
             "status": status,
+            "scope": "manager",
         }],
     }), encoding="utf-8")
 
