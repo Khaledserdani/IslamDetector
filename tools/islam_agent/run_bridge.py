@@ -107,7 +107,7 @@ def main() -> int:
     print(f"النموذج المحلي: {args.model}", flush=True)
     print("يبقى Ollama على 127.0.0.1:11434 ولا تفتح منفذه للإنترنت.", flush=True)
     if not args.no_continuous:
-        print(f"العمل التلقائي يومياً {args.work_start}-{args.work_end} بتوقيت الجزائر؛ فحص كل {args.interval_seconds} ثانية داخل النافذة، مع موافقة بشرية لكل اقتراح أو تعديل.", flush=True)
+        print(f"العمل التلقائي يومياً {args.work_start}-{args.work_end} بتوقيت الجزائر؛ المحاكاة المختبرية المسموحة تنفذ وتتحقق تلقائياً، أما تعديل الملفات فينتظر موافقتك.", flush=True)
     else:
         print("المتابعة الدورية معطلة؛ يمكن طلب الاقتراح يدوياً من الهاتف.", flush=True)
     print("أوقف الجسر بـ Ctrl+C. إعادة التشغيل تنهي جلسة الهاتف الحالية.", flush=True)
