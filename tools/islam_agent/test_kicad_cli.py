@@ -70,6 +70,26 @@ class KiCadCliIntegrationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout)
             self.assertTrue(list(output.glob("*.svg")), result.stdout)
 
+    def test_kicad_cli_generates_erc_report_without_claiming_zero_violations(self):
+        executable = shutil.which("kicad-cli")
+        self.assertIsNotNone(executable, "kicad-cli must be installed in this validation job")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "ISLAM.kicad_sch"
+            report = root / "ISLAM-erc.rpt"
+            source.write_text(compile_kicad_schematic(design())["kicad_sch"], encoding="utf-8")
+            result = subprocess.run(
+                [executable, "sch", "erc", "--output", str(report), "--severity-all", str(source)],
+                cwd=root, shell=False, text=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, timeout=120, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertTrue(report.is_file(), result.stdout)
+            report_text = report.read_text(encoding="utf-8")
+            self.assertTrue(report_text.strip(), "KiCad ERC report must not be empty")
+            # Report generation is verified; this test does not interpret an
+            # unreviewed prototype's violations as a clean ERC.
+
 
 if __name__ == "__main__":
     unittest.main()
