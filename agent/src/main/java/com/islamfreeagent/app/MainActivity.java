@@ -31,6 +31,9 @@ public class MainActivity extends Activity {
     private LinearLayout taskList;
     private TextView countText;
     private TextView bridgeStatusText;
+    private EditText dcVoltageInput;
+    private EditText dcResistorsInput;
+    private TextView dcResultText;
     private EditText bridgeHostInput;
     private EditText bridgePortInput;
     private EditText bridgePinInput;
@@ -92,6 +95,26 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams en = matchWrap(); en.topMargin = dp(5);
         status.addView(engine, en);
         addPanel(page, status, 12);
+
+        LinearLayout dcLab = panel();
+        dcLab.addView(text("مختبر DC المحلي — يعمل دون كمبيوتر أو إنترنت", 17, Color.WHITE, true), matchWrap());
+        TextView dcHelp = text("مصدر جهد مثالي بين vcc والأرضي 0. اكتب المقاومات كسطور مفصولة بفاصلة منقوطة، وكل سطر: العقدة الأولى,العقدة الثانية,المقاومة بالأوم. مثال: vcc,mid,1000;mid,0,1000", 12, MUTED, false);
+        LinearLayout.LayoutParams dh = matchWrap(); dh.topMargin = dp(7);
+        dcLab.addView(dcHelp, dh);
+        dcVoltageInput = bridgeInput("جهد المصدر بالفولت — مثال 10", InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        dcResistorsInput = bridgeInput("vcc,mid,1000;mid,0,1000", InputType.TYPE_CLASS_TEXT);
+        dcResistorsInput.setSingleLine(false);
+        dcResistorsInput.setMinLines(2);
+        dcResistorsInput.setGravity(Gravity.TOP | Gravity.LEFT);
+        addInput(dcLab, dcVoltageInput);
+        addInput(dcLab, dcResistorsInput);
+        Button runDc = bridgeButton("تشغيل محاكاة DC على الهاتف");
+        runDc.setOnClickListener(v -> runDcLabSimulation());
+        dcLab.addView(runDc, bridgeButtonParams());
+        dcResultText = text("لم تُشغّل محاكاة بعد.", 13, MUTED, false);
+        LinearLayout.LayoutParams dr = matchWrap(); dr.topMargin = dp(9);
+        dcLab.addView(dcResultText, dr);
+        addPanel(page, dcLab, 12);
 
         LinearLayout bridge = panel();
         bridge.addView(text("ربط محرك الكمبيوتر", 18, Color.WHITE, true), matchWrap());
@@ -160,6 +183,46 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
+    }
+
+    private void runDcLabSimulation() {
+        final double volts;
+        final java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
+        try {
+            volts = Double.parseDouble(dcVoltageInput.getText().toString().trim());
+            String raw = dcResistorsInput.getText().toString().trim();
+            if (raw.isEmpty()) throw new IllegalArgumentException("أدخل مقاومة واحدة على الأقل");
+            String[] rows = raw.split("[;\\n]+");
+            if (rows.length > 100) throw new IllegalArgumentException("الحد الأقصى 100 مقاومة في التجربة");
+            for (String row : rows) {
+                String[] fields = row.trim().split(",");
+                if (fields.length != 3) throw new IllegalArgumentException("صيغة كل مقاومة: عقدة,عقدة,أوم");
+                resistors.add(new AgentDcLab.Resistor(fields[0].trim(), fields[1].trim(),
+                        Double.parseDouble(fields[2].trim())));
+            }
+        } catch (Exception error) {
+            dcResultText.setText("مدخلات غير صحيحة: " + error.getMessage());
+            return;
+        }
+        dcResultText.setText("جارٍ حل الدارة والتحقق من قانون كيرشوف…");
+        networkExecutor.execute(() -> {
+            try {
+                AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", volts, resistors);
+                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\\n");
+                for (java.util.Map.Entry<String, Double> entry : result.nodeVoltages.entrySet()) {
+                    report.append(entry.getKey()).append(" = ")
+                            .append(String.format(java.util.Locale.US, "%.6f V", entry.getValue())).append("\\n");
+                }
+                report.append("تيار المصدر: ")
+                        .append(String.format(java.util.Locale.US, "%.9f A", result.sourceCurrentAmps))
+                        .append("\\nأقصى خطأ KCL: ")
+                        .append(String.format(java.util.Locale.US, "%.3e A", result.maximumKclResidualAmps));
+                final String message = report.toString();
+                runOnUiThread(() -> dcResultText.setText(message));
+            } catch (Exception error) {
+                runOnUiThread(() -> dcResultText.setText("تعذر حل الدارة: " + error.getMessage()));
+            }
+        });
     }
 
     private EditText bridgeInput(String hint, int type) {
