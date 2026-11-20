@@ -115,6 +115,7 @@ class BridgeApplication:
             "phone_pairing": "paired" if self._session_hash else "waiting",
             "proposal_execution": "human_approval_required",
             "autonomous_lab_execution": "validated_simulations_only",
+            "work_window": getattr(self, "work_window", None),
             "continuous_worker": "running" if self._worker_thread and self._worker_thread.is_alive() else "stopped",
             "worker_last_status": self._worker_last_status,
             "worker_interval_seconds": getattr(self, "_worker_interval_seconds", None),
