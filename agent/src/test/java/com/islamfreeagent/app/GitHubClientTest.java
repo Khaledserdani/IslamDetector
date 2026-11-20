@@ -21,6 +21,8 @@ public class GitHubClientTest {
         assertTrue(GitHubClient.isAllowedWritePath("docs/agent/agent_worklog.md"));
         assertFalse(GitHubClient.isAllowedWritePath(".github/workflows/release.yml"));
         assertFalse(GitHubClient.isAllowedWritePath("docs/agent/agent_memory.json"));
+        assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/GitHubClient.java"));
+        assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/BridgeClient.java"));
         assertFalse(GitHubClient.isAllowedWritePath("../../.env"));
         assertFalse(GitHubClient.isAllowedWritePath(null));
     }
