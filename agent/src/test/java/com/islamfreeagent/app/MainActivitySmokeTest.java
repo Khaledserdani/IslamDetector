@@ -27,6 +27,10 @@ public class MainActivitySmokeTest {
             assertTrue(findButton(root, "حفظ التجربة لتعمل ليلاً"));
             assertTrue(findButton(root, "تفعيل الجدولة الليلية 20:00–06:00"));
             assertTrue(findButton(root, "إيقاف الجدولة الليلية"));
+            assertTrue(findText(root, "الذكاء الاصطناعي المحلي — Qwen3 0.6B"));
+            assertTrue(findButton(root, "تنزيل النموذج المجاني (Wi-Fi فقط)"));
+            assertTrue(findButton(root, "التحقق من النموذج وتشغيل الذكاء المحلي"));
+            assertTrue(findButton(root, "إرسال إلى الذكاء المحلي"));
             assertFalse(findText(root, "ربط محرك الكمبيوتر"));
             assertFalse(findText(root, "اطلب اقتراحاً من Ollama"));
         }
