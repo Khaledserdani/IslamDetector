@@ -114,6 +114,7 @@ jobs:
             test_safe_writer \
             test_work_schedule \
             test_autonomous_lab \
+            test_bridge_autonomous_lab \
             test_lab_manager \
             test_lab_catalog \
             test_transient_circuit \
