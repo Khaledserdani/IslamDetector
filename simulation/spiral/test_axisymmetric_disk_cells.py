@@ -46,6 +46,14 @@ class FiniteCellAssemblyTests(unittest.TestCase):
         self.assertEqual(matrix[1][0], 0.0)
         self.assertGreater(matrix[1][1], 0.0)
 
+
+    def test_resistance_accepts_cells_that_only_share_a_boundary(self):
+        adjacent = MeridionalCell(0.012, 0.014, -0.001, 0.001)
+        matrix = resistance_matrix_ohm((self.a, adjacent), 3.5e6)
+        self.assertGreater(matrix[0][0], 0.0)
+        self.assertGreater(matrix[1][1], 0.0)
+        self.assertEqual(matrix[0][1], 0.0)
+
     def test_quadrature_convergence_api(self):
         value, order = converged_mutual_inductance_h(
             self.a, self.b, orders=(4, 6, 8, 10), relative_tolerance=1.0e-4
