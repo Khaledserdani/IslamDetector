@@ -63,7 +63,8 @@ def simulate_series_rlc(spec):
         x_c = 1.0 / (omega * c)
         reactance = x_l - x_c
         impedance = math.hypot(r, reactance)
-        if impedance < 1e-15:
+        numerical_floor = 1e-12 * max(1.0, x_l, x_c)
+        if impedance <= numerical_floor:
             raise RLCInputError("ideal zero-impedance resonance is unbounded; add realistic series resistance")
         current = abs(voltage_rms) / impedance
         phase = -math.atan2(reactance, r)
