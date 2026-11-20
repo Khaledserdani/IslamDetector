@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
         store = new AgentTaskStore(this);
         buildScreen();
         loadSavedBridgeSettings();
+        loadSavedGitHubSettings();
         renderTasks();
     }
 
@@ -409,6 +410,20 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams statusLp = matchWrap(); statusLp.topMargin = dp(10);
         github.addView(githubStatusText, statusLp);
         addPanel(page, github, 12);
+    }
+
+    private void loadSavedGitHubSettings() {
+        try {
+            String savedToken = GitHubTokenStore.load(this);
+            if (savedToken != null && !savedToken.isEmpty()) {
+                githubStatusText.setText("رمز GitHub محفوظ ومشفّر على الهاتف. اضغط «تحديث بيانات GitHub» للتحقق من الجلسة.");
+                githubStatusText.setTextColor(Color.rgb(130, 220, 185));
+            }
+        } catch (Exception error) {
+            GitHubTokenStore.clear(this);
+            githubStatusText.setText("تعذر فتح الرمز المحفوظ؛ احذفه وأنشئ رمزاً جديداً.");
+            githubStatusText.setTextColor(Color.rgb(255, 150, 140));
+        }
     }
 
     private void connectGitHub() {
