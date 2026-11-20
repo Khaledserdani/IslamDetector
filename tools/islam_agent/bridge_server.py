@@ -305,7 +305,7 @@ class BridgeApplication:
                 }
                 self.upload_pending_path.parent.mkdir(parents=True, exist_ok=True)
                 self.upload_pending_path.write_text(
-                    json.dumps(upload_record, ensure_ascii=False, indent=2) + "\\n",
+                    json.dumps(upload_record, ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8",
                 )
 
