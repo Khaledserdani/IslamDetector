@@ -45,6 +45,19 @@ public class FilamentPhysicsTest {
         assertEquals(-forward,backward,Math.abs(forward)*1e-12);
     }
 
+    @Test public void openSpiralPathDoesNotGainPhantomClosingSegment() {
+        double[][] path={{0,0,0},{1,0,0},{1,1,0}};
+        assertEquals(2.0,FilamentPhysics.pathLengthMetres(path),1e-12);
+    }
+
+    @Test public void openWireFieldUsesOnlySuppliedSegment() {
+        double[][] path={{-0.5,0,0},{0.5,0,0}};
+        double[] field=FilamentPhysics.fieldAtPoints(path,new double[][]{{0,0,0.5}},1.0,1)[0];
+        assertTrue(Math.abs(field[1])>0.0);
+        assertEquals(0.0,field[0],1e-18);
+        assertEquals(0.0,field[2],1e-18);
+    }
+
     @Test public void pathLengthMatchesCircleCircumference() {
         double radius=0.16;
         double length=FilamentPhysics.pathLengthMetres(FilamentPhysics.circularLoop(radius,2048,0));
