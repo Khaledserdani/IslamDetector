@@ -69,9 +69,9 @@ class SafeToolRunnerTests(unittest.TestCase):
         self.assertEqual(kwargs["timeout"], 120)
         self.assertEqual(command[1:4], ["-m", "unittest", "-v"])
         self.assertEqual(tuple(command[4:]), AGENT_TEST_MODULES)
-        self.assertEqual(len(AGENT_TEST_MODULES), 10)
+        self.assertEqual(len(AGENT_TEST_MODULES), 11)
         self.assertIn("test_agent_cycle", AGENT_TEST_MODULES)
-        self.assertIn("test_orchestrator", AGENT_TEST_MODULES)
+        self.assertIn("test_orchestrator", AGENT_TEST_MODULES)\n        self.assertIn("test_review_pending", AGENT_TEST_MODULES)
 
     def test_failed_tests_stop_later_steps(self):
         with patch("tool_runner.subprocess.run") as run:
