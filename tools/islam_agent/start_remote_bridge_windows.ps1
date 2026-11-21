@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $RepoRoot
 
 function Stop-WithMessage([string]$Message) {
@@ -29,6 +29,14 @@ try {
 $Python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $Python) { $Python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $Python) { Stop-WithMessage "Python 3 غير مثبت أو غير موجود في PATH." }
+if ($Python.Name -eq "py.exe" -or $Python.Name -eq "py") {
+    $PythonVersion = & $Python.Source -3 --version 2>&1
+} else {
+    $PythonVersion = & $Python.Source --version 2>&1
+}
+if ($LASTEXITCODE -ne 0 -or "$PythonVersion" -notmatch '^Python 3\\.') {
+    Stop-WithMessage "يلزم Python 3؛ النسخة المكتشفة: $PythonVersion"
+}
 
 $OpenSSL = Get-Command openssl -ErrorAction SilentlyContinue
 if (-not $OpenSSL) { Stop-WithMessage "OpenSSL غير موجود في PATH. ثبّته ثم أعد التشغيل." }
