@@ -74,7 +74,7 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("following rising edge", self.pio_source)
 
     def test_capture_shift_width_matches_one_adc_word(self):
-        self.assertIn("sm_config_set_in_shift(&capture_config, true, true, 16u)", self.c_source)
+        self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
         self.assertIn("in pins, 1 side 1 [6]", self.pio_source)
         self.assertIn("uint32_t capture_buffer[ADS8861_SWEEP_SAMPLES]", self.c_source)
         self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
