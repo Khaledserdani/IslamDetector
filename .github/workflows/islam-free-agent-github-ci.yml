@@ -5,6 +5,7 @@ on:
     branches:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-tailnet-transport
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -15,6 +16,7 @@ on:
   pull_request:
     branches:
       - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-safe-write
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -111,3 +113,17 @@ jobs:
             test_review_pending \
             test_bridge_server \
             test_safe_writer
+      - name: Validate Windows PowerShell launcher syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "tools/islam_agent/start_remote_bridge_windows.ps1",
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }

@@ -11,6 +11,17 @@ public class BridgeClientTest {
         assertTrue(BridgeClient.isPrivateIpv4("172.16.0.4"));
     }
 
+    @Test public void acceptsTailscaleOverlayAddresses() {
+        assertTrue(BridgeClient.isAllowedBridgeIpv4("100.64.0.1"));
+        assertTrue(BridgeClient.isAllowedBridgeIpv4("100.100.20.30"));
+        assertTrue(BridgeClient.isAllowedBridgeIpv4("100.127.255.254"));
+    }
+
+    @Test public void rejectsAddressesOutsideLanAndTailscaleRanges() {
+        assertFalse(BridgeClient.isAllowedBridgeIpv4("100.63.255.255"));
+        assertFalse(BridgeClient.isAllowedBridgeIpv4("100.128.0.1"));
+    }
+
     @Test public void rejectsPublicLoopbackAndInvalidHosts() {
         assertFalse(BridgeClient.isPrivateIpv4("8.8.8.8"));
         assertFalse(BridgeClient.isPrivateIpv4("1.1.1.1"));

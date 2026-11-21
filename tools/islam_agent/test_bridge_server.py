@@ -260,8 +260,19 @@ class BridgeServerTests(unittest.TestCase):
             server.server_close()
             thread.join(timeout=2)
 
+    def test_accepts_tailscale_overlay_address(self):
+        import ipaddress
+        from bridge_server import is_allowed_bridge_ipv4
+        self.assertTrue(is_allowed_bridge_ipv4(ipaddress.ip_address("100.100.20.30")))
+
+    def test_refuses_addresses_outside_lan_and_tailscale_ranges(self):
+        import ipaddress
+        from bridge_server import is_allowed_bridge_ipv4
+        for value in ("8.8.8.8", "100.63.255.255", "100.128.0.1", "127.0.0.1"):
+            self.assertFalse(is_allowed_bridge_ipv4(ipaddress.ip_address(value)))
+
     def test_refuses_public_network_bind_address(self):
-        with self.assertRaisesRegex(ValueError, "private IPv4"):
+        with self.assertRaisesRegex(ValueError, "RFC1918"):
             create_server("8.8.8.8", 8765, self.app, self.root / "cert.pem", self.root / "key.pem")
 
     def test_refuses_invalid_port(self):

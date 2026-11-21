@@ -18,6 +18,7 @@ from bridge_server import BridgeApplication, create_server
 
 ROOT = Path(__file__).resolve().parents[2]
 TLS_DIR = Path.home() / ".islam-free-agent" / "bridge-tls"
+TAILSCALE_IPV4 = ipaddress.ip_network("100.64.0.0/10")
 
 
 def discover_lan_ipv4() -> str:
@@ -31,6 +32,25 @@ def discover_lan_ipv4() -> str:
     if parsed.version != 4 or not parsed.is_private or parsed.is_loopback:
         raise RuntimeError("تعذر اكتشاف عنوان IPv4 خاص بالشبكة المحلية")
     return address
+
+
+def discover_tailscale_ipv4() -> str:
+    """Return this machine's Tailscale IPv4 address."""
+    executable = shutil.which("tailscale")
+    if not executable:
+        raise RuntimeError("Tailscale غير مثبت أو غير موجود في PATH")
+    result = subprocess.run(
+        [executable, "ip", "-4"], check=True, capture_output=True, text=True, timeout=10
+    )
+    for candidate in result.stdout.splitlines():
+        candidate = candidate.strip()
+        try:
+            address = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue
+        if address.version == 4 and address in TAILSCALE_IPV4:
+            return str(address)
+    raise RuntimeError("لم يعثر Tailscale على عنوان IPv4 صالح ضمن 100.64.0.0/10")
 
 
 def ensure_certificate(host: str, directory: Path = TLS_DIR) -> tuple[Path, Path]:
@@ -68,27 +88,33 @@ def ensure_certificate(host: str, directory: Path = TLS_DIR) -> tuple[Path, Path
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host", help="private LAN IPv4; auto-detected if omitted")
+    parser.add_argument("--host", help="private LAN IPv4 or Tailscale 100.64.0.0/10 address; LAN auto-detected if omitted")
+    parser.add_argument("--tailscale", action="store_true", help="bind to Tailscale IPv4 for remote access over the private tailnet")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--model", required=True, help="exact model name from ollama list")
     parser.add_argument("--interval-seconds", type=int, default=300, help="continuous proposal scan interval; minimum 300 seconds")
     parser.add_argument("--no-continuous", action="store_true", help="disable automatic proposal scanning")
     args = parser.parse_args()
     try:
-        host = args.host or discover_lan_ipv4()
+        if args.tailscale and args.host:
+            raise ValueError("استعمل --tailscale أو --host، وليس الاثنين معاً")
+        host = discover_tailscale_ipv4() if args.tailscale else (args.host or discover_lan_ipv4())
         cert, key = ensure_certificate(host)
         pair_code = f"{secrets.randbelow(1_000_000):06d}"
         app = BridgeApplication(pair_code, args.model)
+        app.transport = "https_tailscale" if args.tailscale else "https_lan"
         server = create_server(host, args.port, app, cert, key)
         if not args.no_continuous:
             app.start_continuous_worker(args.interval_seconds)
         der = ssl.PEM_cert_to_DER_cert(cert.read_text(encoding="ascii"))
         fingerprint = hashlib.sha256(der).hexdigest()
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"تعذر تشغيل جسر إسلام: {exc}", file=sys.stderr)
         return 2
 
     print("\n=== جسر ISLAM FREE AGENT الآمن ===", flush=True)
+    if args.tailscale:
+        print("النقل: Tailscale Tailnet — الهاتف والكمبيوتر يجب أن يكونا متصلين بالشبكة الخاصة نفسها.", flush=True)
     print(f"العنوان: https://{host}:{server.server_port}", flush=True)
     print(f"بصمة شهادة SHA-256: {fingerprint}", flush=True)
     print(f"رمز الاقتران لمرة واحدة (5 دقائق): {pair_code}", flush=True)
