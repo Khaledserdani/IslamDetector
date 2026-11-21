@@ -42,8 +42,8 @@ public class AgentTaskStoreTest {
     }
 
     @Test public void preservesLongTitleAndSeparateLongDescription() {
-        String title = new String(new char[1200]).replace('\\0', 'ع');
-        String description = "تفاصيل المهمة: " + new String(new char[12000]).replace('\\0', 'س');
+        String title = new String(new char[1200]).replace('\0', 'ع');
+        String description = "تفاصيل المهمة: " + new String(new char[12000]).replace('\0', 'س');
         AgentTaskStore.Task task = store.add(title, description);
         AgentTaskStore.Task restored = new AgentTaskStore(context).all().get(0);
         assertEquals(title, restored.title);
@@ -60,7 +60,7 @@ public class AgentTaskStoreTest {
 
     @Test public void rejectsOnlyBeyondDocumentedStorageLimit() {
         try {
-            store.add(new String(new char[AgentTaskStore.MAX_TITLE_CHARS + 1]).replace('\\0', 'x'));
+            store.add(new String(new char[AgentTaskStore.MAX_TITLE_CHARS + 1]).replace('\0', 'x'));
             fail("title beyond safety bound should be rejected");
         } catch (IllegalArgumentException expected) { assertTrue(expected.getMessage().contains("8192")); }
     }
