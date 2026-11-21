@@ -94,6 +94,42 @@ internal class OnDeviceAiEngine(
         }
     }
 
+    fun planTask(taskDescription: String, callback: Callback) {
+        executor.execute {
+            val activeEngine = engine
+            if (closed || activeEngine == null || conversation == null) {
+                callback.onFailure("حمّل النموذج المحلي أولاً")
+                return@execute
+            }
+            var planner: Conversation? = null
+            try {
+                val instruction = "أنت مخطط أدوات آمن داخل تطبيق إسلام. لا تنفذ أي شيء بنفسك. " +
+                    "إذا كانت المهمة تطلب إنشاء ملف نصي وكتابة محتواه ثم قراءته، أعد كائن JSON فقط " +
+                    "بالمفاتيح action وfilename وcontent، واجعل action يساوي write_and_read_text_file. " +
+                    "اسم الملف يجب أن يكون اسماً بسيطاً ينتهي .txt دون مجلدات أو مسارات. " +
+                    "إذا لم تكن المهمة من هذا النوع فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
+                    "لا تضف Markdown أو شرحاً خارج JSON، ولا تقترح أوامر نظام أو شبكة أو حذف ملفات.";
+                val taskConversation = activeEngine.createConversation(
+                    ConversationConfig(
+                        systemInstruction = Contents.of(instruction),
+                        thinkingConfig = com.google.ai.edge.litertlm.ThinkingConfig(
+                            enableThinking = false,
+                            thinkingTokenBudget = 0
+                        ),
+                        maxOutputToken = 256
+                    )
+                )
+                planner = taskConversation
+                val reply = taskConversation.sendMessage(taskDescription).toString()
+                callback.onSuccess(reply)
+            } catch (error: Exception) {
+                callback.onFailure(error.message ?: "تعذر تحليل المهمة محلياً")
+            } finally {
+                planner?.close()
+            }
+        }
+    }
+
     fun resetConversation(callback: Callback) {
         executor.execute {
             val activeEngine = engine

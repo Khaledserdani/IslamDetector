@@ -23,6 +23,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -185,6 +187,9 @@ public class MainActivity extends Activity {
         heading.addView(countText, wrap());
         LinearLayout.LayoutParams hp = matchWrap(); hp.topMargin = dp(22);
         page.addView(heading, hp);
+        TextView taskHelp = text("بعد إضافة المهمة، اضغط «تنفيذ» ليحللها Qwen ويعرض خطة محدودة قبل أي كتابة.", 12, MUTED, false);
+        LinearLayout.LayoutParams taskHelpLp = matchWrap(); taskHelpLp.topMargin = dp(6);
+        page.addView(taskHelp, taskHelpLp);
 
         Button add = button("＋ إضافة مهمة", GREEN);
         LinearLayout.LayoutParams ap = matchWrap(); ap.height = dp(50); ap.topMargin = dp(10);
@@ -221,7 +226,10 @@ public class MainActivity extends Activity {
         load.setOnClickListener(v -> verifyAndLoadModel());
         ai.addView(load, actionButtonParams());
 
-        aiPromptInput = textInput("اكتب سؤالك لإسلام — يعمل محلياً بعد تحميل النموذج", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        TextView promptLabel = text("اكتب رسالتك أو سؤالك هنا", 13, Color.WHITE, true);
+        LinearLayout.LayoutParams promptLabelLp = matchWrap(); promptLabelLp.topMargin = dp(10);
+        ai.addView(promptLabel, promptLabelLp);
+        aiPromptInput = textInput("اكتب رسالتك لإسلام هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         aiPromptInput.setSingleLine(false);
         aiPromptInput.setMinLines(2);
         aiPromptInput.setGravity(Gravity.TOP | Gravity.RIGHT);
@@ -428,6 +436,85 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void executeTaskWithLocalAi(AgentTaskStore.Task task) {
+        aiReplyText.setText("إسلام يحلل المهمة محلياً ويجهز خطة محدودة…");
+        localAi.planTask(task.title, new OnDeviceAiEngine.Callback() {
+            @Override public void onSuccess(String rawPlan) {
+                try {
+                    String cleaned = rawPlan.trim();
+                    int start = cleaned.indexOf('{');
+                    int end = cleaned.lastIndexOf('}');
+                    if (start < 0 || end <= start) {
+                        throw new IllegalArgumentException("لم يرجع النموذج خطة JSON صالحة.");
+                    }
+                    JSONObject plan = new JSONObject(cleaned.substring(start, end + 1));
+                    String action = plan.optString("action", "");
+                    if ("unsupported".equals(action)) {
+                        throw new IllegalArgumentException("هذه المهمة خارج الأدوات المحلية المسموحة حالياً.");
+                    }
+                    AgentTaskToolRunner.validate(plan);
+                    runOnUiThread(() -> showTaskPlanConfirmation(task, plan));
+                } catch (Exception error) {
+                    String message = error.getMessage() == null ? "خطة غير صالحة" : error.getMessage();
+                    store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
+                    runOnUiThread(() -> {
+                        aiReplyText.setText("لم تُنفذ المهمة: " + message);
+                        renderTasks();
+                        showMessage("تعذر تنفيذ المهمة", message);
+                    });
+                }
+            }
+            @Override public void onFailure(String message) {
+                store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
+                runOnUiThread(() -> {
+                    aiReplyText.setText("تعذر تحليل المهمة: " + message);
+                    renderTasks();
+                });
+            }
+        });
+    }
+
+    private void showTaskPlanConfirmation(AgentTaskStore.Task task, JSONObject plan) {
+        String filename = plan.optString("filename");
+        String content = plan.optString("content");
+        String preview = "العملية: إنشاء ملف نصي ثم قراءته للتحقق\n"
+                + "اسم الملف: " + filename + "\n"
+                + "المجلد: مساحة عمل التطبيق الخاصة\n\n"
+                + "المحتوى المقترح:\n" + content
+                + "\n\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.";
+        new AlertDialog.Builder(this)
+                .setTitle("مراجعة تنفيذ المهمة")
+                .setMessage(preview)
+                .setPositiveButton("موافقة وكتابة الملف", (dialog, which) -> {
+                    aiReplyText.setText("جارٍ إنشاء الملف وقراءته للتحقق…");
+                    networkExecutor.execute(() -> {
+                        try {
+                            JSONObject result = new AgentTaskToolRunner(this).execute(plan);
+                            String verified = "تم التنفيذ والتحقق من القراءة.\nالملف: "
+                                    + result.getString("path") + "\n"
+                                    + "الحجم: " + result.getInt("bytes") + " بايت\n"
+                                    + "المحتوى المقروء:\n" + result.getString("content");
+                            store.setExecutionResult(task.id, true, verified);
+                            runOnUiThread(() -> {
+                                aiReplyText.setText(verified);
+                                renderTasks();
+                                showMessage("اكتملت المهمة بعد التحقق", verified);
+                            });
+                        } catch (Exception error) {
+                            String message = error.getMessage() == null ? "فشل تنفيذ الملف" : error.getMessage();
+                            store.setExecutionResult(task.id, false, "فشل التنفيذ: " + message);
+                            runOnUiThread(() -> {
+                                aiReplyText.setText("فشل التنفيذ: " + message);
+                                renderTasks();
+                                showMessage("لم تكتمل المهمة", message);
+                            });
+                        }
+                    });
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
+    }
+
     private java.util.ArrayList<AgentDcLab.Resistor> readDcResistors() {
         java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
         String raw = dcResistorsInput.getText().toString().trim();
@@ -624,6 +711,14 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void showMessage(String title, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("إغلاق", null)
+                .show();
+    }
+
     private void renderTasks() {
         taskList.removeAllViews();
         List<AgentTaskStore.Task> tasks = store.all();
@@ -648,12 +743,9 @@ public class MainActivity extends Activity {
             if (task.done) taskTitle.setPaintFlags(taskTitle.getPaintFlags() | 16);
             row.addView(taskTitle, new LinearLayout.LayoutParams(0, -2, 1));
 
-            Button toggle = smallButton(task.done ? "إعادة" : "تم", task.done ? Color.rgb(75, 91, 111) : GREEN);
-            row.addView(toggle, new LinearLayout.LayoutParams(dp(66), dp(38)));
-            toggle.setOnClickListener(v -> {
-                store.setDone(task.id, !task.done);
-                renderTasks();
-            });
+            Button execute = smallButton(task.done ? "إعادة" : "تنفيذ", task.done ? Color.rgb(75, 91, 111) : GREEN);
+            row.addView(execute, new LinearLayout.LayoutParams(dp(66), dp(38)));
+            execute.setOnClickListener(v -> executeTaskWithLocalAi(task));
 
             Button delete = smallButton("حذف", Color.rgb(132, 61, 65));
             LinearLayout.LayoutParams del = new LinearLayout.LayoutParams(dp(62), dp(38));
@@ -665,6 +757,11 @@ public class MainActivity extends Activity {
             });
 
             card.addView(row, matchWrap());
+            if (task.result != null && !task.result.isEmpty()) {
+                TextView result = text(task.result, 12, task.done ? Color.rgb(130, 220, 185) : MUTED, false);
+                LinearLayout.LayoutParams resultLp = matchWrap(); resultLp.topMargin = dp(8);
+                card.addView(result, resultLp);
+            }
             LinearLayout.LayoutParams cp = matchWrap(); cp.topMargin = dp(8);
             taskList.addView(card, cp);
         }
@@ -672,9 +769,10 @@ public class MainActivity extends Activity {
 
     private void showAddTaskDialog() {
         EditText input = new EditText(this);
-        input.setSingleLine(true);
+        input.setSingleLine(false);
+        input.setMinLines(2);
         input.setTextSize(16);
-        input.setHint("اكتب عنوان المهمة");
+        input.setHint("اكتب وصف المهمة بالتفصيل");
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         input.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         new AlertDialog.Builder(this)

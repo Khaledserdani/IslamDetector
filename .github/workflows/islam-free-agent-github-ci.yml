@@ -20,6 +20,7 @@ on:
     branches:
       - feature/islam-free-agent-foundation
       - feature/islam-free-agent-schedule-labs
+      - feature/islam-free-agent-phone-only-v6
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'

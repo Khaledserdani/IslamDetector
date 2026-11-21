@@ -31,7 +31,9 @@ public class MainActivitySmokeTest {
             assertTrue(findButton(root, "تنزيل النموذج المجاني عبر الإنترنت"));
             assertTrue(findTextContaining(root, "يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف"));
             assertTrue(findButton(root, "التحقق من النموذج وتشغيل الذكاء المحلي"));
+            assertTrue(findText(root, "اكتب رسالتك أو سؤالك هنا"));
             assertTrue(findButton(root, "إرسال إلى الذكاء المحلي"));
+            assertTrue(findTextContaining(root, "بعد إضافة المهمة، اضغط"));
             assertFalse(findText(root, "ربط محرك الكمبيوتر"));
             assertFalse(findText(root, "اطلب اقتراحاً من Ollama"));
         }
