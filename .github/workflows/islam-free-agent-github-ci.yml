@@ -5,6 +5,7 @@ on:
     branches:
       - feature/islam-free-agent-github
       - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-tailnet-transport
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
@@ -15,6 +16,7 @@ on:
   pull_request:
     branches:
       - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-safe-write
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'
