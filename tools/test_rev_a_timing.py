@@ -80,15 +80,21 @@ class RevATimingTests(unittest.TestCase):
         self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
 
     def test_msb_first_adc_word_is_right_aligned_without_bit_reversal(self):
-        # PIO shift-left inserts each serial bit at ISR[0]. With MSB-first
-        # DOUT, the original 16-bit word is therefore in ISR[15:0].
+        # Pico SDK semantics: shift_right=False shifts ISR left. For the
+        # ADS8861 MSB-first stream, each new bit enters ISR[0], leaving the
+        # original word in ISR[15:0] after exactly 16 samples.
         sample = 0xA55A
-        isr = 0
+        shift_left_isr = 0
+        shift_right_isr = 0
         for bit_index in range(15, -1, -1):
-            isr = ((isr << 1) | ((sample >> bit_index) & 1)) & 0xFFFFFFFF
-        self.assertEqual(isr & 0xFFFF, sample)
-        self.assertIn("sm_config_set_in_shift(&capture_config, true, true, 16u)", self.c_source)
-        self.assertNotIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
+            bit = (sample >> bit_index) & 1
+            shift_left_isr = ((shift_left_isr << 1) | bit) & 0xFFFFFFFF
+            shift_right_isr = (shift_right_isr >> 1) | (bit << 31)
+
+        self.assertEqual(shift_left_isr & 0xFFFF, sample)
+        self.assertNotEqual(shift_right_isr & 0xFFFF, sample)
+        self.assertIn("sm_config_set_in_shift(&capture_config, false, true, 16u)", self.c_source)
+        self.assertNotIn("sm_config_set_in_shift(&capture_config, true, true, 16u)", self.c_source)
         self.assertIn("(uint16_t)(capture_buffer[i] & 0xFFFFu)", self.c_source)
 
     def test_first_dout_sample_waits_for_msb_valid(self):
