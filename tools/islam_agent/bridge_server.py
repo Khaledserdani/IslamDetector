@@ -36,7 +36,14 @@ TAILSCALE_IPV4 = ipaddress.ip_network("100.64.0.0/10")
 
 def is_allowed_bridge_ipv4(address: ipaddress.IPv4Address) -> bool:
     """Allow RFC1918 LAN addresses or Tailscale CGNAT overlay addresses only."""
-    return address.version == 4 and (address.is_private or address in TAILSCALE_IPV4) and not address.is_multicast and not address.is_loopback
+    if address.version != 4 or address.is_multicast or address.is_loopback:
+        return False
+    rfc1918 = any(address in network for network in (
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+    ))
+    return rfc1918 or address in TAILSCALE_IPV4
 
 
 class BridgeError(RuntimeError):
