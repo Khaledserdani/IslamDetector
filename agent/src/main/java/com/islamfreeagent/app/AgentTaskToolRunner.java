@@ -65,6 +65,8 @@ final class AgentTaskToolRunner {
         for(int i=0;i<files.length();i++) {
             File target=new File(root,files.getJSONObject(i).getString("filename")).getCanonicalFile();
             if(!root.equals(target.getParentFile())) throw new SecurityException("مسار الملف خارج مجلد العمل");
+            if(target.exists() && !target.isFile())
+                throw new IllegalArgumentException("المسار موجود لكنه ليس ملفاً عادياً: " + target.getName());
             targets.add(target); existed.add(target.isFile()); backups.add(target.isFile()?readBytes(target):null);
         }
         JSONArray results=new JSONArray(); int written=0;
