@@ -75,3 +75,23 @@ python tools/islam_agent/run_bridge.py --tailscale --model "اسم-النموذ�
 - [Install Tailscale on Android](https://tailscale.com/docs/install/android)
 - [Connect to devices across networks](https://tailscale.com/docs/how-to/connect-to-devices)
 - [Tailscale connection types and encrypted relays](https://tailscale.com/docs/reference/connection-types)
+
+## تشغيل أسهل على Windows
+
+أضفنا مشغّلاً يفحص المتطلبات قبل تشغيل الجسر، دون تنزيل برامج أو نماذج أو إنشاء اشتراكات تلقائياً:
+
+1. ثبّت Python 3 وOpenSSL وOllama وTailscale على الكمبيوتر، وسجّل الدخول إلى Tailscale.
+2. افتح Ollama واتركه يعمل، ثم تأكد أن النموذج المطلوب ظاهر في:
+   ```powershell
+   ollama list
+   ```
+3. من مجلد المشروع، انقر نقراً مزدوجاً على:
+   `tools/islam_agent/start_remote_bridge_windows.bat`
+4. اكتب اسم النموذج تماماً كما يظهر في عمود NAME. يمكن أيضاً تمريره إلى PowerShell:
+   ```powershell
+   .\tools\islam_agent\start_remote_bridge_windows.ps1 -Model "اسم-النموذج"
+   ```
+5. يعرض الجسر عنوان Tailscale وبصمة TLS ورمز الاقتران المؤقت في نافذة الكمبيوتر. أدخل القيم في التطبيق على الهاتف.
+6. لإيقافه اضغط Ctrl+C في النافذة نفسها.
+
+المشغّل لا يثبت Tailscale أو Python أو Ollama ولا يحمل نموذجاً كبيراً تلقائياً. إذا ظهر نقص في أحدها، ثبّته يدوياً ثم أعد تشغيل الملف. لا تشارك رمز الاقتران أو بصمة الشهادة علناً.
