@@ -322,7 +322,7 @@ public class MainActivity extends Activity {
                 aiStatusText.setText("اكتمل التنزيل. الحجم: " + downloaded + " بايت. اضغط التحقق والتشغيل.");
             } else if (status == DownloadManager.STATUS_FAILED) {
                 int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من Wi-Fi ثم أعد المحاولة.");
+                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من اتصال الإنترنت ثم أعد المحاولة.");
             } else {
                 String progress = total > 0 ? (downloaded * 100 / total) + "%" : "جارٍ الاتصال";
                 aiStatusText.setText("تنزيل النموذج: " + progress + " • "
@@ -337,7 +337,7 @@ public class MainActivity extends Activity {
     private void verifyAndLoadModel() {
         File file = modelFile();
         if (file == null || !file.isFile()) {
-            aiStatusText.setText("نزّل النموذج أولاً عبر Wi-Fi.");
+            aiStatusText.setText("نزّل النموذج أولاً عبر اتصال الإنترنت.");
             return;
         }
         aiStatusText.setText("جارٍ فحص حجم النموذج وبصمة SHA-256…");
