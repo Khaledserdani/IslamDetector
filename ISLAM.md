@@ -1787,3 +1787,8 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 1. حل بوابة GitHub Actions startup_failure على مستوى تشغيل/إعدادات Actions؛ غياب Jobs يمنع تشخيص فشل compile من logs.
 2. بعد CI ناجح، تنفيذ producer يربط DMA RAW16 بإطار MEASUREMENT، مع إبقاء ADC_NONE حتى تركيب ADC والتحقق منه.
 3. ثم UART loopback منخفض الجهد، وبعده Wi-Fi/WebServer وربط Android. لا توصيل TX عالي الطاقة أو اعتماد BOM قبل القياسات والحماية.
+
+
+## 53. إصلاح assertion قديم في اختبار PIO — 2026-11-21
+
+بعد تصحيح قيمة `shift_right=false` ظهر أثناء التدقيق النهائي أن اختبار `test_capture_shift_width_matches_one_adc_word` ما زال يحتوي assertion قديم يتوقع `true`، بينما اختبار المحاذاة الجديد يفرض `false`. صُحح هذا assertion إلى `false` أيضاً، وأصبح ملف الاختبار لا يتوقع قيمة true في أي موضع. لم يمكن تشغيل unittest على GitHub بسبب startup_failure بلا Jobs؛ لا يُسجل نجاح اختبار آلي.
