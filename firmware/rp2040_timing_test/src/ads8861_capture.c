@@ -93,7 +93,7 @@ bool ads8861_capture_init(PIO pio, uint sm) {
     sm_config_set_in_pins(&capture_config, ADS8861_DOUT_PIN);
     // ADS8861 shifts DOUT MSB-first: shift-left preserves bit order and leaves
     // each 16-bit sample right-aligned in ISR[15:0] before DMA autopush.
-    sm_config_set_in_shift(&capture_config, true, true, 16u);
+    sm_config_set_in_shift(&capture_config, false, true, 16u);
     sm_config_set_out_shift(&capture_config, true, true, 24u);
     // Keep TX and RX FIFOs separate: four delay words TX, DMA-drained RX.
     sm_config_set_clkdiv(&capture_config, 1.0f);
