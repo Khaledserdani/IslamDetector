@@ -1,6 +1,10 @@
 package com.islamfreeagent.app;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.database.Cursor;
@@ -9,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -40,6 +45,15 @@ public class MainActivity extends Activity {
     private Button aiSendButton;
     private DownloadManager downloadManager;
     private long modelDownloadId = -1L;
+    private boolean downloadReceiverRegistered = false;
+    private final BroadcastReceiver modelDownloadReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
+                long completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
+                if (completedId == modelDownloadId && aiStatusText != null) refreshModelStatus();
+            }
+        }
+    };
     private OnDeviceAiEngine localAi;
     private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
@@ -51,6 +65,7 @@ public class MainActivity extends Activity {
         store = new AgentTaskStore(this);
         downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         modelDownloadId = getSharedPreferences("local_ai_model", MODE_PRIVATE).getLong("download_id", -1L);
+        registerModelDownloadReceiver();
         localAi = new OnDeviceAiEngine(getCacheDir().getAbsolutePath());
         buildScreen();
         loadSavedGitHubSettings();
@@ -228,6 +243,16 @@ public class MainActivity extends Activity {
         ai.addView(aiReplyText, replyLp);
         addPanel(page, ai, 12);
         refreshModelStatus();
+    }
+
+    private void registerModelDownloadReceiver() {
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(modelDownloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(modelDownloadReceiver, filter);
+        }
+        downloadReceiverRegistered = true;
     }
 
     private File modelFile() {
