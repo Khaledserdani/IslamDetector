@@ -445,7 +445,9 @@ public class MainActivity extends Activity {
             return;
         }
         activeExecutionTaskId = task.id;
+        store.setExecutionResult(task.id, false, "");
         aiReplyText.setText("جارٍ تحليل المهمة الحالية: " + task.title);
+        renderTasks();
         localAi.planTask(task.description, new OnDeviceAiEngine.Callback() {
             @Override public void onSuccess(String rawPlan) {
                 try {
@@ -780,11 +782,6 @@ public class MainActivity extends Activity {
             TextView taskTitle = text(task.title, 14, task.done ? MUTED : Color.WHITE, true);
             if (task.done) taskTitle.setPaintFlags(taskTitle.getPaintFlags() | 16);
             row.addView(taskTitle, new LinearLayout.LayoutParams(0, -2, 1));
-            if (!task.description.equals(task.title)) {
-                TextView description = text(task.description, 12, MUTED, false);
-                LinearLayout.LayoutParams descriptionLp = matchWrap(); descriptionLp.topMargin = dp(5);
-                card.addView(description, descriptionLp);
-            }
 
             Button execute = smallButton(task.done ? "إعادة" : "تنفيذ", task.done ? Color.rgb(75, 91, 111) : GREEN);
             row.addView(execute, new LinearLayout.LayoutParams(dp(66), dp(38)));
@@ -800,6 +797,13 @@ public class MainActivity extends Activity {
             });
 
             card.addView(row, matchWrap());
+            if (!task.description.equals(task.title)) {
+                TextView description = text(task.description, 12, MUTED, false);
+                description.setMaxLines(3);
+                description.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams descriptionLp = matchWrap(); descriptionLp.topMargin = dp(5);
+                card.addView(description, descriptionLp);
+            }
             if (task.result != null && !task.result.isEmpty()) {
                 TextView result = text(task.result, 12, task.done ? Color.rgb(130, 220, 185) : MUTED, false);
                 LinearLayout.LayoutParams resultLp = matchWrap(); resultLp.topMargin = dp(8);
