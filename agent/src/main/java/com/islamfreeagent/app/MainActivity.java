@@ -78,6 +78,14 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (downloadReceiverRegistered) {
+            try {
+                unregisterReceiver(modelDownloadReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // Receiver was already unregistered by the platform or lifecycle cleanup.
+            }
+            downloadReceiverRegistered = false;
+        }
         localAi.close();
         modelExecutor.shutdownNow();
         networkExecutor.shutdownNow();
