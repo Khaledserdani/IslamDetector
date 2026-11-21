@@ -711,6 +711,14 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void showMessage(String title, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("إغلاق", null)
+                .show();
+    }
+
     private void renderTasks() {
         taskList.removeAllViews();
         List<AgentTaskStore.Task> tasks = store.all();
