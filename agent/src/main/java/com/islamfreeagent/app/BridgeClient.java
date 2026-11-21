@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -31,7 +32,7 @@ final class BridgeClient {
     private final SSLContext sslContext;
 
     BridgeClient(String host, int port, String pin, String token) throws Exception {
-        if (!isPrivateIpv4(host)) throw new IllegalArgumentException("عنوان المضيف يجب أن يكون IPv4 خاصاً بالشبكة المحلية");
+        if (!isAllowedBridgeIpv4(host)) throw new IllegalArgumentException("عنوان المضيف يجب أن يكون IPv4 خاصاً بالشبكة المحلية أو شبكة Tailscale");
         if (port < 1024 || port > 65535) throw new IllegalArgumentException("رقم المنفذ غير صالح");
         if (pin == null || !pin.matches("[0-9a-fA-F]{64}")) throw new IllegalArgumentException("بصمة الشهادة يجب أن تكون 64 خانة");
         this.host = host;
@@ -42,14 +43,23 @@ final class BridgeClient {
     }
 
     static boolean isPrivateIpv4(String value) {
+        return isAllowedBridgeIpv4(value);
+    }
+
+    static boolean isAllowedBridgeIpv4(String value) {
         if (value == null || !value.matches("[0-9]{1,3}(\\.[0-9]{1,3}){3}")) return false;
         try {
             InetAddress address = InetAddress.getByName(value);
-            return address instanceof java.net.Inet4Address
-                    && address.isSiteLocalAddress()
-                    && !address.isLoopbackAddress()
-                    && !address.isAnyLocalAddress()
-                    && !address.isMulticastAddress();
+            if (!(address instanceof Inet4Address)
+                    || address.isLoopbackAddress()
+                    || address.isAnyLocalAddress()
+                    || address.isMulticastAddress()) return false;
+            byte[] bytes = address.getAddress();
+            boolean rfc1918 = (bytes[0] & 0xff) == 10
+                    || ((bytes[0] & 0xff) == 172 && (bytes[1] & 0xf0) == 16)
+                    || ((bytes[0] & 0xff) == 192 && (bytes[1] & 0xff) == 168);
+            boolean tailscale = (bytes[0] & 0xff) == 100 && (bytes[1] & 0xc0) == 64;
+            return rfc1918 || tailscale;
         } catch (Exception ignored) {
             return false;
         }
