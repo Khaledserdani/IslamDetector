@@ -50,6 +50,22 @@ public class AgentTaskToolRunnerTest {
         catch(IllegalArgumentException expected) { }
     }
 
+    @Test public void rejectsDirectoryTargetBeforeWritingAnyFiles() throws Exception {
+        File directory = new File(temporary.getRoot(), "second.txt");
+        assertTrue(directory.mkdir());
+        JSONObject plan = new JSONObject().put("action", "write_and_read_text_files").put("files", new JSONArray()
+            .put(new JSONObject().put("filename", "first.txt").put("content", "الأول"))
+            .put(new JSONObject().put("filename", "second.txt").put("content", "الثاني")));
+        try {
+            new AgentTaskToolRunner(temporary.getRoot()).execute(plan);
+            fail("a directory must not be replaced by a text file");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("ليس ملفاً عادياً"));
+        }
+        assertFalse(new File(temporary.getRoot(), "first.txt").exists());
+        assertTrue(directory.isDirectory());
+    }
+
     @Test public void rejectsExtraFieldsAndEmptyFileLists() throws Exception {
         JSONObject extra=new JSONObject().put("action","write_and_read_text_files").put("files",new JSONArray()).put("command","rm -rf /");
         try { AgentTaskToolRunner.validate(extra); fail("extra fields must be rejected"); }
