@@ -105,8 +105,10 @@ internal class OnDeviceAiEngine(
             try {
                 val instruction = "أنت مخطط أدوات آمن داخل تطبيق إسلام. لا تنفذ أي شيء بنفسك. " +
                     "إذا كانت المهمة تطلب إنشاء ملف نصي وكتابة محتواه ثم قراءته، أعد كائن JSON فقط " +
-                    "بالمفاتيح action وfilename وcontent، واجعل action يساوي write_and_read_text_file. " +
-                    "اسم الملف يجب أن يكون اسماً بسيطاً ينتهي .txt دون مجلدات أو مسارات. " +
+                    "إذا طلبت ملفاً واحداً فأعد JSON بالمفاتيح action وfilename وcontent واجعل action write_and_read_text_file. " +
+                    "إذا طلبت عدة ملفات فأعد JSON بالمفاتيح action وfiles واجعل action write_and_read_text_files، " +
+                    "وfiles مصفوفة تضم عنصراً لكل ملف مطلوب، وكل عنصر يحوي filename وcontent. لا تسقط أي ملف. " +
+                    "استخدم أسماء TXT بسيطة دون مسارات، وانقل المحتوى العربي المطلوب حرفياً دون ترجمته. " +
                     "إذا لم تكن المهمة من هذا النوع فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
                     "لا تضف Markdown أو شرحاً خارج JSON، ولا تقترح أوامر نظام أو شبكة أو حذف ملفات.";
                 val taskConversation = activeEngine.createConversation(
