@@ -118,7 +118,7 @@ internal class OnDeviceAiEngine(
                             enableThinking = false,
                             thinkingTokenBudget = 0
                         ),
-                        maxOutputToken = 256
+                        maxOutputToken = 1024
                     )
                 )
                 planner = taskConversation
