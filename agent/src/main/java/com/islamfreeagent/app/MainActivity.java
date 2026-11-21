@@ -182,11 +182,11 @@ public class MainActivity extends Activity {
     private void addLocalAiPanel(LinearLayout page) {
         LinearLayout ai = panel();
         ai.addView(text("الذكاء الاصطناعي المحلي — Qwen3 0.6B", 17, Color.WHITE, true), matchWrap());
-        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. التنزيل عبر Wi-Fi فقط، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
+        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
         LinearLayout.LayoutParams detailsLp = matchWrap(); detailsLp.topMargin = dp(7);
         ai.addView(details, detailsLp);
 
-        Button download = actionButton("تنزيل النموذج المجاني (Wi-Fi فقط)");
+        Button download = actionButton("تنزيل النموذج المجاني عبر الإنترنت");
         download.setOnClickListener(v -> startModelDownload());
         ai.addView(download, actionButtonParams());
 
@@ -275,17 +275,14 @@ public class MainActivity extends Activity {
             DownloadManager.Request request =
                     new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
             request.setTitle("تنزيل نموذج إسلام المحلي");
-            request.setDescription("Qwen3 0.6B — 586 MB — Wi-Fi فقط");
-            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
-            request.setAllowedOverMetered(false);
-            request.setAllowedOverRoaming(false);
+            request.setDescription("Qwen3 0.6B — 586 MB — عبر الإنترنت المتاح");
             request.setNotificationVisibility(
                     DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalFilesDir(this, null, OnDeviceModelSpec.FILE_NAME);
             modelDownloadId = downloadManager.enqueue(request);
             getSharedPreferences("local_ai_model", MODE_PRIVATE).edit()
                     .putLong("download_id", modelDownloadId).apply();
-            aiStatusText.setText("بدأ التنزيل عبر Wi-Fi فقط. يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
+            aiStatusText.setText("بدأ التنزيل عبر اتصال الإنترنت المتاح (Wi-Fi أو بيانات الهاتف). يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
         } catch (Exception error) {
             aiStatusText.setText("تعذر بدء التنزيل: " + error.getMessage());
         }
@@ -310,7 +307,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (modelDownloadId <= 0) {
-            aiStatusText.setText("النموذج غير منزّل بعد. التنزيل المجاني يحتاج Wi-Fi.");
+            aiStatusText.setText("النموذج غير منزّل بعد. يمكنك تنزيله عبر Wi-Fi أو بيانات الهاتف.");
             return;
         }
         try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(modelDownloadId))) {
