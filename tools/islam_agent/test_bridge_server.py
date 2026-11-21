@@ -272,7 +272,7 @@ class BridgeServerTests(unittest.TestCase):
             self.assertFalse(is_allowed_bridge_ipv4(ipaddress.ip_address(value)))
 
     def test_refuses_public_network_bind_address(self):
-        with self.assertRaisesRegex(ValueError, "private IPv4"):
+        with self.assertRaisesRegex(ValueError, "RFC1918"):
             create_server("8.8.8.8", 8765, self.app, self.root / "cert.pem", self.root / "key.pem")
 
     def test_refuses_invalid_port(self):
