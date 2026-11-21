@@ -104,7 +104,7 @@ internal class OnDeviceAiEngine(
             var planner: Conversation? = null
             try {
                 val instruction = "أنت مخطط أدوات آمن داخل تطبيق إسلام. لا تنفذ أي شيء بنفسك. " +
-                    "إذا كانت المهمة تطلب إنشاء ملف نصي وكتابة محتواه ثم قراءته، أعد كائن JSON فقط " +
+                    "إذا كانت المهمة تطلب إنشاء ملف أو ملفات نصية وكتابة محتواها ثم قراءتها، أعد كائن JSON فقط " +
                     "إذا طلبت ملفاً واحداً فأعد JSON بالمفاتيح action وfilename وcontent واجعل action write_and_read_text_file. " +
                     "إذا طلبت عدة ملفات فأعد JSON بالمفاتيح action وfiles واجعل action write_and_read_text_files، " +
                     "وfiles مصفوفة تضم عنصراً لكل ملف مطلوب، وكل عنصر يحوي filename وcontent. لا تسقط أي ملف. " +
