@@ -1653,7 +1653,7 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 
 ### إصلاح PIO
 - اكتشف التدقيق أن sm_config_in_shift(..., false, true, 16u) يضبط shift-right، وهو غير مناسب لتسلسل ADS8861 ذي MSB-first؛ كان سيعكس ترتيب البتات ويضعها في الجزء الأعلى من ISR بينما الكود يقرأ الجزء الأدنى.
-- صُحح الإعداد إلى shift-left: sm_config_set_in_shift(&capture_config, true, true, 16u). تبقى كلمة RAW16 في ISR[15:0]، لذا استخراج capture_buffer[i] & 0xFFFF متسق.
+- صُحح الإعداد إلى shift-left: sm_config_set_in_shift(&capture_config, false, true, 16u). تبقى كلمة RAW16 في ISR[15:0]، لذا استخراج capture_buffer[i] & 0xFFFF متسق.
 - أضيف اختبار ساكن لنمط 0xA55A واختبار يرفض رجوع إعداد shift-right. أضيف شرح إلى تدقيق PIO ووثيقتي architecture/protocol.
 - المرجع: دليل Raspberry Pi Pico C/C++ SDK الرسمي، قسم PIO IN/shift direction: https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf.
 - لا توجد قراءة فعلية من ADS8861؛ هذا تصحيح برمجي/حسابي فقط.
@@ -1734,3 +1734,28 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 4. لا MOSFET/ملف TX عالي الطاقة، ولا KiCad/BOM نهائي قبل قياس DD32 الفعلي وإغلاق حماية RX/TX والطاقة والـclip-release.
 
 لا توجد قياسات مادية جديدة أو شراء أو توصيل قدرة في هذا التشغيل.
+
+
+## 51. تصحيح فعلي لاتجاه PIO لخرج ADS8861 — 2026-11-21
+
+### سبب التصحيح
+أعيد فحص `ads8861_capture.c` مقابل توقيع Raspberry Pi Pico SDK الرسمي. القيمة الأولى في `sm_config_set_in_shift(c, shift_right, autopush, push_threshold)` هي `shift_right`: true=يمين، false=يسار. كان الكود يمرر true بينما التعليق والاختبار يحاكيان shift-left؛ لذلك كان التوثيق والاختبار الساكن يخفون خطأً في الإعداد الفعلي.
+
+### التصحيح
+- أصبح السطر في `firmware/rp2040_timing_test/src/ads8861_capture.c`: `sm_config_set_in_shift(&capture_config, false, true, 16u)`.
+- عدل `tools/test_rev_a_timing.py` ليحاكي shift-left وshift-right، ويتحقق أن كلمة ADS8861 MSB-first لا تبقى صحيحة في ISR[15:0] إلا مع shift_right=false، ويفرض القيمة false في C.
+- صححت `ADS8861_PIO_TIMING_AUDIT_AR.md` و`REV_A_ARCHITECTURE_AR.md` و`REV_A_DATA_PROTOCOL_AR.md` لتتطابق مع تعريف SDK.
+- المرجع الرسمي: https://www.raspberrypi.com/documentation/pico-sdk/hardware.html (sm_config_set_in_shift).
+
+### حدود الإثبات
+هذا تصحيح مصدر واختبار ساكن، وليس اختباراً على RP2040 أو ADS8861 فعليين. `ENABLE_ADS8861_CAPTURE=0` باقٍ، وDEVICE_INFO يعلن ADC_NONE. لا UF2/APK جديد مثبت قبل تشغيل CI ناجح.
+
+### حالة GitHub قبل هذا التصحيح
+- HEAD: d64060b309c3d7dfeea5a56851dcc04d7929f2d6.
+- PR #6: closed, not merged؛ لم يُفتح مجدداً ولم يُدمج.
+- PR #7: open Draft على الفرع الحالي.
+- CI run #1976 (ID 44748235505) على HEAD انتهى startup_failure؛ jobs=0 وartifacts=0، لذلك لا توجد job logs ولا build evidence. السبب الجذري غير محسوم.
+- مراجعة Android النصية لم تجد خطأ compile مؤكداً في MainActivity/Manifest/Gradle؛ التطبيق يستخدم network executor وstorage executor مع SQLite/CSV، لكن لا APK جديد ولا HTTP server على ESP32 بعد.
+
+### الخطوة التالية
+تشغيل CI على commit التصحيح، ثم معالجة أي فشل داخل job إن بدأ. إذا تكرر startup_failure بلا jobs، يلزم فحص إعدادات Actions/runner على مستوى المستودع من صاحب الصلاحية؛ لا يمكن استنتاج السبب من سجل فارغ. بعد نجاح CI نكمل MEASUREMENT producer وUART ثم Wi-Fi/WebServer.
