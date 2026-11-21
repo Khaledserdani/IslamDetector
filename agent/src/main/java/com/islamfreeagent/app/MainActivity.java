@@ -1,6 +1,10 @@
 package com.islamfreeagent.app;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.database.Cursor;
@@ -9,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -40,6 +45,15 @@ public class MainActivity extends Activity {
     private Button aiSendButton;
     private DownloadManager downloadManager;
     private long modelDownloadId = -1L;
+    private boolean downloadReceiverRegistered = false;
+    private final BroadcastReceiver modelDownloadReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
+                long completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
+                if (completedId == modelDownloadId && aiStatusText != null) refreshModelStatus();
+            }
+        }
+    };
     private OnDeviceAiEngine localAi;
     private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
@@ -51,6 +65,7 @@ public class MainActivity extends Activity {
         store = new AgentTaskStore(this);
         downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         modelDownloadId = getSharedPreferences("local_ai_model", MODE_PRIVATE).getLong("download_id", -1L);
+        registerModelDownloadReceiver();
         localAi = new OnDeviceAiEngine(getCacheDir().getAbsolutePath());
         buildScreen();
         loadSavedGitHubSettings();
@@ -63,6 +78,14 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (downloadReceiverRegistered) {
+            try {
+                unregisterReceiver(modelDownloadReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // Receiver was already unregistered by the platform or lifecycle cleanup.
+            }
+            downloadReceiverRegistered = false;
+        }
         localAi.close();
         modelExecutor.shutdownNow();
         networkExecutor.shutdownNow();
@@ -182,11 +205,11 @@ public class MainActivity extends Activity {
     private void addLocalAiPanel(LinearLayout page) {
         LinearLayout ai = panel();
         ai.addView(text("الذكاء الاصطناعي المحلي — Qwen3 0.6B", 17, Color.WHITE, true), matchWrap());
-        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. التنزيل عبر Wi-Fi فقط، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
+        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
         LinearLayout.LayoutParams detailsLp = matchWrap(); detailsLp.topMargin = dp(7);
         ai.addView(details, detailsLp);
 
-        Button download = actionButton("تنزيل النموذج المجاني (Wi-Fi فقط)");
+        Button download = actionButton("تنزيل النموذج المجاني عبر الإنترنت");
         download.setOnClickListener(v -> startModelDownload());
         ai.addView(download, actionButtonParams());
 
@@ -228,6 +251,16 @@ public class MainActivity extends Activity {
         ai.addView(aiReplyText, replyLp);
         addPanel(page, ai, 12);
         refreshModelStatus();
+    }
+
+    private void registerModelDownloadReceiver() {
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(modelDownloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(modelDownloadReceiver, filter);
+        }
+        downloadReceiverRegistered = true;
     }
 
     private File modelFile() {
@@ -275,17 +308,14 @@ public class MainActivity extends Activity {
             DownloadManager.Request request =
                     new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
             request.setTitle("تنزيل نموذج إسلام المحلي");
-            request.setDescription("Qwen3 0.6B — 586 MB — Wi-Fi فقط");
-            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
-            request.setAllowedOverMetered(false);
-            request.setAllowedOverRoaming(false);
+            request.setDescription("Qwen3 0.6B — 586 MB — عبر الإنترنت المتاح");
             request.setNotificationVisibility(
                     DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalFilesDir(this, null, OnDeviceModelSpec.FILE_NAME);
             modelDownloadId = downloadManager.enqueue(request);
             getSharedPreferences("local_ai_model", MODE_PRIVATE).edit()
                     .putLong("download_id", modelDownloadId).apply();
-            aiStatusText.setText("بدأ التنزيل عبر Wi-Fi فقط. يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
+            aiStatusText.setText("بدأ التنزيل عبر اتصال الإنترنت المتاح (Wi-Fi أو بيانات الهاتف). يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
         } catch (Exception error) {
             aiStatusText.setText("تعذر بدء التنزيل: " + error.getMessage());
         }
@@ -310,7 +340,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (modelDownloadId <= 0) {
-            aiStatusText.setText("النموذج غير منزّل بعد. التنزيل المجاني يحتاج Wi-Fi.");
+            aiStatusText.setText("النموذج غير منزّل بعد. يمكنك تنزيله عبر Wi-Fi أو بيانات الهاتف.");
             return;
         }
         try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(modelDownloadId))) {
@@ -325,7 +355,7 @@ public class MainActivity extends Activity {
                 aiStatusText.setText("اكتمل التنزيل. الحجم: " + downloaded + " بايت. اضغط التحقق والتشغيل.");
             } else if (status == DownloadManager.STATUS_FAILED) {
                 int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من Wi-Fi ثم أعد المحاولة.");
+                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من اتصال الإنترنت ثم أعد المحاولة.");
             } else {
                 String progress = total > 0 ? (downloaded * 100 / total) + "%" : "جارٍ الاتصال";
                 aiStatusText.setText("تنزيل النموذج: " + progress + " • "
@@ -340,7 +370,7 @@ public class MainActivity extends Activity {
     private void verifyAndLoadModel() {
         File file = modelFile();
         if (file == null || !file.isFile()) {
-            aiStatusText.setText("نزّل النموذج أولاً عبر Wi-Fi.");
+            aiStatusText.setText("نزّل النموذج أولاً عبر اتصال الإنترنت.");
             return;
         }
         aiStatusText.setText("جارٍ فحص حجم النموذج وبصمة SHA-256…");

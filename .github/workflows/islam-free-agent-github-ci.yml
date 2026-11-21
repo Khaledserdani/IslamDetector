@@ -7,6 +7,7 @@ on:
       - feature/islam-free-agent-safe-write
       - feature/islam-free-agent-schedule-labs
       - feature/islam-free-agent-android-native
+      - feature/islam-free-agent-phone-only-v6
     paths:
       - 'agent/**'
       - 'tools/islam_agent/**'

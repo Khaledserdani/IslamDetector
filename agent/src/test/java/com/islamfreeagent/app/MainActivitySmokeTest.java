@@ -28,7 +28,8 @@ public class MainActivitySmokeTest {
             assertTrue(findButton(root, "تفعيل الجدولة الليلية 20:00–06:00"));
             assertTrue(findButton(root, "إيقاف الجدولة الليلية"));
             assertTrue(findText(root, "الذكاء الاصطناعي المحلي — Qwen3 0.6B"));
-            assertTrue(findButton(root, "تنزيل النموذج المجاني (Wi-Fi فقط)"));
+            assertTrue(findButton(root, "تنزيل النموذج المجاني عبر الإنترنت"));
+            assertTrue(findTextContaining(root, "يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف"));
             assertTrue(findButton(root, "التحقق من النموذج وتشغيل الذكاء المحلي"));
             assertTrue(findButton(root, "إرسال إلى الذكاء المحلي"));
             assertFalse(findText(root, "ربط محرك الكمبيوتر"));
@@ -43,6 +44,18 @@ public class MainActivitySmokeTest {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
                 if (findText(group.getChildAt(i), expected)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean findTextContaining(View view, String expected) {
+        if (view instanceof TextView
+                && ((TextView) view).getText().toString().contains(expected)) return true;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (findTextContaining(group.getChildAt(i), expected)) return true;
             }
         }
         return false;
