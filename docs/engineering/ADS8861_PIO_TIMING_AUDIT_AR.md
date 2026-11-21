@@ -155,8 +155,24 @@ N_{delay}=N_{gap}-337
 
 أظهر تدقيق ترتيب البتات أن الإعداد السابق shift-right غير مناسب لخرج ADS8861 المتسلسل MSB-first: في اتجاه اليمين تدخل البتات الجديدة من جهة MSB، فتنعكس أولوية تسلسل MSB-first وتتموضع البيانات في أعلى ISR. كان استخراج capture_buffer[i] & 0xFFFF سيعطي كلمة غير صحيحة.
 
-**التصحيح البرمجي:** أصبح إعداد PIO هو sm_config_set_in_shift(..., true, true, 16u)، أي shift-left مع autopush عند16 بت. تدخل أول بت MSB في موضعه الأعلى داخل الكلمة، ثم تكتمل الكلمة الأصلية في ISR[15:0]؛ لذلك يبقى استخراج & 0xFFFF صحيحاً. أضيف اختبار حارس باستخدام النمط 0xA55A للتحقق من المحاذاة وعدم عكس ترتيب البتات.
+**التصحيح البرمجي:** أصبح إعداد PIO هو sm_config_set_in_shift(..., false, true, 16u)، أي shift-left مع autopush عند16 بت. تدخل أول بت MSB في موضعه الأعلى داخل الكلمة، ثم تكتمل الكلمة الأصلية في ISR[15:0]؛ لذلك يبقى استخراج & 0xFFFF صحيحاً. أضيف اختبار حارس باستخدام النمط 0xA55A للتحقق من المحاذاة وعدم عكس ترتيب البتات.
 
 مرجع Raspberry Pi الرسمي: دليل Pico C/C++ SDK، قسم PIO IN/shift direction يوضح أن shift-right يضع تدفق UART ذي LSB-first في أعلى ISR، وأن اتجاه الإزاحة يحدد موضع إدخال البيانات: https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf
 
 **حدود الإثبات:** هذا تصحيح مستنتج من مواصفة PIO واختبار برمجي ساكن؛ لم يُختبر بعد على ADS8861/RP2040 فعليين، ولا يثبت صحة الإشارة التناظرية أو توقيت الحواف أو settling.
+
+
+## 11. تصحيح قيمة معامل shift_right وفق Pico SDK — 2026-11-21
+
+أعيد تدقيق سطر الإعداد مقابل توقيع الدالة الرسمي في Pico SDK:
+`sm_config_set_in_shift(c, shift_right, autopush, push_threshold)`.
+القيمة `true` تعني **shift-right**، والقيمة `false` تعني **shift-left**. لذلك كان السطر السابق الذي يمرر `true` متعارضاً مع التعليق والاختبار، رغم أن كليهما وصف shift-left.
+
+**الإعداد الصحيح لخرج ADS8861 MSB-first هو:**
+`sm_config_set_in_shift(&capture_config, false, true, 16u)`.
+
+مع shift-left تدخل كل بت جديدة في ISR[0] بعد إزاحة المحتوى السابق يساراً؛ بعد 16 بت MSB-first تصبح الكلمة الأصلية في ISR[15:0]، ويتوافق ذلك مع DMA extraction `capture_buffer[i] & 0xFFFF`. أما shift-right فيضع تدفق الإدخال في الجزء العلوي من ISR، ولا يطابق الاستخراج الحالي.
+
+تم تحديث C واختبار Python ليحاكيا الاتجاهين، ويتحققا من أن false وحدها هي القيمة المهيأة في الكود. هذا تصحيح برمجي ساكن؛ لا توجد بعد قراءة فعلية أو logic-analyzer أو loopback. يظل `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO يعلن ADC_NONE.
+
+مرجع Raspberry Pi الرسمي: [Pico SDK — sm_config_set_in_shift](https://www.raspberrypi.com/documentation/pico-sdk/hardware.html)؛ يعرّف صراحةً أن `shift_right=true` للإزاحة يميناً و`false` للإزاحة يساراً.
