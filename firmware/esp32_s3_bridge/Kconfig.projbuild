@@ -1,0 +1,27 @@
+menu "Islam Detector Rev A UART bridge"
+config REV_A_UART_ENABLE
+    bool "Enable RP2040 UART bridge"
+    default n
+    help
+        Keep disabled until the exact ESP32-S3 development-board pinout is verified.
+config REV_A_UART_PORT
+    int "UART peripheral (UART0 is reserved for console)"
+    range 1 2
+    default 1
+config REV_A_UART_TX_GPIO
+    int "ESP32-S3 UART TX GPIO"
+    range -1 48
+    default -1
+    help
+        -1 means not assigned. Do not select a GPIO from the chip name alone.
+config REV_A_UART_RX_GPIO
+    int "ESP32-S3 UART RX GPIO"
+    range -1 48
+    default -1
+    help
+        -1 means not assigned. Verify the development-board schematic first.
+config REV_A_UART_BAUD
+    int "RP2040 UART baud rate"
+    range 9600 2000000
+    default 921600
+endmenu
