@@ -788,6 +788,7 @@ public class MainActivity extends Activity {
             execute.setOnClickListener(v -> executeTaskWithLocalAi(task));
 
             Button delete = smallButton("حذف", Color.rgb(132, 61, 65));
+            delete.setEnabled(!task.id.equals(activeExecutionTaskId));
             LinearLayout.LayoutParams del = new LinearLayout.LayoutParams(dp(62), dp(38));
             del.rightMargin = dp(6);
             row.addView(delete, del);
