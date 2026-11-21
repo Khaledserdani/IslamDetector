@@ -448,7 +448,7 @@ public class MainActivity extends Activity {
         store.setExecutionResult(task.id, false, "");
         aiReplyText.setText("جارٍ تحليل المهمة الحالية: " + task.title);
         renderTasks();
-        localAi.planTask(task.description, new OnDeviceAiEngine.Callback() {
+        localAi.planTask("عنوان المهمة: " + task.title + "\nالتفاصيل الكاملة: " + task.description, new OnDeviceAiEngine.Callback() {
             @Override public void onSuccess(String rawPlan) {
                 try {
                     String cleaned = rawPlan.trim();
