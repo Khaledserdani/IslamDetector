@@ -185,6 +185,9 @@ public class MainActivity extends Activity {
         heading.addView(countText, wrap());
         LinearLayout.LayoutParams hp = matchWrap(); hp.topMargin = dp(22);
         page.addView(heading, hp);
+        TextView taskHelp = text("بعد إضافة المهمة، اضغط «تنفيذ» ليحللها Qwen ويعرض خطة محدودة قبل أي كتابة.", 12, MUTED, false);
+        LinearLayout.LayoutParams taskHelpLp = matchWrap(); taskHelpLp.topMargin = dp(6);
+        page.addView(taskHelp, taskHelpLp);
 
         Button add = button("＋ إضافة مهمة", GREEN);
         LinearLayout.LayoutParams ap = matchWrap(); ap.height = dp(50); ap.topMargin = dp(10);
