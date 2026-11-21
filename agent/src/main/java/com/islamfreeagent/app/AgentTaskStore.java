@@ -32,7 +32,7 @@ final class AgentTaskStore {
                 String id = item.optString("id", "");
                 String title = item.optString("title", "").trim();
                 if (id.isEmpty() || title.isEmpty()) continue;
-                tasks.add(new Task(id, title, item.optBoolean("done", false)));
+                tasks.add(new Task(id, title, item.optBoolean("done", false), item.optString("result", "")));
             }
         } catch (JSONException ignored) {
             // Corrupt local state is treated as an empty queue, never as executable work.
@@ -68,6 +68,19 @@ final class AgentTaskStore {
         return found;
     }
 
+    synchronized boolean setExecutionResult(String id, boolean done, String result) {
+        List<Task> tasks = all();
+        for (Task task : tasks) {
+            if (task.id.equals(id)) {
+                task.done = done;
+                task.result = result == null ? "" : result;
+                save(tasks);
+                return true;
+            }
+        }
+        return false;
+    }
+
     synchronized boolean delete(String id) {
         List<Task> tasks = all();
         boolean removed = false;
@@ -89,6 +102,7 @@ final class AgentTaskStore {
                 item.put("id", task.id);
                 item.put("title", task.title);
                 item.put("done", task.done);
+                item.put("result", task.result);
                 array.put(item);
             } catch (JSONException impossible) {
                 throw new IllegalStateException(impossible);
@@ -103,11 +117,17 @@ final class AgentTaskStore {
         final String id;
         final String title;
         boolean done;
+        String result;
 
         Task(String id, String title, boolean done) {
+            this(id, title, done, "");
+        }
+
+        Task(String id, String title, boolean done, String result) {
             this.id = id;
             this.title = title;
             this.done = done;
+            this.result = result == null ? "" : result;
         }
     }
 }
