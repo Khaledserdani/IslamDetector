@@ -8,6 +8,7 @@ on:
       - feature/islam-free-agent-safe-write
       - feature/islam-free-agent-phone-only-v6
       - feature/islam-free-agent-task-execution
+      - feature/islam-free-agent-task-execution-fix
     paths:
       - 'agent/**'
       - 'build.gradle'
