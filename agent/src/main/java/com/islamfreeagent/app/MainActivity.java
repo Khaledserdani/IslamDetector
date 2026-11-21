@@ -24,6 +24,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.io.File;
 import java.util.List;
@@ -57,6 +58,7 @@ public class MainActivity extends Activity {
         }
     };
     private OnDeviceAiEngine localAi;
+    private String activeExecutionTaskId = null;
     private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
 
@@ -437,27 +439,33 @@ public class MainActivity extends Activity {
     }
 
     private void executeTaskWithLocalAi(AgentTaskStore.Task task) {
-        aiReplyText.setText("إسلام يحلل المهمة محلياً ويجهز خطة محدودة…");
-        localAi.planTask(task.title, new OnDeviceAiEngine.Callback() {
+        if (!store.contains(task.id)) return;
+        if (activeExecutionTaskId != null) {
+            showMessage("تنفيذ جارٍ", "انتظر انتهاء المهمة الحالية أولاً.");
+            return;
+        }
+        activeExecutionTaskId = task.id;
+        aiReplyText.setText("جارٍ تحليل المهمة الحالية: " + task.title);
+        localAi.planTask(task.description, new OnDeviceAiEngine.Callback() {
             @Override public void onSuccess(String rawPlan) {
                 try {
                     String cleaned = rawPlan.trim();
-                    int start = cleaned.indexOf('{');
-                    int end = cleaned.lastIndexOf('}');
-                    if (start < 0 || end <= start) {
-                        throw new IllegalArgumentException("لم يرجع النموذج خطة JSON صالحة.");
-                    }
+                    int start = cleaned.indexOf('{'), end = cleaned.lastIndexOf('}');
+                    if (start < 0 || end <= start) throw new IllegalArgumentException("لم يرجع النموذج خطة JSON صالحة.");
                     JSONObject plan = new JSONObject(cleaned.substring(start, end + 1));
-                    String action = plan.optString("action", "");
-                    if ("unsupported".equals(action)) {
+                    if ("unsupported".equals(plan.optString("action", "")))
                         throw new IllegalArgumentException("هذه المهمة خارج الأدوات المحلية المسموحة حالياً.");
-                    }
                     AgentTaskToolRunner.validate(plan);
-                    runOnUiThread(() -> showTaskPlanConfirmation(task, plan));
+                    runOnUiThread(() -> {
+                        if (store.contains(task.id) && task.id.equals(activeExecutionTaskId))
+                            showTaskPlanConfirmation(task, plan);
+                        else activeExecutionTaskId = null;
+                    });
                 } catch (Exception error) {
                     String message = error.getMessage() == null ? "خطة غير صالحة" : error.getMessage();
                     store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                     runOnUiThread(() -> {
+                        activeExecutionTaskId = null;
                         aiReplyText.setText("لم تُنفذ المهمة: " + message);
                         renderTasks();
                         showMessage("تعذر تنفيذ المهمة", message);
@@ -467,6 +475,7 @@ public class MainActivity extends Activity {
             @Override public void onFailure(String message) {
                 store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                 runOnUiThread(() -> {
+                    activeExecutionTaskId = null;
                     aiReplyText.setText("تعذر تحليل المهمة: " + message);
                     renderTasks();
                 });
@@ -475,35 +484,61 @@ public class MainActivity extends Activity {
     }
 
     private void showTaskPlanConfirmation(AgentTaskStore.Task task, JSONObject plan) {
-        String filename = plan.optString("filename");
-        String content = plan.optString("content");
-        String preview = "العملية: إنشاء ملف نصي ثم قراءته للتحقق\n"
-                + "اسم الملف: " + filename + "\n"
-                + "المجلد: مساحة عمل التطبيق الخاصة\n\n"
-                + "المحتوى المقترح:\n" + content
-                + "\n\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.";
+        if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
+            activeExecutionTaskId = null;
+            return;
+        }
+        StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\\n")
+                .append("المجلد: مساحة عمل التطبيق الخاصة\\n\\n");
+        JSONArray plannedFiles = plan.optJSONArray("files");
+        if (plannedFiles != null) {
+            for (int i = 0; i < plannedFiles.length(); i++) {
+                JSONObject file = plannedFiles.optJSONObject(i);
+                if (file != null) preview.append("الملف: ").append(file.optString("filename"))
+                        .append("\\nالمحتوى المقترح:\\n").append(file.optString("content")).append("\\n\\n");
+            }
+        } else {
+            preview.append("الملف: ").append(plan.optString("filename"))
+                    .append("\\nالمحتوى المقترح:\\n").append(plan.optString("content"));
+        }
+        preview.append("\\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
         new AlertDialog.Builder(this)
                 .setTitle("مراجعة تنفيذ المهمة")
-                .setMessage(preview)
-                .setPositiveButton("موافقة وكتابة الملف", (dialog, which) -> {
-                    aiReplyText.setText("جارٍ إنشاء الملف وقراءته للتحقق…");
+                .setMessage(preview.toString())
+                .setPositiveButton("موافقة وكتابة الملفات", (dialog, which) -> {
+                    if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
+                        activeExecutionTaskId = null;
+                        showMessage("المهمة تغيّرت", "لم يتم التنفيذ لأن المهمة لم تعد موجودة أو لم تعد المهمة الحالية.");
+                        return;
+                    }
+                    aiReplyText.setText("جارٍ إنشاء الملفات وقراءتها للتحقق…");
                     networkExecutor.execute(() -> {
                         try {
                             JSONObject result = new AgentTaskToolRunner(this).execute(plan);
-                            String verified = "تم التنفيذ والتحقق من القراءة.\nالملف: "
-                                    + result.getString("path") + "\n"
-                                    + "الحجم: " + result.getInt("bytes") + " بايت\n"
-                                    + "المحتوى المقروء:\n" + result.getString("content");
-                            store.setExecutionResult(task.id, true, verified);
+                            JSONArray files = result.getJSONArray("files");
+                            StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
+                                    .append(files.length()).append(").\\n");
+                            for (int i = 0; i < files.length(); i++) {
+                                JSONObject file = files.getJSONObject(i);
+                                report.append("\\nالملف: ").append(file.getString("filename"))
+                                        .append("\\nالمسار: ").append(file.getString("path"))
+                                        .append("\\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                        .append("\\nالمحتوى المقروء:\\n").append(file.getString("content")).append("\\n");
+                            }
+                            String verified = report.toString();
+                            if (!store.setExecutionResult(task.id, true, verified))
+                                throw new IllegalStateException("حُذفت المهمة قبل حفظ النتيجة.");
                             runOnUiThread(() -> {
+                                activeExecutionTaskId = null;
                                 aiReplyText.setText(verified);
                                 renderTasks();
                                 showMessage("اكتملت المهمة بعد التحقق", verified);
                             });
                         } catch (Exception error) {
-                            String message = error.getMessage() == null ? "فشل تنفيذ الملف" : error.getMessage();
+                            String message = error.getMessage() == null ? "فشل تنفيذ الملفات" : error.getMessage();
                             store.setExecutionResult(task.id, false, "فشل التنفيذ: " + message);
                             runOnUiThread(() -> {
+                                activeExecutionTaskId = null;
                                 aiReplyText.setText("فشل التنفيذ: " + message);
                                 renderTasks();
                                 showMessage("لم تكتمل المهمة", message);
@@ -511,7 +546,10 @@ public class MainActivity extends Activity {
                         }
                     });
                 })
-                .setNegativeButton("إلغاء", null)
+                .setNegativeButton("إلغاء", (dialog, which) -> {
+                    activeExecutionTaskId = null;
+                    aiReplyText.setText("أُلغي تنفيذ المهمة دون كتابة ملفات.");
+                })
                 .show();
     }
 
@@ -742,6 +780,11 @@ public class MainActivity extends Activity {
             TextView taskTitle = text(task.title, 14, task.done ? MUTED : Color.WHITE, true);
             if (task.done) taskTitle.setPaintFlags(taskTitle.getPaintFlags() | 16);
             row.addView(taskTitle, new LinearLayout.LayoutParams(0, -2, 1));
+            if (!task.description.equals(task.title)) {
+                TextView description = text(task.description, 12, MUTED, false);
+                LinearLayout.LayoutParams descriptionLp = matchWrap(); descriptionLp.topMargin = dp(5);
+                card.addView(description, descriptionLp);
+            }
 
             Button execute = smallButton(task.done ? "إعادة" : "تنفيذ", task.done ? Color.rgb(75, 91, 111) : GREEN);
             row.addView(execute, new LinearLayout.LayoutParams(dp(66), dp(38)));
@@ -768,26 +811,33 @@ public class MainActivity extends Activity {
     }
 
     private void showAddTaskDialog() {
-        EditText input = new EditText(this);
-        input.setSingleLine(false);
-        input.setMinLines(2);
-        input.setTextSize(16);
-        input.setHint("اكتب وصف المهمة بالتفصيل");
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        new AlertDialog.Builder(this)
-                .setTitle("مهمة جديدة")
-                .setView(input)
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        fields.setPadding(dp(8), dp(4), dp(8), dp(4));
+        EditText titleInput = new EditText(this);
+        titleInput.setSingleLine(false);
+        titleInput.setMinLines(2);
+        titleInput.setTextSize(16);
+        titleInput.setHint("عنوان المهمة");
+        titleInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        titleInput.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        EditText descriptionInput = new EditText(this);
+        descriptionInput.setSingleLine(false);
+        descriptionInput.setMinLines(4);
+        descriptionInput.setTextSize(15);
+        descriptionInput.setHint("التعليمات والتفاصيل الكاملة — لا تختصرها");
+        descriptionInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        descriptionInput.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        fields.addView(titleInput, matchWrap());
+        fields.addView(descriptionInput, matchWrap());
+        new AlertDialog.Builder(this).setTitle("مهمة جديدة").setView(fields)
                 .setNegativeButton("إلغاء", null)
                 .setPositiveButton("حفظ", (dialog, which) -> {
-                    String title = input.getText().toString().trim();
-                    if (!title.isEmpty()) {
-                        try {
-                            store.add(title);
-                            renderTasks();
-                        } catch (IllegalArgumentException | IllegalStateException error) {
-                            new AlertDialog.Builder(this).setMessage(error.getMessage()).setPositiveButton("حسناً", null).show();
-                        }
+                    try {
+                        store.add(titleInput.getText().toString(), descriptionInput.getText().toString());
+                        renderTasks();
+                    } catch (IllegalArgumentException | IllegalStateException error) {
+                        new AlertDialog.Builder(this).setMessage(error.getMessage()).setPositiveButton("حسناً", null).show();
                     }
                 }).show();
     }
