@@ -307,3 +307,10 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - PIO ADS8861 موجود لكنه معطل افتراضياً بـENABLE_ADS8861_CAPTURE=0. تصحيح shift-left واختبار 0xA55A يثبتان اتساقاً برمجياً فقط، لا قياس DOUT/SCLK/CONVST على لوحة.
 - CI #1802 و#1803 على HEAD أعلاه انتهيا بـstartup_failure. #1803 لم ينشئ أي Job أو artifact؛ لا يمكن استخراج job logs من تشغيل لم يبدأ jobs. لا يسجل نجاح build جديد.
 - لا يبدأ UART loopback إلا بعد مراجعة pinout الفعلي والجهود المشتركة والأرضي و3.3V، وباختبار منخفض الجهد. لا تُوصل مرحلة TX أو ملف قدرة.
+
+
+## 9.7 توثيق معامل اتجاه PIO بعد مراجعة Pico SDK — 2026-11-21
+
+القيمة الأولى في `sm_config_set_in_shift(c, shift_right, autopush, push_threshold)` هي `shift_right`: **true تعني يميناً، وfalse تعني يساراً**. لذلك إعداد ADS8861 ذي DOUT من نوع MSB-first هو `sm_config_set_in_shift(&capture_config, false, true, 16u)`. بعد 16 بت تصبح الكلمة الأصلية في ISR[15:0] ويظل حفظ RAW16 دون تغيير. لا تفسر قيمة true على أنها shift-left.
+
+تم تصحيح الكود واختبار التوقيت ليفرضا هذا التعاقد. التصحيح برمجي فقط؛ ADC capture ما زال معطلاً افتراضياً، وDEVICE_INFO يعلن ADC_NONE إلى حين تركيب ADC وإجراء loopback وقياس فعلي.
