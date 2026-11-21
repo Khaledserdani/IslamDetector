@@ -108,7 +108,7 @@ def main() -> int:
             app.start_continuous_worker(args.interval_seconds)
         der = ssl.PEM_cert_to_DER_cert(cert.read_text(encoding="ascii"))
         fingerprint = hashlib.sha256(der).hexdigest()
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"تعذر تشغيل جسر إسلام: {exc}", file=sys.stderr)
         return 2
 
