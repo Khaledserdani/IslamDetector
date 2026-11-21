@@ -1759,3 +1759,31 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 
 ### الخطوة التالية
 تشغيل CI على commit التصحيح، ثم معالجة أي فشل داخل job إن بدأ. إذا تكرر startup_failure بلا jobs، يلزم فحص إعدادات Actions/runner على مستوى المستودع من صاحب الصلاحية؛ لا يمكن استنتاج السبب من سجل فارغ. بعد نجاح CI نكمل MEASUREMENT producer وUART ثم Wi-Fi/WebServer.
+
+
+## 52. متابعة CI بعد تصحيح PIO — 2026-11-21
+
+### التغييرات على الفرع
+- HEAD الحالي: `7079f4fceda5fab69041f4098587fc866f2044ce` قبل توضيح تعليق PIO؛ يتبعه commit توضيح `ads8861_capture.pio`.
+- الملفات المصححة: `ads8861_capture.c` (shift_right=false)، `test_rev_a_timing.py` (محاكاة الاتجاهين وفحص المعامل)، `ADS8861_PIO_TIMING_AUDIT_AR.md`، `REV_A_ARCHITECTURE_AR.md`، `REV_A_DATA_PROTOCOL_AR.md`، وهذا الملف.
+- مرجع SDK الرسمي يعرّف `shift_right=true` يميناً و`false` يساراً. محاكاة مستقلة لنمط `0xA55A` أعطت ISR[15:0]=0xA55A مع shift-left، بينما shift-right وضع النمط في الجزء الأعلى (0x5AA5) وترك الجزء الأدنى صفراً. هذا تحقق حسابي صغير، وليس تشغيل unittest على المستودع أو قياساً مادياً.
+
+### CI
+- على HEAD التصحيح ظهرت #2071 (push، ID 44908089490) و#2072 (pull_request، ID 44908095908)، وكلاهما `startup_failure`.
+- في الاثنين jobs=0 وartifacts=0؛ لا job logs ولا UF2/APK.
+- جرت محاولة إعادة تشغيل #2072، لكن GitHub رفضها HTTP 403: `This workflow run cannot be retried`. لذلك لا توجد وسيلة retry متاحة لهذا التشغيل من أداة GitHub الحالية.
+- لم يُثبت أي build أو اختبار Python/C/ESP-IDF أو Android أو UF2 جديد.
+
+### مراجعة Android وESP32
+- Android: Manifest يضم INTERNET وACCESS_NETWORK_STATE، cleartext مفعل لاتصال الجهاز المحلي، app/build.gradle يستخدم compileSdk35/targetSdk35 وAGP 8.7.3، وworkflow يستخدم Java17 وGradle8.9. MainActivity يستخدم Executor منفصلاً للشبكة وExecutor للتخزين، وSQLite وCSV. لم يظهر خطأ compile مؤكد من مراجعة المصدر؛ لا APK مبني على HEAD الحالي.
+- ESP32-S3: parser/session وDEVICE_INFO وCRC16 موجودة برمجياً؛ الجسر يبقى disabled وGPIO غير معينة حتى تثبيت pinout اللوحة الفعلية. لا يوجد Wi-Fi AP أو WebServer `/status` و`/control` بعد.
+- RP2040: PIO ADC driver يبقى معطلاً افتراضياً (`ENABLE_ADS8861_CAPTURE=0`) وDEVICE_INFO يعلن ADC_NONE. لا MEASUREMENT producer فعلي من ADC ولا UART loopback.
+
+### الحالة الإدارية
+- PR #6 في GitHub: closed, not merged؛ لا يتوافق وصفه بأنه open مع الحالة الحية. لم أعد فتحه أو أدمجه.
+- PR #7: open Draft، يتتبع الفرع الحالي. لم يُدمج أي PR ولم يتغير main.
+
+### الخطوة التالية
+1. حل بوابة GitHub Actions startup_failure على مستوى تشغيل/إعدادات Actions؛ غياب Jobs يمنع تشخيص فشل compile من logs.
+2. بعد CI ناجح، تنفيذ producer يربط DMA RAW16 بإطار MEASUREMENT، مع إبقاء ADC_NONE حتى تركيب ADC والتحقق منه.
+3. ثم UART loopback منخفض الجهد، وبعده Wi-Fi/WebServer وربط Android. لا توصيل TX عالي الطاقة أو اعتماد BOM قبل القياسات والحماية.
