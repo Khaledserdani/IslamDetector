@@ -1,0 +1,50 @@
+name: ISLAM FREE AGENT — manager-only audit
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+    paths:
+      - 'tools/islam_agent/**'
+      - 'agent/**'
+      - 'docs/agent/**'
+      - '.github/workflows/islam-free-agent-manager-audit.yml'
+  pull_request:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - 'tools/islam_agent/**'
+      - 'agent/**'
+      - 'docs/agent/**'
+      - '.github/workflows/islam-free-agent-manager-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-free-agent-manager-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  manager-only-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch exact source commit
+        env:
+          SOURCE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git init source
+          cd source
+          git remote add origin "https://github.com/$REPOSITORY.git"
+          git fetch --depth 1 origin "$SOURCE_REF"
+          git checkout --detach FETCH_HEAD
+
+      - name: Run ISLAM FREE AGENT manager-only audit
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 tools/islam_agent/manager_audit.py --report "$GITHUB_WORKSPACE/manager-audit.md"

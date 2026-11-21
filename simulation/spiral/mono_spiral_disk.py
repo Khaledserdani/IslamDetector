@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import math
 
 from mono_spiral_geometry import MonoSpiral
+from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 
 MU0 = 4.0 * math.pi * 1e-7
 
@@ -115,31 +116,76 @@ def _mutual_neumann(seg_a, seg_b) -> float:
 
 
 
+def _complete_elliptic_ke_agm(parameter: float) -> tuple[float, float]:
+    """Complete elliptic K and E using the arithmetic-geometric mean."""
+    if not 0.0 <= parameter < 1.0:
+        raise ValueError("elliptic parameter must be in [0, 1)")
+    a = 1.0
+    b = math.sqrt(1.0 - parameter)
+    c = math.sqrt(parameter)
+    correction = 0.5 * c * c
+    weight = 1.0
+    for _ in range(64):
+        c = 0.5 * (a - b)
+        if abs(c) <= 2.0e-16 * a:
+            break
+        correction += weight * c * c
+        a_next = 0.5 * (a + b)
+        b = math.sqrt(a * b)
+        a = a_next
+        weight *= 2.0
+    else:
+        raise ArithmeticError("AGM elliptic integral did not converge")
+    complete_k = math.pi / (2.0 * a)
+    complete_e = complete_k * (1.0 - correction)
+    return complete_k, complete_e
+
+
+def _coaxial_loop_mutual_simpson(radius_a: float, radius_b: float,
+                                  axial_gap: float, integration_steps: int) -> float:
+    """Independent Simpson reference for coaxial-loop mutual inductance."""
+    if integration_steps < 2 or integration_steps % 2:
+        raise ValueError("Simpson integration_steps must be an even integer >= 2")
+    m = 4.0 * radius_a * radius_b / ((radius_a + radius_b)**2 + axial_gap**2)
+    m = min(max(m, 0.0), 1.0 - 1e-15)
+    h = (math.pi / 2.0) / integration_steps
+    sum_k = 0.0
+    sum_e = 0.0
+    for i in range(integration_steps + 1):
+        theta = i * h
+        q = 1.0 - m * math.sin(theta)**2
+        weight = 1 if i in (0, integration_steps) else (4 if i % 2 else 2)
+        root = math.sqrt(q)
+        sum_k += weight / root
+        sum_e += weight * root
+    complete_k = sum_k * h / 3.0
+    complete_e = sum_e * h / 3.0
+    return MU0 * math.sqrt(radius_a * radius_b) * (
+        ((2.0 - m) * complete_k - 2.0 * complete_e) / math.sqrt(m)
+    )
+
+
 def _coaxial_loop_mutual(radius_a: float, radius_b: float, axial_gap: float = 0.0,
-                        integration_steps: int = 2048) -> float:
-    """Mutual inductance of coaxial circular filaments via elliptic-integral quadrature."""
+                         integration_steps: int | None = None) -> float:
+    """Mutual inductance of coaxial circular filaments.
+
+    The default path uses AGM complete elliptic integrals. Supplying
+    integration_steps selects the independent Simpson reference path.
+    """
     if min(radius_a, radius_b) <= 0 or axial_gap < 0:
         raise ValueError("loop radii must be positive and axial gap non-negative")
     if radius_a == radius_b and axial_gap == 0:
         raise ValueError("self inductance requires finite conductor cross-section")
-    if integration_steps < 2 or integration_steps % 2:
-        raise ValueError("Simpson integration_steps must be an even integer >= 2")
-    m = 4.0*radius_a*radius_b/((radius_a+radius_b)**2+axial_gap**2)
-    m = min(max(m,0.0),1.0-1e-15)
-    h = (math.pi/2.0)/integration_steps
-    sum_k = 0.0
-    sum_e = 0.0
-    for i in range(integration_steps+1):
-        theta=i*h
-        q=1.0-m*math.sin(theta)**2
-        weight=1 if i in (0,integration_steps) else (4 if i%2 else 2)
-        root=math.sqrt(q)
-        sum_k += weight/root
-        sum_e += weight*root
-    K=sum_k*h/3.0
-    E=sum_e*h/3.0
-    k=math.sqrt(m)
-    return MU0*math.sqrt(radius_a*radius_b)*(((2.0-m)*K-2.0*E)/k)
+    m = 4.0 * radius_a * radius_b / ((radius_a + radius_b)**2 + axial_gap**2)
+    m = min(max(m, 0.0), 1.0 - 1e-15)
+    if integration_steps is not None:
+        return _coaxial_loop_mutual_simpson(
+            radius_a, radius_b, axial_gap, integration_steps
+        )
+    complete_k, complete_e = _complete_elliptic_ke_agm(m)
+    return MU0 * math.sqrt(radius_a * radius_b) * (
+        ((2.0 - m) * complete_k - 2.0 * complete_e) / math.sqrt(m)
+    )
 
 
 def _solve(matrix, rhs):
@@ -187,9 +233,14 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
     L[0][0] = coil.inductance_h
     for i in range(disk.rings):
         r = radii[i]
-        area = widths[i]*disk.thickness_m
-        equivalent_wire_radius = math.sqrt(area/math.pi)
-        L[i+1][i+1] = MU0*r*(math.log(8*r/equivalent_wire_radius)-2.0)
+        # Use the logarithmic GMD of the actual rectangular annulus section.
+        # The equal-area circular radius is not the same GMD and can bias the
+        # ring self term low. This remains a thin-ring, uniform-current
+        # approximation; finite curvature and nonuniform PI current are open.
+        section_gmd = rectangular_cross_section_gmd(
+            widths[i], disk.thickness_m, order=96
+        )
+        L[i+1][i+1] = MU0*r*(math.log(8*r/section_gmd)-2.0)
         L[0][i+1] = L[i+1][0] = _mutual_neumann(coil_segments,target_segments[i])
     for i in range(disk.rings):
         for j in range(i+1,disk.rings):
@@ -205,7 +256,7 @@ def build_disk_model(coil: Coil, disk: ConductiveDisk, ring_segments: int = 96):
             value = L[i][j] - sum(lower[i][k]*lower[j][k] for k in range(j))
             if i == j:
                 if value <= 0:
-                    raise ValueError("inductance matrix is not positive definite; refine model")
+                    raise ValueError(f"inductance matrix is not positive definite at pivot {i} (Schur complement {value:.6e} H); refine model")
                 lower[i][j] = math.sqrt(value)
             else:
                 lower[i][j] = value/lower[j][j]

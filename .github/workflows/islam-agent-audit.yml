@@ -1,0 +1,54 @@
+name: ISLAM Free Agent Audit
+
+on:
+  push:
+    branches:
+      - feature/islam-free-agent-foundation
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/islam-lab-searchcoil-redesign
+    paths:
+      - 'agent/**'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - 'tools/islam_agent/**'
+      - 'simulation/spiral/**'
+      - '.github/workflows/islam-agent-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: islam-agent-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  safe-audit:
+    name: Safe project audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch source using runner git (no external actions)
+        env:
+          SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --no-tags --branch "$SOURCE_REF" "https://github.com/$REPOSITORY.git" source
+          cd source
+          python3 --version
+
+      - name: Run deterministic audit
+        working-directory: source
+        run: |
+          set +e
+          python3 tools/islam_agent/audit.py --report "$GITHUB_WORKSPACE/islam-agent-report.md"
+          audit_status=$?
+          if [ -f "$GITHUB_WORKSPACE/islam-agent-report.md" ]; then
+            cat "$GITHUB_WORKSPACE/islam-agent-report.md"
+          else
+            echo "Audit report was not created."
+          fi
+          exit "$audit_status"
+

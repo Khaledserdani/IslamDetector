@@ -1,17 +1,19 @@
-name: Build and test ISLAM DETECTOR and ISLAM LAB Android apps
+name: Build and test ISLAM Android applications
 on:
   push:
-    branches: [ feature/islam-lab-foundation ]
+    branches: [ feature/islam-free-agent-foundation ]
     paths:
       - '.github/workflows/main.yml'
       - 'app/**'
       - 'lab/**'
+      - 'agent/**'
       - 'settings.gradle'
       - 'build.gradle'
       - 'gradle/**'
+      - 'agent/**'
   workflow_dispatch:
   pull_request:
-    branches: [ main ]
+    branches: [ feature/islam-lab-searchcoil-redesign ]
     paths:
       - '.github/workflows/main.yml'
       - 'app/**'
@@ -19,6 +21,7 @@ on:
       - 'settings.gradle'
       - 'build.gradle'
       - 'gradle/**'
+      - 'agent/**'
 permissions:
   contents: read
 concurrency:
@@ -26,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   android-apps:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -38,30 +41,41 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build Android applications
-        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug
+        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :lab:testDebugUnitTest :lab:assembleDebug :agent:testDebugUnitTest :agent:assembleDebug
       - name: Verify APK packages
         shell: bash
         run: |
           set -euo pipefail
           APP_APK=app/build/outputs/apk/debug/app-debug.apk
           LAB_APK=lab/build/outputs/apk/debug/lab-debug.apk
+          AGENT_APK=agent/build/outputs/apk/debug/agent-debug.apk
           test -s "$APP_APK"
           test -s "$LAB_APK"
+          test -s "$AGENT_APK"
           test "$(stat -c%s "$APP_APK")" -gt 1000
           test "$(stat -c%s "$LAB_APK")" -gt 1000
+          test "$(stat -c%s "$AGENT_APK")" -gt 1000
           unzip -t "$APP_APK"
           unzip -t "$LAB_APK"
+          unzip -t "$AGENT_APK"
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APP_APK" | grep -F "package: name='com.islamdetector.app'"
           "$AAPT" dump badging "$LAB_APK" | grep -F "package: name='com.islamlab.app'"
-          sha256sum "$APP_APK" "$LAB_APK"
+          "$AAPT" dump badging "$AGENT_APK" | grep -F "package: name='com.islamfreeagent.app'"
+          sha256sum "$APP_APK" "$LAB_APK" "$AGENT_APK"
       - name: Upload ISLAM DETECTOR APK
         uses: actions/upload-artifact@v4
         with:
           name: ISLAM-DETECTOR-Android-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - name: Upload ISLAM FREE AGENT APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISLAM-FREE-AGENT-Android-APK
+          path: agent/build/outputs/apk/debug/agent-debug.apk
           retention-days: 30
       - name: Upload ISLAM LAB APK
         uses: actions/upload-artifact@v4

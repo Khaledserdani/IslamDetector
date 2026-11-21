@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/islam-lab-searchcoil-redesign
+      - feature/islam-free-agent-foundation
     paths:
       - "simulation/spiral/**"
       - ".github/workflows/mono-spiral-convergence.yml"
@@ -19,32 +20,49 @@ permissions:
 jobs:
   convergence:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Fetch source using runner git (no external actions)
+        env:
+          SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+          SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --no-tags --branch "$SOURCE_REF" "https://github.com/$SOURCE_REPOSITORY.git" source
+          python3 --version
       - name: Run all unit tests
-        working-directory: simulation/spiral
-        run: python -m unittest -v
+        working-directory: source/simulation/spiral
+        run: python3 -m unittest -v
+      - name: Run finite cross-section target refinement study
+        working-directory: source/simulation/spiral
+        run: python3 run_finite_cross_section_convergence.py
       - name: Run disk surrogate convergence sweep
-        working-directory: simulation/spiral
-        run: python run_disk_convergence.py
+        working-directory: source/simulation/spiral
+        run: python3 run_disk_convergence.py
       - name: Run disk surrogate time-step sensitivity sweep
-        working-directory: simulation/spiral
-        run: python run_disk_timestep_sensitivity.py
+        working-directory: source/simulation/spiral
+        run: python3 run_disk_timestep_sensitivity.py
       - name: Run synthetic target parameter sweep
-        working-directory: simulation/spiral
-        run: python run_disk_parameter_sweep.py
+        working-directory: source/simulation/spiral
+        run: python3 run_disk_parameter_sweep.py
+      - name: Diagnose positive-definiteness across target ring resolutions
+        working-directory: source/simulation/spiral
+        run: python3 run_disk_positive_definite_diagnostics.py
+      - name: Diagnose radial annulus basis stability
+        working-directory: source/simulation/spiral
+        run: python3 run_disk_radial_basis_diagnostics.py
       - name: Run provisional coil-inductance sensitivity sweep
-        working-directory: simulation/spiral
-        run: python run_coil_inductance_sensitivity.py
-      - name: Upload convergence CSVs
-        uses: actions/upload-artifact@v4
-        with:
-          name: mono-spiral-disk-numerical-sensitivity
-          path: |
-            simulation/spiral/disk_surrogate_convergence_corrected.csv
-            simulation/spiral/disk_surrogate_timestep_sensitivity.csv
-            simulation/spiral/disk_surrogate_parameter_sweep.csv
-            simulation/spiral/disk_surrogate_coil_inductance_sensitivity.csv
+        working-directory: source/simulation/spiral
+        run: python3 run_coil_inductance_sensitivity.py
+      - name: Run Greenhouse path-specific inductance convergence
+        working-directory: source/simulation/spiral
+        run: python3 run_greenhouse_inductance.py
+      - name: Summarize generated CSV outputs
+        working-directory: source/simulation/spiral
+        run: |
+          set -euo pipefail
+          for file in finite_cross_section_convergence.csv disk_surrogate_convergence_corrected.csv disk_surrogate_timestep_sensitivity.csv disk_surrogate_parameter_sweep.csv disk_positive_definite_resolution_diagnostics.csv disk_radial_basis_diagnostics.csv disk_surrogate_coil_inductance_sensitivity.csv greenhouse_inductance_convergence.csv; do
+            test -s "$file"
+            echo "Generated $file ($(wc -l < "$file") lines)"
+            head -n 3 "$file"
+          done

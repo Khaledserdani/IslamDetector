@@ -1,7 +1,10 @@
+import math
 import unittest
 
+from rectangular_cross_section_gmd import rectangular_cross_section_gmd
 from mono_spiral_geometry import MonoSpiral
 from run_disk_convergence import matrix_condition_inf
+from run_disk_radial_basis_diagnostics import annulus_section_aspect_ratios
 from mono_spiral_disk import (Coil, ConductiveDisk, Pulse, MU0,
     _coaxial_loop_mutual, _segments_coil_path, build_disk_model, receive_peak, simulate)
 
@@ -44,7 +47,8 @@ class ConductiveDiskModelTests(unittest.TestCase):
                 expected.append((p0, p1))
         self.assertEqual(segments, expected)
         for first, second in zip(segments, segments[1:]):
-            self.assertEqual(first[1], second[0])
+            for axis in range(3):
+                self.assertAlmostEqual(first[1][axis], second[0][axis], delta=1e-12)
 
     def test_model_produces_finite_receive_signal(self):
         rows=simulate(self.coil,self.disk,self.pulse,ring_segments=48)
@@ -90,9 +94,86 @@ class ConductiveDiskModelTests(unittest.TestCase):
         expected=MU0*3.141592653589793*a*a*b*b/(2*z**3)
         self.assertLess(abs(actual-expected)/expected,0.002)
 
+    def test_agm_mutual_matches_independent_simpson_quadrature(self):
+        cases = (
+            (0.010, 0.012, 0.001),
+            (0.010, 0.020, 0.030),
+            (0.010, 0.015, 0.100),
+        )
+        for radius_a, radius_b, gap in cases:
+            with self.subTest(radius_a=radius_a, radius_b=radius_b, gap=gap):
+                fast = _coaxial_loop_mutual(radius_a, radius_b, gap)
+                reference = _coaxial_loop_mutual(
+                    radius_a, radius_b, gap, integration_steps=4096
+                )
+                self.assertLess(abs(fast - reference) / reference, 2.0e-10)
+
+    def test_agm_mutual_matches_far_field_dipole_limit(self):
+        radius_a, radius_b, gap = 0.010, 0.015, 1.5
+        actual = _coaxial_loop_mutual(radius_a, radius_b, gap)
+        expected = MU0 * math.pi * radius_a**2 * radius_b**2 / (2 * gap**3)
+        self.assertLess(abs(actual - expected) / expected, 3.0e-4)
+
     def test_coaxial_mutual_rejects_invalid_simpson_resolution(self):
         with self.assertRaises(ValueError):
             _coaxial_loop_mutual(0.010,0.020,0.030,511)
+
+    def test_equal_area_inner_annulus_is_not_thin_ring_geometry(self):
+        ratios = annulus_section_aspect_ratios(
+            radius_m=0.012, thickness_m=0.001, ring_count=6
+        )
+        # For equal-area annuli, the innermost radial width / mean radius
+        # is sqrt(2), independent of ring count; thin-filament loop formulas
+        # are therefore not asymptotically justified for this inner basis.
+        self.assertAlmostEqual(ratios[0], math.sqrt(2.0), places=14)
+        self.assertGreater(ratios[0], 1.0)
+
+    def test_ring_self_term_uses_rectangular_section_gmd(self):
+        disk = ConductiveDisk(
+            radius_m=0.012,
+            thickness_m=0.001,
+            conductivity_s_m=35e6,
+            depth_m=0.04,
+            rings=4,
+        )
+        matrix, _, radii = build_disk_model(self.coil, disk, ring_segments=48)
+        edges = [disk.radius_m * math.sqrt(i / disk.rings)
+                 for i in range(disk.rings + 1)]
+        width = edges[1] - edges[0]
+        section_gmd = rectangular_cross_section_gmd(width, disk.thickness_m, order=96)
+        expected = MU0 * radii[0] * (math.log(8 * radii[0] / section_gmd) - 2.0)
+        self.assertAlmostEqual(matrix[1][1], expected, places=18)
+
+    def test_eight_ring_basis_is_rejected_for_known_small_target_fixture(self):
+        # Regression fixture from the radial-basis sweep: seven annuli remain
+        # positive definite, while the eighth introduces a negative Schur
+        # complement at pivot 8. Keep the solver fail-closed until the annular
+        # basis/self-inductance formulation is upgraded.
+        seven = ConductiveDisk(
+            radius_m=0.006, thickness_m=0.001,
+            conductivity_s_m=35e6, depth_m=0.04, rings=7,
+        )
+        eight = ConductiveDisk(
+            radius_m=0.006, thickness_m=0.001,
+            conductivity_s_m=35e6, depth_m=0.04, rings=8,
+        )
+        matrix, _, _ = build_disk_model(self.coil, seven, ring_segments=96)
+        self.assertEqual(len(matrix), 8)
+        with self.assertRaisesRegex(
+            ValueError, r"not positive definite at pivot 8"
+        ):
+            build_disk_model(self.coil, eight, ring_segments=96)
+
+    def test_non_positive_inductance_matrix_reports_failing_pivot(self):
+        unstable_fixture = ConductiveDisk(
+            radius_m=0.006,
+            thickness_m=0.002,
+            conductivity_s_m=35e6,
+            depth_m=0.04,
+            rings=6,
+        )
+        with self.assertRaisesRegex(ValueError, r"not positive definite at pivot \d+"):
+            build_disk_model(self.coil, unstable_fixture, ring_segments=96)
 
     def test_invalid_disk_is_rejected(self):
         bad=ConductiveDisk(radius_m=0.0,thickness_m=0.001,
