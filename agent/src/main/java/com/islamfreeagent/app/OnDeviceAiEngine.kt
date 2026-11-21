@@ -109,7 +109,7 @@ internal class OnDeviceAiEngine(
                     "اسم الملف يجب أن يكون اسماً بسيطاً ينتهي .txt دون مجلدات أو مسارات. " +
                     "إذا لم تكن المهمة من هذا النوع فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
                     "لا تضف Markdown أو شرحاً خارج JSON، ولا تقترح أوامر نظام أو شبكة أو حذف ملفات.";
-                planner = activeEngine.createConversation(
+                val taskConversation = activeEngine.createConversation(
                     ConversationConfig(
                         systemInstruction = Contents.of(instruction),
                         thinkingConfig = com.google.ai.edge.litertlm.ThinkingConfig(
@@ -119,7 +119,8 @@ internal class OnDeviceAiEngine(
                         maxOutputToken = 256
                     )
                 )
-                val reply = planner.sendMessage(taskDescription).toString()
+                planner = taskConversation
+                val reply = taskConversation.sendMessage(taskDescription).toString()
                 callback.onSuccess(reply)
             } catch (error: Exception) {
                 callback.onFailure(error.message ?: "تعذر تحليل المهمة محلياً")
