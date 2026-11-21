@@ -415,7 +415,7 @@ CI #1365 على commit `10fca1e` اجتاز protocol-tests (50 اختبار Pyth
 
 ## 27. تصحيح ترتيب بتات ADS8861 في PIO — 2026-11-19
 
-DOUT في ADS8861 يرسل الكلمة MSB-first. يجب أن يكون sm_config_in_shift(..., true, true, 16u) حتى يجمع PIO البتات باتجاه اليسار ويترك الكلمة الأصلية في ISR[15:0]. الإعداد السابق shift-right كان سيعكس ترتيب تسلسل MSB-first ويضعه في الجزء العلوي من ISR؛ لذلك صُحح مع اختبار guard على 0xA55A. راجع ADS8861_PIO_TIMING_AUDIT_AR.md، القسم10.
+DOUT في ADS8861 يرسل الكلمة MSB-first. يجب أن يكون sm_config_set_in_shift(..., false, true, 16u) حتى يجمع PIO البتات باتجاه اليسار ويترك الكلمة الأصلية في ISR[15:0]. الإعداد السابق shift-right كان سيعكس ترتيب تسلسل MSB-first ويضعه في الجزء العلوي من ISR؛ لذلك صُحح مع اختبار guard على 0xA55A. راجع ADS8861_PIO_TIMING_AUDIT_AR.md، القسم10.
 
 هذا تصحيح برمجي مدقق بالمرجع الرسمي واختبار ساكن، وليس اختباراً على لوحة فعلية. يبقى ADC capture معطلاً افتراضياً.
 
