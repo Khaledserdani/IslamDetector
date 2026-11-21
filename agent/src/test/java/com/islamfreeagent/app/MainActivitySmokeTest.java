@@ -33,7 +33,7 @@ public class MainActivitySmokeTest {
             assertTrue(findButton(root, "التحقق من النموذج وتشغيل الذكاء المحلي"));
             assertTrue(findText(root, "اكتب رسالتك أو سؤالك هنا"));
             assertTrue(findButton(root, "إرسال إلى الذكاء المحلي"));
-            assertTrue(findButton(root, "تنفيذ"));
+            assertTrue(findTextContaining(root, "بعد إضافة المهمة، اضغط"));
             assertFalse(findText(root, "ربط محرك الكمبيوتر"));
             assertFalse(findText(root, "اطلب اقتراحاً من Ollama"));
         }
