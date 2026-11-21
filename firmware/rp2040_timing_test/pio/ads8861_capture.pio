@@ -8,7 +8,8 @@
 ; The following SET pins,0 [11] changes CONVST low at its start; its delay is LOW time.
 ; ADS8861 3-wire mode requires CONVST high through tconv-max (710 ns max); 768 ns meets this.
 ; SCLK = 7 cycles high + 7 cycles low = 8.929 MHz (50% duty).
-; DOUT is MSB-first. The C driver configures IN shift-left with autopush=16,
+; DOUT is MSB-first. The C driver configures shift_right=false (shift-left)
+; with autopush=16,
 ; so the received word is right-aligned in ISR[15:0] without bit reversal.
 ; DOUT MSB is sampled 120 ns after CONVST falls (t_d-CNV-DO max 12.3 ns).
 ; ADS8861 updates DOUT after each SCLK falling edge (t_d-CK-DO max 13.4 ns),
