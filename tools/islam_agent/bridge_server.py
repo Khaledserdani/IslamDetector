@@ -31,6 +31,12 @@ MAX_BODY_BYTES = 80 * 1024
 MAX_TASKS = 100
 PAIR_WINDOW_SECONDS = 300
 MAX_PAIR_ATTEMPTS = 5
+TAILSCALE_IPV4 = ipaddress.ip_network("100.64.0.0/10")
+
+
+def is_allowed_bridge_ipv4(address: ipaddress.IPv4Address) -> bool:
+    """Allow RFC1918 LAN addresses or Tailscale CGNAT overlay addresses only."""
+    return address.version == 4 and (address.is_private or address in TAILSCALE_IPV4) and not address.is_multicast and not address.is_loopback
 
 
 class BridgeError(RuntimeError):
@@ -108,7 +114,7 @@ class BridgeApplication:
         return {
             "api_version": "0.2",
             "bridge": "ready",
-            "transport": "https_lan",
+            "transport": getattr(self, "transport", "https_lan"),
             "orchestrator": "available",
             "ollama": "available" if probe_ollama() else "unavailable",
             "model": self.model,
@@ -337,11 +343,11 @@ class BridgeApplication:
 def create_server(host: str, port: int, app: BridgeApplication,
                   certfile: Path, keyfile: Path, *, test_allow_loopback: bool = False) -> ThreadingHTTPServer:
     address = ipaddress.ip_address(host)
-    allowed_address = address.version == 4 and address.is_private and not address.is_multicast
+    allowed_address = is_allowed_bridge_ipv4(address)
     if test_allow_loopback and address.is_loopback:
         allowed_address = True
     if not allowed_address:
-        raise ValueError("host must be a private IPv4 address on the local network")
+        raise ValueError("host must be an RFC1918 LAN IPv4 or Tailscale 100.64.0.0/10 address")
     valid_port = isinstance(port, int) and not isinstance(port, bool) and 1024 <= port <= 65535
     if test_allow_loopback and port == 0:
         valid_port = True
