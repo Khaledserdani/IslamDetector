@@ -490,20 +490,20 @@ public class MainActivity extends Activity {
             activeExecutionTaskId = null;
             return;
         }
-        StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\\n")
-                .append("المجلد: مساحة عمل التطبيق الخاصة\\n\\n");
+        StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\n")
+                .append("المجلد: مساحة عمل التطبيق الخاصة\n\n");
         JSONArray plannedFiles = plan.optJSONArray("files");
         if (plannedFiles != null) {
             for (int i = 0; i < plannedFiles.length(); i++) {
                 JSONObject file = plannedFiles.optJSONObject(i);
                 if (file != null) preview.append("الملف: ").append(file.optString("filename"))
-                        .append("\\nالمحتوى المقترح:\\n").append(file.optString("content")).append("\\n\\n");
+                        .append("\nالمحتوى المقترح:\n").append(file.optString("content")).append("\n\n");
             }
         } else {
             preview.append("الملف: ").append(plan.optString("filename"))
-                    .append("\\nالمحتوى المقترح:\\n").append(plan.optString("content"));
+                    .append("\nالمحتوى المقترح:\n").append(plan.optString("content"));
         }
-        preview.append("\\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
+        preview.append("\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
         new AlertDialog.Builder(this)
                 .setTitle("مراجعة تنفيذ المهمة")
                 .setMessage(preview.toString())
@@ -519,13 +519,13 @@ public class MainActivity extends Activity {
                             JSONObject result = new AgentTaskToolRunner(this).execute(plan);
                             JSONArray files = result.getJSONArray("files");
                             StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
-                                    .append(files.length()).append(").\\n");
+                                    .append(files.length()).append(").\n");
                             for (int i = 0; i < files.length(); i++) {
                                 JSONObject file = files.getJSONObject(i);
-                                report.append("\\nالملف: ").append(file.getString("filename"))
-                                        .append("\\nالمسار: ").append(file.getString("path"))
-                                        .append("\\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
-                                        .append("\\nالمحتوى المقروء:\\n").append(file.getString("content")).append("\\n");
+                                report.append("\nالملف: ").append(file.getString("filename"))
+                                        .append("\nالمسار: ").append(file.getString("path"))
+                                        .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                        .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
                             }
                             String verified = report.toString();
                             if (!store.setExecutionResult(task.id, true, verified))
