@@ -22,7 +22,7 @@ public class GitHubClientTest {
             client.commitApprovedFile("docs/agent/agent_worklog.md", "approved text", "test");
             fail("remote write must remain disabled");
         } catch (SecurityException expected) {
-            assertTrue(expected.getMessage().contains("معطل"));
+            assertTrue(expected.getMessage().contains("غير مدعومة"));
         }
     }
 
