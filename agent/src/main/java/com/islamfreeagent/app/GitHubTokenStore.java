@@ -46,13 +46,20 @@ final class GitHubTokenStore {
         return new String(cipher.doFinal(Base64.decode(tokenText, Base64.NO_WRAP)), StandardCharsets.UTF_8);
     }
 
-    static void clear(Context context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().commit();
+    static boolean clear(Context context) {
+        if (context == null) return false;
+        boolean preferencesCleared = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().clear().commit();
+        boolean keyDeleted;
         try {
             KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
             keyStore.load(null);
             if (keyStore.containsAlias(KEY_ALIAS)) keyStore.deleteEntry(KEY_ALIAS);
-        } catch (Exception ignored) { }
+            keyDeleted = !keyStore.containsAlias(KEY_ALIAS);
+        } catch (Exception error) {
+            keyDeleted = false;
+        }
+        return preferencesCleared && keyDeleted;
     }
 
     private static SecretKey getOrCreateKey() throws Exception {
