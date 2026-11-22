@@ -179,7 +179,7 @@ public class MainActivity extends Activity {
         dcLab.addView(disableNight, actionButtonParams());
         Button queueStatus = actionButton("تحديث حالة قائمة التجارب");
         queueStatus.setOnClickListener(v -> dcResultText.setText(
-                AgentLabQueue.summary(this) + "\\n" + AgentLabRunStore.summary(this)));
+                AgentLabQueue.summary(this) + "\n" + AgentLabRunStore.summary(this)));
         dcLab.addView(queueStatus, actionButtonParams());
         Button historyButton = actionButton("عرض سجل نتائج المختبر");
         historyButton.setOnClickListener(v -> showLabRunHistory());
