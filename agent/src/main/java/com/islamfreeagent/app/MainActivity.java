@@ -476,6 +476,7 @@ public class MainActivity extends Activity {
                     String message = error.getMessage() == null ? "خطة غير صالحة" : error.getMessage();
                     store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                     runOnUiThread(() -> {
+                        if (!task.id.equals(activeExecutionTaskId)) return;
                         activeExecutionTaskId = null;
                         aiReplyText.setText("لم تُنفذ المهمة: " + message);
                         renderTasks();
@@ -486,6 +487,7 @@ public class MainActivity extends Activity {
             @Override public void onFailure(String message) {
                 store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                 runOnUiThread(() -> {
+                    if (!task.id.equals(activeExecutionTaskId)) return;
                     activeExecutionTaskId = null;
                     aiReplyText.setText("تعذر تحليل المهمة: " + message);
                     renderTasks();
@@ -547,6 +549,7 @@ public class MainActivity extends Activity {
                                     throw new IllegalStateException("تعذر حفظ نتيجة المهمة.");
                             }
                             runOnUiThread(() -> {
+                                if (!task.id.equals(activeExecutionTaskId)) return;
                                 activeExecutionTaskId = null;
                                 aiReplyText.setText(verified);
                                 renderTasks();
@@ -556,6 +559,7 @@ public class MainActivity extends Activity {
                             String message = error.getMessage() == null ? "فشل تنفيذ الملفات" : error.getMessage();
                             store.setExecutionResult(task.id, false, "فشل التنفيذ: " + message);
                             runOnUiThread(() -> {
+                                if (!task.id.equals(activeExecutionTaskId)) return;
                                 activeExecutionTaskId = null;
                                 aiReplyText.setText("فشل التنفيذ: " + message);
                                 renderTasks();
