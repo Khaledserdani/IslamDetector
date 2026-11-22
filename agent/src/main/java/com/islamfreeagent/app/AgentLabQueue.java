@@ -22,7 +22,24 @@ final class AgentLabQueue {
                                        List<AgentDcLab.Resistor> resistors) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         JSONArray jobs = read(prefs);
-        if (jobs.length() >= MAX_JOBS) throw new IllegalStateException("قائمة المختبر ممتلئة (100 تجربة)");
+        // Keep the queue bounded without permanently consuming slots with finished jobs.
+        while (jobs.length() >= MAX_JOBS) {
+            JSONArray compact = new JSONArray();
+            boolean removedTerminal = false;
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject old = jobs.optJSONObject(i);
+                String status = old == null ? "" : old.optString("status", "");
+                if (!removedTerminal && ("completed".equals(status) || "failed".equals(status))) {
+                    removedTerminal = true;
+                    continue;
+                }
+                if (old != null) compact.put(old);
+            }
+            if (!removedTerminal) {
+                throw new IllegalStateException("قائمة المختبر ممتلئة بتجارب لم تنتهِ؛ لن نحذف أي تجربة معلقة");
+            }
+            jobs = compact;
+        }
         JSONObject job = new JSONObject();
         String id = UUID.randomUUID().toString();
         try {
