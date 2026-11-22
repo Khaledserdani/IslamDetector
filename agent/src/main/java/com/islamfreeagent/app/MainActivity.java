@@ -783,7 +783,7 @@ public class MainActivity extends Activity {
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
         github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
-        TextView explanation = text("لوحة اختيارية لقراءة حالة مستودع GitHub مباشرة من الهاتف. لا تنفذ تعديلات أو دمجاً تلقائياً.", 12, MUTED, false);
+        TextView explanation = text("لوحة قراءة فقط. أنشئ Fine-grained token لمستودع IslamDetector وحده، وبأقل صلاحيات: Metadata (read)، Contents (read)، Pull requests (read). صلاحية Actions (read) اختيارية لعرض سجل البناء. لا تمنح Contents write أو Actions write؛ الكتابة والدمج معطلان داخل التطبيق.", 12, MUTED, false);
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
