@@ -1,6 +1,20 @@
 name: Build ISLAM FREE AGENT APK
 
 on:
+  pull_request:
+    branches:
+      - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-github
+      - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-phone-only-v6
+      - feature/islam-free-agent-task-execution
+      - feature/islam-free-agent-task-execution-fix
+    paths:
+      - 'agent/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/islam-free-agent-apk.yml'
   push:
     branches:
       - feature/islam-free-agent-foundation
@@ -17,16 +31,17 @@ on:
       - '.github/workflows/islam-free-agent-apk.yml'
   workflow_dispatch:
 
+# Build and test jobs never need repository write access.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: islam-free-agent-apk-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-agent:
-    name: Test, build and publish the standalone Android assistant
+    name: Test, build and verify the standalone Android assistant
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -84,22 +99,28 @@ jobs:
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
           "$AAPT" dump badging "$APK" | grep -F "versionName='0.5.0'"
-          sha256sum "$APK" | tee /tmp/islam-agent-sha256.txt
-          echo "apk_sha256=$(cut -d' ' -f1 /tmp/islam-agent-sha256.txt)" >> "$GITHUB_OUTPUT"
+          sha256sum "$APK" | tee agent-apk-sha256.txt
+          echo "apk_sha256=$(cut -d' ' -f1 agent-apk-sha256.txt)" >> "$GITHUB_OUTPUT"
 
-      - name: Publish verified APK as GitHub Release
-        working-directory: source
+      - name: Upload verified APK for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: islam-free-agent-v0.5.0-${{ github.run_number }}
+          path: |
+            source/agent/build/outputs/apk/debug/agent-debug.apk
+            source/agent/agent-apk-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Write verification summary
         env:
-          GH_TOKEN: ${{ github.token }}
           APK_SHA256: ${{ steps.verify.outputs.apk_sha256 }}
         run: |
-          set -euo pipefail
-          TAG="islam-free-agent-v0.5.0-build-${GITHUB_RUN_NUMBER}"
-          NOTES="ISLAM FREE AGENT v0.5.0 debug APK built from source commit $GITHUB_SHA. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Adds Algeria overnight scheduling (20:00-06:00 by default), automatic validated DC/RLC/AC computational laboratory runs with saved evidence, and Android health display for work-window/lab status. Project source writes and non-lab operations still require explicit human approval. Physical phone-to-host integration still requires user-side testing."
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
-          else
-            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.5.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES" --target "$GITHUB_SHA"
-          fi
-          echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
-          echo "APK SHA-256: $APK_SHA256" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## ISLAM FREE AGENT APK verification"
+            echo "- Source commit: $GITHUB_SHA"
+            echo "- Package: com.islamfreeagent.app"
+            echo "- Version: 0.5.0"
+            echo "- SHA-256: $APK_SHA256"
+            echo "- APK is available as a workflow artifact for review; no public release was created."
+          } >> "$GITHUB_STEP_SUMMARY"
