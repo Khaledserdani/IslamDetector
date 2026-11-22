@@ -24,6 +24,7 @@ on:
       - feature/islam-free-agent-phone-only-v6
       - feature/islam-free-agent-task-execution
       - feature/islam-free-agent-task-execution-fix
+      - feature/islam-free-agent-lab-integration
     paths:
       - 'agent/**'
       - 'build.gradle'
