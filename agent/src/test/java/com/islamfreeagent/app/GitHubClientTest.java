@@ -16,6 +16,10 @@ public class GitHubClientTest {
         catch (IllegalArgumentException expected) { }
     }
 
+    @Test public void remoteWriteApiRemainsDisabledUntilHumanApprovalFlowExists() {
+        assertFalse(GitHubClient.isWriteApiEnabled());
+    }
+
     @Test public void writeAllowlistContainsOnlyApprovedProjectFiles() {
         assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/MainActivity.java"));
         assertTrue(GitHubClient.isAllowedWritePath("docs/agent/agent_worklog.md"));
