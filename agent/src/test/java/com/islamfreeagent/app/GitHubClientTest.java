@@ -16,8 +16,14 @@ public class GitHubClientTest {
         catch (IllegalArgumentException expected) { }
     }
 
-    @Test public void remoteWriteApiRemainsDisabledUntilHumanApprovalFlowExists() {
-        assertFalse(GitHubClient.isWriteApiEnabled());
+    @Test public void remoteWriteFailsClosedBeforeAnyNetworkRequest() throws Exception {
+        GitHubClient client = new GitHubClient("github_pat_example_valid_length_1234567890");
+        try {
+            client.commitApprovedFile("docs/agent/agent_worklog.md", "approved text", "test");
+            fail("remote write must remain disabled");
+        } catch (SecurityException expected) {
+            assertTrue(expected.getMessage().contains("معطل"));
+        }
     }
 
     @Test public void writeAllowlistContainsOnlyApprovedProjectFiles() {
