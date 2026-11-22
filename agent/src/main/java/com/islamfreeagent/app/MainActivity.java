@@ -691,19 +691,44 @@ public class MainActivity extends Activity {
             dcResultText.setText("مدخلات غير صحيحة: " + error.getMessage());
             return;
         }
-        dcResultText.setText("جارٍ حل الدارة والتحقق من قانون كيرشوف…");
+        dcResultText.setText("جارٍ التحقق من الدارة وتشغيل محرك المختبر…");
         networkExecutor.execute(() -> {
             try {
-                AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", volts, resistors);
-                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\n");
-                for (java.util.Map.Entry<String, Double> entry : result.nodeVoltages.entrySet()) {
-                    report.append(entry.getKey()).append(" = ")
-                            .append(String.format(java.util.Locale.US, "%.6f V", entry.getValue())).append("\n");
+                org.json.JSONArray rows = new org.json.JSONArray();
+                for (AgentDcLab.Resistor resistor : resistors) {
+                    rows.put(new org.json.JSONObject()
+                            .put("a", resistor.a)
+                            .put("b", resistor.b)
+                            .put("ohms", resistor.ohms));
+                }
+                org.json.JSONObject plan = new org.json.JSONObject()
+                        .put("action", "simulate_lab")
+                        .put("lab_id", AgentLabRunner.DC_LAB_ID)
+                        .put("ground", "0")
+                        .put("source_node", "vcc")
+                        .put("source_voltage_v", volts)
+                        .put("resistors", rows);
+                org.json.JSONObject result = AgentLabRunner.execute(this, plan);
+                org.json.JSONObject outputs = result.getJSONObject("outputs");
+                org.json.JSONObject nodeVoltages = outputs.getJSONObject("node_voltages_v");
+                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\\n");
+                java.util.Iterator<String> names = nodeVoltages.keys();
+                while (names.hasNext()) {
+                    String node = names.next();
+                    report.append(node).append(" = ")
+                            .append(String.format(java.util.Locale.US, "%.6f V",
+                                    nodeVoltages.getDouble(node))).append("\\n");
                 }
                 report.append("تيار المصدر: ")
-                        .append(String.format(java.util.Locale.US, "%.9f A", result.sourceCurrentAmps))
-                        .append("\nأقصى خطأ KCL: ")
-                        .append(String.format(java.util.Locale.US, "%.3e A", result.maximumKclResidualAmps));
+                        .append(String.format(java.util.Locale.US, "%.9f A",
+                                outputs.getDouble("source_current_a")))
+                        .append("\\nأقصى خطأ KCL: ")
+                        .append(String.format(java.util.Locale.US, "%.3e A",
+                                outputs.getDouble("max_kcl_residual_a")))
+                        .append("\\nمعرّف السجل: ").append(result.getString("run_id"))
+                        .append("\\nإصدار المحرك: ").append(result.getString("engine_version"))
+                        .append("\\nحالة التحقق: ")
+                        .append(result.getBoolean("verified") ? "اجتاز فحص KCL العددي" : "يحتاج مراجعة");
                 final String message = report.toString();
                 runOnUiThread(() -> dcResultText.setText(message));
             } catch (Exception error) {
