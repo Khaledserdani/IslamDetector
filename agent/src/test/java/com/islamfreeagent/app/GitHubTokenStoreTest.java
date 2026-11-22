@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 public class GitHubTokenStoreTest {
     private SecretKey newAesKey() throws Exception {
         KeyGenerator generator = KeyGenerator.getInstance("AES");
-        generator.init(256);
+        generator.init(128);
         return generator.generateKey();
     }
 
