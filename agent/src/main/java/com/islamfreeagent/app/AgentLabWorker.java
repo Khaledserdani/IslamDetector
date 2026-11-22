@@ -47,6 +47,19 @@ public final class AgentLabWorker extends Worker {
             output.put("node_voltages_v", voltages);
             output.put("source_current_a", solved.sourceCurrentAmps);
             output.put("max_kcl_residual_a", solved.maximumKclResidualAmps);
+            boolean numericallyVerified = solved.maximumKclResidualAmps <= 1.0e-8;
+            JSONObject inputs = new JSONObject();
+            inputs.put("lab_id", AgentLabRunner.DC_LAB_ID);
+            inputs.put("ground", "0");
+            inputs.put("source_node", "vcc");
+            inputs.put("source_voltage_v", job.getDouble("volts"));
+            inputs.put("resistors", rows);
+            String verification = "فحص KCL؛ أقصى متبقي تيار = "
+                    + String.format(java.util.Locale.US, "%.6e A", solved.maximumKclResidualAmps);
+            String runId = AgentLabRunStore.record(getApplicationContext(),
+                    AgentLabRunner.DC_LAB_ID, AgentLabRunner.DC_ENGINE_VERSION,
+                    "scheduled_worker", inputs, output, numericallyVerified, verification);
+            output.put("run_id", runId);
             AgentLabQueue.finish(getApplicationContext(), id, output, null);
             return Result.success();
         } catch (Exception error) {
