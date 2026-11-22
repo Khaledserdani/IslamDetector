@@ -144,4 +144,45 @@ public class AgentLabRunnerTest {
         }
         assertEquals(0, AgentLabRunStore.recent(context, 10).length());
     }
+
+    @Test public void corruptedQueueIsPreservedAndNeverSilentlyReplaced() {
+        context.getSharedPreferences("islam_free_agent_lab", Context.MODE_PRIVATE)
+                .edit().putString("dc_queue", "{broken").commit();
+        java.util.ArrayList<AgentDcLab.Resistor> one = new java.util.ArrayList<>();
+        one.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        try {
+            AgentLabQueue.enqueue(context, 5.0, one);
+            fail("corrupt queue must fail closed");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("تالفة"));
+        }
+        assertEquals("{broken", context.getSharedPreferences(
+                "islam_free_agent_lab", Context.MODE_PRIVATE).getString("dc_queue", ""));
+    }
+
+    @Test public void corruptedHistoryIsPreservedAndNeverSilentlyReplaced() throws Exception {
+        context.getSharedPreferences("islam_free_agent_lab_history", Context.MODE_PRIVATE)
+                .edit().putString("runs_json", "{broken").commit();
+        try {
+            AgentLabRunStore.record(context, "dc_resistive_network", "test", "test",
+                    new JSONObject(), new JSONObject(), false, "test");
+            fail("corrupt history must fail closed");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("تالف"));
+        }
+        assertEquals("{broken", context.getSharedPreferences(
+                "islam_free_agent_lab_history", Context.MODE_PRIVATE).getString("runs_json", ""));
+    }
+
+    @Test public void scheduledRunRecordingIsIdempotentByQueueId() throws Exception {
+        JSONObject inputs = new JSONObject().put("volts", 5.0);
+        JSONObject outputs = new JSONObject().put("current", 0.005);
+        String first = AgentLabRunStore.record(context, "dc_resistive_network", "test",
+                "scheduled_worker", inputs, outputs, true, "KCL", "queue-job-1");
+        String second = AgentLabRunStore.record(context, "dc_resistive_network", "test",
+                "scheduled_worker", inputs, outputs, true, "KCL", "queue-job-1");
+        assertEquals(first, second);
+        assertEquals(1, AgentLabRunStore.recent(context, 10).length());
+    }
+
 }
