@@ -20,6 +20,8 @@ public class AgentLabRunnerTest {
         context = RuntimeEnvironment.getApplication();
         context.getSharedPreferences("islam_free_agent_lab_history", Context.MODE_PRIVATE)
                 .edit().clear().commit();
+        context.getSharedPreferences("islam_free_agent_lab", Context.MODE_PRIVATE)
+                .edit().clear().commit();
     }
 
     private JSONObject dividerPlan() throws Exception {
@@ -108,6 +110,12 @@ public class AgentLabRunnerTest {
             if (i == 0) firstId = id;
         }
         assertTrue(AgentLabQueue.summary(context).contains("انتظار: 100"));
+        try {
+            AgentLabQueue.enqueue(context, 5.0, one);
+            fail("pending work must never be discarded to make room");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("لم تنتهِ"));
+        }
         AgentLabQueue.finish(context, firstId, new JSONObject().put("ok", true), null);
         AgentLabQueue.enqueue(context, 5.0, one);
         JSONArray queue = new JSONArray(context.getSharedPreferences(
