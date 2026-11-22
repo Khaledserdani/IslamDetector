@@ -29,6 +29,10 @@ public final class AgentLabWorker extends Worker {
         JSONObject job = AgentLabQueue.nextPending(getApplicationContext());
         if (job == null) return Result.success();
         String id = job.optString("id", "");
+        final AgentDcLab.Result solved;
+        final JSONObject output;
+        final JSONObject inputs;
+        final String verification;
         try {
             AgentLabQueue.validateJob(job);
             JSONArray rows = job.getJSONArray("resistors");
@@ -38,9 +42,8 @@ public final class AgentLabWorker extends Worker {
                 resistors.add(new AgentDcLab.Resistor(
                         row.getString("a"), row.getString("b"), row.getDouble("ohms")));
             }
-            AgentDcLab.Result solved = AgentDcLab.solve(
-                    "0", "vcc", job.getDouble("volts"), resistors);
-            JSONObject output = new JSONObject();
+            solved = AgentDcLab.solve("0", "vcc", job.getDouble("volts"), resistors);
+            output = new JSONObject();
             JSONObject voltages = new JSONObject();
             for (java.util.Map.Entry<String, Double> entry : solved.nodeVoltages.entrySet()) {
                 voltages.put(entry.getKey(), entry.getValue());
@@ -48,25 +51,31 @@ public final class AgentLabWorker extends Worker {
             output.put("node_voltages_v", voltages);
             output.put("source_current_a", solved.sourceCurrentAmps);
             output.put("max_kcl_residual_a", solved.maximumKclResidualAmps);
-            boolean numericallyVerified = solved.maximumKclResidualAmps <= 1.0e-8;
-            JSONObject inputs = new JSONObject();
+            inputs = new JSONObject();
             inputs.put("lab_id", AgentLabRunner.DC_LAB_ID);
             inputs.put("ground", "0");
             inputs.put("source_node", "vcc");
             inputs.put("source_voltage_v", job.getDouble("volts"));
             inputs.put("resistors", rows);
-            String verification = "فحص KCL؛ أقصى متبقي تيار = "
+            verification = "فحص KCL؛ أقصى متبقي تيار = "
                     + String.format(java.util.Locale.US, "%.6e A", solved.maximumKclResidualAmps);
-            String runId = AgentLabRunStore.record(getApplicationContext(),
-                    AgentLabRunner.DC_LAB_ID, AgentLabRunner.DC_ENGINE_VERSION,
-                    "scheduled_worker", inputs, output, numericallyVerified, verification);
-            output.put("run_id", runId);
-            AgentLabQueue.finish(getApplicationContext(), id, output, null);
-            return Result.success();
         } catch (Exception error) {
             AgentLabQueue.finish(getApplicationContext(), id, null,
                     error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
             return Result.success();
+        }
+
+        try {
+            boolean numericallyVerified = solved.maximumKclResidualAmps <= 1.0e-8;
+            String runId = AgentLabRunStore.record(getApplicationContext(),
+                    AgentLabRunner.DC_LAB_ID, AgentLabRunner.DC_ENGINE_VERSION,
+                    "scheduled_worker", inputs, output, numericallyVerified, verification, id);
+            output.put("run_id", runId);
+            AgentLabQueue.finish(getApplicationContext(), id, output, null);
+            return Result.success();
+        } catch (Exception persistenceError) {
+            // The run ledger is idempotent by queue ID, so retrying cannot duplicate a saved run.
+            return Result.retry();
         }
     }
 }
