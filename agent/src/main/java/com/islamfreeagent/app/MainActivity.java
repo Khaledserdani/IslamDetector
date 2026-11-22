@@ -711,23 +711,23 @@ public class MainActivity extends Activity {
                 org.json.JSONObject result = AgentLabRunner.execute(this, plan);
                 org.json.JSONObject outputs = result.getJSONObject("outputs");
                 org.json.JSONObject nodeVoltages = outputs.getJSONObject("node_voltages_v");
-                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\\n");
+                StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\n");
                 java.util.Iterator<String> names = nodeVoltages.keys();
                 while (names.hasNext()) {
                     String node = names.next();
                     report.append(node).append(" = ")
                             .append(String.format(java.util.Locale.US, "%.6f V",
-                                    nodeVoltages.getDouble(node))).append("\\n");
+                                    nodeVoltages.getDouble(node))).append("\n");
                 }
                 report.append("تيار المصدر: ")
                         .append(String.format(java.util.Locale.US, "%.9f A",
                                 outputs.getDouble("source_current_a")))
-                        .append("\\nأقصى خطأ KCL: ")
+                        .append("\nأقصى خطأ KCL: ")
                         .append(String.format(java.util.Locale.US, "%.3e A",
                                 outputs.getDouble("max_kcl_residual_a")))
-                        .append("\\nمعرّف السجل: ").append(result.getString("run_id"))
-                        .append("\\nإصدار المحرك: ").append(result.getString("engine_version"))
-                        .append("\\nحالة التحقق: ")
+                        .append("\nمعرّف السجل: ").append(result.getString("run_id"))
+                        .append("\nإصدار المحرك: ").append(result.getString("engine_version"))
+                        .append("\nحالة التحقق: ")
                         .append(result.getBoolean("verified") ? "اجتاز فحص KCL العددي" : "يحتاج مراجعة");
                 final String message = report.toString();
                 runOnUiThread(() -> dcResultText.setText(message));
