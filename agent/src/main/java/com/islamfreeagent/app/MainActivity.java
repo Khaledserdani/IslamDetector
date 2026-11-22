@@ -470,7 +470,7 @@ public class MainActivity extends Activity {
                     runOnUiThread(() -> {
                         if (store.contains(task.id) && task.id.equals(activeExecutionTaskId))
                             showTaskPlanConfirmation(task, plan);
-                        else activeExecutionTaskId = null;
+                        else if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
                     });
                 } catch (Exception error) {
                     String message = error.getMessage() == null ? "خطة غير صالحة" : error.getMessage();
@@ -498,7 +498,7 @@ public class MainActivity extends Activity {
 
     private void showTaskPlanConfirmation(AgentTaskStore.Task task, JSONObject plan) {
         if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
-            activeExecutionTaskId = null;
+            if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
             return;
         }
         StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\n")
@@ -520,7 +520,7 @@ public class MainActivity extends Activity {
                 .setMessage(preview.toString())
                 .setPositiveButton("موافقة وكتابة الملفات", (dialog, which) -> {
                     if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
-                        activeExecutionTaskId = null;
+                        if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
                         showMessage("المهمة تغيّرت", "لم يتم التنفيذ لأن المهمة لم تعد موجودة أو لم تعد المهمة الحالية.");
                         return;
                     }
