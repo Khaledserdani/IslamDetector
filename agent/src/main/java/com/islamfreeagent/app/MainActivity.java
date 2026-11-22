@@ -184,6 +184,13 @@ public class MainActivity extends Activity {
         Button historyButton = actionButton("عرض سجل نتائج المختبر");
         historyButton.setOnClickListener(v -> showLabRunHistory());
         dcLab.addView(historyButton, actionButtonParams());
+        Button catalogButton = actionButton("عرض خريطة مختبرات إسلام");
+        catalogButton.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("قدرات ISLAM LAB")
+                .setMessage(AgentLabCatalog.describe())
+                .setPositiveButton("إغلاق", null)
+                .show());
+        dcLab.addView(catalogButton, actionButtonParams());
         dcResultText = text("لم تُشغّل محاكاة بعد.", 13, MUTED, false);
         LinearLayout.LayoutParams dr = matchWrap(); dr.topMargin = dp(9);
         dcLab.addView(dcResultText, dr);
