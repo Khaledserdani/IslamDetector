@@ -27,7 +27,7 @@ public class GitHubClientTest {
         assertFalse(GitHubClient.isAllowedWritePath(null));
     }
 
-    @Test public void acceptsOpaqueFineGrainedTokenWithoutLoggingIt() {
+    @Test public void acceptsOpaqueFineGrainedToken() {
         GitHubClient client = new GitHubClient("github_pat_example_valid_length_1234567890");
         assertNotNull(client);
     }
