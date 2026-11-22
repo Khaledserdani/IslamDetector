@@ -39,7 +39,10 @@ final class GitHubTokenStore {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String ivText = prefs.getString(IV, null);
         String tokenText = prefs.getString(TOKEN, null);
-        if (ivText == null || tokenText == null) return null;
+        if (ivText == null && tokenText == null) return null;
+        if (ivText == null || tokenText == null) {
+            throw new IllegalStateException("بيانات الرمز المشفّر غير مكتملة؛ لم يتم حذفها تلقائياً.");
+        }
         SecretKey key = getExistingKey();
         if (key == null) {
             throw new IllegalStateException("مفتاح تشفير رمز GitHub غير موجود؛ يجب تنظيف البيانات القديمة وإعادة الربط.");
@@ -65,6 +68,7 @@ final class GitHubTokenStore {
         if (context == null) return false;
         boolean preferencesCleared = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().clear().commit();
+        if (!preferencesCleared) return false;
         boolean keyDeleted;
         try {
             KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
