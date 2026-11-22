@@ -17,6 +17,8 @@ final class GitHubClient {
     private static final String REPO = "IslamDetector";
     private static final String API = "https://api.github.com";
     private static final int MAX_BYTES = 512 * 1024;
+    // Keep remote writes disabled until a separately reviewed human-approval flow exists.
+    private static final boolean WRITE_API_ENABLED = false;
     private final String token;
 
     GitHubClient(String token) {
@@ -84,11 +86,18 @@ final class GitHubClient {
             )
     );
 
+    static boolean isWriteApiEnabled() {
+        return WRITE_API_ENABLED;
+    }
+
     static boolean isAllowedWritePath(String path) {
         return path != null && ALLOWED_WRITE_PATHS.contains(path);
     }
 
     String commitApprovedFile(String path, String content, String summary) throws Exception {
+        if (!WRITE_API_ENABLED) {
+            throw new SecurityException("مسار الكتابة إلى GitHub معطل حتى اعتماد تدفق موافقة بشرية مستقل.");
+        }
         if (!isAllowedWritePath(path)) {
             throw new SecurityException("مسار الملف غير مسموح للرفع");
         }
@@ -143,23 +152,26 @@ final class GitHubClient {
         URL url = new URL(API + "/repos/" + OWNER + "/" + REPO + "/contents/"
                 + encodePath(path) + "?ref=" + URLEncoder.encode(WRITE_BRANCH, "UTF-8"));
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setConnectTimeout(8000);
-        connection.setReadTimeout(15000);
-        connection.setInstanceFollowRedirects(false);
-        connection.setRequestProperty("Authorization", "Bearer " + token);
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
-        connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
-        connection.setRequestProperty("User-Agent", "ISLAM-FREE-AGENT-Android");
-        int status = connection.getResponseCode();
-        InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        String response = readBounded(stream);
-        connection.disconnect();
-        if (status == 404) return null;
-        if (status < 200 || status >= 300) {
-            throw new java.io.IOException("تعذر قراءة SHA للملف قبل تحديثه (HTTP " + status + ").");
+        try {
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(15000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Accept", "application/vnd.github+json");
+            connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
+            connection.setRequestProperty("User-Agent", "ISLAM-FREE-AGENT-Android");
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            String response = readBounded(stream);
+            if (status == 404) return null;
+            if (status < 200 || status >= 300) {
+                throw new java.io.IOException("تعذر قراءة SHA للملف قبل تحديثه (HTTP " + status + ").");
+            }
+            return new JSONObject(response).optString("sha", null);
+        } finally {
+            connection.disconnect();
         }
-        return new JSONObject(response).optString("sha", null);
     }
 
     private static String encodePath(String path) throws Exception {
@@ -184,32 +196,35 @@ final class GitHubClient {
     private String request(String path) throws Exception {
         if (!path.startsWith("/") || path.contains("..")) throw new IllegalArgumentException("مسار API غير صالح");
         HttpURLConnection connection = (HttpURLConnection) new URL(API + path).openConnection();
-        connection.setRequestMethod("GET");
-        connection.setConnectTimeout(8000);
-        connection.setReadTimeout(15000);
-        connection.setInstanceFollowRedirects(false);
-        connection.setRequestProperty("Authorization", "Bearer " + token);
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
-        connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
-        connection.setRequestProperty("User-Agent", "ISLAM-FREE-AGENT-Android");
-        connection.setRequestProperty("Cache-Control", "no-store");
-        int status = connection.getResponseCode();
-        InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        String response = readBounded(stream);
-        connection.disconnect();
-        if (status < 200 || status >= 300) {
-            String message = "رفض GitHub الطلب (HTTP " + status + ").";
-            try {
-                JSONObject error = new JSONObject(response);
-                String detail = error.optString("message", "");
-                if (!detail.isEmpty()) message += " " + detail;
-            } catch (Exception ignored) { }
-            if (status == 401) message = "رمز GitHub غير صحيح أو منتهي.";
-            if (status == 403) message = "صلاحية الرمز غير كافية أو تجاوزت حد الطلبات. راجع صلاحيات القراءة.";
-            if (status == 404) message = "المستودع غير ظاهر لهذا الرمز؛ تحقق من اختيار IslamDetector وصلاحية Metadata.";
-            throw new java.io.IOException(message);
+        try {
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(15000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Accept", "application/vnd.github+json");
+            connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
+            connection.setRequestProperty("User-Agent", "ISLAM-FREE-AGENT-Android");
+            connection.setRequestProperty("Cache-Control", "no-store");
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            String response = readBounded(stream);
+            if (status < 200 || status >= 300) {
+                String message = "رفض GitHub الطلب (HTTP " + status + ").";
+                try {
+                    JSONObject error = new JSONObject(response);
+                    String detail = error.optString("message", "");
+                    if (!detail.isEmpty()) message += " " + detail;
+                } catch (Exception ignored) { }
+                if (status == 401) message = "رمز GitHub غير صحيح أو منتهي.";
+                if (status == 403) message = "صلاحية الرمز غير كافية أو تجاوزت حد الطلبات. راجع صلاحيات القراءة.";
+                if (status == 404) message = "المستودع غير ظاهر لهذا الرمز؛ تحقق من اختيار IslamDetector وصلاحية Metadata.";
+                throw new java.io.IOException(message);
+            }
+            return response;
+        } finally {
+            connection.disconnect();
         }
-        return response;
     }
 
     private static String readBounded(InputStream input) throws Exception {
