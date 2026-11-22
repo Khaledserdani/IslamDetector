@@ -101,6 +101,13 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
+        // Android 15 enforces edge-to-edge for targetSdk 35; keep content clear
+        // of the status and navigation bars on both new and older Android versions.
+        scroll.setClipToPadding(false);
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
+            return insets;
+        });
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -208,6 +215,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
+        scroll.requestApplyInsets();
     }
 
     private void addLocalAiPanel(LinearLayout page) {
