@@ -99,6 +99,26 @@ public class AgentLabRunnerTest {
         assertTrue(AgentLabQueue.summary(context).contains("انتظار: 0"));
     }
 
+    @Test public void completedQueueEntriesArePrunedBeforeRejectingNewWork() throws Exception {
+        java.util.ArrayList<AgentDcLab.Resistor> one = new java.util.ArrayList<>();
+        one.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        String firstId = null;
+        for (int i = 0; i < 100; i++) {
+            String id = AgentLabQueue.enqueue(context, 5.0, one);
+            if (i == 0) firstId = id;
+        }
+        assertTrue(AgentLabQueue.summary(context).contains("انتظار: 100"));
+        AgentLabQueue.finish(context, firstId, new JSONObject().put("ok", true), null);
+        AgentLabQueue.enqueue(context, 5.0, one);
+        JSONArray queue = new JSONArray(context.getSharedPreferences(
+                "islam_free_agent_lab", Context.MODE_PRIVATE).getString("dc_queue", "[]"));
+        assertEquals(100, queue.length());
+        assertTrue(AgentLabQueue.summary(context).contains("انتظار: 100"));
+        for (int i = 0; i < queue.length(); i++) {
+            assertNotEquals(firstId, queue.getJSONObject(i).getString("id"));
+        }
+    }
+
     @Test public void rejectsSingularNetworkBeforeExecution() throws Exception {
         JSONObject plan = new JSONObject()
                 .put("action", "simulate_lab")
