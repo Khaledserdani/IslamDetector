@@ -1,0 +1,23 @@
+name: Actions Runner Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostics/actions-runner-probe-20261122
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Confirm runner startup
+        run: |
+          set -euo pipefail
+          echo "GitHub-hosted runner started successfully."
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Commit: $GITHUB_SHA"
+          uname -a
