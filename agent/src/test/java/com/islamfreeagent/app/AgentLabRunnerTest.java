@@ -35,7 +35,9 @@ public class AgentLabRunnerTest {
     }
 
     @Test public void approvedAgentPlanRunsDcAndStoresProvenance() throws Exception {
-        JSONObject result = AgentLabRunner.execute(context, dividerPlan());
+        JSONObject plan = dividerPlan();
+        AgentTaskToolRunner.validate(plan);
+        JSONObject result = new AgentTaskToolRunner(context).execute(plan);
         assertTrue(result.getBoolean("verified"));
         assertEquals("dc_resistive_network", result.getString("lab_id"));
         assertEquals(5.0, result.getJSONObject("outputs")
