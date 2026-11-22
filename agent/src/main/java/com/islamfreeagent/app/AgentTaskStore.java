@@ -12,7 +12,7 @@ final class AgentTaskStore {
     private static final String PREFS = "islam_free_agent";
     private static final String KEY_TASKS = "tasks_json";
     static final int MAX_TASKS = 500;
-    static final int MAX_TITLE_CHARS = 8192;
+    static final int MAX_TITLE_CHARS = 80;
     static final int MAX_DESCRIPTION_CHARS = 65536;
     private final SharedPreferences preferences;
     AgentTaskStore(Context context) {
