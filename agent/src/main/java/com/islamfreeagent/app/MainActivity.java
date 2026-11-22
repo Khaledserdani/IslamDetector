@@ -781,6 +781,10 @@ public class MainActivity extends Activity {
 
         githubTokenInput = textInput("ألصق Fine-grained token هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         githubTokenInput.setSingleLine(true);
+        githubTokenInput.setSaveEnabled(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            githubTokenInput.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        }
         LinearLayout.LayoutParams tokenLp = matchWrap(); tokenLp.topMargin = dp(8);
         github.addView(githubTokenInput, tokenLp);
 
@@ -830,11 +834,11 @@ public class MainActivity extends Activity {
 
     private void connectGitHub() {
         String token = githubTokenInput.getText().toString().trim();
+        githubTokenInput.setText("");
         runGitHubOperation("جارٍ التحقق من GitHub…", () -> {
             GitHubClient client = new GitHubClient(token);
             String dashboard = client.dashboard();
             GitHubTokenStore.save(this, token);
-            runOnUiThread(() -> githubTokenInput.setText(""));
             return dashboard;
         });
     }
