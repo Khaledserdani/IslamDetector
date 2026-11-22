@@ -525,20 +525,27 @@ public class MainActivity extends Activity {
                     aiReplyText.setText("جارٍ إنشاء الملفات وقراءتها للتحقق…");
                     networkExecutor.execute(() -> {
                         try {
-                            JSONObject result = new AgentTaskToolRunner(this).execute(plan);
-                            JSONArray files = result.getJSONArray("files");
-                            StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
-                                    .append(files.length()).append(").\n");
-                            for (int i = 0; i < files.length(); i++) {
-                                JSONObject file = files.getJSONObject(i);
-                                report.append("\nالملف: ").append(file.getString("filename"))
-                                        .append("\nالمسار: ").append(file.getString("path"))
-                                        .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
-                                        .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
+                            String verified;
+                            // Serialize the final existence check, file writes, and result save
+                            // against task deletion. If deletion wins the lock, no files are written.
+                            synchronized (store) {
+                                if (!store.contains(task.id))
+                                    throw new IllegalStateException("حُذفت المهمة قبل بدء الكتابة؛ لم تُنشأ ملفات.");
+                                JSONObject result = new AgentTaskToolRunner(this).execute(plan);
+                                JSONArray files = result.getJSONArray("files");
+                                StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
+                                        .append(files.length()).append(").\\n");
+                                for (int i = 0; i < files.length(); i++) {
+                                    JSONObject file = files.getJSONObject(i);
+                                    report.append("\\nالملف: ").append(file.getString("filename"))
+                                            .append("\\nالمسار: ").append(file.getString("path"))
+                                            .append("\\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                            .append("\\nالمحتوى المقروء:\\n").append(file.getString("content")).append("\\n");
+                                }
+                                verified = report.toString();
+                                if (!store.setExecutionResult(task.id, true, verified))
+                                    throw new IllegalStateException("تعذر حفظ نتيجة المهمة.");
                             }
-                            String verified = report.toString();
-                            if (!store.setExecutionResult(task.id, true, verified))
-                                throw new IllegalStateException("حُذفت المهمة قبل حفظ النتيجة.");
                             runOnUiThread(() -> {
                                 activeExecutionTaskId = null;
                                 aiReplyText.setText(verified);
