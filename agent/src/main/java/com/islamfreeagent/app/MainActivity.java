@@ -836,10 +836,7 @@ public class MainActivity extends Activity {
                 githubStatusText.setTextColor(Color.rgb(130, 220, 185));
             }
         } catch (Exception error) {
-            boolean cleared = GitHubTokenStore.clear(this);
-            githubStatusText.setText(cleared
-                    ? "تعذر فتح الرمز المحفوظ؛ حُذفت بياناته ومفتاحه. أنشئ رمزاً جديداً عند الحاجة."
-                    : "تعذر فتح الرمز المحفوظ، ولم نتمكن من تأكيد تنظيف جميع بياناته. لا تعتبر الفصل مكتملاً.");
+            githubStatusText.setText("تعذر فتح الرمز المحفوظ. لم نحذف بياناته تلقائياً؛ افحص حالة الهاتف أو استخدم زر الفصل إذا أردت حذفها صراحةً.");
             githubStatusText.setTextColor(Color.rgb(255, 150, 140));
         }
     }
