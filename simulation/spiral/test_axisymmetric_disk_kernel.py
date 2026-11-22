@@ -42,6 +42,27 @@ class AxisymmetricDiskKernelTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "singular"):
             azimuthally_integrated_neumann_kernel_per_m(0.01, 0.02, 0.01, 0.02)
 
+    def test_near_coincident_distinct_points_remain_finite(self):
+        # These separations are small enough that forming m and then 1-m
+        # loses the complementary parameter in binary64.
+        for gap_m in (1.0e-10, 1.0e-12):
+            with self.subTest(gap_m=gap_m):
+                value = azimuthally_integrated_neumann_kernel_per_m(
+                    0.01, 0.0, 0.01 + gap_m, 0.0
+                )
+                self.assertTrue(math.isfinite(value))
+                self.assertGreater(value, 0.0)
+
+    def test_kernel_grows_as_distinct_points_approach(self):
+        values = [
+            azimuthally_integrated_neumann_kernel_per_m(
+                0.01, 0.0, 0.01 + gap_m, 0.0
+            )
+            for gap_m in (1.0e-7, 1.0e-9, 1.0e-11)
+        ]
+        self.assertLess(values[0], values[1])
+        self.assertLess(values[1], values[2])
+
     def test_finite_cell_density_is_positive_and_finite_off_diagonal(self):
         value = finite_cell_inductance_integrand_h_per_m4(
             0.012, 0.003, 0.007, 0.021, 1.0e-6, 2.0e-6
