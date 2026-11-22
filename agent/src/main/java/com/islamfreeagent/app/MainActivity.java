@@ -15,6 +15,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Build;
 import android.text.InputType;
+import android.text.InputFilter;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -780,6 +781,8 @@ public class MainActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
 
             TextView taskTitle = text(task.title, 14, task.done ? MUTED : Color.WHITE, true);
+            taskTitle.setMaxLines(2);
+            taskTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
             if (task.done) taskTitle.setPaintFlags(taskTitle.getPaintFlags() | 16);
             row.addView(taskTitle, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -820,11 +823,11 @@ public class MainActivity extends Activity {
         fields.setOrientation(LinearLayout.VERTICAL);
         fields.setPadding(dp(8), dp(4), dp(8), dp(4));
         EditText titleInput = new EditText(this);
-        titleInput.setSingleLine(false);
-        titleInput.setMinLines(2);
+        titleInput.setSingleLine(true);
+        titleInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(AgentTaskStore.MAX_TITLE_CHARS)});
         titleInput.setTextSize(16);
-        titleInput.setHint("عنوان المهمة");
-        titleInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        titleInput.setHint("عنوان مختصر (80 حرفاً كحد أقصى)");
+        titleInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         titleInput.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         EditText descriptionInput = new EditText(this);
         descriptionInput.setSingleLine(false);
