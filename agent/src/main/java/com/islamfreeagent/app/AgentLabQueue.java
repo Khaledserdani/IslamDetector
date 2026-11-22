@@ -20,7 +20,6 @@ final class AgentLabQueue {
 
     static synchronized String enqueue(Context context, double volts,
                                        List<AgentDcLab.Resistor> resistors) {
-        AgentDcLab.solve("0", "vcc", volts, resistors);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         JSONArray jobs = read(prefs);
         if (jobs.length() >= MAX_JOBS) throw new IllegalStateException("قائمة المختبر ممتلئة (100 تجربة)");
@@ -39,12 +38,26 @@ final class AgentLabQueue {
                 rs.put(item);
             }
             job.put("resistors", rs);
+            validateJob(job);
             jobs.put(job);
         } catch (JSONException impossible) {
             throw new IllegalStateException(impossible);
         }
         save(prefs, jobs);
         return id;
+    }
+
+    /** Re-apply the exact on-device runner limits to queued and persisted jobs. */
+    static void validateJob(JSONObject job) throws Exception {
+        if (job == null) throw new IllegalArgumentException("تجربة المختبر فارغة");
+        JSONObject plan = new JSONObject()
+                .put("action", "simulate_lab")
+                .put("lab_id", AgentLabRunner.DC_LAB_ID)
+                .put("ground", "0")
+                .put("source_node", "vcc")
+                .put("source_voltage_v", job.getDouble("volts"))
+                .put("resistors", job.getJSONArray("resistors"));
+        AgentLabRunner.validate(plan);
     }
 
     static synchronized JSONObject nextPending(Context context) {
