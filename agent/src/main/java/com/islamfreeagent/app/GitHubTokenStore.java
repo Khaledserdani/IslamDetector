@@ -44,10 +44,21 @@ final class GitHubTokenStore {
         if (key == null) {
             throw new IllegalStateException("مفتاح تشفير رمز GitHub غير موجود؛ يجب تنظيف البيانات القديمة وإعادة الربط.");
         }
+        return decrypt(key, ivText, tokenText);
+    }
+
+    static String decrypt(SecretKey key, String ivText, String tokenText) throws Exception {
+        if (key == null || ivText == null || tokenText == null) {
+            throw new IllegalArgumentException("بيانات الرمز المشفّر غير مكتملة");
+        }
+        byte[] iv = Base64.decode(ivText, Base64.NO_WRAP);
+        byte[] encrypted = Base64.decode(tokenText, Base64.NO_WRAP);
+        if (iv.length != 12 || encrypted.length < 16) {
+            throw new IllegalArgumentException("بيانات الرمز المشفّر تالفة أو غير مكتملة");
+        }
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key,
-                new GCMParameterSpec(128, Base64.decode(ivText, Base64.NO_WRAP)));
-        return new String(cipher.doFinal(Base64.decode(tokenText, Base64.NO_WRAP)), StandardCharsets.UTF_8);
+        cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+        return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
     }
 
     static boolean clear(Context context) {
