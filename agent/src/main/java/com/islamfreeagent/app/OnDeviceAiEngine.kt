@@ -113,7 +113,12 @@ internal class OnDeviceAiEngine(
                     "إذا طلبت عدة ملفات فأعد JSON بالمفاتيح action وfiles واجعل action write_and_read_text_files، " +
                     "وfiles مصفوفة تضم عنصراً لكل ملف مطلوب، وكل عنصر يحوي filename وcontent. لا تسقط أي ملف. " +
                     "استخدم أسماء TXT بسيطة دون مسارات، وانقل المحتوى العربي المطلوب حرفياً دون ترجمته. " +
-                    "إذا لم تكن المهمة من هذا النوع فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
+                    "إذا طلب المستخدم تحليل أو محاكاة دارة DC بمقاومات ومصدر جهد مثالي، أعد JSON فقط بالمفاتيح action وlab_id وground وsource_node وsource_voltage_v وresistors. " +
+                    "اجعل action يساوي simulate_lab وlab_id يساوي dc_resistive_network. " +
+                    "resistors مصفوفة عناصرها كائنات بالمفاتيح a وb وohms، وكل عنصر يمثل مقاومة واحدة بالأوم. " +
+                    "لا تخترع قيماً ناقصة؛ إذا لم يذكر المستخدم التوصيلات أو الجهد الكافي فاجعل action unsupported. " +
+                    "هذا المختبر يحل مقاومات خطية ومصدراً مثالياً واحداً فقط، ولا يمثل المكثفات أو الملفات أو التبديل أو الحرارة أو العتاد الحقيقي. " +
+                    "إذا لم تكن المهمة من هذا النوع أو كانت تحتاج مختبراً غير منفذ فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
                     "لا تضف Markdown أو شرحاً خارج JSON، ولا تقترح أوامر نظام أو شبكة أو حذف ملفات.";
                 val taskConversation = activeEngine.createConversation(
                     ConversationConfig(
@@ -122,7 +127,7 @@ internal class OnDeviceAiEngine(
                             enableThinking = false,
                             thinkingTokenBudget = 0
                         ),
-                        maxOutputToken = 1024
+                        maxOutputToken = 2048
                     )
                 )
                 planner = taskConversation
