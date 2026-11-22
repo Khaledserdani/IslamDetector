@@ -534,13 +534,13 @@ public class MainActivity extends Activity {
                                 JSONObject result = new AgentTaskToolRunner(this).execute(plan);
                                 JSONArray files = result.getJSONArray("files");
                                 StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
-                                        .append(files.length()).append(").\\n");
+                                        .append(files.length()).append(").\n");
                                 for (int i = 0; i < files.length(); i++) {
                                     JSONObject file = files.getJSONObject(i);
-                                    report.append("\\nالملف: ").append(file.getString("filename"))
-                                            .append("\\nالمسار: ").append(file.getString("path"))
-                                            .append("\\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
-                                            .append("\\nالمحتوى المقروء:\\n").append(file.getString("content")).append("\\n");
+                                    report.append("\nالملف: ").append(file.getString("filename"))
+                                            .append("\nالمسار: ").append(file.getString("path"))
+                                            .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                            .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
                                 }
                                 verified = report.toString();
                                 if (!store.setExecutionResult(task.id, true, verified))
