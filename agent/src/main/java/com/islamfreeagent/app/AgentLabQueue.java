@@ -20,10 +20,25 @@ final class AgentLabQueue {
 
     static synchronized String enqueue(Context context, double volts,
                                        List<AgentDcLab.Resistor> resistors) {
-        AgentDcLab.solve("0", "vcc", volts, resistors);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         JSONArray jobs = read(prefs);
-        if (jobs.length() >= MAX_JOBS) throw new IllegalStateException("قائمة المختبر ممتلئة (100 تجربة)");
+        while (jobs.length() >= MAX_JOBS) {
+            JSONArray compact = new JSONArray();
+            boolean removedTerminal = false;
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject old = jobs.optJSONObject(i);
+                String status = old.optString("status", "");
+                if (!removedTerminal && ("completed".equals(status) || "failed".equals(status))) {
+                    removedTerminal = true;
+                    continue;
+                }
+                compact.put(old);
+            }
+            if (!removedTerminal) {
+                throw new IllegalStateException("قائمة المختبر ممتلئة بتجارب لم تنتهِ؛ لن نحذف أي تجربة معلقة");
+            }
+            jobs = compact;
+        }
         JSONObject job = new JSONObject();
         String id = UUID.randomUUID().toString();
         try {
@@ -39,6 +54,7 @@ final class AgentLabQueue {
                 rs.put(item);
             }
             job.put("resistors", rs);
+            validateJob(job);
             jobs.put(job);
         } catch (JSONException impossible) {
             throw new IllegalStateException(impossible);
@@ -47,11 +63,30 @@ final class AgentLabQueue {
         return id;
     }
 
+    /** Re-apply the exact on-device runner limits to queued and persisted jobs. */
+    static void validateJob(JSONObject job) {
+        if (job == null) throw new IllegalArgumentException("تجربة المختبر فارغة");
+        try {
+            JSONObject plan = new JSONObject()
+                    .put("action", "simulate_lab")
+                    .put("lab_id", AgentLabRunner.DC_LAB_ID)
+                    .put("ground", "0")
+                    .put("source_node", "vcc")
+                    .put("source_voltage_v", job.getDouble("volts"))
+                    .put("resistors", job.getJSONArray("resistors"));
+            AgentLabRunner.validate(plan);
+        } catch (IllegalArgumentException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IllegalArgumentException("بيانات تجربة المختبر غير صالحة", error);
+        }
+    }
+
     static synchronized JSONObject nextPending(Context context) {
         JSONArray jobs = read(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE));
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
-            if (job != null && "pending".equals(job.optString("status"))) return job;
+            if ("pending".equals(job.optString("status"))) return job;
         }
         return null;
     }
@@ -61,7 +96,7 @@ final class AgentLabQueue {
         JSONArray jobs = read(prefs);
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
-            if (job == null || !id.equals(job.optString("id"))) continue;
+            if (!id.equals(job.optString("id"))) continue;
             try {
                 if (error == null) {
                     job.put("status", "completed");
@@ -76,14 +111,19 @@ final class AgentLabQueue {
             save(prefs, jobs);
             return;
         }
+        throw new IllegalStateException("تعذر العثور على تجربة المختبر لتحديث حالتها");
     }
 
     static synchronized String summary(Context context) {
-        JSONArray jobs = read(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE));
+        final JSONArray jobs;
+        try {
+            jobs = read(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE));
+        } catch (IllegalStateException corrupt) {
+            return "تحذير: تعذرت قراءة قائمة المختبر؛ أوقفنا التعديل لحماية البيانات";
+        }
         int pending = 0, completed = 0, failed = 0;
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
-            if (job == null) continue;
             switch (job.optString("status")) {
                 case "pending": pending++; break;
                 case "completed": completed++; break;
@@ -96,10 +136,23 @@ final class AgentLabQueue {
     }
 
     private static JSONArray read(SharedPreferences prefs) {
+        String raw = prefs.getString(KEY_QUEUE, null);
+        if (raw == null) return new JSONArray();
         try {
-            return new JSONArray(prefs.getString(KEY_QUEUE, "[]"));
+            JSONArray jobs = new JSONArray(raw);
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject job = jobs.optJSONObject(i);
+                if (job == null || job.optString("id", "").trim().isEmpty()) {
+                    throw new IllegalStateException("عنصر غير صالح داخل قائمة المختبر؛ لم نغيّر البيانات");
+                }
+                String status = job.optString("status", "");
+                if (!"pending".equals(status) && !"completed".equals(status) && !"failed".equals(status)) {
+                    throw new IllegalStateException("حالة تجربة غير معروفة؛ لم نغيّر بيانات القائمة");
+                }
+            }
+            return jobs;
         } catch (JSONException error) {
-            return new JSONArray();
+            throw new IllegalStateException("بيانات قائمة المختبر تالفة؛ أوقفنا التعديل لحماية التجارب المحفوظة", error);
         }
     }
 

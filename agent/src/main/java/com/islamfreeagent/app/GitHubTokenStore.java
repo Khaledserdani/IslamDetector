@@ -39,28 +39,58 @@ final class GitHubTokenStore {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String ivText = prefs.getString(IV, null);
         String tokenText = prefs.getString(TOKEN, null);
-        if (ivText == null || tokenText == null) return null;
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(),
-                new GCMParameterSpec(128, Base64.decode(ivText, Base64.NO_WRAP)));
-        return new String(cipher.doFinal(Base64.decode(tokenText, Base64.NO_WRAP)), StandardCharsets.UTF_8);
+        if (ivText == null && tokenText == null) return null;
+        if (ivText == null || tokenText == null) {
+            throw new IllegalStateException("بيانات الرمز المشفّر غير مكتملة؛ لم يتم حذفها تلقائياً.");
+        }
+        SecretKey key = getExistingKey();
+        if (key == null) {
+            throw new IllegalStateException("مفتاح تشفير رمز GitHub غير موجود؛ يجب تنظيف البيانات القديمة وإعادة الربط.");
+        }
+        return decrypt(key, ivText, tokenText);
     }
 
-    static void clear(Context context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().commit();
+    static String decrypt(SecretKey key, String ivText, String tokenText) throws Exception {
+        if (key == null || ivText == null || tokenText == null) {
+            throw new IllegalArgumentException("بيانات الرمز المشفّر غير مكتملة");
+        }
+        byte[] iv = Base64.decode(ivText, Base64.NO_WRAP);
+        byte[] encrypted = Base64.decode(tokenText, Base64.NO_WRAP);
+        if (iv.length != 12 || encrypted.length < 16) {
+            throw new IllegalArgumentException("بيانات الرمز المشفّر تالفة أو غير مكتملة");
+        }
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+        return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
+    }
+
+    static boolean clear(Context context) {
+        if (context == null) return false;
+        boolean preferencesCleared = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().clear().commit();
+        if (!preferencesCleared) return false;
+        boolean keyDeleted;
         try {
             KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
             keyStore.load(null);
             if (keyStore.containsAlias(KEY_ALIAS)) keyStore.deleteEntry(KEY_ALIAS);
-        } catch (Exception ignored) { }
+            keyDeleted = !keyStore.containsAlias(KEY_ALIAS);
+        } catch (Exception error) {
+            keyDeleted = false;
+        }
+        return preferencesCleared && keyDeleted;
+    }
+
+    private static SecretKey getExistingKey() throws Exception {
+        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+        keyStore.load(null);
+        if (!keyStore.containsAlias(KEY_ALIAS)) return null;
+        return ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
     }
 
     private static SecretKey getOrCreateKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-        keyStore.load(null);
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            return ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
-        }
+        SecretKey existing = getExistingKey();
+        if (existing != null) return existing;
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
         generator.init(new KeyGenParameterSpec.Builder(KEY_ALIAS,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)

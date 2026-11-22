@@ -83,6 +83,11 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        // Invalidate in-flight GitHub work before tearing down this Activity.
+        // Late network completions must not update a dead screen or show dialogs.
+        synchronized (githubSessionLock) {
+            githubSessionGeneration++;
+        }
         if (downloadReceiverRegistered) {
             try {
                 unregisterReceiver(modelDownloadReceiver);
@@ -177,9 +182,20 @@ public class MainActivity extends Activity {
             dcResultText.setText("تم طلب إيقاف الجدولة الليلية.");
         });
         dcLab.addView(disableNight, actionButtonParams());
-        Button queueStatus = actionButton("تحديث حالة تجارب المختبر");
-        queueStatus.setOnClickListener(v -> dcResultText.setText(AgentLabQueue.summary(this)));
+        Button queueStatus = actionButton("تحديث حالة قائمة التجارب");
+        queueStatus.setOnClickListener(v -> dcResultText.setText(
+                AgentLabQueue.summary(this) + "\n" + AgentLabRunStore.summary(this)));
         dcLab.addView(queueStatus, actionButtonParams());
+        Button historyButton = actionButton("عرض سجل نتائج المختبر");
+        historyButton.setOnClickListener(v -> showLabRunHistory());
+        dcLab.addView(historyButton, actionButtonParams());
+        Button catalogButton = actionButton("عرض خريطة مختبرات إسلام");
+        catalogButton.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("قدرات ISLAM LAB")
+                .setMessage(AgentLabCatalog.describe())
+                .setPositiveButton("إغلاق", null)
+                .show());
+        dcLab.addView(catalogButton, actionButtonParams());
         dcResultText = text("لم تُشغّل محاكاة بعد.", 13, MUTED, false);
         LinearLayout.LayoutParams dr = matchWrap(); dr.topMargin = dp(9);
         dcLab.addView(dcResultText, dr);
@@ -499,54 +515,107 @@ public class MainActivity extends Activity {
             activeExecutionTaskId = null;
             return;
         }
-        StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\n")
-                .append("المجلد: مساحة عمل التطبيق الخاصة\n\n");
-        JSONArray plannedFiles = plan.optJSONArray("files");
-        if (plannedFiles != null) {
-            for (int i = 0; i < plannedFiles.length(); i++) {
-                JSONObject file = plannedFiles.optJSONObject(i);
-                if (file != null) preview.append("الملف: ").append(file.optString("filename"))
-                        .append("\nالمحتوى المقترح:\n").append(file.optString("content")).append("\n\n");
+        boolean labPlan = "simulate_lab".equals(plan.optString("action", ""));
+        StringBuilder preview = new StringBuilder();
+        String positiveLabel;
+        if (labPlan) {
+            preview.append("المختبر: شبكة مقاومات DC\n")
+                    .append("المحرك: تحليل عقدي MNA على الهاتف\n")
+                    .append("الأرضي: ").append(plan.optString("ground")).append("\n")
+                    .append("عقدة المصدر: ").append(plan.optString("source_node")).append("\n")
+                    .append("جهد المصدر: ").append(plan.optString("source_voltage_v")).append(" V\n\n")
+                    .append("المقاومات المقترحة:\n");
+            JSONArray resistors = plan.optJSONArray("resistors");
+            if (resistors != null) {
+                for (int i = 0; i < resistors.length(); i++) {
+                    JSONObject row = resistors.optJSONObject(i);
+                    if (row != null) preview.append(row.optString("a")).append(" ↔ ")
+                            .append(row.optString("b")).append(" : ")
+                            .append(row.optString("ohms")).append(" Ω\n");
+                }
             }
+            preview.append("\nسيُحفظ سجل التجربة ومدخلاتها ونتائجها. فحص KCL تحقق عددي داخلي، وليس قياساً مادياً.");
+            positiveLabel = "موافقة وتشغيل المحاكاة";
         } else {
-            preview.append("الملف: ").append(plan.optString("filename"))
-                    .append("\nالمحتوى المقترح:\n").append(plan.optString("content"));
+            preview.append("العملية: إنشاء الملفات وقراءتها للتحقق\n")
+                    .append("المجلد: مساحة عمل التطبيق الخاصة\n\n");
+            JSONArray plannedFiles = plan.optJSONArray("files");
+            if (plannedFiles != null) {
+                for (int i = 0; i < plannedFiles.length(); i++) {
+                    JSONObject file = plannedFiles.optJSONObject(i);
+                    if (file != null) preview.append("الملف: ").append(file.optString("filename"))
+                            .append("\nالمحتوى المقترح:\n").append(file.optString("content")).append("\n\n");
+                }
+            } else {
+                preview.append("الملف: ").append(plan.optString("filename"))
+                        .append("\nالمحتوى المقترح:\n").append(plan.optString("content"));
+            }
+            preview.append("\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
+            positiveLabel = "موافقة وكتابة الملفات";
         }
-        preview.append("\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
         new AlertDialog.Builder(this)
-                .setTitle("مراجعة تنفيذ المهمة")
+                .setTitle(labPlan ? "مراجعة تجربة المختبر" : "مراجعة تنفيذ المهمة")
                 .setMessage(preview.toString())
-                .setPositiveButton("موافقة وكتابة الملفات", (dialog, which) -> {
+                .setPositiveButton(positiveLabel, (dialog, which) -> {
                     if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
                         activeExecutionTaskId = null;
                         showMessage("المهمة تغيّرت", "لم يتم التنفيذ لأن المهمة لم تعد موجودة أو لم تعد المهمة الحالية.");
                         return;
                     }
-                    aiReplyText.setText("جارٍ إنشاء الملفات وقراءتها للتحقق…");
+                    aiReplyText.setText(labPlan ? "جارٍ تشغيل محاكاة DC والتحقق من KCL…" :
+                            "جارٍ إنشاء الملفات وقراءتها للتحقق…");
                     networkExecutor.execute(() -> {
                         try {
                             JSONObject result = new AgentTaskToolRunner(this).execute(plan);
-                            JSONArray files = result.getJSONArray("files");
-                            StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
-                                    .append(files.length()).append(").\n");
-                            for (int i = 0; i < files.length(); i++) {
-                                JSONObject file = files.getJSONObject(i);
-                                report.append("\nالملف: ").append(file.getString("filename"))
-                                        .append("\nالمسار: ").append(file.getString("path"))
-                                        .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
-                                        .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
+                            final String report;
+                            final boolean verified;
+                            if (labPlan) {
+                                JSONObject outputs = result.getJSONObject("outputs");
+                                JSONObject voltages = outputs.getJSONObject("node_voltages_v");
+                                StringBuilder text = new StringBuilder("اكتملت محاكاة شبكة DC.\n")
+                                        .append("معرّف التجربة: ").append(result.getString("run_id")).append("\n")
+                                        .append("المحرك: ").append(result.getString("engine_version")).append("\n\n")
+                                        .append("جهود العقد:\n");
+                                java.util.Iterator<String> names = voltages.keys();
+                                while (names.hasNext()) {
+                                    String node = names.next();
+                                    text.append(node).append(" = ")
+                                            .append(String.format(java.util.Locale.US, "%.6f V", voltages.getDouble(node)))
+                                            .append("\n");
+                                }
+                                text.append("تيار المصدر: ")
+                                        .append(String.format(java.util.Locale.US, "%.9f A", outputs.getDouble("source_current_a")))
+                                        .append("\nأقصى متبقي KCL: ")
+                                        .append(String.format(java.util.Locale.US, "%.3e A", outputs.getDouble("max_kcl_residual_a")))
+                                        .append("\n\nالتحقق: ").append(result.getString("verification"))
+                                        .append("\nتنبيه: نتيجة نموذج DC مثالي؛ ليست قياساً مادياً ولا SPICE عاماً.");
+                                report = text.toString();
+                                verified = result.getBoolean("verified");
+                            } else {
+                                JSONArray files = result.getJSONArray("files");
+                                StringBuilder text = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
+                                        .append(files.length()).append(").\n");
+                                for (int i = 0; i < files.length(); i++) {
+                                    JSONObject file = files.getJSONObject(i);
+                                    text.append("\nالملف: ").append(file.getString("filename"))
+                                            .append("\nالمسار: ").append(file.getString("path"))
+                                            .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                            .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
+                                }
+                                report = text.toString();
+                                verified = true;
                             }
-                            String verified = report.toString();
-                            if (!store.setExecutionResult(task.id, true, verified))
+                            if (!store.setExecutionResult(task.id, verified, report))
                                 throw new IllegalStateException("حُذفت المهمة قبل حفظ النتيجة.");
                             runOnUiThread(() -> {
                                 activeExecutionTaskId = null;
-                                aiReplyText.setText(verified);
+                                aiReplyText.setText(report);
                                 renderTasks();
-                                showMessage("اكتملت المهمة بعد التحقق", verified);
+                                showMessage(verified ? "اكتملت المهمة بعد التحقق" : "اكتملت المحاكاة وتحتاج مراجعة",
+                                        report);
                             });
                         } catch (Exception error) {
-                            String message = error.getMessage() == null ? "فشل تنفيذ الملفات" : error.getMessage();
+                            String message = error.getMessage() == null ? "فشل التنفيذ" : error.getMessage();
                             store.setExecutionResult(task.id, false, "فشل التنفيذ: " + message);
                             runOnUiThread(() -> {
                                 activeExecutionTaskId = null;
@@ -559,9 +628,27 @@ public class MainActivity extends Activity {
                 })
                 .setNegativeButton("إلغاء", (dialog, which) -> {
                     activeExecutionTaskId = null;
-                    aiReplyText.setText("أُلغي تنفيذ المهمة دون كتابة ملفات.");
+                    aiReplyText.setText("أُلغي تنفيذ المهمة دون تشغيل المختبر أو كتابة ملفات.");
                 })
                 .show();
+    }
+
+    private void showLabRunHistory() {
+        JSONArray runs = AgentLabRunStore.recent(this, 12);
+        StringBuilder report = new StringBuilder(AgentLabRunStore.summary(this)).append("\n\n");
+        if (runs.length() == 0) report.append("لا توجد تجارب محفوظة بعد.");
+        for (int i = 0; i < runs.length(); i++) {
+            JSONObject run = runs.optJSONObject(i);
+            if (run == null) continue;
+            report.append("التجربة: ").append(run.optString("lab_id"))
+                    .append("\nالمعرّف: ").append(run.optString("run_id"))
+                    .append("\nالمحرك: ").append(run.optString("engine_version"))
+                    .append("\nالمصدر: ").append(run.optString("source"))
+                    .append("\nالتحقق العددي: ").append(run.optBoolean("verified", false) ? "اجتاز" : "يحتاج مراجعة")
+                    .append("\n").append(run.optString("verification")).append("\n\n");
+        }
+        new AlertDialog.Builder(this).setTitle("سجل تجارب ISLAM LAB")
+                .setMessage(report.toString()).setPositiveButton("إغلاق", null).show();
     }
 
     private java.util.ArrayList<AgentDcLab.Resistor> readDcResistors() {
@@ -609,19 +696,44 @@ public class MainActivity extends Activity {
             dcResultText.setText("مدخلات غير صحيحة: " + error.getMessage());
             return;
         }
-        dcResultText.setText("جارٍ حل الدارة والتحقق من قانون كيرشوف…");
+        dcResultText.setText("جارٍ التحقق من الدارة وتشغيل محرك المختبر…");
         networkExecutor.execute(() -> {
             try {
-                AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", volts, resistors);
+                org.json.JSONArray rows = new org.json.JSONArray();
+                for (AgentDcLab.Resistor resistor : resistors) {
+                    rows.put(new org.json.JSONObject()
+                            .put("a", resistor.a)
+                            .put("b", resistor.b)
+                            .put("ohms", resistor.ohms));
+                }
+                org.json.JSONObject plan = new org.json.JSONObject()
+                        .put("action", "simulate_lab")
+                        .put("lab_id", AgentLabRunner.DC_LAB_ID)
+                        .put("ground", "0")
+                        .put("source_node", "vcc")
+                        .put("source_voltage_v", volts)
+                        .put("resistors", rows);
+                org.json.JSONObject result = AgentLabRunner.execute(this, plan);
+                org.json.JSONObject outputs = result.getJSONObject("outputs");
+                org.json.JSONObject nodeVoltages = outputs.getJSONObject("node_voltages_v");
                 StringBuilder report = new StringBuilder("النتيجة — جهد العقد:\n");
-                for (java.util.Map.Entry<String, Double> entry : result.nodeVoltages.entrySet()) {
-                    report.append(entry.getKey()).append(" = ")
-                            .append(String.format(java.util.Locale.US, "%.6f V", entry.getValue())).append("\n");
+                java.util.Iterator<String> names = nodeVoltages.keys();
+                while (names.hasNext()) {
+                    String node = names.next();
+                    report.append(node).append(" = ")
+                            .append(String.format(java.util.Locale.US, "%.6f V",
+                                    nodeVoltages.getDouble(node))).append("\n");
                 }
                 report.append("تيار المصدر: ")
-                        .append(String.format(java.util.Locale.US, "%.9f A", result.sourceCurrentAmps))
+                        .append(String.format(java.util.Locale.US, "%.9f A",
+                                outputs.getDouble("source_current_a")))
                         .append("\nأقصى خطأ KCL: ")
-                        .append(String.format(java.util.Locale.US, "%.3e A", result.maximumKclResidualAmps));
+                        .append(String.format(java.util.Locale.US, "%.3e A",
+                                outputs.getDouble("max_kcl_residual_a")))
+                        .append("\nمعرّف السجل: ").append(result.getString("run_id"))
+                        .append("\nإصدار المحرك: ").append(result.getString("engine_version"))
+                        .append("\nحالة التحقق: ")
+                        .append(result.getBoolean("verified") ? "اجتاز فحص KCL العددي" : "يحتاج مراجعة");
                 final String message = report.toString();
                 runOnUiThread(() -> dcResultText.setText(message));
             } catch (Exception error) {
@@ -664,16 +776,28 @@ public class MainActivity extends Activity {
 
     private EditText githubTokenInput;
     private TextView githubStatusText;
+    private final Object githubSessionLock = new Object();
+    private long githubSessionGeneration = 0;
+
+    private boolean isCurrentGitHubGeneration(long generation) {
+        synchronized (githubSessionLock) {
+            return githubSessionGeneration == generation;
+        }
+    }
 
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
         github.addView(text("ربط GitHub — مجاني", 18, Color.WHITE, true), matchWrap());
-        TextView explanation = text("لوحة اختيارية لقراءة حالة مستودع GitHub مباشرة من الهاتف. لا تنفذ تعديلات أو دمجاً تلقائياً.", 12, MUTED, false);
+        TextView explanation = text("لوحة قراءة فقط. أنشئ Fine-grained token لمستودع IslamDetector وحده، وبأقل صلاحيات: Metadata (read)، Contents (read)، Pull requests (read). صلاحية Actions (read) اختيارية لعرض سجل البناء. لا تمنح Contents write أو Actions write؛ الكتابة والدمج معطلان داخل التطبيق.", 12, MUTED, false);
         LinearLayout.LayoutParams explainLp = matchWrap(); explainLp.topMargin = dp(7);
         github.addView(explanation, explainLp);
 
         githubTokenInput = textInput("ألصق Fine-grained token هنا", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         githubTokenInput.setSingleLine(true);
+        githubTokenInput.setSaveEnabled(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            githubTokenInput.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        }
         LinearLayout.LayoutParams tokenLp = matchWrap(); tokenLp.topMargin = dp(8);
         github.addView(githubTokenInput, tokenLp);
 
@@ -687,10 +811,19 @@ public class MainActivity extends Activity {
 
         Button disconnect = actionButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {
-            GitHubTokenStore.clear(this);
+            final boolean cleared;
+            synchronized (githubSessionLock) {
+                githubSessionGeneration++;
+                cleared = GitHubTokenStore.clear(this);
+            }
             githubTokenInput.setText("");
-            githubStatusText.setText("تم فصل الربط محلياً. أعد إنشاء الرمز أو ربطه عند الحاجة.");
-            githubStatusText.setTextColor(MUTED);
+            if (cleared) {
+                githubStatusText.setText("تم حذف بيانات الرمز المشفّر ومفتاحه من الهاتف.");
+                githubStatusText.setTextColor(MUTED);
+            } else {
+                githubStatusText.setText("تعذر تأكيد حذف جميع بيانات الربط. أعد المحاولة ولا تعتبر الفصل مكتملاً.");
+                githubStatusText.setTextColor(Color.rgb(255, 150, 140));
+            }
         });
         github.addView(disconnect, actionButtonParams());
 
@@ -708,25 +841,37 @@ public class MainActivity extends Activity {
                 githubStatusText.setTextColor(Color.rgb(130, 220, 185));
             }
         } catch (Exception error) {
-            GitHubTokenStore.clear(this);
-            githubStatusText.setText("تعذر فتح الرمز المحفوظ؛ احذفه وأنشئ رمزاً جديداً.");
+            githubStatusText.setText("تعذر فتح الرمز المحفوظ. لم نحذف بياناته تلقائياً؛ افحص حالة الهاتف أو استخدم زر الفصل إذا أردت حذفها صراحةً.");
             githubStatusText.setTextColor(Color.rgb(255, 150, 140));
         }
     }
 
     private void connectGitHub() {
         String token = githubTokenInput.getText().toString().trim();
-        runGitHubOperation("جارٍ التحقق من GitHub…", () -> {
+        githubTokenInput.setText("");
+        final long generation;
+        synchronized (githubSessionLock) {
+            generation = ++githubSessionGeneration;
+        }
+        runGitHubOperation("جارٍ التحقق من GitHub…", generation, () -> {
             GitHubClient client = new GitHubClient(token);
             String dashboard = client.dashboard();
-            GitHubTokenStore.save(this, token);
-            runOnUiThread(() -> githubTokenInput.setText(""));
+            synchronized (githubSessionLock) {
+                if (githubSessionGeneration != generation) {
+                    throw new IllegalStateException("أُلغي الربط لأن المستخدم فصل GitHub أثناء التحقق.");
+                }
+                GitHubTokenStore.save(this, token);
+            }
             return dashboard;
         });
     }
 
     private void refreshGitHub() {
-        runGitHubOperation("جارٍ تحديث بيانات المستودع…", () -> {
+        final long generation;
+        synchronized (githubSessionLock) {
+            generation = ++githubSessionGeneration;
+        }
+        runGitHubOperation("جارٍ تحديث بيانات المستودع…", generation, () -> {
             String token = GitHubTokenStore.load(this);
             if (token == null) throw new SecurityException("أدخل رمز GitHub واربط الحساب أولاً.");
             return new GitHubClient(token).dashboard();
@@ -735,13 +880,15 @@ public class MainActivity extends Activity {
 
     private interface Operation { String run() throws Exception; }
 
-    private void runGitHubOperation(String working, Operation operation) {
+    private void runGitHubOperation(String working, long generation, Operation operation) {
+        if (!isCurrentGitHubGeneration(generation)) return;
         githubStatusText.setText(working);
         githubStatusText.setTextColor(Color.rgb(255, 205, 120));
         networkExecutor.execute(() -> {
             try {
                 String result = operation.run();
                 runOnUiThread(() -> {
+                    if (!isCurrentGitHubGeneration(generation)) return;
                     githubStatusText.setText("تم الاتصال بنجاح — بيانات مباشرة من GitHub.");
                     githubStatusText.setTextColor(Color.rgb(130, 220, 185));
                     new AlertDialog.Builder(this)
@@ -753,6 +900,7 @@ public class MainActivity extends Activity {
             } catch (Exception error) {
                 String message = error.getMessage() == null ? "تعذر الاتصال بـ GitHub" : error.getMessage();
                 runOnUiThread(() -> {
+                    if (!isCurrentGitHubGeneration(generation)) return;
                     githubStatusText.setText("لم ينجح الاتصال: " + message);
                     githubStatusText.setTextColor(Color.rgb(255, 150, 140));
                 });

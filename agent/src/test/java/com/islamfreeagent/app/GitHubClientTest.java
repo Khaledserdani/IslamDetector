@@ -16,18 +16,21 @@ public class GitHubClientTest {
         catch (IllegalArgumentException expected) { }
     }
 
-    @Test public void writeAllowlistContainsOnlyApprovedProjectFiles() {
-        assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/MainActivity.java"));
-        assertTrue(GitHubClient.isAllowedWritePath("docs/agent/agent_worklog.md"));
-        assertFalse(GitHubClient.isAllowedWritePath(".github/workflows/release.yml"));
-        assertFalse(GitHubClient.isAllowedWritePath("docs/agent/agent_memory.json"));
-        assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/GitHubClient.java"));
-        assertFalse(GitHubClient.isAllowedWritePath("agent/src/main/java/com/islamfreeagent/app/BridgeClient.java"));
-        assertFalse(GitHubClient.isAllowedWritePath("../../.env"));
-        assertFalse(GitHubClient.isAllowedWritePath(null));
+    @Test public void remoteWriteFailsClosedBeforeAnyNetworkRequest() throws Exception {
+        GitHubClient client = new GitHubClient("github_pat_example_valid_length_1234567890");
+        try {
+            client.commitApprovedFile("docs/agent/agent_worklog.md", "approved text", "test");
+            fail("remote write must remain disabled");
+        } catch (SecurityException expected) {
+            assertTrue(expected.getMessage().contains("غير مدعومة"));
+        }
     }
 
-    @Test public void acceptsOpaqueFineGrainedTokenWithoutLoggingIt() {
+    @Test public void remoteWriteApiIsNotShipped() {
+        assertFalse(GitHubClient.isWriteApiEnabled());
+    }
+
+    @Test public void acceptsOpaqueFineGrainedToken() {
         GitHubClient client = new GitHubClient("github_pat_example_valid_length_1234567890");
         assertNotNull(client);
     }
