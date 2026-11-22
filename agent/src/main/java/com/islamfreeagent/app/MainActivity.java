@@ -83,6 +83,11 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        // Invalidate in-flight GitHub work before tearing down this Activity.
+        // Late network completions must not update a dead screen or show dialogs.
+        synchronized (githubSessionLock) {
+            githubSessionGeneration++;
+        }
         if (downloadReceiverRegistered) {
             try {
                 unregisterReceiver(modelDownloadReceiver);
