@@ -771,6 +771,14 @@ public class MainActivity extends Activity {
 
     private EditText githubTokenInput;
     private TextView githubStatusText;
+    private final Object githubSessionLock = new Object();
+    private long githubSessionGeneration = 0;
+
+    private boolean isCurrentGitHubGeneration(long generation) {
+        synchronized (githubSessionLock) {
+            return githubSessionGeneration == generation;
+        }
+    }
 
     private void addGitHubPanel(LinearLayout page) {
         LinearLayout github = panel();
@@ -798,7 +806,11 @@ public class MainActivity extends Activity {
 
         Button disconnect = actionButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {
-            boolean cleared = GitHubTokenStore.clear(this);
+            final boolean cleared;
+            synchronized (githubSessionLock) {
+                githubSessionGeneration++;
+                cleared = GitHubTokenStore.clear(this);
+            }
             githubTokenInput.setText("");
             if (cleared) {
                 githubStatusText.setText("تم حذف بيانات الرمز المشفّر ومفتاحه من الهاتف.");
@@ -835,16 +847,29 @@ public class MainActivity extends Activity {
     private void connectGitHub() {
         String token = githubTokenInput.getText().toString().trim();
         githubTokenInput.setText("");
-        runGitHubOperation("جارٍ التحقق من GitHub…", () -> {
+        final long generation;
+        synchronized (githubSessionLock) {
+            generation = ++githubSessionGeneration;
+        }
+        runGitHubOperation("جارٍ التحقق من GitHub…", generation, () -> {
             GitHubClient client = new GitHubClient(token);
             String dashboard = client.dashboard();
-            GitHubTokenStore.save(this, token);
+            synchronized (githubSessionLock) {
+                if (githubSessionGeneration != generation) {
+                    throw new IllegalStateException("أُلغي الربط لأن المستخدم فصل GitHub أثناء التحقق.");
+                }
+                GitHubTokenStore.save(this, token);
+            }
             return dashboard;
         });
     }
 
     private void refreshGitHub() {
-        runGitHubOperation("جارٍ تحديث بيانات المستودع…", () -> {
+        final long generation;
+        synchronized (githubSessionLock) {
+            generation = ++githubSessionGeneration;
+        }
+        runGitHubOperation("جارٍ تحديث بيانات المستودع…", generation, () -> {
             String token = GitHubTokenStore.load(this);
             if (token == null) throw new SecurityException("أدخل رمز GitHub واربط الحساب أولاً.");
             return new GitHubClient(token).dashboard();
@@ -853,13 +878,15 @@ public class MainActivity extends Activity {
 
     private interface Operation { String run() throws Exception; }
 
-    private void runGitHubOperation(String working, Operation operation) {
+    private void runGitHubOperation(String working, long generation, Operation operation) {
+        if (!isCurrentGitHubGeneration(generation)) return;
         githubStatusText.setText(working);
         githubStatusText.setTextColor(Color.rgb(255, 205, 120));
         networkExecutor.execute(() -> {
             try {
                 String result = operation.run();
                 runOnUiThread(() -> {
+                    if (!isCurrentGitHubGeneration(generation)) return;
                     githubStatusText.setText("تم الاتصال بنجاح — بيانات مباشرة من GitHub.");
                     githubStatusText.setTextColor(Color.rgb(130, 220, 185));
                     new AlertDialog.Builder(this)
@@ -871,6 +898,7 @@ public class MainActivity extends Activity {
             } catch (Exception error) {
                 String message = error.getMessage() == null ? "تعذر الاتصال بـ GitHub" : error.getMessage();
                 runOnUiThread(() -> {
+                    if (!isCurrentGitHubGeneration(generation)) return;
                     githubStatusText.setText("لم ينجح الاتصال: " + message);
                     githubStatusText.setTextColor(Color.rgb(255, 150, 140));
                 });
