@@ -14,9 +14,9 @@
 ## 1. حالة GitHub الحالية
 
 - الفرع: `hardware/rev-a-measurement-design`.
-- HEAD عند آخر تحقق: `4ddc9c1428fe49a0ef38fc4957015136ecf417c1`.
+- HEAD عند آخر تحقق: `57f5560d73d5b2ffd5e9cb2675cd6c686e65c452`.
 - PR #6 مغلق وغير مدمج؛ PR #7 مفتوح كمسودة Draft ويتتبع الفرع الحالي. لا دمج ولا تعديل على `main`.
-- أحدث تشغيلين كاملين على HEAD هما #2078 (push، ID `44908362630`) و#2079 (pull_request، ID `44908367752`)؛ كلاهما `startup_failure` مع jobs=0 وcheck_runs=0 وartifacts=0. لذلك لا توجد سجلات خطوات أو إثبات بناء حديث.
+- أحدث تشغيلين على HEAD هما #2080 (push، ID `45027441731`) و#2081 (pull_request، ID `45027445855`)؛ كلاهما `startup_failure` مع jobs=0 وcheck_runs=0 وartifacts=0. لا توجد سجلات خطوات أو إثبات بناء حديث، وتكررت النتيجة بعد commit توثيق فقط.
 - آخر بناء كامل ناجح: CI #1379 / ID `43884818868` على commit `e68714446555172c92f67d81f8132ff66743cd38` بتاريخ 2026-11-16؛ نجحت وظائف protocol-tests وESP32 bridge وAndroid وRP2040. Artifacts موجودة تاريخياً: APK ID `14234745892` وUF2 ID `14233363411`. لا تخص HEAD الحالي.
 - تشغيل runner-smoke رقم #1 / ID `44316204045` نجح في 2026-11-18، لكنه لم ينتج Artifact ولم يختبر build المشروع الكامل.
 - آخر 100 تشغيل مرجعة للفرع انتهت بـ`startup_failure` قبل إنشاء Jobs. لا نعيد كتابة workflow بالتخمين؛ سبب العطل غير محسوم.
@@ -234,11 +234,11 @@ Artifacts المنشورة وغير منتهية الصلاحية وقت الت�
 ## 23. متابعة Rev A — 2026-11-22
 
 - PR #6 مغلق وغير مدمج، وPR #7 مفتوح Draft؛ لا دمج.
-- على HEAD `4ddc9c1428fe49a0ef38fc4957015136ecf417c1` فشل تشغيل push #2078 وpull_request #2079 بـ`startup_failure` قبل إنشاء Jobs؛ لا توجد logs أو Artifacts حديثة.
+- على HEAD `57f5560d73d5b2ffd5e9cb2675cd6c686e65c452` فشل تشغيل push #2080 وpull_request #2081 بـ`startup_failure` قبل إنشاء Jobs؛ لا توجد logs أو Artifacts حديثة.
 - آخر بناء كامل ناجح يظل CI #1379 على commit `e687144` بتاريخ 2026-11-16، مع APK وUF2 Artifacts موجودة لذلك commit فقط.
 - مراجعة Android النصية لم تكشف خطأ compile مؤكداً؛ لم نغيّر الكود دون build.
 - ESP32 parser/session وDEVICE_INFO موجودة برمجياً، لكن UART bridge معطل وGPIO غير معينة، ولا يوجد Wi-Fi/WebServer بعد.
 - RP2040 PIO ADS8861 driver موجود لكنه معطل افتراضياً، وDEVICE_INFO=ADC_NONE، ولا يوجد MEASUREMENT producer أو UART loopback.
 - DD32 هو baseline الحالي؛ مواصفات TX/RX وDCR المذكورة أهداف/حسابات وليست قياسات.
-- لا قياس مادي أو شراء أو توصيل TX عالي الطاقة. الخطوة التالية: استعادة CI حديث ناجح، ثم MEASUREMENT producer وUART loopback منخفض الجهد.
+- لا قياس مادي أو شراء أو توصيل TX عالي الطاقة. وصف PR #7 حُدث ليوضح أن DD32 هو baseline الحالي وأن سجل Mono Spiral في 2026-11-18 تاريخي/بديل. الخطوة التالية: معالجة عائق Actions ثم استعادة CI حديث ناجح، وبعده MEASUREMENT producer وUART loopback منخفض الجهد.
 
