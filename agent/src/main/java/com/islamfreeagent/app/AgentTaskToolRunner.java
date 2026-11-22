@@ -16,15 +16,18 @@ final class AgentTaskToolRunner {
     private static final Pattern SAFE_NAME=Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,59}\\.txt");
     private static final int MAX_CONTENT_BYTES=16*1024, MAX_FILES=20;
     private final File workspace;
+    private final Context context;
     AgentTaskToolRunner(Context context) {
+        this.context = context.getApplicationContext();
         File external=context.getExternalFilesDir("agent_workspace");
         workspace=external!=null?external:new File(context.getFilesDir(),"agent_workspace");
     }
-    AgentTaskToolRunner(File workspace) { this.workspace=workspace; }
+    AgentTaskToolRunner(File workspace) { this.workspace=workspace; this.context=null; }
 
     static void validate(JSONObject plan) throws Exception {
         if(plan==null) throw new IllegalArgumentException("خطة التنفيذ فارغة");
         String action=plan.optString("action","");
+        if ("simulate_lab".equals(action)) { AgentLabRunner.validate(plan); return; }
         if("write_and_read_text_file".equals(action)) {
             requireKeys(plan,new HashSet<>(Arrays.asList("action","filename","content")));
             validateFile(plan.getString("filename"),plan.getString("content")); return;
@@ -55,6 +58,10 @@ final class AgentTaskToolRunner {
     }
     JSONObject execute(JSONObject plan) throws Exception {
         validate(plan);
+        if ("simulate_lab".equals(plan.optString("action", ""))) {
+            if (context == null) throw new IllegalStateException("سياق المختبر غير متوفر");
+            return AgentLabRunner.execute(context, plan);
+        }
         JSONArray files;
         if("write_and_read_text_file".equals(plan.getString("action"))) {
             files=new JSONArray().put(new JSONObject().put("filename",plan.getString("filename")).put("content",plan.getString("content")));
