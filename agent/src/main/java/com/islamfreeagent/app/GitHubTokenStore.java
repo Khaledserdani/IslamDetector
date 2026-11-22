@@ -40,8 +40,12 @@ final class GitHubTokenStore {
         String ivText = prefs.getString(IV, null);
         String tokenText = prefs.getString(TOKEN, null);
         if (ivText == null || tokenText == null) return null;
+        SecretKey key = getExistingKey();
+        if (key == null) {
+            throw new IllegalStateException("مفتاح تشفير رمز GitHub غير موجود؛ يجب تنظيف البيانات القديمة وإعادة الربط.");
+        }
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(),
+        cipher.init(Cipher.DECRYPT_MODE, key,
                 new GCMParameterSpec(128, Base64.decode(ivText, Base64.NO_WRAP)));
         return new String(cipher.doFinal(Base64.decode(tokenText, Base64.NO_WRAP)), StandardCharsets.UTF_8);
     }
@@ -62,12 +66,16 @@ final class GitHubTokenStore {
         return preferencesCleared && keyDeleted;
     }
 
-    private static SecretKey getOrCreateKey() throws Exception {
+    private static SecretKey getExistingKey() throws Exception {
         KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
         keyStore.load(null);
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            return ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
-        }
+        if (!keyStore.containsAlias(KEY_ALIAS)) return null;
+        return ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
+    }
+
+    private static SecretKey getOrCreateKey() throws Exception {
+        SecretKey existing = getExistingKey();
+        if (existing != null) return existing;
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
         generator.init(new KeyGenParameterSpec.Builder(KEY_ALIAS,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
