@@ -794,10 +794,15 @@ public class MainActivity extends Activity {
 
         Button disconnect = actionButton("فصل GitHub وحذف الرمز من الهاتف");
         disconnect.setOnClickListener(v -> {
-            GitHubTokenStore.clear(this);
+            boolean cleared = GitHubTokenStore.clear(this);
             githubTokenInput.setText("");
-            githubStatusText.setText("تم فصل الربط محلياً. أعد إنشاء الرمز أو ربطه عند الحاجة.");
-            githubStatusText.setTextColor(MUTED);
+            if (cleared) {
+                githubStatusText.setText("تم حذف بيانات الرمز المشفّر ومفتاحه من الهاتف.");
+                githubStatusText.setTextColor(MUTED);
+            } else {
+                githubStatusText.setText("تعذر تأكيد حذف جميع بيانات الربط. أعد المحاولة ولا تعتبر الفصل مكتملاً.");
+                githubStatusText.setTextColor(Color.rgb(255, 150, 140));
+            }
         });
         github.addView(disconnect, actionButtonParams());
 
@@ -815,8 +820,10 @@ public class MainActivity extends Activity {
                 githubStatusText.setTextColor(Color.rgb(130, 220, 185));
             }
         } catch (Exception error) {
-            GitHubTokenStore.clear(this);
-            githubStatusText.setText("تعذر فتح الرمز المحفوظ؛ احذفه وأنشئ رمزاً جديداً.");
+            boolean cleared = GitHubTokenStore.clear(this);
+            githubStatusText.setText(cleared
+                    ? "تعذر فتح الرمز المحفوظ؛ حُذفت بياناته ومفتاحه. أنشئ رمزاً جديداً عند الحاجة."
+                    : "تعذر فتح الرمز المحفوظ، ولم نتمكن من تأكيد تنظيف جميع بياناته. لا تعتبر الفصل مكتملاً.");
             githubStatusText.setTextColor(Color.rgb(255, 150, 140));
         }
     }
