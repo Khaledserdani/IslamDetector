@@ -185,4 +185,46 @@ public class AgentLabRunnerTest {
         assertEquals(1, AgentLabRunStore.recent(context, 10).length());
     }
 
+
+    @Test public void parallelBranchesProduceExpectedCurrentAndVoltage() {
+        java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
+        resistors.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        resistors.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", 10.0, resistors);
+        assertEquals(10.0, result.nodeVoltages.get("vcc"), 1e-12);
+        assertEquals(0.02, result.sourceCurrentAmps, 1e-12);
+        assertEquals(0.0, result.maximumKclResidualAmps, 1e-12);
+    }
+
+    @Test public void negativeSourceVoltagePreservesSignedCurrent() {
+        java.util.ArrayList<AgentDcLab.Resistor> resistors = new java.util.ArrayList<>();
+        resistors.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        AgentDcLab.Result result = AgentDcLab.solve("0", "vcc", -5.0, resistors);
+        assertEquals(-5.0, result.nodeVoltages.get("vcc"), 1e-12);
+        assertEquals(-0.005, result.sourceCurrentAmps, 1e-12);
+    }
+
+    @Test public void nightWindowUsesAlgiersLocalBoundaries() {
+        assertTrue(AgentWorkWindow.isOpen(20 * 60, "20:00", "06:00"));
+        assertTrue(AgentWorkWindow.isOpen(23 * 60 + 59, "20:00", "06:00"));
+        assertTrue(AgentWorkWindow.isOpen(5 * 60 + 59, "20:00", "06:00"));
+        assertFalse(AgentWorkWindow.isOpen(6 * 60, "20:00", "06:00"));
+        assertFalse(AgentWorkWindow.isOpen(19 * 60 + 59, "20:00", "06:00"));
+    }
+
+    @Test public void workWindowRejectsInvalidBoundaries() {
+        try {
+            AgentWorkWindow.isOpen(1440, "20:00", "06:00");
+            fail("minute 1440 is outside local day");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("1439"));
+        }
+        try {
+            AgentWorkWindow.isOpen(600, "20:00", "20:00");
+            fail("equal start and end must not mean always on");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("24"));
+        }
+    }
+
 }
