@@ -44,18 +44,22 @@ internal class OnDeviceAiEngine(
                 return@execute
             }
             closeModel()
-            val candidate = Engine(
-                EngineConfig(
-                    modelPath = modelPath,
-                    backend = Backend.CPU(),
-                    cacheDir = cacheDirectory
-                )
-            )
-            try {
-                candidate.initialize()
+            // Keep construction and initialization inside the guarded block: native/runtime
+            // setup can fail before initialize() is reached, and the UI must receive a result.
+            val candidate = try {
+                Engine(
+                    EngineConfig(
+                        modelPath = modelPath,
+                        backend = Backend.CPU(),
+                        cacheDir = cacheDirectory
+                    )
+                ).also { it.initialize() }
             } catch (error: Exception) {
                 // LiteRT-LM requires that an Engine whose initialize() failed is not closed.
                 callback.onFailure(error.message ?: "فشل تحميل النموذج")
+                return@execute
+            } catch (error: LinkageError) {
+                callback.onFailure(error.message ?: "مكتبات تشغيل الذكاء المحلي غير متاحة على هذا الهاتف")
                 return@execute
             }
             engine = candidate
