@@ -30,6 +30,7 @@ public final class AgentLabWorker extends Worker {
         if (job == null) return Result.success();
         String id = job.optString("id", "");
         try {
+            AgentLabQueue.validateJob(job);
             JSONArray rows = job.getJSONArray("resistors");
             ArrayList<AgentDcLab.Resistor> resistors = new ArrayList<>();
             for (int i = 0; i < rows.length(); i++) {
