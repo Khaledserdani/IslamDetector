@@ -75,6 +75,30 @@ public class AgentLabRunnerTest {
         }
     }
 
+    @Test public void queuedExperimentsUseTheSameStrictRunnerLimits() throws Exception {
+        java.util.ArrayList<AgentDcLab.Resistor> tooMany = new java.util.ArrayList<>();
+        for (int i = 0; i < 101; i++) {
+            tooMany.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        }
+        try {
+            AgentLabQueue.enqueue(context, 5.0, tooMany);
+            fail("queue must reject more than 100 resistors");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("100"));
+        }
+        assertTrue(AgentLabQueue.summary(context).contains("انتظار: 0"));
+
+        java.util.ArrayList<AgentDcLab.Resistor> valid = new java.util.ArrayList<>();
+        valid.add(new AgentDcLab.Resistor("vcc", "0", 1000.0));
+        try {
+            AgentLabQueue.enqueue(context, 10001.0, valid);
+            fail("queue must reject source voltage outside runner limits");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("جهد المصدر"));
+        }
+        assertTrue(AgentLabQueue.summary(context).contains("انتظار: 0"));
+    }
+
     @Test public void rejectsSingularNetworkBeforeExecution() throws Exception {
         JSONObject plan = new JSONObject()
                 .put("action", "simulate_lab")
