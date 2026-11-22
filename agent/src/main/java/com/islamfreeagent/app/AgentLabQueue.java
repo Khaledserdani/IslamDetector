@@ -48,16 +48,22 @@ final class AgentLabQueue {
     }
 
     /** Re-apply the exact on-device runner limits to queued and persisted jobs. */
-    static void validateJob(JSONObject job) throws Exception {
+    static void validateJob(JSONObject job) {
         if (job == null) throw new IllegalArgumentException("تجربة المختبر فارغة");
-        JSONObject plan = new JSONObject()
-                .put("action", "simulate_lab")
-                .put("lab_id", AgentLabRunner.DC_LAB_ID)
-                .put("ground", "0")
-                .put("source_node", "vcc")
-                .put("source_voltage_v", job.getDouble("volts"))
-                .put("resistors", job.getJSONArray("resistors"));
-        AgentLabRunner.validate(plan);
+        try {
+            JSONObject plan = new JSONObject()
+                    .put("action", "simulate_lab")
+                    .put("lab_id", AgentLabRunner.DC_LAB_ID)
+                    .put("ground", "0")
+                    .put("source_node", "vcc")
+                    .put("source_voltage_v", job.getDouble("volts"))
+                    .put("resistors", job.getJSONArray("resistors"));
+            AgentLabRunner.validate(plan);
+        } catch (IllegalArgumentException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IllegalArgumentException("بيانات تجربة المختبر غير صالحة", error);
+        }
     }
 
     static synchronized JSONObject nextPending(Context context) {
