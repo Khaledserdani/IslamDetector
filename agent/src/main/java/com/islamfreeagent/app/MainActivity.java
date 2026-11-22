@@ -623,17 +623,17 @@ public class MainActivity extends Activity {
 
     private void showLabRunHistory() {
         JSONArray runs = AgentLabRunStore.recent(this, 12);
-        StringBuilder report = new StringBuilder(AgentLabRunStore.summary(this)).append("\\n\\n");
+        StringBuilder report = new StringBuilder(AgentLabRunStore.summary(this)).append("\n\n");
         if (runs.length() == 0) report.append("لا توجد تجارب محفوظة بعد.");
         for (int i = 0; i < runs.length(); i++) {
             JSONObject run = runs.optJSONObject(i);
             if (run == null) continue;
             report.append("التجربة: ").append(run.optString("lab_id"))
-                    .append("\\nالمعرّف: ").append(run.optString("run_id"))
-                    .append("\\nالمحرك: ").append(run.optString("engine_version"))
-                    .append("\\nالمصدر: ").append(run.optString("source"))
-                    .append("\\nالتحقق العددي: ").append(run.optBoolean("verified", false) ? "اجتاز" : "يحتاج مراجعة")
-                    .append("\\n").append(run.optString("verification")).append("\\n\\n");
+                    .append("\nالمعرّف: ").append(run.optString("run_id"))
+                    .append("\nالمحرك: ").append(run.optString("engine_version"))
+                    .append("\nالمصدر: ").append(run.optString("source"))
+                    .append("\nالتحقق العددي: ").append(run.optBoolean("verified", false) ? "اجتاز" : "يحتاج مراجعة")
+                    .append("\n").append(run.optString("verification")).append("\n\n");
         }
         new AlertDialog.Builder(this).setTitle("سجل تجارب ISLAM LAB")
                 .setMessage(report.toString()).setPositiveButton("إغلاق", null).show();
