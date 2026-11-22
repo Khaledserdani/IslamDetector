@@ -36,7 +36,7 @@ final class AgentTaskStore {
     synchronized Task add(String title,String description) {
         String t=title==null?"":title.trim(), d=description==null?"":description.trim();
         if(t.isEmpty()) throw new IllegalArgumentException("عنوان المهمة فارغ");
-        if(t.length()>MAX_TITLE_CHARS) throw new IllegalArgumentException("العنوان تجاوز الحد الآمن للتخزين (8192 حرفاً)");
+        if(t.length()>MAX_TITLE_CHARS) throw new IllegalArgumentException("العنوان تجاوز الحد الأقصى المسموح (80 حرفاً)");
         if(d.isEmpty()) throw new IllegalArgumentException("وصف المهمة فارغ");
         if(d.length()>MAX_DESCRIPTION_CHARS) throw new IllegalArgumentException("وصف المهمة تجاوز الحد الآمن للتخزين (65536 حرفاً)");
         List<Task> tasks=all(); if(tasks.size()>=MAX_TASKS) throw new IllegalStateException("وصلت إلى الحد الأقصى للمهام المحفوظة (500)");
