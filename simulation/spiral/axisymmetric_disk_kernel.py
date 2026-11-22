@@ -12,13 +12,21 @@ import math
 MU0 = 4.0 * math.pi * 1.0e-7
 
 
-def _complete_elliptic_ke(parameter: float) -> tuple[float, float]:
-    """Complete elliptic integrals K(m), E(m), with parameter m=k**2."""
-    if not math.isfinite(parameter) or not 0.0 <= parameter < 1.0:
-        raise ValueError("elliptic parameter must be finite and in [0, 1)")
+def _complete_elliptic_ke_from_complementary_parameter(
+    complementary_parameter: float,
+) -> tuple[float, float]:
+    """Return complete K(m), E(m) from p = 1 - m using the AGM.
+
+    Computing p directly is important near coincident meridional points:
+    forming m first can round m to exactly one and destroy the small
+    complementary parameter before the AGM starts.
+    """
+    p = complementary_parameter
+    if not math.isfinite(p) or not 0.0 < p <= 1.0:
+        raise ValueError("complementary elliptic parameter must be finite and in (0, 1]")
     a = 1.0
-    b = math.sqrt(1.0 - parameter)
-    correction = 0.5 * parameter
+    b = math.sqrt(p)
+    correction = 0.5 * (1.0 - p)
     weight = 1.0
     for _ in range(80):
         c = 0.5 * (a - b)
@@ -59,10 +67,20 @@ def azimuthal_cosine_kernel_per_m(
         return 0.0
 
     axial = z_a_m - z_b_m
+    radial_difference = radius_a_m - radius_b_m
     a = radius_a_m * radius_a_m + radius_b_m * radius_b_m + axial * axial
     b = 2.0 * radius_a_m * radius_b_m
-    if a <= b:
+
+    # Compute 1-m directly. Do not form m and then subtract it from one:
+    # when the points are close, m can round to exactly 1 in binary64.
+    complementary_numerator = (
+        radial_difference * radial_difference + axial * axial
+    )
+    if complementary_numerator == 0.0:
         raise ValueError("coincident meridional points produce a singular kernel")
+    complementary_parameter = complementary_numerator / (a + b)
+    if not 0.0 < complementary_parameter <= 1.0:
+        raise ArithmeticError("invalid complementary elliptic parameter")
 
     q = b / a
     root_a = math.sqrt(a)
@@ -78,8 +96,11 @@ def azimuthal_cosine_kernel_per_m(
         )
         return math.pi * series / root_a
 
-    parameter = 2.0 * b / (a + b)
-    complete_k, complete_e = _complete_elliptic_ke(parameter)
+    complete_k, complete_e = (
+        _complete_elliptic_ke_from_complementary_parameter(
+            complementary_parameter
+        )
+    )
     root_sum = math.sqrt(a + b)
     return (4.0 / b) * (
         a * complete_k / root_sum - root_sum * complete_e
