@@ -1840,3 +1840,15 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - لا يوجد Artifact جديد لهذا الرأس. آخر APK/UF2 ناجحين يظلان من CI #1379 على commit `e687144` بتاريخ 2026-11-16.
 - لا قياسات مادية أو شراء أو توصيل TX. الخطوة التالية: معالجة عائق Actions على مستوى المستودع/الدعم، ثم استعادة build كامل قبل أي تفعيل ADC أو إضافة MEASUREMENT producer.
 
+
+
+## 56. تدقيق يومي Rev A — 2026-11-23
+
+- تمت قراءة هذه الوثيقة والوثائق الأساسية الأربع من فرع `hardware/rev-a-measurement-design` قبل الفحص.
+- تأكدت حالة طلبات المراجعة عبر بحث GitHub بحالتي open وclosed: PR #6 **مغلق وغير مدمج**، وPR #7 هو طلب Rev A المفتوح بحالة Draft. لم يُفتح PR #6 ولم يُدمج أي طلب؛ هذه الحالة الحية تخالف الوصف الوارد في بعض تعليمات المتابعة القديمة، لذلك تُسجل كما أعادها GitHub.
+- أحدث نقطة حفظ موثقة في هذا السجل قبل هذا الفحص هي commit `57f5560d73d5b2ffd5e9cb2675cd6c686e65c452`. تشغيل CI المرتبط بها #2081 / run ID `45027445855` انتهى بـ `startup_failure`، مع Jobs=0 وArtifacts=0 وStatus checks فارغة. لا توجد job logs لأن GitHub لم ينشئ أي Job؛ لذلك لا يوجد خطأ compile أو خطوة محددة يمكن إصلاحها من السجل.
+- فُحص workflow الحالي `.github/workflows/main.yml`، وهو يطلب push على فرع Rev A وpull_request إلى main، ويحتوي وظائف protocol-tests وRP2040 وAndroid وESP32-S3. لا يوجد دليل يثبت أن تعديل YAML أو الكود سيحل startup_failure؛ لم يُجرَ تعديل تخميني.
+- فُحصت ملفات Android Java وManifest وGradle ومصادر RP2040 PIO/firmware وESP32 UART bridge. المراجعة النصية لم تكشف خطأ ترجمة مؤكداً؛ لم تُشغّل Gradle أو اختبارات Python/C محلياً في هذا التشغيل.
+- RP2040 ما زال اختباراً منطقياً افتراضياً: `ENABLE_ADS8861_CAPTURE=0`، وDEVICE_INFO يعلن `ADC_NONE`، وSTART مرفوض بـ`TX_NOT_ARMED`. جسر ESP32 UART معطل افتراضياً وGPIO=-1، ولا يوجد MEASUREMENT producer من ADC حقيقي أو Wi-Fi/WebServer أو UART loopback.
+- لا UF2 أو APK جديدين لهذا الرأس؛ لا تُعتبر الملفات القديمة دليلاً على البناء الحالي. لا قياسات مادية، ولا شراء، ولا توصيل TX عالي الطاقة.
+- الخطوة التالية: تشخيص عائق Actions على مستوى GitHub/إعدادات المستودع أو الدعم، ثم استعادة تشغيل CI كامل وإثبات UF2/APK حديثين قبل متابعة MEASUREMENT producer والاختبارات العتادية.
