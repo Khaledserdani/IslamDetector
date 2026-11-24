@@ -1,20 +1,6 @@
 name: Validate Islam Detector app and Rev A firmware
 on:
-  push:
-    branches:
-      - hardware/rev-a-measurement-design
-    paths:
-      - '.github/workflows/main.yml'
-      - '.github/actions/**'
-      - 'README.md'
-      - 'docs/**'
-      - 'tools/**'
-      - 'firmware/**'
-      - 'app/**'
-      - 'pro/**'
-      - 'build.gradle*'
-      - 'settings.gradle*'
-      - 'gradle/**'
+  # PR synchronization is the single automatic trigger; workflow_dispatch remains available.
   pull_request:
     branches: [ main ]
     paths:

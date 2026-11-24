@@ -1888,3 +1888,30 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 1. إعادة تشغيل CI بعد تصحيح uploader وعبارة اختبار التوثيق.
 2. التحقق من نجاح protocol-tests وAndroid وRP2040 وESP32، ثم التأكد من ظهور Artifact APK وUF2 فعليين مع IDs وhashes.
 3. بعد ذلك فقط نبدأ MEASUREMENT producer وربط DMA RAW16 بالبروتوكول، مع إبقاء ADC_NONE حتى تركيب ADC والتحقق منه.
+
+
+## 58. نتائج CI المؤكدة وUF2 Artifact — 2026-11-24
+
+### تشغيل PR النهائي
+- PR #7 / Draft: [CI #2089](https://github.com/Khaledserdani/IslamDetector/actions/runs/45404259605) — ID `45404259605`، النتيجة النهائية **Success**، المدة 2m40s.
+- نجحت الوظائف الأربع: `protocol-tests`، `rp2040-firmware`، `android-app`، `esp32-s3-bridge`.
+- `protocol-tests`: نجحت جميع الاختبارات الـ91، بما فيها اختبار CRC/stream recovery واختبارات التوقيت والسلامة.
+- `rp2040-firmware`: CMake build ناجح، وUF2 تحقق: 149 blocks، 38144 payload bytes، family `0xE48BFF56`، العنوان `0x10000000..0x10009500`. SHA-256 للملف: `82c636c782ebcb1033d70e5a0613b2a960cdbf2ace6644c25e653874f319418a`.
+- رُفع UF2 كـArtifact حقيقي: ID `14924892350`، الحجم 30077 bytes، digest للأرشيف `sha256:10efcaac05f3e498ec881a4c29d8e686ad357384e391988344e1706acc7d2fb1`.
+- `android-app`: Gradle 8.9 وAPK debug build وفحص ZIP نجحت. SHA-256 للملف: `ec05edbfa9de5146f87b442cbdd0e125d8c11892fb0d704e73f9299d0e40e97a`. Artifact ID `14924384108`، الحجم 21096 bytes، digest للأرشيف `sha256:3a7cce44069bf8d646ef76f5223fe383caefe8b14f2cda593b531ed4d62a4785`.
+- `esp32-s3-bridge`: بناء ESP-IDF release-v5.4 نجح، 1007/1007 خطوة، BIN `0x276b0` bytes، وبقي 85% من قسم التطبيق.
+
+### حدود ما أثبته البناء
+- UF2 الموجود هو **اختبار التوقيت المنطقي RP2040 فقط**، وليس Firmware كاشف المعادن النهائي. لا يقود MOSFET ولا يقرأ ADS8861؛ `ENABLE_ADS8861_CAPTURE=0` ما زال محفوظاً.
+- APK هو Debug build، وليس إصداراً نهائياً موقعاً للتوزيع.
+- نجاح ESP32 build يثبت الترجمة والربط فقط؛ لا يوجد UART loopback أو اتصال فعلي مع RP2040 أو Wi-Fi/WebServer مكتمل.
+- لم يُوصل ADS8861، وما زال ADC metadata = `ADC_NONE`. لا قياسات ملف أو موجة RX أو اختبار ميداني.
+
+### منع تكرار CI غير الضروري
+- تشغيل Push #2088 على commit نفسه نجح فيه protocol وRP2040 وESP32، لكن Android تعثر بسبب HTTP 429 من Maven Central أثناء تنزيل dependencies.
+- تشغيل PR #2089 المتزامن نجح بالكامل. السبب المرجح هو تضاعف تنزيلات Gradle بسبب تشغيل Push وPull Request معاً، وليس خطأ كود.
+- أزلنا trigger الـpush من workflow؛ سيبقى PR synchronization هو التشغيل التلقائي الوحيد، مع `workflow_dispatch` للتشغيل اليدوي. لم نغيّر سياسة Actions ولم نفتح صلاحيات خارجية.
+
+### الحالة والمرحلة التالية
+- PR #7 مفتوح Draft. PR #6 في GitHub مغلق وغير مدمج؛ لم نعد فتحه أو ندمجه.
+- الخطوة التالية: مراجعة نهائية لسائق ADS8861 PIO وواجهة ESP32 DEVICE_INFO/UART على مستوى الكود، ثم تثبيت pin-level mapping بعد مراجعة أرجل اللوحتين. تبقى جميع قياسات العتاد الفعلية مطلوبة قبل تفعيل الالتقاط أو TX.
