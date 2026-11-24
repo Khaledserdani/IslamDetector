@@ -29,7 +29,7 @@ try {
   }
 
   const client = new DefaultArtifactClient();
-  const uploaded = await client.uploadArtifact(name, [filePath], { retentionDays });
+  const uploaded = await client.uploadArtifact(name, [filePath], workspace, { retentionDays });
   console.log(`Artifact uploaded: name=${name}, id=${uploaded.id}, bytes=${uploaded.size}`);
 } catch (error) {
   fail(error instanceof Error ? (error.stack || error.message) : String(error));

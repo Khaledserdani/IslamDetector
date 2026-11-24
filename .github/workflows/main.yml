@@ -6,7 +6,6 @@ on:
     paths:
       - '.github/workflows/main.yml'
       - '.github/actions/**'
-      - 'ISLAM.md'
       - 'README.md'
       - 'docs/**'
       - 'tools/**'

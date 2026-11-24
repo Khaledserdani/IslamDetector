@@ -91,3 +91,6 @@ Littelfuse L4CL2512LR050FYR-A:
 **القرار:** L4CL2512LR050FYR-A هو مرشح A للشنت بسبب Kelvin 4-terminal و1W و±1%، وليس اعتماد شراء بعد. لا يزال قياس الضوضاء/الحرارة/النبضة والـlayout مطلوباً.
 
 المصدر الرسمي: Littelfuse L4CL-A Series datasheet: https://www.littelfuse.com/assetdocs/littelfuse-resistor-l4cl-a-datasheet?assetguid=a57275e4-80b6-41b0-ab69-386df0e05ecf
+
+
+**حالة الاعتماد:** لا يعتمد comparator أو الشنت بعد؛ تبقى قيم العتبة والشنت والمرجع والـlatch مفتوحة حتى قياس DD32 وحساب worst-case للتيار والـovershoot والتحقق بالراسم. أمثلة 50mΩ/3A ليست مواصفة شراء أو تشغيل.

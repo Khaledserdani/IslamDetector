@@ -1852,3 +1852,39 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - RP2040 ما زال اختباراً منطقياً افتراضياً: `ENABLE_ADS8861_CAPTURE=0`، وDEVICE_INFO يعلن `ADC_NONE`، وSTART مرفوض بـ`TX_NOT_ARMED`. جسر ESP32 UART معطل افتراضياً وGPIO=-1، ولا يوجد MEASUREMENT producer من ADC حقيقي أو Wi-Fi/WebServer أو UART loopback.
 - لا UF2 أو APK جديدين لهذا الرأس؛ لا تُعتبر الملفات القديمة دليلاً على البناء الحالي. لا قياسات مادية، ولا شراء، ولا توصيل TX عالي الطاقة.
 - الخطوة التالية: تشخيص عائق Actions على مستوى GitHub/إعدادات المستودع أو الدعم، ثم استعادة تشغيل CI كامل وإثبات UF2/APK حديثين قبل متابعة MEASUREMENT producer والاختبارات العتادية.
+
+
+## 57. متابعة Rev A واستعادة تشغيل CI — 2026-11-24
+
+### السبب المثبت لعطل Actions
+- فُحصت صفحة التشغيل #2083 / ID `45191155412` مباشرة. ظهر Annotation صريح: `actions/checkout@v4` و`actions/upload-artifact@v4` و`actions/setup-java@v4` و`gradle/actions/setup-gradle@v4` و`espressif/esp-idf-ci-action@v1` ممنوعة لأن إعداد المستودع يسمح فقط بأفعال من مستودعات يملكها Khaledserdani.
+- هذا يفسر `startup_failure` وJobs=0؛ لم يكن خطأً في C أو Java أو RP2040. لم نخفف إعدادات الأمان. استبدلنا الأفعال الخارجية بخطوات shell محلية، واستخدمنا local action داخل المستودع لرفع Artifacts.
+- PR #7 بقي open Draft. PR #6 الحالة الحية في GitHub: closed وغير merged؛ لم نعد فتحه ولم ندمجه. لم نعدّل `main`.
+
+### أول تحقق بعد إصلاح بوابة Actions
+- تشغيل PR #2087 / ID `45403428044` أنشأ أربع Jobs فعلية؛ انتهى `startup_failure` ولم تعد Jobs=0. هذا يثبت أن سبب المنع الخارجي عولج.
+- `esp32-s3-bridge`: نجح بناء ESP-IDF release-v5.4 داخل صورة Espressif الرسمية. اكتمل 1007/1007 خطوة؛ حجم صورة BIN الناتجة `0x276b0` بايت، وبقي 85% من قسم التطبيق. هذا نجاح build برمجي، وليس اختبار لوحة أو UART مادي.
+- `android-app`: نجح Gradle 8.9 و`:app:assembleDebug`، واجتاز APK فحص ZIP. SHA-256: `80b6ffa46cc6a258edafe449448d8d5bb7224f156bab322b5a2726a71112e27f`. فشل رفع APK بسبب تمرير options كوسيط rootDirectory إلى `@actions/artifact`؛ لا يوجد Artifact APK حتى الآن.
+- `rp2040-firmware`: نجح CMake build، ونجح `verify_uf2.py`: 149 blocks، و38144 payload bytes، family `0xE48BFF56`، العنوان `0x10000000..0x10009500`. SHA-256: `82c636c782ebcb1033d70e5a0613b2a960cdbf2ace6644c25e653874f319418a`. فشل رفع UF2 بسبب خطأ وسيط rootDirectory نفسه؛ لذلك **لا يوجد UF2 Artifact بعد ولا نعلن اكتمال firmware وفق بوابة المشروع**.
+- `protocol-tests`: 90/91 اختباراً نجحت. الاختبار الوحيد الفاشل `test_current_limit_candidate_records_offset_and_delay_tradeoff` لأن وثيقة مرشح حد التيار لا تحتوي العبارة النصية التي يطلبها الاختبار `لا يعتمد comparator أو الشنت بعد`. أضيفت العبارة التوضيحية للوثيقة دون تغيير قيمة كهربائية أو اعتماد قطعة.
+
+### التغييرات في هذا التحديث
+- أُصلح local artifact uploader ليستعمل توقيع المكتبة ذي أربعة وسائط: الاسم، الملفات، rootDirectory، ثم options.
+- أُزيل `ISLAM.md` من مسارات تشغيل CI التلقائي؛ سجل الحالة لا يحتاج إعادة بناء Android/RP2040 عند كل تحديث توثيقي. بقيت تغييرات workflow وlocal actions والوثائق الهندسية ضمن مسارات الاختبار.
+- لا تزال خطوات رفع APK وUF2 بحاجة إلى إعادة تشغيل ناجحة وإظهار Artifact IDs قبل اعتمادها.
+
+### تدقيق ADS8861 من الداتا شيت الرسمية
+- راجعنا TI ADS8861 datasheet SBAS557A Rev A: الجهاز true-differential unipolar، ومدى الفرق عند `VCM=VREF/2` هو (-VREF..+VREF)، والخرج two's-complement.
+- في 3-wire CS بدون BUSY: `tconv` أقصاه 710ns، و`tACQ` هو 290ns؛ حافة CONVST الصاعدة تبدأ التحويل، ويُبقى مرتفعاً حتى انقضاء الحد الأقصى، ثم تكشف الحافة الهابطة MSB، والبتات التالية تُخرج على حواف SCLK الهابطة. الداتا صالحة على الحافتين.
+- هذا يؤيد ترتيب قراءة PIO الحالي. لم نعتبر أزمنة المحاكاة قياسات عتادية، ولم نغيّر قيم الفلتر أو الحماية.
+
+### ما بقي غير مختبر
+- لا يوجد حتى الآن APK/UF2 Artifact في تشغيل #2087 بسبب فشل uploader.
+- لم يُوصل ADS8861 فعلياً، وما زال `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO يعلن `ADC_NONE`.
+- لا UART loopback أو Wi-Fi/WebServer أو قياس L/DCR/clip-release أو اختبار ميداني.
+- لا شراء ولا توصيل TX عالي الطاقة.
+
+### الخطوة التالية
+1. إعادة تشغيل CI بعد تصحيح uploader وعبارة اختبار التوثيق.
+2. التحقق من نجاح protocol-tests وAndroid وRP2040 وESP32، ثم التأكد من ظهور Artifact APK وUF2 فعليين مع IDs وhashes.
+3. بعد ذلك فقط نبدأ MEASUREMENT producer وربط DMA RAW16 بالبروتوكول، مع إبقاء ADC_NONE حتى تركيب ADC والتحقق منه.
