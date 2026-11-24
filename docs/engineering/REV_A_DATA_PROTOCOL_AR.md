@@ -357,3 +357,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - نجحت 92 اختبارات Python في البروتوكول وبوابات السلامة والتوقيت وUF2؛ ونجح بناء C parser/session مع التحذيرات الصارمة.
 - اختبارات VREF model-specific الجديدة اجتازت حدود ADS8861/ADS8860 وADS7054 وAD7980، بما في ذلك رفض القيم خارج المجال وصفر المرجع كـunknown sentinel.
 - نجاح CI لا يعني أن DEVICE_INFO الحالي يعلن ADC فعلياً؛ RP2040 ما زال يعلن ADC_NONE، ولا يوجد MEASUREMENT producer أو UART loopback.
+
+
+## 9.11 تحقق البروتوكول بعد CI #2093 — 2026-11-24
+
+- CI #2093 / run ID `45409935952` نجح في `protocol-tests`: 92 اختبار Python، ثم بناء واختبار C parser/session مع `-Wall -Wextra -Werror -pedantic`.
+- غطت النتيجة CRC وcommand/ACK وDEVICE_INFO وADC metadata gates وRAW16 preservation وsigned sample formats وSYNC recovery.
+- طبقة C في ESP32 تقبل DEVICE_INFO بعد التحقق من طراز ADC وصيغة العينة والدقة ونمط الدخل وVREF؛ ثم لا تقبل MEASUREMENT إلا بعد هوية ADC صالحة وتطابق profile. هذه نتيجة اختبارات برمجية وليست UART loopback.
+- RP2040 ما زال يرسل ACK وDEVICE_INFO فقط عند الطلب؛ DEVICE_INFO الفعلي في firmware يعلن ADC_NONE وSAMPLE_UNKNOWN وresolution=0 وVREF=0. لا يوجد ADC MEASUREMENT producer، ولا يجوز تحويل مخرجات الاختبار أو USB log إلى عينات قياس.
+- ESP32 UART bridge مبني لكنه disabled افتراضياً؛ GPIO غير معينة، ولا يوجد loopback على اللوحتين.
+- [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952). القبول التالي: تثبيت pinout اللوحتين من المخططات الفعلية، ثم اختبار UART منخفض الجهد، وبعد تركيب ADC والحماية فقط يُفعّل مسار الالتقاط ويُختبر RAW16 ميدانياً.
