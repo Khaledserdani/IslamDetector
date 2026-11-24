@@ -200,7 +200,10 @@ final class ResumableModelDownloader {
                 byte[] buffer = new byte[1024];
                 int count;
                 while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-                return new String(output.toByteArray(), StandardCharsets.UTF_8);
+                String saved = new String(output.toByteArray(), StandardCharsets.UTF_8);
+                if (saved.startsWith("E:") || saved.startsWith("M:")) return saved;
+                if (saved.regionMatches(true, 0, "W/", 0, 2)) return null;
+                return saved.isEmpty() ? null : "E:" + saved;
             }
         } catch (Exception ignored) {
             return null;
