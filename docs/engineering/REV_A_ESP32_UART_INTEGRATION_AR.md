@@ -117,3 +117,14 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - أضيفت إعادة محاولة محدودة في workflow لخطأ 429 فقط، مع backoff و`--max-workers=1`; لا تعاد المحاولة لأخطاء source أو compile.
 - اكتُشف أيضاً أن C/Python يقبلان VREF غير صفري خارج مجال ADC. أضيف تحقق model-specific واختبارات C/Python؛ الصفر يظل «غير معروف» للمحول المركب، ولا يقبل مع ADC_NONE إلا الصفر.
 - لا يزال UART bridge معطلاً افتراضياً، ولا يوجد loopback فعلي أو ADC أو Wi-Fi/WebServer.
+
+
+## CI #2092 — تحقق البناء ومرحلة الربط التالية — 2026-11-24
+
+- CI #2092 / run ID `45409128684` اكتمل بنجاح على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4`.
+- protocol-tests: 92 Python tests وC parser/session strict compile/test ناجحة.
+- Android: Gradle build نجح بعد retry واحد بسبب Maven Central HTTP 429؛ APK Debug فُحص ورفع.
+- ESP32-S3: ESP-IDF release-v5.4 build/link ناجح، لكن لا flash ولا hardware run.
+- RP2040: UF2 valid (150 blocks، 38400 payload bytes، family 0xE48BFF56)، Artifact ID `14927930174`; هو logic timing test فقط.
+- لا UART loopback، ولا ADC capture، ولا Wi-Fi/WebServer أو اتصال Android فعلي. لا تفعّل TX.
+- المرحلة التالية هي تثبيت pinout اللوحة الفعلية ثم loopback منخفض الجهد، وليس افتراض أرجل ESP32-S3 من اسم الشريحة.

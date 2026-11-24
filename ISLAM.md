@@ -1966,3 +1966,17 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - RP2040 ما زال اختبار توقيت منطقي فقط؛ `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO=ADC_NONE.
 - لا UART loopback أو ADC capture أو Wi-Fi/WebServer أو قياسات ملف فعلية. لا TX قدرة.
 - PR #6 مغلق وغير مدمج؛ PR #7 هو Draft المفتوح. لا دمج أو rebase تلقائي.
+
+
+## 61. تحقق CI #2092 — نجاح الحزمة البرمجية — 2026-11-24
+
+- HEAD: `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` على فرع `hardware/rev-a-measurement-design`.
+- CI #2092 / run ID `45409128684`: `completed / success`، وجميع الوظائف الأربع نجحت.
+- `protocol-tests`: نجحت 92 اختبارات Python، ثم C parser/session compile مع `-Wall -Wextra -Werror -pedantic` والاختبار التنفيذي.
+- `android-app`: Gradle 8.9 / `:app:assembleDebug` نجح بعد أن ظهرت 429 مرة واحدة وأعادت خطوة retry المحاولة؛ APK Debug فُحص ZIP ورفع Artifact ID `14926049296`. SHA-256 للـAPK الخام: `00871ea3d7bf991315c465496fdd294b3b4d4913b6b9a5ee9f451b985d856f5a`.
+- `esp32-s3-bridge`: نجح ESP-IDF release-v5.4 build؛ binary `0x276b0` بايت، ومساحة التطبيق المتبقية في partition `0xd8950` (85%). لم يُفلش على لوحة.
+- `rp2040-firmware`: نجح CMake/Pico SDK 2.3.1، وفحص UF2 أكد 150 blocks و38400 payload bytes وfamily `0xE48BFF56` وعنوان `0x10000000..0x10009600`. SHA-256 للـUF2 الخام: `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`. Artifact ID `14927930174`.
+- روابط: [CI #2092](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409128684)، [APK artifact](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409128684)، [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7).
+- PR #6 مغلق وغير مدمج؛ PR #7 مفتوح Draft. الفرع متباعد عن main: 595 أماماً و6 خلفاً. لا rebase أو merge تلقائي.
+- حدود النجاح: UF2 اختبار توقيت منطقي فقط، وADS8861 capture معطل، وDEVICE_INFO=ADC_NONE. لا UART loopback أو ADC capture أو Wi-Fi/WebServer أو قياس ملف أو تشغيل TX.
+- الخطوة التالية: تثبيت pinout اللوحة الفعلية لـESP32-S3، ثم UART loopback منخفض الجهد، ثم Wi-Fi/WebServer وربط Android. لا تفعيل ADC أو TX قبل تركيب وحماية وقياسات حقيقية.

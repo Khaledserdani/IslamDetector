@@ -450,3 +450,8 @@ HEAD الحالي على فرع العمل هو d17a0f3d5077a29299b45e94c1b67f87
 - AD7980: REF=2.4–5.1V.
 - ADC_VREF_UV=0 يعني مجهولاً/غير مقاس؛ ADC_NONE وحده يشترط 0 ولا يسمح بقياس ADC.
 المصادر الرسمية وروابطها موثقة في REV_A_DATA_PROTOCOL_AR.md §5.1.1. الاختبارات تثبت رفض metadata خارج الحدود فقط، ولا تثبت وجود ADC أو صحة جهد مرجعه على اللوحة.
+
+
+## 31. بوابة البناء بعد CI #2092 — 2026-11-24
+
+CI #2092 على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` نجح في الاختبارات والبناء للطبقات الأربع: protocol C/Python (92 اختبار Python)، RP2040 UF2، Android Debug APK، وESP32-S3 ESP-IDF. UF2 وAPK موجودان كـArtifacts، وUF2 اجتاز فحص family/address/block structure. هذا يثبت قابلية البناء البرمجية فقط، ولا يثبت flash أو pinout أو UART أو Wi-Fi أو ADC أو TX مادي. حالة العتاد الآمنة بقيت كما هي: ADC capture معطل، ADC_NONE، UART GPIO غير مثبتة، START مرفوض.
