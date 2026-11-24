@@ -267,3 +267,14 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - SHA-256: `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`; Artifact ID `14927930174`.
 - هذا UF2 خاص باختبار التوقيت المنطقي؛ لا يقود MOSFET ولا يقرأ ADS8861. لم يُفلش أو يختبر على لوحة فعلية، ولا يثبت pin map.
 - لا تزال أرجل ESP32-S3 TX/RX غير معينة وUART bridge معطلاً افتراضياً؛ يلزم تحديد مراجعة اللوحة ومخططها قبل تثبيت pin-level wiring.
+
+
+## 16. نتيجة UF2 بعد CI #2093 — 2026-11-24
+
+- CI #2093 / run ID `45409935952` بنى `waveshare_rp2040_zero` بنجاح ورفع UF2 Artifact ID `14926828507`.
+- `verify_uf2.py` أكد 150 blocks و38400 payload bytes وFamily ID `0xE48BFF56` والعناوين `0x10000000..0x10009600`. SHA-256 للملف الخام: `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`.
+- هذا UF2 اختبار توقيت منطقي فقط؛ لا يثبت pin mux أو الجهد أو التوقيت على اللوحة ولا يشغّل MOSFET ولا يقرأ ADS8861.
+- GP0/GP1 UART0 على RP2040 مرشحان وفق تعريف SDK لكنهما يحتاجان continuity على نسخة اللوحة الفعلية. GP4/GP5/GP6 منطق اختبار. GP8/GP9/GP10 واجهة ADS8861 المقترحة وما زالت capture disabled.
+- ESP32-S3 UART bridge معطل وTX/RX GPIO=-1. لا تثبت أي رجل قبل رقم/مراجعة لوحة التطوير ومخططها وفحص التعارضات.
+- لا flash أو UART loopback أو ADC capture فعلي حتى الآن.
+[CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952)
