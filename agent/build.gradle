@@ -35,9 +35,22 @@ android {
     }
 }
 
+tasks.withType(Test).configureEach {
+    // Robolectric's default repo1.maven.org endpoint is unreliable on some hosted runners.
+    // Use Maven Central's canonical hostname for Android SDK test artifacts.
+    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+        showCauses true
+        showStackTraces true
+    }
+}
+
 dependencies {
     implementation 'androidx.work:work-runtime:2.10.1'
     implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testImplementation 'org.robolectric:robolectric:4.14.1'
 }

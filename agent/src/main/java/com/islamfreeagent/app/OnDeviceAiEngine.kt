@@ -44,18 +44,22 @@ internal class OnDeviceAiEngine(
                 return@execute
             }
             closeModel()
-            val candidate = Engine(
-                EngineConfig(
-                    modelPath = modelPath,
-                    backend = Backend.CPU(),
-                    cacheDir = cacheDirectory
-                )
-            )
-            try {
-                candidate.initialize()
+            // Keep construction and initialization inside the guarded block: native/runtime
+            // setup can fail before initialize() is reached, and the UI must receive a result.
+            val candidate = try {
+                Engine(
+                    EngineConfig(
+                        modelPath = modelPath,
+                        backend = Backend.CPU(),
+                        cacheDir = cacheDirectory
+                    )
+                ).also { it.initialize() }
             } catch (error: Exception) {
                 // LiteRT-LM requires that an Engine whose initialize() failed is not closed.
                 callback.onFailure(error.message ?: "فشل تحميل النموذج")
+                return@execute
+            } catch (error: LinkageError) {
+                callback.onFailure(error.message ?: "مكتبات تشغيل الذكاء المحلي غير متاحة على هذا الهاتف")
                 return@execute
             }
             engine = candidate
@@ -104,9 +108,11 @@ internal class OnDeviceAiEngine(
             var planner: Conversation? = null
             try {
                 val instruction = "أنت مخطط أدوات آمن داخل تطبيق إسلام. لا تنفذ أي شيء بنفسك. " +
-                    "إذا كانت المهمة تطلب إنشاء ملف نصي وكتابة محتواه ثم قراءته، أعد كائن JSON فقط " +
-                    "بالمفاتيح action وfilename وcontent، واجعل action يساوي write_and_read_text_file. " +
-                    "اسم الملف يجب أن يكون اسماً بسيطاً ينتهي .txt دون مجلدات أو مسارات. " +
+                    "إذا كانت المهمة تطلب إنشاء ملف أو ملفات نصية وكتابة محتواها ثم قراءتها، أعد كائن JSON فقط " +
+                    "إذا طلبت ملفاً واحداً فأعد JSON بالمفاتيح action وfilename وcontent واجعل action write_and_read_text_file. " +
+                    "إذا طلبت عدة ملفات فأعد JSON بالمفاتيح action وfiles واجعل action write_and_read_text_files، " +
+                    "وfiles مصفوفة تضم عنصراً لكل ملف مطلوب، وكل عنصر يحوي filename وcontent. لا تسقط أي ملف. " +
+                    "استخدم أسماء TXT بسيطة دون مسارات، وانقل المحتوى العربي المطلوب حرفياً دون ترجمته. " +
                     "إذا لم تكن المهمة من هذا النوع فأعد JSON فقط بالمفتاح action وقيمته unsupported. " +
                     "لا تضف Markdown أو شرحاً خارج JSON، ولا تقترح أوامر نظام أو شبكة أو حذف ملفات.";
                 val taskConversation = activeEngine.createConversation(
@@ -116,7 +122,7 @@ internal class OnDeviceAiEngine(
                             enableThinking = false,
                             thinkingTokenBudget = 0
                         ),
-                        maxOutputToken = 256
+                        maxOutputToken = 1024
                     )
                 )
                 planner = taskConversation

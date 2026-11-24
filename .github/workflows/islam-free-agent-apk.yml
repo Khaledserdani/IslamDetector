@@ -1,6 +1,20 @@
 name: Build ISLAM FREE AGENT APK
 
 on:
+  pull_request:
+    branches:
+      - feature/islam-free-agent-foundation
+      - feature/islam-free-agent-github
+      - feature/islam-free-agent-safe-write
+      - feature/islam-free-agent-phone-only-v6
+      - feature/islam-free-agent-task-execution
+      - feature/islam-free-agent-task-execution-fix
+    paths:
+      - 'agent/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/islam-free-agent-apk.yml'
   push:
     branches:
       - feature/islam-free-agent-foundation
@@ -8,6 +22,7 @@ on:
       - feature/islam-free-agent-safe-write
       - feature/islam-free-agent-phone-only-v6
       - feature/islam-free-agent-task-execution
+      - feature/islam-free-agent-task-execution-fix
     paths:
       - 'agent/**'
       - 'build.gradle'
@@ -17,88 +32,117 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: islam-free-agent-apk-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-agent:
-    name: Test, build and publish the standalone Android assistant
+    name: Test, build and verify the standalone Android assistant
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - name: Fetch exact source commit
-        env:
-          SOURCE_REF: ${{ github.sha }}
-          REPOSITORY: ${{ github.repository }}
+      - name: Checkout exact source revision without third-party actions
+        shell: bash
         run: |
           set -euo pipefail
-          git init source
-          cd source
-          git remote add origin "https://github.com/$REPOSITORY.git"
-          git fetch --depth 1 origin "$SOURCE_REF"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            test -n "${PR_NUMBER}"
+            git fetch --depth=1 origin "refs/pull/${PR_NUMBER}/merge"
+          else
+            git fetch --depth=1 origin "${GITHUB_SHA}"
+          fi
           git checkout --detach FETCH_HEAD
+          test -f agent/build.gradle
 
-      - name: Prepare Java, Android SDK and Gradle
-        working-directory: source
+      - name: Install and select Java 17 without external actions
+        shell: bash
         run: |
           set -euo pipefail
-          if [ -n "${JAVA_HOME_17_X64:-}" ]; then
-            echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
-            echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          if ! java -version 2>&1 | grep -qE 'version "17([.]|")'; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk-headless
           fi
-          java -version
-          test -n "${ANDROID_HOME:-}"
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n1)"
-          if [ -n "$SDKMANAGER" ]; then
-            yes | "$SDKMANAGER" --licenses >/dev/null || true
-            "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
-          fi
+          JAVA_HOME="$(find /usr/lib/jvm -mindepth 1 -maxdepth 1 -type d -name '*17*' | sort | head -n1)"
+          test -n "$JAVA_HOME"
+          test -x "$JAVA_HOME/bin/java"
+          test -x "$JAVA_HOME/bin/javac"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
+          "$JAVA_HOME/bin/java" -version 2>&1 | tee java-version.txt
+          "$JAVA_HOME/bin/java" -version 2>&1 | grep -E 'version "17([.]|")'
+
+      - name: Install Gradle 8.9 without external GitHub Actions
+        shell: bash
+        run: |
+          set -euo pipefail
           GRADLE_VERSION=8.9
-          curl -fsSLo /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"
-          curl -fsSLo /tmp/gradle.zip.sha256 "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip.sha256"
-          echo "$(cat /tmp/gradle.zip.sha256)  /tmp/gradle.zip" | sha256sum -c -
-          unzip -q /tmp/gradle.zip -d /tmp
-          echo "/tmp/gradle-$GRADLE_VERSION/bin" >> "$GITHUB_PATH"
-          /tmp/gradle-$GRADLE_VERSION/bin/gradle --version
+          curl --retry 4 --retry-all-errors --connect-timeout 20 -fL \
+            "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+            -o "$RUNNER_TEMP/gradle.zip"
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/gradle-${GRADLE_VERSION}/bin/gradle" --version
 
-      - name: Run Android tests and assemble debug APK
-        working-directory: source
+      - name: Install required Android SDK packages
+        shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon :agent:testDebugUnitTest :agent:assembleDebug
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_ROOT"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n1)"
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "Android sdkmanager was not found under $SDK_ROOT/cmdline-tools"
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Verify APK package, integrity and checksum
+      - name: Run Android unit tests and assemble debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          gradle --no-daemon --stacktrace :agent:testDebugUnitTest :agent:assembleDebug
+
+      - name: Verify APK package, version, ZIP integrity and checksum
         id: verify
-        working-directory: source
+        shell: bash
         run: |
           set -euo pipefail
           APK=agent/build/outputs/apk/debug/agent-debug.apk
           test -s "$APK"
           test "$(stat -c%s "$APK")" -gt 10000
           unzip -t "$APK"
-          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | grep -F "package: name='com.islamfreeagent.app'"
           "$AAPT" dump badging "$APK" | grep -F "versionName='0.5.0'"
-          sha256sum "$APK" | tee /tmp/islam-agent-sha256.txt
-          echo "apk_sha256=$(cut -d' ' -f1 /tmp/islam-agent-sha256.txt)" >> "$GITHUB_OUTPUT"
+          SHA256="$(sha256sum "$APK" | cut -d' ' -f1)"
+          echo "$SHA256  $APK" | tee agent-apk-sha256.txt
+          echo "apk_sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "apk_size=$(stat -c%s "$APK")" >> "$GITHUB_OUTPUT"
 
-      - name: Publish verified APK as GitHub Release
-        working-directory: source
+      - name: Write verification summary
         env:
-          GH_TOKEN: ${{ github.token }}
           APK_SHA256: ${{ steps.verify.outputs.apk_sha256 }}
+          APK_SIZE: ${{ steps.verify.outputs.apk_size }}
+        shell: bash
         run: |
-          set -euo pipefail
-          TAG="islam-free-agent-v0.5.0-build-${GITHUB_RUN_NUMBER}"
-          NOTES="ISLAM FREE AGENT v0.5.0 debug APK built from source commit $GITHUB_SHA. Package: com.islamfreeagent.app. SHA-256: $APK_SHA256. Adds Algeria overnight scheduling (20:00-06:00 by default), automatic validated DC/RLC/AC computational laboratory runs with saved evidence, and Android health display for work-window/lab status. Project source writes and non-lab operations still require explicit human approval. Physical phone-to-host integration still requires user-side testing."
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --clobber
-          else
-            gh release create "$TAG" agent/build/outputs/apk/debug/agent-debug.apk --title "ISLAM FREE AGENT v0.5.0 — build $GITHUB_RUN_NUMBER" --notes "$NOTES" --target "$GITHUB_SHA"
-          fi
-          echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
-          echo "APK SHA-256: $APK_SHA256" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## ISLAM FREE AGENT APK verification"
+            echo "- Source commit: $GITHUB_SHA"
+            echo "- Package: com.islamfreeagent.app"
+            echo "- Version: 0.5.0"
+            echo "- APK size: $APK_SIZE bytes"
+            echo "- SHA-256: $APK_SHA256"
+            echo "- Third-party GitHub Actions were not used; repository policy permits only owner-controlled actions."
+            echo "- The APK was built and verified on the runner; artifact publication is intentionally not enabled until an owner-controlled upload path is configured."
+          } >> "$GITHUB_STEP_SUMMARY"

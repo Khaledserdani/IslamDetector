@@ -1,20 +1,14 @@
 package com.islamfreeagent.app;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.app.AlertDialog;
-import android.app.DownloadManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Build;
 import android.text.InputType;
+import android.text.InputFilter;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -24,6 +18,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.io.File;
 import java.util.List;
@@ -45,18 +40,8 @@ public class MainActivity extends Activity {
     private TextView aiReplyText;
     private EditText aiPromptInput;
     private Button aiSendButton;
-    private DownloadManager downloadManager;
-    private long modelDownloadId = -1L;
-    private boolean downloadReceiverRegistered = false;
-    private final BroadcastReceiver modelDownloadReceiver = new BroadcastReceiver() {
-        @Override public void onReceive(Context context, Intent intent) {
-            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
-                long completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
-                if (completedId == modelDownloadId && aiStatusText != null) refreshModelStatus();
-            }
-        }
-    };
     private OnDeviceAiEngine localAi;
+    private String activeExecutionTaskId = null;
     private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
 
@@ -65,9 +50,6 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         store = new AgentTaskStore(this);
-        downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        modelDownloadId = getSharedPreferences("local_ai_model", MODE_PRIVATE).getLong("download_id", -1L);
-        registerModelDownloadReceiver();
         localAi = new OnDeviceAiEngine(getCacheDir().getAbsolutePath());
         buildScreen();
         loadSavedGitHubSettings();
@@ -80,14 +62,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        if (downloadReceiverRegistered) {
-            try {
-                unregisterReceiver(modelDownloadReceiver);
-            } catch (IllegalArgumentException ignored) {
-                // Receiver was already unregistered by the platform or lifecycle cleanup.
-            }
-            downloadReceiverRegistered = false;
-        }
+        if (resumableDownloader != null) resumableDownloader.cancel();
         localAi.close();
         modelExecutor.shutdownNow();
         networkExecutor.shutdownNow();
@@ -98,6 +73,13 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
+        // Android 15 enforces edge-to-edge for targetSdk 35; keep content clear
+        // of the status and navigation bars on both new and older Android versions.
+        scroll.setClipToPadding(false);
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
+            return insets;
+        });
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -205,16 +187,17 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams fp = matchWrap(); fp.topMargin = dp(20);
         page.addView(footer, fp);
         setContentView(scroll);
+        scroll.requestApplyInsets();
     }
 
     private void addLocalAiPanel(LinearLayout page) {
         LinearLayout ai = panel();
         ai.addView(text("الذكاء الاصطناعي المحلي — Qwen3 0.6B", 17, Color.WHITE, true), matchWrap());
-        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
+        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. التنزيل قابل للاستكمال بعد انقطاع الإنترنت أو إغلاق التطبيق؛ لا نعيد الأجزاء المحفوظة من الصفر. بعد اكتماله يعمل محلياً دون إنترنت.", 12, MUTED, false);
         LinearLayout.LayoutParams detailsLp = matchWrap(); detailsLp.topMargin = dp(7);
         ai.addView(details, detailsLp);
 
-        Button download = actionButton("تنزيل النموذج المجاني عبر الإنترنت");
+        Button download = actionButton("تنزيل / استكمال النموذج دون فقدان التقدم");
         download.setOnClickListener(v -> startModelDownload());
         ai.addView(download, actionButtonParams());
 
@@ -261,20 +244,13 @@ public class MainActivity extends Activity {
         refreshModelStatus();
     }
 
-    private void registerModelDownloadReceiver() {
-        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(modelDownloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(modelDownloadReceiver, filter);
-        }
-        downloadReceiverRegistered = true;
-    }
-
     private File modelFile() {
         File directory = getExternalFilesDir(null);
         return directory == null ? null : new File(directory, OnDeviceModelSpec.FILE_NAME);
     }
+
+    private ResumableModelDownloader resumableDownloader;
+    private boolean modelDownloadRunning = false;
 
     private void startModelDownload() {
         File file = modelFile();
@@ -282,96 +258,79 @@ public class MainActivity extends Activity {
             aiStatusText.setText("مساحة ملفات التطبيق غير متاحة.");
             return;
         }
-        if (modelDownloadId > 0 && isDownloadActive(modelDownloadId)) {
-            refreshModelStatus();
+        if (modelDownloadRunning) {
+            aiStatusText.setText("التنزيل مستمر بالفعل؛ لن نبدأ نسخة ثانية.");
             return;
         }
-        if (file.exists() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
-            aiStatusText.setText("جارٍ التحقق من الملف الموجود قبل إعادة استخدامه…");
+        if (file.isFile() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
+            aiStatusText.setText("الملف مكتمل. جارٍ التحقق من بصمته قبل إعادة استخدامه…");
             modelExecutor.execute(() -> {
                 boolean valid;
-                try {
-                    valid = OnDeviceModelSpec.isValid(file);
-                } catch (Exception error) {
-                    valid = false;
-                }
+                try { valid = OnDeviceModelSpec.isValid(file); }
+                catch (Exception error) { valid = false; }
                 final boolean fileValid = valid;
                 runOnUiThread(() -> {
                     if (fileValid) {
-                        aiStatusText.setText("النموذج موجود وبصمته صحيحة. اضغط التحقق والتشغيل.");
+                        aiStatusText.setText("النموذج موجود وسليم. اضغط التحقق والتشغيل.");
                     } else {
-                        file.delete();
-                        enqueueModelDownload(file);
+                        // Never silently discard a completed-looking file. Keep it for diagnosis
+                        // and ask the user to explicitly restart only if it cannot be trusted.
+                        aiStatusText.setText("الملف المكتمل لا يطابق البصمة. لم نحذفه تلقائياً؛ راجع حالة الملف قبل إعادة التنزيل.");
                     }
                 });
             });
             return;
         }
-        if (file.exists()) file.delete();
-        enqueueModelDownload(file);
-    }
-
-    private void enqueueModelDownload(File file) {
         try {
-            DownloadManager.Request request =
-                    new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
-            request.setTitle("تنزيل نموذج إسلام المحلي");
-            request.setDescription("Qwen3 0.6B — 586 MB — عبر الإنترنت المتاح");
-            request.setNotificationVisibility(
-                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationInExternalFilesDir(this, null, OnDeviceModelSpec.FILE_NAME);
-            modelDownloadId = downloadManager.enqueue(request);
-            getSharedPreferences("local_ai_model", MODE_PRIVATE).edit()
-                    .putLong("download_id", modelDownloadId).apply();
-            aiStatusText.setText("بدأ التنزيل عبر اتصال الإنترنت المتاح (Wi-Fi أو بيانات الهاتف). يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
-        } catch (Exception error) {
-            aiStatusText.setText("تعذر بدء التنزيل: " + error.getMessage());
-        }
-    }
+            resumableDownloader = new ResumableModelDownloader(this);
+            modelDownloadRunning = true;
+            aiStatusText.setText("جارٍ استكمال التنزيل من آخر بايت محفوظ…");
+            modelExecutor.execute(() -> resumableDownloader.download(new ResumableModelDownloader.Listener() {
+                @Override public void onProgress(long downloaded, long total, String message) {
+                    long percent = total > 0 ? downloaded * 100L / total : 0L;
+                    runOnUiThread(() -> {
+                        if (aiStatusText != null) aiStatusText.setText(message + " "
+                                + percent + "% • " + downloaded / (1024 * 1024) + " / "
+                                + total / (1024 * 1024) + " MB محفوظة");
+                    });
+                }
 
-    private boolean isDownloadActive(long id) {
-        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(id))) {
-            if (cursor == null || !cursor.moveToFirst()) return false;
-            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-            return status == DownloadManager.STATUS_PENDING
-                    || status == DownloadManager.STATUS_RUNNING
-                    || status == DownloadManager.STATUS_PAUSED;
-        } catch (Exception ignored) {
-            return false;
+                @Override public void onComplete(File modelFile) {
+                    modelDownloadRunning = false;
+                    runOnUiThread(() -> {
+                        aiStatusText.setText("اكتمل تنزيل النموذج. جارٍ فحص سلامة الملف…");
+                        verifyAndLoadModel();
+                    });
+                }
+
+                @Override public void onFailure(String message, long preservedBytes) {
+                    modelDownloadRunning = false;
+                    runOnUiThread(() -> aiStatusText.setText(message + "\nالمحفوظ للاستكمال: "
+                            + preservedBytes + " بايت."));
+                }
+            }));
+        } catch (Exception error) {
+            modelDownloadRunning = false;
+            aiStatusText.setText("تعذر تجهيز التنزيل: " + error.getMessage());
         }
     }
 
     private void refreshModelStatus() {
         File file = modelFile();
         if (file != null && file.isFile() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
-            aiStatusText.setText("اكتمل تنزيل ملف النموذج (" + file.length() + " بايت). تحقّق من البصمة قبل التشغيل.");
+            aiStatusText.setText("اكتمل تنزيل ملف النموذج (" + file.length()
+                    + " بايت). تحقّق من البصمة قبل التشغيل.");
             return;
         }
-        if (modelDownloadId <= 0) {
-            aiStatusText.setText("النموذج غير منزّل بعد. يمكنك تنزيله عبر Wi-Fi أو بيانات الهاتف.");
-            return;
-        }
-        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(modelDownloadId))) {
-            if (cursor == null || !cursor.moveToFirst()) {
-                aiStatusText.setText("لم نعثر على مهمة التنزيل. يمكنك بدء التنزيل من جديد.");
-                return;
-            }
-            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                aiStatusText.setText("اكتمل التنزيل. الحجم: " + downloaded + " بايت. اضغط التحقق والتشغيل.");
-            } else if (status == DownloadManager.STATUS_FAILED) {
-                int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من اتصال الإنترنت ثم أعد المحاولة.");
-            } else {
-                String progress = total > 0 ? (downloaded * 100 / total) + "%" : "جارٍ الاتصال";
-                aiStatusText.setText("تنزيل النموذج: " + progress + " • "
-                        + downloaded / (1024 * 1024) + " / "
-                        + (total > 0 ? total / (1024 * 1024) : 0) + " MB");
-            }
-        } catch (Exception error) {
-            aiStatusText.setText("تعذر قراءة حالة التنزيل: " + error.getMessage());
+        File partial = file == null ? null : new File(file.getParentFile(), OnDeviceModelSpec.FILE_NAME + ".part");
+        long saved = partial != null && partial.isFile() ? partial.length() : 0L;
+        if (saved > 0) {
+            long percent = saved * 100L / OnDeviceModelSpec.EXPECTED_BYTES;
+            aiStatusText.setText((modelDownloadRunning ? "التنزيل مستمر: " : "يوجد تنزيل محفوظ قابل للاستكمال: ")
+                    + percent + "% • " + saved / (1024 * 1024) + " / "
+                    + OnDeviceModelSpec.EXPECTED_BYTES / (1024 * 1024) + " MB");
+        } else {
+            aiStatusText.setText("النموذج غير منزّل بعد. ابدأ التنزيل عبر Wi-Fi أو بيانات الهاتف.");
         }
     }
 
@@ -437,27 +396,36 @@ public class MainActivity extends Activity {
     }
 
     private void executeTaskWithLocalAi(AgentTaskStore.Task task) {
-        aiReplyText.setText("إسلام يحلل المهمة محلياً ويجهز خطة محدودة…");
-        localAi.planTask(task.title, new OnDeviceAiEngine.Callback() {
+        if (!store.contains(task.id)) return;
+        if (activeExecutionTaskId != null) {
+            showMessage("تنفيذ جارٍ", "انتظر انتهاء المهمة الحالية أولاً.");
+            return;
+        }
+        activeExecutionTaskId = task.id;
+        store.setExecutionResult(task.id, false, "");
+        aiReplyText.setText("جارٍ تحليل المهمة الحالية: " + task.title);
+        renderTasks();
+        localAi.planTask("عنوان المهمة: " + task.title + "\nالتفاصيل الكاملة: " + task.description, new OnDeviceAiEngine.Callback() {
             @Override public void onSuccess(String rawPlan) {
                 try {
                     String cleaned = rawPlan.trim();
-                    int start = cleaned.indexOf('{');
-                    int end = cleaned.lastIndexOf('}');
-                    if (start < 0 || end <= start) {
-                        throw new IllegalArgumentException("لم يرجع النموذج خطة JSON صالحة.");
-                    }
+                    int start = cleaned.indexOf('{'), end = cleaned.lastIndexOf('}');
+                    if (start < 0 || end <= start) throw new IllegalArgumentException("لم يرجع النموذج خطة JSON صالحة.");
                     JSONObject plan = new JSONObject(cleaned.substring(start, end + 1));
-                    String action = plan.optString("action", "");
-                    if ("unsupported".equals(action)) {
+                    if ("unsupported".equals(plan.optString("action", "")))
                         throw new IllegalArgumentException("هذه المهمة خارج الأدوات المحلية المسموحة حالياً.");
-                    }
                     AgentTaskToolRunner.validate(plan);
-                    runOnUiThread(() -> showTaskPlanConfirmation(task, plan));
+                    runOnUiThread(() -> {
+                        if (store.contains(task.id) && task.id.equals(activeExecutionTaskId))
+                            showTaskPlanConfirmation(task, plan);
+                        else if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
+                    });
                 } catch (Exception error) {
                     String message = error.getMessage() == null ? "خطة غير صالحة" : error.getMessage();
                     store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                     runOnUiThread(() -> {
+                        if (!task.id.equals(activeExecutionTaskId)) return;
+                        activeExecutionTaskId = null;
                         aiReplyText.setText("لم تُنفذ المهمة: " + message);
                         renderTasks();
                         showMessage("تعذر تنفيذ المهمة", message);
@@ -467,6 +435,8 @@ public class MainActivity extends Activity {
             @Override public void onFailure(String message) {
                 store.setExecutionResult(task.id, false, "لم تُنفذ المهمة: " + message);
                 runOnUiThread(() -> {
+                    if (!task.id.equals(activeExecutionTaskId)) return;
+                    activeExecutionTaskId = null;
                     aiReplyText.setText("تعذر تحليل المهمة: " + message);
                     renderTasks();
                 });
@@ -475,35 +445,70 @@ public class MainActivity extends Activity {
     }
 
     private void showTaskPlanConfirmation(AgentTaskStore.Task task, JSONObject plan) {
-        String filename = plan.optString("filename");
-        String content = plan.optString("content");
-        String preview = "العملية: إنشاء ملف نصي ثم قراءته للتحقق\n"
-                + "اسم الملف: " + filename + "\n"
-                + "المجلد: مساحة عمل التطبيق الخاصة\n\n"
-                + "المحتوى المقترح:\n" + content
-                + "\n\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.";
+        if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
+            if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
+            return;
+        }
+        StringBuilder preview = new StringBuilder("العملية: إنشاء الملفات وقراءتها للتحقق\n")
+                .append("المجلد: مساحة عمل التطبيق الخاصة\n\n");
+        JSONArray plannedFiles = plan.optJSONArray("files");
+        if (plannedFiles != null) {
+            for (int i = 0; i < plannedFiles.length(); i++) {
+                JSONObject file = plannedFiles.optJSONObject(i);
+                if (file != null) preview.append("الملف: ").append(file.optString("filename"))
+                        .append("\nالمحتوى المقترح:\n").append(file.optString("content")).append("\n\n");
+            }
+        } else {
+            preview.append("الملف: ").append(plan.optString("filename"))
+                    .append("\nالمحتوى المقترح:\n").append(plan.optString("content"));
+        }
+        preview.append("\nلن يسمح التطبيق بمسارات خارج مجلد العمل أو أوامر النظام.");
         new AlertDialog.Builder(this)
                 .setTitle("مراجعة تنفيذ المهمة")
-                .setMessage(preview)
-                .setPositiveButton("موافقة وكتابة الملف", (dialog, which) -> {
-                    aiReplyText.setText("جارٍ إنشاء الملف وقراءته للتحقق…");
+                .setMessage(preview.toString())
+                .setPositiveButton("موافقة وكتابة الملفات", (dialog, which) -> {
+                    if (!store.contains(task.id) || !task.id.equals(activeExecutionTaskId)) {
+                        if (task.id.equals(activeExecutionTaskId)) activeExecutionTaskId = null;
+                        showMessage("المهمة تغيّرت", "لم يتم التنفيذ لأن المهمة لم تعد موجودة أو لم تعد المهمة الحالية.");
+                        return;
+                    }
+                    aiReplyText.setText("جارٍ إنشاء الملفات وقراءتها للتحقق…");
                     networkExecutor.execute(() -> {
                         try {
-                            JSONObject result = new AgentTaskToolRunner(this).execute(plan);
-                            String verified = "تم التنفيذ والتحقق من القراءة.\nالملف: "
-                                    + result.getString("path") + "\n"
-                                    + "الحجم: " + result.getInt("bytes") + " بايت\n"
-                                    + "المحتوى المقروء:\n" + result.getString("content");
-                            store.setExecutionResult(task.id, true, verified);
+                            String verified;
+                            // Serialize the final existence check, file writes, and result save
+                            // against task deletion. If deletion wins the lock, no files are written.
+                            synchronized (store) {
+                                if (!store.contains(task.id))
+                                    throw new IllegalStateException("حُذفت المهمة قبل بدء الكتابة؛ لم تُنشأ ملفات.");
+                                JSONObject result = new AgentTaskToolRunner(this).execute(plan);
+                                JSONArray files = result.getJSONArray("files");
+                                StringBuilder report = new StringBuilder("تم التنفيذ والتحقق من جميع الملفات (")
+                                        .append(files.length()).append(").\n");
+                                for (int i = 0; i < files.length(); i++) {
+                                    JSONObject file = files.getJSONObject(i);
+                                    report.append("\nالملف: ").append(file.getString("filename"))
+                                            .append("\nالمسار: ").append(file.getString("path"))
+                                            .append("\nالحجم: ").append(file.getInt("bytes")).append(" بايت")
+                                            .append("\nالمحتوى المقروء:\n").append(file.getString("content")).append("\n");
+                                }
+                                verified = report.toString();
+                                if (!store.setExecutionResult(task.id, true, verified))
+                                    throw new IllegalStateException("تعذر حفظ نتيجة المهمة.");
+                            }
                             runOnUiThread(() -> {
+                                if (!task.id.equals(activeExecutionTaskId)) return;
+                                activeExecutionTaskId = null;
                                 aiReplyText.setText(verified);
                                 renderTasks();
                                 showMessage("اكتملت المهمة بعد التحقق", verified);
                             });
                         } catch (Exception error) {
-                            String message = error.getMessage() == null ? "فشل تنفيذ الملف" : error.getMessage();
+                            String message = error.getMessage() == null ? "فشل تنفيذ الملفات" : error.getMessage();
                             store.setExecutionResult(task.id, false, "فشل التنفيذ: " + message);
                             runOnUiThread(() -> {
+                                if (!task.id.equals(activeExecutionTaskId)) return;
+                                activeExecutionTaskId = null;
                                 aiReplyText.setText("فشل التنفيذ: " + message);
                                 renderTasks();
                                 showMessage("لم تكتمل المهمة", message);
@@ -511,7 +516,10 @@ public class MainActivity extends Activity {
                         }
                     });
                 })
-                .setNegativeButton("إلغاء", null)
+                .setNegativeButton("إلغاء", (dialog, which) -> {
+                    activeExecutionTaskId = null;
+                    aiReplyText.setText("أُلغي تنفيذ المهمة دون كتابة ملفات.");
+                })
                 .show();
     }
 
@@ -740,6 +748,8 @@ public class MainActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
 
             TextView taskTitle = text(task.title, 14, task.done ? MUTED : Color.WHITE, true);
+            taskTitle.setMaxLines(2);
+            taskTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
             if (task.done) taskTitle.setPaintFlags(taskTitle.getPaintFlags() | 16);
             row.addView(taskTitle, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -748,6 +758,7 @@ public class MainActivity extends Activity {
             execute.setOnClickListener(v -> executeTaskWithLocalAi(task));
 
             Button delete = smallButton("حذف", Color.rgb(132, 61, 65));
+            delete.setEnabled(!task.id.equals(activeExecutionTaskId));
             LinearLayout.LayoutParams del = new LinearLayout.LayoutParams(dp(62), dp(38));
             del.rightMargin = dp(6);
             row.addView(delete, del);
@@ -757,6 +768,13 @@ public class MainActivity extends Activity {
             });
 
             card.addView(row, matchWrap());
+            if (!task.description.equals(task.title)) {
+                TextView description = text(task.description, 12, MUTED, false);
+                description.setMaxLines(3);
+                description.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams descriptionLp = matchWrap(); descriptionLp.topMargin = dp(5);
+                card.addView(description, descriptionLp);
+            }
             if (task.result != null && !task.result.isEmpty()) {
                 TextView result = text(task.result, 12, task.done ? Color.rgb(130, 220, 185) : MUTED, false);
                 LinearLayout.LayoutParams resultLp = matchWrap(); resultLp.topMargin = dp(8);
@@ -768,26 +786,33 @@ public class MainActivity extends Activity {
     }
 
     private void showAddTaskDialog() {
-        EditText input = new EditText(this);
-        input.setSingleLine(false);
-        input.setMinLines(2);
-        input.setTextSize(16);
-        input.setHint("اكتب وصف المهمة بالتفصيل");
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        new AlertDialog.Builder(this)
-                .setTitle("مهمة جديدة")
-                .setView(input)
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        fields.setPadding(dp(8), dp(4), dp(8), dp(4));
+        EditText titleInput = new EditText(this);
+        titleInput.setSingleLine(true);
+        titleInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(AgentTaskStore.MAX_TITLE_CHARS)});
+        titleInput.setTextSize(16);
+        titleInput.setHint("عنوان مختصر (80 حرفاً كحد أقصى)");
+        titleInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        titleInput.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        EditText descriptionInput = new EditText(this);
+        descriptionInput.setSingleLine(false);
+        descriptionInput.setMinLines(4);
+        descriptionInput.setTextSize(15);
+        descriptionInput.setHint("التعليمات والتفاصيل الكاملة — لا تختصرها");
+        descriptionInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        descriptionInput.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        fields.addView(titleInput, matchWrap());
+        fields.addView(descriptionInput, matchWrap());
+        new AlertDialog.Builder(this).setTitle("مهمة جديدة").setView(fields)
                 .setNegativeButton("إلغاء", null)
                 .setPositiveButton("حفظ", (dialog, which) -> {
-                    String title = input.getText().toString().trim();
-                    if (!title.isEmpty()) {
-                        try {
-                            store.add(title);
-                            renderTasks();
-                        } catch (IllegalArgumentException | IllegalStateException error) {
-                            new AlertDialog.Builder(this).setMessage(error.getMessage()).setPositiveButton("حسناً", null).show();
-                        }
+                    try {
+                        store.add(titleInput.getText().toString(), descriptionInput.getText().toString());
+                        renderTasks();
+                    } catch (IllegalArgumentException | IllegalStateException error) {
+                        new AlertDialog.Builder(this).setMessage(error.getMessage()).setPositiveButton("حسناً", null).show();
                     }
                 }).show();
     }
