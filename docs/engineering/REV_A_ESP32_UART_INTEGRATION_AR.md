@@ -109,3 +109,11 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - PR #6 مغلق وغير مدمج، وPR #7 هو Draft المفتوح الحالي.
 - القبول التالي: تثبيت pinout ESP32-S3 من مخطط اللوحة الفعلية، ثم UART loopback منخفض الجهد، وبعده Wi-Fi/WebServer. لا توصل TX أو تفعّل ADC قبل إكمال الحماية والقياسات.
 
+
+
+## تدقيق DEVICE_INFO بعد CI #2091 — 2026-11-24
+
+- CI #2091 / run ID `45407362815` على merge ref الخاص بـPR #7: protocol-tests وRP2040 وESP32-S3 نجحت؛ Android فشل أثناء حل تبعيات Gradle قبل compile بسبب HTTP 429 من Maven Central، وليس بسبب خطأ Java/Manifest.
+- أضيفت إعادة محاولة محدودة في workflow لخطأ 429 فقط، مع backoff و`--max-workers=1`; لا تعاد المحاولة لأخطاء source أو compile.
+- اكتُشف أيضاً أن C/Python يقبلان VREF غير صفري خارج مجال ADC. أضيف تحقق model-specific واختبارات C/Python؛ الصفر يظل «غير معروف» للمحول المركب، ولا يقبل مع ADC_NONE إلا الصفر.
+- لا يزال UART bridge معطلاً افتراضياً، ولا يوجد loopback فعلي أو ADC أو Wi-Fi/WebServer.

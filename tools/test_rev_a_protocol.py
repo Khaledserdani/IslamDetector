@@ -10,8 +10,13 @@ from rev_a_protocol import (
     SAMPLE_FORMAT_UNSIGNED,
     ADC_MODEL_NONE,
     ADC_MODEL_ADS8861,
+    ADC_MODEL_ADS8860,
+    ADC_MODEL_ADS7054,
+    ADC_MODEL_AD7980,
     ADC_INPUT_UNKNOWN,
     ADC_INPUT_DIFFERENTIAL,
+    ADC_INPUT_SINGLE_ENDED,
+    ADC_INPUT_PSEUDO_DIFFERENTIAL,
     TYPE_DEVICE_INFO,
     TYPE_ACK,
     TYPE_HELLO,
@@ -182,6 +187,49 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(decoded["sample_format_id"], SAMPLE_FORMAT_TWOS_COMPLEMENT)
         self.assertEqual(decoded["adc_resolution_bits"], 14)
         self.assertEqual(decoded["adc_vref_uv"], 3300000)
+
+    def test_device_info_vref_ranges_are_model_specific(self):
+        cases = (
+            (ADC_MODEL_ADS8861, SAMPLE_FORMAT_TWOS_COMPLEMENT, 16,
+             ADC_INPUT_DIFFERENTIAL, 2_500_000, 5_000_000),
+            (ADC_MODEL_ADS8860, SAMPLE_FORMAT_UNSIGNED, 16,
+             ADC_INPUT_SINGLE_ENDED, 2_500_000, 5_000_000),
+            (ADC_MODEL_ADS7054, SAMPLE_FORMAT_TWOS_COMPLEMENT, 14,
+             ADC_INPUT_DIFFERENTIAL, 1_650_000, 3_600_000),
+            (ADC_MODEL_AD7980, SAMPLE_FORMAT_UNSIGNED, 16,
+             ADC_INPUT_PSEUDO_DIFFERENTIAL, 2_400_000, 5_100_000),
+        )
+        for model, sample_format, resolution, input_mode, minimum, maximum in cases:
+            common = dict(
+                hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+                adc_model_id=model, sample_format_id=sample_format,
+                adc_resolution_bits=resolution, adc_input_mode_id=input_mode,
+                active_profile_id=2, profile_crc32=0x1234ABCD,
+            )
+            for vref in (minimum, maximum):
+                with self.subTest(model=model, vref=vref):
+                    frame = encode_device_info(**common, adc_vref_uv=vref)
+                    self.assertEqual(decode_device_info(frame)["adc_vref_uv"], vref)
+            for vref in (minimum - 1, maximum + 1):
+                with self.subTest(model=model, invalid_vref=vref):
+                    with self.assertRaises(ProtocolError):
+                        encode_device_info(**common, adc_vref_uv=vref)
+            with self.subTest(model=model, unknown_vref=0):
+                frame = encode_device_info(**common, adc_vref_uv=0)
+                self.assertEqual(decode_device_info(frame)["adc_vref_uv"], 0)
+
+        # Decoder must enforce the same model-specific range after a valid CRC.
+        frame = bytearray(encode_device_info(
+            hw_rev=1, fw_major=0, fw_minor=1, fw_patch=0,
+            adc_model_id=ADC_MODEL_ADS8861,
+            sample_format_id=SAMPLE_FORMAT_TWOS_COMPLEMENT,
+            adc_resolution_bits=16, adc_input_mode_id=ADC_INPUT_DIFFERENTIAL,
+            adc_vref_uv=4_096_000, active_profile_id=2, profile_crc32=0x1234ABCD,
+        ))
+        frame[14:18] = (5_000_001).to_bytes(4, "little")
+        frame[-2:] = crc16_ccitt_false(bytes(frame[2:-2])).to_bytes(2, "little")
+        with self.assertRaises(ProtocolError):
+            decode_device_info(bytes(frame))
 
     def test_device_info_rejects_inconsistent_adc_metadata(self):
         with self.assertRaises(ProtocolError):

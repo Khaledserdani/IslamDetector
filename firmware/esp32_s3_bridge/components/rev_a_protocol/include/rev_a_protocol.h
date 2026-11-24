@@ -36,6 +36,14 @@ extern "C" {
 #define REV_A_ADC_ADS7054             0x03u
 #define REV_A_ADC_AD7980              0x04u
 
+/* ADC reference/effective-full-scale limits from selected device datasheets. */
+#define REV_A_ADS886X_REF_MIN_UV      2500000u
+#define REV_A_ADS886X_REF_MAX_UV      5000000u
+#define REV_A_ADS7054_AVDD_MIN_UV     1650000u
+#define REV_A_ADS7054_AVDD_MAX_UV     3600000u
+#define REV_A_AD7980_REF_MIN_UV       2400000u
+#define REV_A_AD7980_REF_MAX_UV       5100000u
+
 #define REV_A_SAMPLE_UNKNOWN          0x00u
 #define REV_A_SAMPLE_TWOS_COMPLEMENT  0x01u
 #define REV_A_SAMPLE_UNSIGNED         0x02u
@@ -166,7 +174,7 @@ bool rev_a_decode_device_info(
     size_t frame_length,
     rev_a_device_info_t *device_info);
 
-/* Validate the supported ADC model / format / resolution / input-mode tuple. */
+/* Validate ADC model/format/resolution/input mode and its nonzero reference range. */
 bool rev_a_device_info_valid(const rev_a_device_info_t *device_info);
 
 /* raw_word is right-justified; ADS7054 uses only bits 13..0. */

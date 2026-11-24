@@ -98,13 +98,32 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 | SAMPLE_FORMAT_ID | 1 | 0x00 غير متاح عند ADC_NONE؛ 0x01 two's-complement؛ 0x02 unsigned straight-binary |
 | ADC_RESOLUTION_BITS | 1 | 16 أو14؛ صفر فقط عند ADC_NONE |
 | ADC_INPUT_MODE_ID | 1 | 0x00 غير متاح عند ADC_NONE؛ 0x01 differential؛ 0x02 single-ended؛ 0x03 pseudo-differential |
-| ADC_VREF_UV | 4 | قيمة المرجع الاسمية بالميكروفولت؛ ADS8861 مع ADR4540B=4096000؛ القيمة0 تعني أن قيمة المرجع لم تُقَس/لم تُحدَّد |
+| ADC_VREF_UV | 4 | المرجع/القيمة المكافئة للمدى الكامل بالميكروفولت؛ 0=غير معروف/غير مقاس؛ إذا كانت غير صفرية يجب أن تقع ضمن مجال طراز ADC. في ADS7054 تحمل AVDD لأنها تحدد المدى الكامل ±AVDD |
 | ACTIVE_PROFILE_ID | 1 | جدول التأخيرات النشط |
 | PROFILE_CRC32 | 4 | CRC32/ISO-HDLC لجدول الملف |
 
 مرجع Python ومحلل C يدعمان MEASUREMENT وDEVICE_INFO وأوامر التحكم وACK. أضيف parser تدريجي مشترك يقبل fragmented/concatenated/noisy command وACK frames، مع CRC وSYNC recovery. يفرض Firmware قائمة profile IDs المسموحة؛ encoder لا يثبت أن الأمر آمن.
 
 يجب على ESP32-S3 طلب DEVICE_INFO عند الاتصال أو إعادة الاتصال، وحفظ هذه البيانات مع جلسة القياس. عند ADS8861، يحول التطبيق raw16 إلى signed int16 وفق SAMPLE_FORMAT_ID=0x01، مع الاحتفاظ بالـraw الأصلي. إذا تغير ADC_MODEL_ID أو SAMPLE_FORMAT_ID، لا تخلط البيانات مع جلسة قديمة. تركيبات metadata المقبولة: ADS8861=(two's-complement,16,differential)، ADS8860=(unsigned,16,single-ended)، ADS7054=(two's-complement,14,differential)، AD7980=(unsigned,16,pseudo-differential). في ADS7054 يحفظ Firmware كود14-bit right-justified داخل حاوية16-bit، وتكون البتات العليا صفراً؛ يطبق التطبيق sign-extension من bit13 وفق ADC_RESOLUTION_BITS=14.
+
+### 5.1.1 تحقق ADC_VREF_UV حسب طراز المحول
+
+القيمة صفر sentinel صريح لـ«غير معروف/غير مقاس» وتظل مقبولة مع ADC مركب؛ لا يجوز تحويل counts إلى وحدات فولت عندها. أما القيمة غير الصفرية فتُرفض إذا خرجت عن مجال التشغيل المرجعي للمحول:
+
+| ADC_MODEL_ID | المجال المقبول غير الصفري | معنى الحقل |
+|---|---:|---|
+| ADS8861 | 2.5–5.0 V | REF الخارجي |
+| ADS8860 | 2.5–5.0 V | REF الخارجي |
+| ADS7054 | 1.65–3.6 V | AVDD، وهو مرجع المدى الكامل |
+| AD7980 | 2.4–5.1 V | REF الخارجي |
+| ADC_NONE | 0 فقط | لا يوجد ADC معروف/مركب |
+
+مصادر الشركات المصنعة:
+- [TI ADS8861 datasheet](https://www.ti.com/lit/ds/symlink/ads8861.pdf) و[TI ADS8860 datasheet](https://www.ti.com/lit/ds/symlink/ads8860.pdf): REF من 2.5 إلى 5.0V.
+- [TI ADS7054 datasheet](https://www.ti.com/lit/ds/symlink/ads7054.pdf): AVDD من 1.65 إلى 3.6V، والمدى التفاضلي الكامل ±AVDD، والترميز two's-complement.
+- [Analog Devices AD7980 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad7980.pdf): REF من 2.4 إلى 5.1V.
+
+تطبق حدود المرجع نفسها في C وPython؛ لذلك لا يكفي CRC صحيح إذا كانت قيمة المرجع خارج المجال. لا تمثل هذه الحدود قياساً للوحة أو اعتماداً لمرجع 4.096V بعينه.
 
 ### 5.2 ترميز أوامر ESP32-S3
 
@@ -324,3 +343,10 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - لا تُفسر أو تحفظ عينات ADC فعلية قبل تركيب ADC وإعلان `ADC_MODEL_ID` و`SAMPLE_FORMAT_ID` وresolution وinput mode وVREF المطابقة.
 - الخطوة التالية: بعد تحديد أرجل اللوحتين، نفّذ UART loopback منخفض الجهد وتحقق من HELLO/ACK/GET_INFO/DEVICE_INFO وعدادات الأخطاء؛ ثم أضف MEASUREMENT producer خلف شرط تركيب ADC واختبارات C/Python مشتركة. لا تُنشئ بيانات قياس وهمية.
 
+
+
+## 9.9 تحقق نطاق المرجع في DEVICE_INFO — 2026-11-24
+
+- اكتُشف أن النسختين C وPython كانتا تتحققان من تطابق ADC_MODEL_ID/SAMPLE_FORMAT_ID/resolution/input mode، لكنهما تقبلان أي ADC_VREF_UV غير صفري، بما في ذلك قيم خارج الحدود الكهربائية للطراز.
+- أضيف تحقق متطابق في C وPython: ADS8861/ADS8860=2.5–5.0V، ADS7054=AVDD 1.65–3.6V، AD7980=REF 2.4–5.1V. الصفر يظل sentinel للمرجع غير المعروف مع ADC مركب، بينما ADC_NONE يشترط الصفر.
+- أضيفت اختبارات الحدود الدنيا/العليا، والقيم خارج المجال، وصفر المرجع، وCRC صحيح مع VREF غير صالح. هذا يمنع تفسيراً فيزيائياً خاطئاً للعينات ولا يثبت قياس VREF فعلياً.

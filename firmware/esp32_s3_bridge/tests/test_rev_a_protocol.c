@@ -411,6 +411,67 @@ int main(void) {
     CHECK(session_measurement.interpreted_samples[0] == -8192);
     CHECK(session_measurement.interpreted_mask == 0x01u);
 
+    /* DEVICE_INFO accepts an unknown VREF sentinel, but rejects any
+       nonzero value outside the selected ADC's datasheet operating range. */
+    rev_a_device_info_t vref_info = info;
+    vref_info.adc_vref_uv = 0u;
+    CHECK(rev_a_device_info_valid(&vref_info));
+    vref_info.adc_vref_uv = 2499999u;
+    CHECK(!rev_a_device_info_valid(&vref_info));
+    vref_info.adc_vref_uv = 2500000u;
+    CHECK(rev_a_device_info_valid(&vref_info));
+    vref_info.adc_vref_uv = 5000000u;
+    CHECK(rev_a_device_info_valid(&vref_info));
+    vref_info.adc_vref_uv = 5000001u;
+    CHECK(!rev_a_device_info_valid(&vref_info));
+    CHECK(!rev_a_encode_device_info(
+        &vref_info, encoded_info, sizeof(encoded_info), &encoded_info_length));
+
+    uint8_t invalid_vref_frame[25];
+    const size_t invalid_vref_length = make_device_info(
+        invalid_vref_frame, REV_A_SAMPLE_TWOS_COMPLEMENT);
+    write_le32(&invalid_vref_frame[14], 5000001u);
+    finish_frame(invalid_vref_frame, 21u);
+    CHECK(!rev_a_decode_device_info(
+        invalid_vref_frame, invalid_vref_length, &info));
+
+    rev_a_device_info_t info8860;
+    memset(&info8860, 0, sizeof(info8860));
+    info8860.adc_model_id = REV_A_ADC_ADS8860;
+    info8860.sample_format_id = REV_A_SAMPLE_UNSIGNED;
+    info8860.adc_resolution_bits = 16u;
+    info8860.adc_input_mode_id = REV_A_INPUT_SINGLE_ENDED;
+    info8860.adc_vref_uv = 2500000u;
+    CHECK(rev_a_device_info_valid(&info8860));
+    info8860.adc_vref_uv = 5000000u;
+    CHECK(rev_a_device_info_valid(&info8860));
+    info8860.adc_vref_uv = 2499999u;
+    CHECK(!rev_a_device_info_valid(&info8860));
+
+    info14.adc_vref_uv = 1650000u;
+    CHECK(rev_a_device_info_valid(&info14));
+    info14.adc_vref_uv = 3600000u;
+    CHECK(rev_a_device_info_valid(&info14));
+    info14.adc_vref_uv = 3600001u;
+    CHECK(!rev_a_device_info_valid(&info14));
+    info14.adc_vref_uv = 0u;
+    CHECK(rev_a_device_info_valid(&info14));
+
+    rev_a_device_info_t info_ad7980;
+    memset(&info_ad7980, 0, sizeof(info_ad7980));
+    info_ad7980.adc_model_id = REV_A_ADC_AD7980;
+    info_ad7980.sample_format_id = REV_A_SAMPLE_UNSIGNED;
+    info_ad7980.adc_resolution_bits = 16u;
+    info_ad7980.adc_input_mode_id = REV_A_INPUT_PSEUDO_DIFFERENTIAL;
+    info_ad7980.adc_vref_uv = 2400000u;
+    CHECK(rev_a_device_info_valid(&info_ad7980));
+    info_ad7980.adc_vref_uv = 5100000u;
+    CHECK(rev_a_device_info_valid(&info_ad7980));
+    info_ad7980.adc_vref_uv = 2399999u;
+    CHECK(!rev_a_device_info_valid(&info_ad7980));
+    info_ad7980.adc_vref_uv = 5100001u;
+    CHECK(!rev_a_device_info_valid(&info_ad7980));
+
     session_frame.type = 0x7Fu;
     CHECK(rev_a_session_accept_frame(
         &session, &session_frame, &session_measurement)

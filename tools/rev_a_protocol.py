@@ -198,13 +198,33 @@ _ADC_METADATA = {
     ADC_MODEL_AD7980: (SAMPLE_FORMAT_UNSIGNED, 16, ADC_INPUT_PSEUDO_DIFFERENTIAL),
 }
 
+# Nonzero ADC_VREF_UV limits from official vendor datasheets. ADS7054 reports AVDD.
+_ADC_VREF_RANGES_UV = {
+    ADC_MODEL_ADS8861: (2_500_000, 5_000_000),
+    ADC_MODEL_ADS8860: (2_500_000, 5_000_000),
+    ADC_MODEL_ADS7054: (1_650_000, 3_600_000),
+    ADC_MODEL_AD7980: (2_400_000, 5_100_000),
+}
+
 
 def _validate_adc_metadata(model_id: int, sample_format_id: int,
-                           resolution_bits: int, input_mode_id: int) -> None:
+                           resolution_bits: int, input_mode_id: int,
+                           adc_vref_uv: int) -> None:
     expected = _ADC_METADATA.get(model_id)
     actual = (sample_format_id, resolution_bits, input_mode_id)
     if expected is None or actual != expected:
         raise ProtocolError("ADC model, resolution, input mode, and sample format are inconsistent")
+    if not isinstance(adc_vref_uv, int) or not 0 <= adc_vref_uv <= 0xFFFFFFFF:
+        raise ProtocolError("adc_vref_uv must be an unsigned 32-bit value")
+    if model_id == ADC_MODEL_NONE:
+        if adc_vref_uv != 0:
+            raise ProtocolError("ADC_NONE requires adc_vref_uv=0")
+        return
+    if adc_vref_uv == 0:  # Explicit unknown/unmeasured reference sentinel.
+        return
+    minimum_uv, maximum_uv = _ADC_VREF_RANGES_UV[model_id]
+    if not minimum_uv <= adc_vref_uv <= maximum_uv:
+        raise ProtocolError("adc_vref_uv is outside the selected ADC's supported reference range")
 
 
 def encode_device_info(
@@ -223,10 +243,9 @@ def encode_device_info(
 ) -> bytes:
     """Encode DEVICE_INFO (TYPE 0x82) using the fixed v1 metadata payload."""
     _validate_adc_metadata(
-        adc_model_id, sample_format_id, adc_resolution_bits, adc_input_mode_id
+        adc_model_id, sample_format_id, adc_resolution_bits, adc_input_mode_id,
+        adc_vref_uv
     )
-    if adc_model_id == ADC_MODEL_NONE and adc_vref_uv != 0:
-        raise ProtocolError("ADC_NONE requires adc_vref_uv=0")
 
     payload = _DEVICE_INFO.pack(
         _bounded(hw_rev, 0, 255, "hw_rev"),
@@ -272,10 +291,9 @@ def decode_device_info(frame: bytes) -> dict[str, int]:
     result["type"] = msg_type
     _validate_adc_metadata(
         result["adc_model_id"], result["sample_format_id"],
-        result["adc_resolution_bits"], result["adc_input_mode_id"]
+        result["adc_resolution_bits"], result["adc_input_mode_id"],
+        result["adc_vref_uv"]
     )
-    if result["adc_model_id"] == ADC_MODEL_NONE and result["adc_vref_uv"] != 0:
-        raise ProtocolError("ADC_NONE requires adc_vref_uv=0")
     return result
 
 

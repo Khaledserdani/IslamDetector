@@ -65,6 +65,30 @@ static bool valid_adc_metadata(
     }
 }
 
+/*
+ * ADC_VREF_UV == 0 is the protocol's explicit unknown/unmeasured sentinel.
+ * For ADS7054 this field carries AVDD, which defines its differential full-scale.
+ */
+static bool valid_adc_vref(uint8_t model, uint32_t vref_uv) {
+    if (model == REV_A_ADC_NONE) return vref_uv == 0u;
+    if (vref_uv == 0u) return true;
+
+    switch (model) {
+        case REV_A_ADC_ADS8861:
+        case REV_A_ADC_ADS8860:
+            return vref_uv >= REV_A_ADS886X_REF_MIN_UV
+                && vref_uv <= REV_A_ADS886X_REF_MAX_UV;
+        case REV_A_ADC_ADS7054:
+            return vref_uv >= REV_A_ADS7054_AVDD_MIN_UV
+                && vref_uv <= REV_A_ADS7054_AVDD_MAX_UV;
+        case REV_A_ADC_AD7980:
+            return vref_uv >= REV_A_AD7980_REF_MIN_UV
+                && vref_uv <= REV_A_AD7980_REF_MAX_UV;
+        default:
+            return false;
+    }
+}
+
 bool rev_a_encode_command(
     uint8_t command_type,
     const uint8_t *payload,
@@ -408,8 +432,7 @@ bool rev_a_device_info_valid(const rev_a_device_info_t *device_info) {
             device_info->sample_format_id,
             device_info->adc_resolution_bits,
             device_info->adc_input_mode_id)) return false;
-    return device_info->adc_model_id != REV_A_ADC_NONE
-        || device_info->adc_vref_uv == 0u;
+    return valid_adc_vref(device_info->adc_model_id, device_info->adc_vref_uv);
 }
 
 bool rev_a_decode_device_info(
