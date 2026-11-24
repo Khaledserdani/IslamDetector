@@ -128,3 +128,13 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - RP2040: UF2 valid (150 blocks، 38400 payload bytes، family 0xE48BFF56)، Artifact ID `14927930174`; هو logic timing test فقط.
 - لا UART loopback، ولا ADC capture، ولا Wi-Fi/WebServer أو اتصال Android فعلي. لا تفعّل TX.
 - المرحلة التالية هي تثبيت pinout اللوحة الفعلية ثم loopback منخفض الجهد، وليس افتراض أرجل ESP32-S3 من اسم الشريحة.
+
+
+## CI #2093 — حالة تكامل ESP32-S3 — 2026-11-24
+
+- نجح `esp32-s3-bridge` في بناء ESP-IDF release-v5.4 وربط binary بحجم `0x276b0` بايت؛ المتبقي من app partition هو 85%.
+- نجح C parser/session في اختبارات البروتوكول المشتركة: 92 اختبار Python مع strict C compile/test. يدعم الكود HELLO/GET_INFO/ACK/DEVICE_INFO، ويغلق بوابة MEASUREMENT عند غياب metadata أو ADC_NONE أو اختلاف profile.
+- هذا لا يثبت UART على لوحة فعلية: `CONFIG_REV_A_UART_ENABLE` افتراضياً n، وTX/RX GPIO=-1، ولا يوجد loopback أو flash.
+- راجعت `main/app_main.c`: لا يبدأ UART bridge إلا إذا فُعّل Kconfig مع GPIO صالحة؛ لا يوجد حالياً Wi-Fi SoftAP أو HTTP server في Firmware. في المقابل، Android يطلب `GET /status` و`POST /control`. لذلك واجهة الهاتف لم تُربط بعد باللوحة.
+- المرحلة التالية بعد تحديد نسخة لوحة ESP32-S3 ومخططها هي اختبار UART 3.3V منخفض الجهد، ثم تنفيذ SoftAP/HTTP API يعيد حالة صادقة بلا قياسات وهمية، ويرفض START ما دام interlock غير موجود.
+- [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
