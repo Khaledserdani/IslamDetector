@@ -69,9 +69,10 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y openjdk-17-jdk-headless
           fi
-          JAVA_BIN="$(readlink -f "$(command -v javac)")"
-          JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+          JAVA_HOME="$(find /usr/lib/jvm -mindepth 1 -maxdepth 1 -type d -name '*17*' | sort | head -n1)"
+          test -n "$JAVA_HOME"
           test -x "$JAVA_HOME/bin/java"
+          test -x "$JAVA_HOME/bin/javac"
           echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
           echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
           "$JAVA_HOME/bin/java" -version 2>&1 | tee java-version.txt
