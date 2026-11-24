@@ -97,3 +97,15 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - يزامن جسر ESP32 الآن حالة status العامة مع الإبطال، ويمسح نسخة ADC القديمة من الحالة المنشورة، ويصفّر مهلة الطلب لإعادة GET_INFO فوراً.
 - يمنع ذلك ظهور `device_info_valid=true` أو هوية ADC قديمة في status بعد أن تكون طبقة session قد أغلقت بوابة القياس.
 - هذا إصلاح برمجي محافظ؛ يلزم CI جديد ثم اختبار fault-injection/loopback فعلي لاحقاً. لا يثبت اتصال UART على اللوحات.
+
+## CI #2090 — تحديث تكامل UART — 2026-11-24
+
+- على HEAD `d86d35dcc786b631ad5ae6a94446474efc25dfde` نجح CI #2090 / run ID `45405060500` في الوظائف الأربع.
+- `esp32-s3-bridge`: نجح بناء ESP-IDF release-v5.4. هذا compile/link فقط؛ لا flash أو تشغيل فعلي.
+- `rp2040-firmware`: نجح البناء والتحقق من UF2 ورفع Artifact ID `14925870857`؛ الصورة اختبار توقيت منطقي، ولا تفعّل ADS8861.
+- `protocol-tests`: نجح اختبار Python وبناء/اختبار C parser/session.
+- `android-app`: نجح APK Debug وفحص ZIP ورفع Artifact ID `14925705548`.
+- الحالة المادية لم تتغير: UART bridge disabled، GPIO ESP32 TX/RX=-1، ولا loopback أو Wi-Fi/WebServer أو MEASUREMENT producer.
+- PR #6 مغلق وغير مدمج، وPR #7 هو Draft المفتوح الحالي.
+- القبول التالي: تثبيت pinout ESP32-S3 من مخطط اللوحة الفعلية، ثم UART loopback منخفض الجهد، وبعده Wi-Fi/WebServer. لا توصل TX أو تفعّل ADC قبل إكمال الحماية والقياسات.
+

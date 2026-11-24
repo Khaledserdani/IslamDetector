@@ -429,3 +429,14 @@ HEAD الحالي على فرع العمل هو d17a0f3d5077a29299b45e94c1b67f87
 المراجعة النصية أكدت أن RP2040 يبقى logic-only وأن ENABLE_ADS8861_CAPTURE=0، وDEVICE_INFO=ADC_NONE، وSTART مرفوض بـTX_NOT_ARMED. جسر ESP32-S3 معطل وGPIO غير معينة، ولا توجد Wi-Fi/HTTP endpoints بعد. تطبيق Android لديه source وManifest وSQLite/CSV، لكنه ينتظر endpoints غير المنفذة. لا توجد نتائج loopback أو قياس ADC أو اختبار لوحة.
 
 **بوابة الاستكمال:** إصلاح/استعادة بدء CI أولاً، ثم إثبات UF2 وAPK، ثم MEASUREMENT producer وUART loopback، ثم Wi-Fi/WebServer، وبعدها القياسات الفعلية وإغلاق الحماية قبل KiCad/BOM.
+
+## 29. تحقق CI #2090 وحدود الجاهزية — 2026-11-24
+
+- بُني HEAD `d86d35dcc786b631ad5ae6a94446474efc25dfde` على فرع `hardware/rev-a-measurement-design` في CI #2090 / run ID `45405060500`.
+- الوظائف الأربع نجحت: اختبارات البروتوكول، Firmware RP2040، Android APK، وESP32-S3 ESP-IDF release-v5.4.
+- رُفع UF2 Artifact ID `14925870857` وAPK Debug Artifact ID `14925705548` من التشغيل نفسه.
+- هذا يثبت compile/build واختبارات CI والتحقق البنيوي من UF2 فقط. لا يثبت flash أو pin mux أو UART loopback أو التقاط ADS8861 أو Wi-Fi أو قياسات العتاد.
+- الحالة الافتراضية الآمنة محفوظة: GP4/GP5/GP6 اختبار منطقي، `ENABLE_ADS8861_CAPTURE=0`، RP2040 يعلن `ADC_NONE`، وSTART مرفوض بـ`TX_NOT_ARMED`. جسر ESP32 UART معطل وGPIO=-1.
+- PR #6 مغلق وغير مدمج؛ PR #7 هو Draft المفتوح الحالي. الفرع متباعد عن `main` (593 أماماً/6 خلفاً)، فلا مزامنة أو دمج تلقائي.
+- البوابة التالية: تحديد GPIO لوحة ESP32-S3 الفعلية، ثم loopback 3.3V منخفض الجهد؛ لا تفعيل ADC أو TX قبل تركيب وحماية وقياسات حقيقية.
+

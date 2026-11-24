@@ -249,3 +249,13 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - لا تعتمد أسماء GPIO وحدها كدليل على إتاحة الرجل أو عدم تعارضها مع flash/PSRAM/USB/strap أو peripheral أخرى.
 - بوابة الاعتماد: تحديد رقم/نسخة اللوحة، مراجعة schematic الرسمي، continuity وهي غير موصولة بالطاقة، ثم UART loopback 3.3V وقياس CONVST/SCLK/DOUT بمحلل منطقي. لا توصيل MOSFET أو ملف بحث خلال هذه الاختبارات.
 - CI #1803 على HEAD d17a0f3d انتهى بـstartup_failure قبل إنشاء Jobs؛ لا يوجد UF2/APK artifact جديد.
+
+## 14. تحقق البناء الحالي لا يعتمد pin map — 2026-11-24
+
+- CI #2090 / run ID `45405060500` نجح وبُني UF2 Artifact ID `14925870857` من HEAD `d86d35dcc786b631ad5ae6a94446474efc25dfde`.
+- نجاح البناء لا يثبت أي رجل كهربائياً: GP0/GP1 على RP2040 تظل UART0 مرشحة، وGP4/GP5/GP6 منطق اختبار فقط، وGP8/GP9/GP10 لمسار ADS8861 المقترح والمعطل.
+- ESP32-S3 UART bridge معطل افتراضياً، وTX/RX GPIO=-1؛ لا تختَر الأرجل من اسم الشريحة أو من رقم شائع.
+- لم يحدث continuity أو loopback أو قياس logic-analyzer على لوحة فعلية. لا ADC capture ولا MOSFET/ملف بحث.
+- PR #6 مغلق وغير مدمج؛ PR #7 مفتوح Draft. لا merge أو rebase تلقائي.
+- بوابة القبول التالية: تحديد رقم ومراجعة لوحة ESP32-S3، مطابقة schematic الرسمي، فحص continuity واللوحات مفصولة عن الطاقة، ثم UART loopback 3.3V مع GND مشترك ودون ربط VCC.
+

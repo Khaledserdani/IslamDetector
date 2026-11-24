@@ -1915,3 +1915,34 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 ### الحالة والمرحلة التالية
 - PR #7 مفتوح Draft. PR #6 في GitHub مغلق وغير مدمج؛ لم نعد فتحه أو ندمجه.
 - الخطوة التالية: مراجعة نهائية لسائق ADS8861 PIO وواجهة ESP32 DEVICE_INFO/UART على مستوى الكود، ثم تثبيت pin-level mapping بعد مراجعة أرجل اللوحتين. تبقى جميع قياسات العتاد الفعلية مطلوبة قبل تفعيل الالتقاط أو TX.
+
+## 59. متابعة Rev A — تحقق CI #2090 — 2026-11-24
+
+### Git وطلبات المراجعة
+- HEAD الذي بُني: `d86d35dcc786b631ad5ae6a94446474efc25dfde` على `hardware/rev-a-measurement-design`.
+- PR #6: الحالة الفعلية في GitHub `closed` و`merged=false` و`draft=true`؛ أُغلق في 2026-11-11. لم يُفتح مجدداً ولم يُدمج.
+- PR #7: مفتوح Draft وغير مدمج، وهو طلب المراجعة النشط للفرع الحالي.
+- مقارنة الفرع مع `main`: 593 commit أماماً و6 خلفاً، والحالة `diverged`. لا rebase أو merge تلقائي؛ يلزم قرار منفصل بعد مراجعة هذا التباعد.
+
+### CI والـArtifacts الفعلية
+- تشغيل PR #2090 / ID `45405060500`: `completed / success` على HEAD أعلاه.
+- الوظائف الأربع نجحت: `protocol-tests` و`rp2040-firmware` و`android-app` و`esp32-s3-bridge`.
+- وظيفة RP2040 أكملت CMake build وUF2 structure/family verification ورفع Artifact.
+- وظيفة Android أكملت Gradle 8.9 و`:app:assembleDebug` وفحص ZIP ورفع APK Debug Artifact.
+- وظيفة ESP32-S3 أكملت ESP-IDF release-v5.4 build.
+- Artifacts: UF2 ID `14925870857` (حجم أرشيف 30077 بايت)، وAPK ID `14925705548` (حجم أرشيف 21093 بايت). كلاهما مرتبط بالتشغيل #2090 والـHEAD الحالي، وغير منتهي الصلاحية وقت الفحص.
+- روابط: [CI #2090](https://github.com/Khaledserdani/IslamDetector/actions/runs/45405060500)، [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7).
+
+### حدود ما يثبته النجاح
+- UF2 هو firmware اختبار توقيت منطقي RP2040 فقط؛ لا يقود MOSFET ولا يقرأ ADC. `ENABLE_ADS8861_CAPTURE=0` باقٍ.
+- RP2040 يعلن `ADC_NONE` و`SAMPLE_UNKNOWN` وVREF=0؛ لا يوجد MEASUREMENT producer حقيقي.
+- ESP32 parser/session وUART bridge مبنية، لكن bridge معطل افتراضياً وGPIO TX/RX غير معينة؛ لا UART loopback أو اتصال بين اللوحتين.
+- لا يوجد Wi-Fi AP/WebServer أو JSON endpoints بعد؛ Android APK لا يثبت اتصالاً فعلياً بالجهاز.
+- لا قياس L/DCR/قطبية/clip-release أو اختبار ميداني، ولا KiCad أو BOM أو PCB/PCBA نهائية.
+
+### الخطوة التالية
+1. مراجعة واجهة ESP32 UART/DEVICE_INFO بعد البناء الناجح، ثم تحديد أرجل لوحة ESP32-S3 الفعلية قبل تفعيل bridge.
+2. تجهيز MEASUREMENT producer gated لا يعلن ADS8861 إلا بعد تركيبه والتحقق من metadata وقراءات raw.
+3. تنفيذ UART loopback منخفض الجهد ثم Wi-Fi/WebServer وربط Android، مع إبقاء START مرفوضاً وTX غير موصول.
+4. الانتقال إلى القياسات التناظرية والحماية وKiCad فقط بعد توفر قياسات الملف والـclip-release.
+

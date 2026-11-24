@@ -314,3 +314,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 القيمة الأولى في `sm_config_set_in_shift(c, shift_right, autopush, push_threshold)` هي `shift_right`: **true تعني يميناً، وfalse تعني يساراً**. لذلك إعداد ADS8861 ذي DOUT من نوع MSB-first هو `sm_config_set_in_shift(&capture_config, false, true, 16u)`. بعد 16 بت تصبح الكلمة الأصلية في ISR[15:0] ويظل حفظ RAW16 دون تغيير. لا تفسر قيمة true على أنها shift-left.
 
 تم تصحيح الكود واختبار التوقيت ليفرضا هذا التعاقد. التصحيح برمجي فقط؛ ADC capture ما زال معطلاً افتراضياً، وDEVICE_INFO يعلن ADC_NONE إلى حين تركيب ADC وإجراء loopback وقياس فعلي.
+
+## 9.8 نتيجة CI #2090 وحدود جلسة القياس — 2026-11-24
+
+- CI #2090 / run ID `45405060500` على HEAD `d86d35dcc786b631ad5ae6a94446474efc25dfde` نجح في `protocol-tests`، بما فيها بناء واختبار C parser/session بخيارات تحذير صارمة، كما نجح بناء RP2040 وESP32-S3.
+- هذا يثبت اتساق parser/encoder/session على الاختبارات البرمجية، ولا يثبت نقل UART على لوحتين فعليتين.
+- RP2040 ما زال يرسل ACK وDEVICE_INFO فقط عند الطلب؛ DEVICE_INFO يعلن `ADC_NONE` و`SAMPLE_UNKNOWN` وresolution=0 وVREF=0. لا يوجد MEASUREMENT producer من ADC.
+- ESP32 يقبل DEVICE_INFO الصحيح ويغلق بوابة MEASUREMENT عند غياب ADC metadata أو اختلاف profile. جسر UART نفسه معطل افتراضياً ولا توجد أرجل ESP32 مثبتة.
+- لا تُفسر أو تحفظ عينات ADC فعلية قبل تركيب ADC وإعلان `ADC_MODEL_ID` و`SAMPLE_FORMAT_ID` وresolution وinput mode وVREF المطابقة.
+- الخطوة التالية: بعد تحديد أرجل اللوحتين، نفّذ UART loopback منخفض الجهد وتحقق من HELLO/ACK/GET_INFO/DEVICE_INFO وعدادات الأخطاء؛ ثم أضف MEASUREMENT producer خلف شرط تركيب ADC واختبارات C/Python مشتركة. لا تُنشئ بيانات قياس وهمية.
+
