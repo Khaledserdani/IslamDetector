@@ -64,10 +64,11 @@ final class ResumableModelDownloader {
                 connection.setReadTimeout(READ_TIMEOUT_MS);
                 connection.setInstanceFollowRedirects(true);
                 connection.setRequestProperty("Accept-Encoding", "identity");
+                String savedValidator = readValidator();
                 if (offset > 0) {
                     connection.setRequestProperty("Range", "bytes=" + offset + "-");
-                    String etag = readValidator();
-                    if (etag != null && !etag.isEmpty()) connection.setRequestProperty("If-Range", etag);
+                    String ifRange = ifRangeValue(savedValidator);
+                    if (ifRange != null) connection.setRequestProperty("If-Range", ifRange);
                 }
 
                 int status = connection.getResponseCode();
@@ -88,8 +89,13 @@ final class ResumableModelDownloader {
                     }
                 }
 
-                String responseEtag = connection.getHeaderField("ETag");
-                if (responseEtag != null && !responseEtag.isEmpty()) writeValidator(responseEtag);
+                String responseValidator = responseValidator(connection);
+                if (offset > 0 && status == HttpURLConnection.HTTP_PARTIAL
+                        && savedValidator != null && responseValidator != null
+                        && !savedValidator.equals(responseValidator)) {
+                    throw new IOException("تغيّرت نسخة الملف على الخادم؛ احتفظنا بالجزء السابق ولم نخلطه بالنسخة الجديدة.");
+                }
+                if (responseValidator != null) writeValidator(responseValidator);
 
                 long responseLength = connection.getContentLengthLong();
                 if (responseLength > 0 && offset + responseLength > total) {
@@ -101,10 +107,15 @@ final class ResumableModelDownloader {
                     byte[] buffer = new byte[256 * 1024];
                     int count;
                     long current = offset;
+                    long nextSyncAt = offset + (4L * 1024L * 1024L);
                     while (!cancelled.get() && (count = input.read(buffer)) != -1) {
                         output.write(buffer, 0, count);
                         current += count;
                         if (current > total) throw new IOException("تجاوز التنزيل الحجم المتوقع؛ أوقفناه.");
+                        if (current >= nextSyncAt) {
+                            output.getFD().sync();
+                            nextSyncAt = current + (4L * 1024L * 1024L);
+                        }
                         listener.onProgress(current, total, "تنزيل واستكمال النموذج…");
                     }
                     output.getFD().sync();
@@ -164,6 +175,21 @@ final class ResumableModelDownloader {
         }
         validatorFile.delete();
         listener.onComplete(destination);
+    }
+
+    private static String responseValidator(HttpURLConnection connection) {
+        String etag = connection.getHeaderField("ETag");
+        if (etag != null && !etag.isEmpty() && !etag.regionMatches(true, 0, "W/", 0, 2)) {
+            return "E:" + etag;
+        }
+        String modified = connection.getHeaderField("Last-Modified");
+        return modified == null || modified.isEmpty() ? null : "M:" + modified;
+    }
+
+    private static String ifRangeValue(String validator) {
+        if (validator == null || validator.isEmpty()) return null;
+        if (validator.startsWith("E:") || validator.startsWith("M:")) return validator.substring(2);
+        return validator;
     }
 
     private String readValidator() {
