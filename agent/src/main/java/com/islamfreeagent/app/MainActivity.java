@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        if (downloadReceiverRegistered) {
+        if (resumableDownloader != null) resumableDownloader.cancel();\n        if (downloadReceiverRegistered) {
             try {
                 unregisterReceiver(modelDownloadReceiver);
             } catch (IllegalArgumentException ignored) {
@@ -221,11 +221,11 @@ public class MainActivity extends Activity {
     private void addLocalAiPanel(LinearLayout page) {
         LinearLayout ai = panel();
         ai.addView(text("الذكاء الاصطناعي المحلي — Qwen3 0.6B", 17, Color.WHITE, true), matchWrap());
-        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. يمكن تنزيله عبر Wi-Fi أو بيانات الهاتف، وبعد اكتماله يعمل على معالج الهاتف دون إنترنت أو API مدفوع.", 12, MUTED, false);
+        TextView details = text("نموذج مفتوح بترخيص Apache 2.0. حجمه 586 MB تقريباً. التنزيل قابل للاستكمال بعد انقطاع الإنترنت أو إغلاق التطبيق؛ لا نعيد الأجزاء المحفوظة من الصفر. بعد اكتماله يعمل محلياً دون إنترنت.", 12, MUTED, false);
         LinearLayout.LayoutParams detailsLp = matchWrap(); detailsLp.topMargin = dp(7);
         ai.addView(details, detailsLp);
 
-        Button download = actionButton("تنزيل النموذج المجاني عبر الإنترنت");
+        Button download = actionButton("تنزيل / استكمال النموذج دون فقدان التقدم");
         download.setOnClickListener(v -> startModelDownload());
         ai.addView(download, actionButtonParams());
 
@@ -287,102 +287,88 @@ public class MainActivity extends Activity {
         return directory == null ? null : new File(directory, OnDeviceModelSpec.FILE_NAME);
     }
 
+    private ResumableModelDownloader resumableDownloader;
+    private boolean modelDownloadRunning = false;
+
     private void startModelDownload() {
         File file = modelFile();
         if (file == null) {
             aiStatusText.setText("مساحة ملفات التطبيق غير متاحة.");
             return;
         }
-        if (modelDownloadId > 0 && isDownloadActive(modelDownloadId)) {
-            refreshModelStatus();
+        if (modelDownloadRunning) {
+            aiStatusText.setText("التنزيل مستمر بالفعل؛ لن نبدأ نسخة ثانية.");
             return;
         }
-        if (file.exists() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
-            aiStatusText.setText("جارٍ التحقق من الملف الموجود قبل إعادة استخدامه…");
+        if (file.isFile() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
+            aiStatusText.setText("الملف مكتمل. جارٍ التحقق من بصمته قبل إعادة استخدامه…");
             modelExecutor.execute(() -> {
                 boolean valid;
-                try {
-                    valid = OnDeviceModelSpec.isValid(file);
-                } catch (Exception error) {
-                    valid = false;
-                }
+                try { valid = OnDeviceModelSpec.isValid(file); }
+                catch (Exception error) { valid = false; }
                 final boolean fileValid = valid;
                 runOnUiThread(() -> {
                     if (fileValid) {
-                        aiStatusText.setText("النموذج موجود وبصمته صحيحة. اضغط التحقق والتشغيل.");
+                        aiStatusText.setText("النموذج موجود وسليم. اضغط التحقق والتشغيل.");
                     } else {
-                        file.delete();
-                        enqueueModelDownload(file);
+                        // Never silently discard a completed-looking file. Keep it for diagnosis
+                        // and ask the user to explicitly restart only if it cannot be trusted.
+                        aiStatusText.setText("الملف المكتمل لا يطابق البصمة. لم نحذفه تلقائياً؛ راجع حالة الملف قبل إعادة التنزيل.");
                     }
                 });
             });
             return;
         }
-        if (file.exists()) file.delete();
-        enqueueModelDownload(file);
-    }
-
-    private void enqueueModelDownload(File file) {
         try {
-            DownloadManager.Request request =
-                    new DownloadManager.Request(Uri.parse(OnDeviceModelSpec.DOWNLOAD_URL));
-            request.setTitle("تنزيل نموذج إسلام المحلي");
-            request.setDescription("Qwen3 0.6B — 586 MB — عبر الإنترنت المتاح");
-            request.setNotificationVisibility(
-                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationInExternalFilesDir(this, null, OnDeviceModelSpec.FILE_NAME);
-            modelDownloadId = downloadManager.enqueue(request);
-            getSharedPreferences("local_ai_model", MODE_PRIVATE).edit()
-                    .putLong("download_id", modelDownloadId).apply();
-            aiStatusText.setText("بدأ التنزيل عبر اتصال الإنترنت المتاح (Wi-Fi أو بيانات الهاتف). يمكنك مغادرة الشاشة والعودة لمتابعة الحالة.");
-        } catch (Exception error) {
-            aiStatusText.setText("تعذر بدء التنزيل: " + error.getMessage());
-        }
-    }
+            resumableDownloader = new ResumableModelDownloader(this);
+            modelDownloadRunning = true;
+            aiStatusText.setText("جارٍ استكمال التنزيل من آخر بايت محفوظ…");
+            modelExecutor.execute(() -> resumableDownloader.download(new ResumableModelDownloader.Listener() {
+                @Override public void onProgress(long downloaded, long total, String message) {
+                    long percent = total > 0 ? downloaded * 100L / total : 0L;
+                    runOnUiThread(() -> {
+                        if (aiStatusText != null) aiStatusText.setText(message + " "
+                                + percent + "% • " + downloaded / (1024 * 1024) + " / "
+                                + total / (1024 * 1024) + " MB محفوظة");
+                    });
+                }
 
-    private boolean isDownloadActive(long id) {
-        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(id))) {
-            if (cursor == null || !cursor.moveToFirst()) return false;
-            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-            return status == DownloadManager.STATUS_PENDING
-                    || status == DownloadManager.STATUS_RUNNING
-                    || status == DownloadManager.STATUS_PAUSED;
-        } catch (Exception ignored) {
-            return false;
+                @Override public void onComplete(File modelFile) {
+                    modelDownloadRunning = false;
+                    runOnUiThread(() -> {
+                        aiStatusText.setText("اكتمل تنزيل النموذج. جارٍ فحص سلامة الملف…");
+                        verifyAndLoadModel();
+                    });
+                }
+
+                @Override public void onFailure(String message, long preservedBytes) {
+                    modelDownloadRunning = false;
+                    runOnUiThread(() -> aiStatusText.setText(message + "\nالمحفوظ للاستكمال: "
+                            + preservedBytes + " بايت."));
+                }
+            }));
+        } catch (Exception error) {
+            modelDownloadRunning = false;
+            aiStatusText.setText("تعذر تجهيز التنزيل: " + error.getMessage());
         }
     }
 
     private void refreshModelStatus() {
         File file = modelFile();
         if (file != null && file.isFile() && file.length() == OnDeviceModelSpec.EXPECTED_BYTES) {
-            aiStatusText.setText("اكتمل تنزيل ملف النموذج (" + file.length() + " بايت). تحقّق من البصمة قبل التشغيل.");
+            aiStatusText.setText("اكتمل تنزيل ملف النموذج (" + file.length()
+                    + " بايت). تحقّق من البصمة قبل التشغيل.");
             return;
         }
-        if (modelDownloadId <= 0) {
-            aiStatusText.setText("النموذج غير منزّل بعد. يمكنك تنزيله عبر Wi-Fi أو بيانات الهاتف.");
-            return;
-        }
-        try (Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(modelDownloadId))) {
-            if (cursor == null || !cursor.moveToFirst()) {
-                aiStatusText.setText("لم نعثر على مهمة التنزيل. يمكنك بدء التنزيل من جديد.");
-                return;
-            }
-            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                aiStatusText.setText("اكتمل التنزيل. الحجم: " + downloaded + " بايت. اضغط التحقق والتشغيل.");
-            } else if (status == DownloadManager.STATUS_FAILED) {
-                int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                aiStatusText.setText("فشل التنزيل (رمز " + reason + "). تحقق من اتصال الإنترنت ثم أعد المحاولة.");
-            } else {
-                String progress = total > 0 ? (downloaded * 100 / total) + "%" : "جارٍ الاتصال";
-                aiStatusText.setText("تنزيل النموذج: " + progress + " • "
-                        + downloaded / (1024 * 1024) + " / "
-                        + (total > 0 ? total / (1024 * 1024) : 0) + " MB");
-            }
-        } catch (Exception error) {
-            aiStatusText.setText("تعذر قراءة حالة التنزيل: " + error.getMessage());
+        File partial = file == null ? null : new File(file.getParentFile(), OnDeviceModelSpec.FILE_NAME + ".part");
+        long saved = partial != null && partial.isFile() ? partial.length() : 0L;
+        if (saved > 0) {
+            long percent = saved * 100L / OnDeviceModelSpec.EXPECTED_BYTES;
+            aiStatusText.setText((modelDownloadRunning ? "التنزيل مستمر: " : "يوجد تنزيل محفوظ قابل للاستكمال: ")
+                    + percent + "% • " + saved / (1024 * 1024) + " / "
+                    + OnDeviceModelSpec.EXPECTED_BYTES / (1024 * 1024) + " MB");
+        } else {
+            aiStatusText.setText("النموذج غير منزّل بعد. ابدأ التنزيل عبر Wi-Fi أو بيانات الهاتف.");
         }
     }
 
