@@ -30,11 +30,25 @@ final class ResumableModelDownloader {
     private final File destination;
     private final File partial;
     private final File validatorFile;
+    private final String downloadUrl;
+    private final long expectedBytes;
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     ResumableModelDownloader(Context context) {
-        File directory = context.getExternalFilesDir(null);
+        this(context.getExternalFilesDir(null), OnDeviceModelSpec.DOWNLOAD_URL,
+                OnDeviceModelSpec.EXPECTED_BYTES);
+    }
+
+    ResumableModelDownloader(File directory, String downloadUrl, long expectedBytes) {
         if (directory == null) throw new IllegalStateException("مساحة ملفات التطبيق غير متاحة");
+        if (downloadUrl == null || downloadUrl.isEmpty() || expectedBytes <= 0) {
+            throw new IllegalArgumentException("إعدادات تنزيل النموذج غير صالحة");
+        }
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IllegalStateException("تعذر إنشاء مجلد حفظ النموذج");
+        }
+        this.downloadUrl = downloadUrl;
+        this.expectedBytes = expectedBytes;
         destination = new File(directory, OnDeviceModelSpec.FILE_NAME);
         partial = new File(directory, OnDeviceModelSpec.FILE_NAME + ".part");
         validatorFile = new File(directory, OnDeviceModelSpec.FILE_NAME + ".etag");
@@ -45,7 +59,7 @@ final class ResumableModelDownloader {
     }
 
     void download(Listener listener) {
-        long total = OnDeviceModelSpec.EXPECTED_BYTES;
+        long total = expectedBytes;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS && !cancelled.get(); attempt++) {
             HttpURLConnection connection = null;
             try {
@@ -58,7 +72,7 @@ final class ResumableModelDownloader {
                     return;
                 }
 
-                connection = (HttpURLConnection) new URL(OnDeviceModelSpec.DOWNLOAD_URL).openConnection();
+                connection = (HttpURLConnection) new URL(downloadUrl).openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
                 connection.setReadTimeout(READ_TIMEOUT_MS);
@@ -163,7 +177,7 @@ final class ResumableModelDownloader {
     }
 
     private void publishCompletedFile(Listener listener) throws IOException {
-        if (!partial.isFile() || partial.length() != OnDeviceModelSpec.EXPECTED_BYTES) {
+        if (!partial.isFile() || partial.length() != expectedBytes) {
             throw new IOException("لم يكتمل حجم الملف بعد؛ الجزء المحفوظ لم يُحذف.");
         }
         // File.renameTo is available on minSdk 24; java.nio.file.Files requires API 26.
