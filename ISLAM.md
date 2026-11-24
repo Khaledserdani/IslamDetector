@@ -1980,3 +1980,22 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - PR #6 مغلق وغير مدمج؛ PR #7 مفتوح Draft. الفرع متباعد عن main: 595 أماماً و6 خلفاً. لا rebase أو merge تلقائي.
 - حدود النجاح: UF2 اختبار توقيت منطقي فقط، وADS8861 capture معطل، وDEVICE_INFO=ADC_NONE. لا UART loopback أو ADC capture أو Wi-Fi/WebServer أو قياس ملف أو تشغيل TX.
 - الخطوة التالية: تثبيت pinout اللوحة الفعلية لـESP32-S3، ثم UART loopback منخفض الجهد، ثم Wi-Fi/WebServer وربط Android. لا تفعيل ADC أو TX قبل تركيب وحماية وقياسات حقيقية.
+
+
+## 62. تحقق CI #2093 — نجاح البناء على HEAD الحالي — 2026-11-24
+
+- HEAD الذي اختُبر: `84a0e187c01cd00d99bcb9f965195348cab465b7` على `hardware/rev-a-measurement-design`.
+- CI #2093 / run ID `45409935952` اكتمل `completed / success` في الوظائف الأربع: `protocol-tests` و`rp2040-firmware` و`android-app` و`esp32-s3-bridge`.
+- `protocol-tests`: نجحت 92 اختبارات Python، ونجح C parser/session مع `-Wall -Wextra -Werror -pedantic`. سجل النجاح: PASS لرسائل command/ACK وCRC وDEVICE_INFO وقيود ADC metadata وحفظ RAW16 والصيغ signed واستعادة SYNC.
+- `rp2040-firmware`: نجح CMake مع Pico SDK 2.3.1 و`PICO_BOARD=waveshare_rp2040_zero`. UF2 اجتاز الفحص: 150 blocks، و38400 payload bytes، وFamily ID `0xE48BFF56`، والعناوين `0x10000000..0x10009600`. SHA-256 للـUF2 الخام: `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`. Artifact ID `14926828507` (حجم أرشيف الرفع 30262 بايت).
+- `android-app`: نجح Gradle 8.9 و`:app:assembleDebug`، وفحص APK كأرشيف ZIP دون أخطاء. SHA-256 للـAPK الخام: `314fada90dee8165138c8ec10e71d730025226793a6e85905f6aa7323d381310`. Artifact ID `14927104279` (أرشيف 21095 بايت).
+- `esp32-s3-bridge`: نجح ESP-IDF release-v5.4 build/link؛ حجم binary `0x276b0` بايت، والمتبقي في app partition `0xd8950` (85%). لم يحدث flash أو تشغيل على لوحة.
+- CI #2091 فشل Android بسبب HTTP 429 من Maven Central قبل اكتمال حل التبعيات؛ إعادة المحاولة المحدودة في workflow أتاحت نجاح #2092 و#2093. لا يوجد خطأ Java/Manifest مثبت في #2091.
+- روابط: [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952)، [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)، [UF2 artifact](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952)، [APK artifact](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952).
+- حالة PRs من GitHub API: PR #6 حالته `closed` و`merged=false` (ويظل حقل Draft محفوظاً)، بينما PR #7 هو المفتوح Draft ورأسه `84a0e187`. لم أعد فتح PR #6 ولم أدمج أي PR.
+- مقارنة الفرع مع `main`: متباعد؛ 596 commit أماماً و6 خلفاً. لا rebase أو merge تلقائي.
+- حدود الإثبات: UF2 هو logic timing test فقط؛ `ENABLE_ADS8861_CAPTURE=0` وRP2040 يعلن `ADC_NONE` ولا ينتج MEASUREMENT من ADC. ESP32 UART bridge معطل وGPIO TX/RX غير معينة. لا UART loopback أو ADC capture أو Wi-Fi/WebServer أو قياس ملف أو flash مادي.
+- DD32 يبقى baseline Rev A وفق المواصفة الحالية؛ قيم TX/RX وDCR أهداف/تقديرات فقط وليست قياسات.
+- الخطوة التالية: حسم طراز ومراجعة لوحة ESP32-S3 ومخططها، ثم continuity والـUART loopback الآمن 3.3V؛ بعد ذلك تنفيذ Wi-Fi/HTTP API المتوافق مع Android. لا تفعيل ADC أو TX قبل إكمال الحماية والقياسات.
+
+ملاحظة: CI #2093 اختبر الكود عند HEAD أعلاه. تحديثات هذا السجل والوثائق أدناه لا تغيّر Firmware أو Android.
