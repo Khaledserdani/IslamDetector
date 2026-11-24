@@ -455,3 +455,17 @@ HEAD الحالي على فرع العمل هو d17a0f3d5077a29299b45e94c1b67f87
 ## 31. بوابة البناء بعد CI #2092 — 2026-11-24
 
 CI #2092 على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` نجح في الاختبارات والبناء للطبقات الأربع: protocol C/Python (92 اختبار Python)، RP2040 UF2، Android Debug APK، وESP32-S3 ESP-IDF. UF2 وAPK موجودان كـArtifacts، وUF2 اجتاز فحص family/address/block structure. هذا يثبت قابلية البناء البرمجية فقط، ولا يثبت flash أو pinout أو UART أو Wi-Fi أو ADC أو TX مادي. حالة العتاد الآمنة بقيت كما هي: ADC capture معطل، ADC_NONE، UART GPIO غير مثبتة، START مرفوض.
+
+
+## 32. تحقق CI #2093 وحدود الجاهزية — 2026-11-24
+
+نجح CI #2093 / run ID `45409935952` على HEAD `84a0e187c01cd00d99bcb9f965195348cab465b7` في الوظائف الأربع: protocol-tests، RP2040 firmware، Android app، وESP32-S3 bridge. نجحت 92 اختبارات Python وبناء C parser/session بتحذيرات صارمة؛ وبُني APK Debug وفُحص ZIP؛ وبُني ESP-IDF release-v5.4؛ وبُني UF2 وتحقق من 150 blocks و38400 payload bytes وFamily ID `0xE48BFF56`.
+
+- UF2 Artifact ID: `14926828507`; SHA-256 الخام: `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`.
+- APK Artifact ID: `14927104279`; SHA-256 الخام: `314fada90dee8165138c8ec10e71d730025226793a6e85905f6aa7323d381310`.
+- ESP32-S3 binary: `0x276b0` بايت؛ مساحة app partition المتبقية 85%.
+
+هذا إثبات بناء واختبارات برمجية فقط. RP2040 ما زال اختبار GP4/GP5/GP6 المنطقي؛ `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO يعلن ADC_NONE. UART bridge على ESP32-S3 معطل وGPIO TX/RX غير مثبتة. لا flash أو UART loopback أو Wi-Fi/HTTP أو قياسات ADC/ملف فعلية. DD32 يظل baseline Rev A، ومواصفات اللف وDCR أهداف/تقديرات لا قياسات.
+
+حالة طلبات المراجعة: PR #6 مغلق وغير مدمج، وPR #7 مفتوح Draft. الفرع متباعد عن main (596 أماماً/6 خلفاً)، لذلك لا مزامنة أو rebase تلقائي.
+[CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
