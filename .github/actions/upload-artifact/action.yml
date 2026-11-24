@@ -1,0 +1,16 @@
+name: Upload workflow artifact (local)
+description: Upload one validated file through the GitHub Actions artifact service without a third-party action.
+inputs:
+  name:
+    description: Artifact name
+    required: true
+  path:
+    description: File path relative to the workspace
+    required: true
+  retention_days:
+    description: Artifact retention in days
+    required: false
+    default: "30"
+runs:
+  using: node24
+  main: index.js
