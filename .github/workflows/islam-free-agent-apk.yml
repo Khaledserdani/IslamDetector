@@ -61,17 +61,21 @@ jobs:
           git checkout --detach FETCH_HEAD
           test -f agent/build.gradle
 
-      - name: Select preinstalled Java 17
+      - name: Install and select Java 17 without external actions
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -n "${JAVA_HOME_17_X64:-}" ]]; then
-            export JAVA_HOME="${JAVA_HOME_17_X64}"
-            echo "JAVA_HOME=${JAVA_HOME}" >> "$GITHUB_ENV"
-            echo "${JAVA_HOME}/bin" >> "$GITHUB_PATH"
+          if ! java -version 2>&1 | grep -qE 'version "17([.]|")'; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk-headless
           fi
-          java -version 2>&1 | tee java-version.txt
-          java -version 2>&1 | grep -E 'version "17([.]|")'
+          JAVA_BIN="$(readlink -f "$(command -v javac)")"
+          JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+          test -x "$JAVA_HOME/bin/java"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
+          "$JAVA_HOME/bin/java" -version 2>&1 | tee java-version.txt
+          "$JAVA_HOME/bin/java" -version 2>&1 | grep -E 'version "17([.]|")'
 
       - name: Install Gradle 8.9 without external GitHub Actions
         shell: bash
