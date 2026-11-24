@@ -9,8 +9,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -156,11 +155,12 @@ final class ResumableModelDownloader {
         if (!partial.isFile() || partial.length() != OnDeviceModelSpec.EXPECTED_BYTES) {
             throw new IOException("لم يكتمل حجم الملف بعد؛ الجزء المحفوظ لم يُحذف.");
         }
-        try {
-            Files.move(partial.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
-        } catch (Exception atomicMoveError) {
-            Files.move(partial.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        // File.renameTo is available on minSdk 24; java.nio.file.Files requires API 26.
+        if (destination.exists() && !destination.delete()) {
+            throw new IOException("تعذر استبدال ملف النموذج القديم بعد اكتمال الجزء الجديد.");
+        }
+        if (!partial.renameTo(destination)) {
+            throw new IOException("اكتمل التنزيل لكن تعذر تثبيت الملف النهائي؛ الجزء الكامل محفوظ للاستعادة.");
         }
         validatorFile.delete();
         listener.onComplete(destination);
@@ -169,8 +169,13 @@ final class ResumableModelDownloader {
     private String readValidator() {
         try {
             if (!validatorFile.isFile()) return null;
-            byte[] bytes = Files.readAllBytes(validatorFile.toPath());
-            return new String(bytes, StandardCharsets.UTF_8);
+            try (InputStream input = new java.io.FileInputStream(validatorFile);
+                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[1024];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                return new String(output.toByteArray(), StandardCharsets.UTF_8);
+            }
         } catch (Exception ignored) {
             return null;
         }
