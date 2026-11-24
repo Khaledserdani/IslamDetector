@@ -1,14 +1,7 @@
 package com.islamfreeagent.app;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.app.AlertDialog;
-import android.app.DownloadManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -47,17 +40,6 @@ public class MainActivity extends Activity {
     private TextView aiReplyText;
     private EditText aiPromptInput;
     private Button aiSendButton;
-    private DownloadManager downloadManager;
-    private long modelDownloadId = -1L;
-    private boolean downloadReceiverRegistered = false;
-    private final BroadcastReceiver modelDownloadReceiver = new BroadcastReceiver() {
-        @Override public void onReceive(Context context, Intent intent) {
-            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
-                long completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
-                if (completedId == modelDownloadId && aiStatusText != null) refreshModelStatus();
-            }
-        }
-    };
     private OnDeviceAiEngine localAi;
     private String activeExecutionTaskId = null;
     private final ExecutorService modelExecutor = Executors.newSingleThreadExecutor();
@@ -68,9 +50,6 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         store = new AgentTaskStore(this);
-        downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        modelDownloadId = getSharedPreferences("local_ai_model", MODE_PRIVATE).getLong("download_id", -1L);
-        registerModelDownloadReceiver();
         localAi = new OnDeviceAiEngine(getCacheDir().getAbsolutePath());
         buildScreen();
         loadSavedGitHubSettings();
@@ -84,14 +63,6 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (resumableDownloader != null) resumableDownloader.cancel();
-        if (downloadReceiverRegistered) {
-            try {
-                unregisterReceiver(modelDownloadReceiver);
-            } catch (IllegalArgumentException ignored) {
-                // Receiver was already unregistered by the platform or lifecycle cleanup.
-            }
-            downloadReceiverRegistered = false;
-        }
         localAi.close();
         modelExecutor.shutdownNow();
         networkExecutor.shutdownNow();
@@ -271,16 +242,6 @@ public class MainActivity extends Activity {
         ai.addView(aiReplyText, replyLp);
         addPanel(page, ai, 12);
         refreshModelStatus();
-    }
-
-    private void registerModelDownloadReceiver() {
-        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(modelDownloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(modelDownloadReceiver, filter);
-        }
-        downloadReceiverRegistered = true;
     }
 
     private File modelFile() {
