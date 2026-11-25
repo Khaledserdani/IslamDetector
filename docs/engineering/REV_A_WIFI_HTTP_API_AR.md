@@ -78,3 +78,8 @@ cc -std=c11 -Wall -Wextra -Werror -pedantic \
   -o /tmp/rev_a_http_api_policy_test
 /tmp/rev_a_http_api_policy_test
 ```
+
+
+## تصحيح Kconfig — 2026-11-25
+
+أظهر CI #2096 أن ملف Kconfig في جذر مشروع ESP-IDF لم يعرّف رموز Wi-Fi في build الخاص بمكوّن main. الإعدادات موجودة الآن في `firmware/esp32_s3_bridge/main/Kconfig` بجانب `main/CMakeLists.txt`، مع تضمين `sdkconfig.h` صراحةً. لا تزال Wi-Fi وUART معطلتين افتراضياً.

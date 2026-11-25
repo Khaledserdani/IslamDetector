@@ -2014,3 +2014,12 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - لم تتغير GPIO أو pin map، ولم يُفعّل UART bridge أو ADC capture أو TX. لم يحدث flash أو اختبار SoftAP/HTTP على لوحة أو اتصال Android فعلي.
 - PR #6 في GitHub مغلق وغير مدمج (حقل Draft ما زال true)، وPR #7 هو المفتوح Draft الحالي؛ لم يُفتح PR #6 ولم يُدمج أي PR.
 - بعد هذا التحديث، يلزم CI جديد على commit الجديد. لا تسجل نجاحه حتى يظهر run مكتمل وArtifacts.
+
+
+## 18) تشخيص CI #2096 وتصحيح Kconfig — 2026-11-25
+
+- CI #2096 / run ID `45624352985` على commit `b77d9a4a9417f17993c6adf84a7df6245ead9351` فشل في وظيفة ESP32-S3 فقط؛ Android نجح، protocol-tests نجحت بما فيها اختبار سياسة HTTP، وRP2040 بنى UF2 صالحاً.
+- سبب الفشل المؤكد: `CONFIG_REV_A_WIFI_SSID` و`CONFIG_REV_A_WIFI_PASSWORD` لم يكونا معرفين في build؛ ملف `Kconfig.projbuild` الموجود بجذر المشروع لم يعرّفهما لمكوّن main في هذا الترتيب.
+- التصحيح: نقل إعدادات UART وWi-Fi إلى `firmware/esp32_s3_bridge/main/Kconfig` بجانب `main/CMakeLists.txt`، وإضافة `#include "sdkconfig.h"` صراحةً إلى `app_main.c` و`rev_a_http_api.c`. أزيل ملف Kconfig القديم من جذر المشروع في commit التصحيح.
+- لم نغيّر القيم الافتراضية الآمنة: UART disabled، GPIO=-1، Wi-Fi disabled، وكلمة مرور WPA2 الافتراضية فارغة؛ لذلك لا يبدأ AP تلقائياً.
+- يجب إعادة CI على commit التصحيح. لا يُسجل نجاح ESP32-S3 أو حزمة جديدة قبل ظهور build ناجح.

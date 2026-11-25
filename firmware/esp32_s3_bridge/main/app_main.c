@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "rev_a_uart_bridge.h"

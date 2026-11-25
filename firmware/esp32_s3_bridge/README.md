@@ -63,3 +63,8 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 - `POST /control`: أمر `stop` يعيد حالة idle الآمنة فقط؛ `start` يرفض بـHTTP 409 بسبب عدم وجود TX interlock معتمد؛ `calibrate` يرفض بـHTTP 409 لعدم وجود ADC مركب.
 - Android يعطل زر البدء والمعايرة ما لم يعلن الجهاز صراحةً `tx_armed=true` أو `measurement_available=true`. لا يغيّر التطبيق حالة الكشف بتفاؤل بعد إرسال الأمر؛ يعيد قراءة `/status`.
 - هذا تنفيذ برمجي اختياري لم يُشغّل على لوحة فعلية. لا يثبت SoftAP أو HTTP على العتاد، ولا يفعّل UART أو ADC أو TX.
+
+
+### تصحيح إعدادات Kconfig — 2026-11-25
+
+أظهر CI #2096 أن ملف Kconfig في جذر مشروع ESP-IDF لم يعرّف رموز REV_A_WIFI_* في build الفعلي. نُقلت إعدادات UART وWi-Fi إلى `main/Kconfig` بجانب `main/CMakeLists.txt` حتى يحمّلها مكوّن main، وأضيف تضمين `sdkconfig.h` صراحةً في ملفات التطبيق. أُعيد تشغيل CI بعد هذا التصحيح؛ لا تعتمد الواجهة حتى ينجح بناء ESP32-S3.
