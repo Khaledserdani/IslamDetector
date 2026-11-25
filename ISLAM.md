@@ -3,7 +3,7 @@
 > **كلمة الاسترجاع:** إسلام  
 > عند كتابة المستخدم «إسلام» أو «مشروع إسلام»، ابدأ بهذا الملف ثم استرجع أحدث حالة GitHub والمتابعة والقرارات السابقة. هذا الملف هو سجل المشروع العملي، ويُحدّث بعد كل تغيير أو اختبار مؤكد.
 
-آخر مراجعة لهذا الملف: 2026-11-19  
+آخر مراجعة لهذا الملف: 2026-11-25  
 المستودع المعتمد: https://github.com/Khaledserdani/IslamDetector  
 الفرع الأساسي: `main`  
 الاسم البرمجي للتطبيق: `Islam Detector`  
@@ -1999,3 +1999,18 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - الخطوة التالية: حسم طراز ومراجعة لوحة ESP32-S3 ومخططها، ثم continuity والـUART loopback الآمن 3.3V؛ بعد ذلك تنفيذ Wi-Fi/HTTP API المتوافق مع Android. لا تفعيل ADC أو TX قبل إكمال الحماية والقياسات.
 
 ملاحظة: CI #2093 اختبر الكود عند HEAD أعلاه. تحديثات هذا السجل والوثائق أدناه لا تغيّر Firmware أو Android.
+
+
+## 17) تكامل Wi-Fi/HTTP الآمن — 2026-11-25
+
+- HEAD السابق قبل هذا التحديث: `517873beec18ab0156a79d89568b8282fad41436` على الفرع `hardware/rev-a-measurement-design`.
+- CI #2095 / run ID `45412919257` اكتمل بنجاح على HEAD السابق؛ نجحت الوظائف الأربع: protocol-tests وRP2040 firmware وAndroid app وESP32-S3 bridge.
+- RP2040 UF2 Artifact ID `14930216706`؛ فحص البنية نجح: 150 blocks و38400 payload bytes وFamily ID `0xE48BFF56`. SHA-256 الخام `da3ef48c76530fc45bde9450efd0eeaf4957996155f765d853b459d6eec6d1f4`. هذا UF2 لا يزال logic timing test فقط، لا ADC ولا MOSFET.
+- Android APK Artifact ID `14929232049`؛ Gradle assembleDebug وZIP verification نجحا. SHA-256 الخام `429194597fba99751ce6bdd83e761793176994fefb51bfdaf3e9208d463e12b2`.
+- أضيفت واجهة SoftAP/HTTP اختيارية إلى ESP32-S3: `GET /status` و`POST /control`. SoftAP معطل افتراضياً؛ يلزم تفعيل Kconfig وضبط كلمة مرور WPA2 خاصة 8..63 حرفاً، ولا تحفظ كلمة المرور في المستودع.
+- حالة HTTP الافتراضية صريحة: لا ADC، لا عينات، لا قياسات، `tx_armed=false`، و`measurement_available=false`. START يرجع HTTP 409 حتى اعتماد hardware interlock؛ CALIBRATE يرجع HTTP 409 حتى تركيب ADC؛ STOP يثبت idle الآمن فقط.
+- عدّل Android ليعطل البدء والمعايرة وفق capabilities المعلنة، وألا يغيّر حالة الكشف بالتفاؤل بعد POST؛ يقرأ /status مجدداً.
+- أضيفت سياسة أوامر C مستقلة واختبار host صارم لها ضمن protocol-tests.
+- لم تتغير GPIO أو pin map، ولم يُفعّل UART bridge أو ADC capture أو TX. لم يحدث flash أو اختبار SoftAP/HTTP على لوحة أو اتصال Android فعلي.
+- PR #6 في GitHub مغلق وغير مدمج (حقل Draft ما زال true)، وPR #7 هو المفتوح Draft الحالي؛ لم يُفتح PR #6 ولم يُدمج أي PR.
+- بعد هذا التحديث، يلزم CI جديد على commit الجديد. لا تسجل نجاحه حتى يظهر run مكتمل وArtifacts.

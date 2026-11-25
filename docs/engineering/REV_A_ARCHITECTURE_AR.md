@@ -469,3 +469,13 @@ CI #2092 على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` نجح في ال
 
 حالة طلبات المراجعة: PR #6 مغلق وغير مدمج، وPR #7 مفتوح Draft. الفرع متباعد عن main (596 أماماً/6 خلفاً)، لذلك لا مزامنة أو rebase تلقائي.
 [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+
+
+## تحديث 2026-11-25 — عقد Wi-Fi/HTTP للهاتف
+
+أضيفت طبقة SoftAP/HTTP اختيارية على ESP32-S3 لربط تطبيق Android بالعقد الموجود في التطبيق:
+- `GET /status`: يعرض حالة الجهاز، ويضع القياسات غير المتاحة كـJSON null؛ يعلن صراحةً `tx_armed=false` و`measurement_available=false` و`adc_present=false`.
+- `POST /control`: `stop` يثبت حالة idle الآمنة فقط؛ `start` مرفوض حتى اعتماد interlock عتادي مستقل؛ `calibrate` مرفوض حتى تركيب ADC والتحقق من مسار القياس.
+- SoftAP معطل افتراضياً، ولا يبدأ إلا بعد تفعيل Kconfig وإدخال WPA2 password خاص (8..63 حرفاً). لا تحفظ كلمة المرور في المستودع.
+- لا تتغير خريطة الأرجل ولا تفعيل UART أو ADC أو TX بسبب هذه الإضافة. نجاح البناء لا يثبت اتصال Wi-Fi أو الهاتف على لوحة فعلية.
+- التفاصيل والعقد ورموز HTTP في `REV_A_WIFI_HTTP_API_AR.md`.

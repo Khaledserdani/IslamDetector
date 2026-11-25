@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
     private Button connectButton, detectButton, calibrateButton;
     private boolean connected = false;
     private boolean detecting = false;
+    private boolean txArmed = false;
+    private boolean measurementAvailable = false;
     private boolean activityVisible = false;
     private volatile boolean destroyed = false;
     private volatile String activeHost = DEFAULT_HOST;
@@ -262,7 +264,6 @@ public class MainActivity extends Activity {
                     connected = true; connectButton.setEnabled(true); connectButton.setText("تحديث");
                     connectionText.setText("● متصل بالجهاز");
                     connectionText.setTextColor(Color.rgb(91, 220, 167));
-                    detectButton.setEnabled(true); calibrateButton.setEnabled(true);
                     applyStatus(data);
                     handler.removeCallbacks(pollTask);
                     if (activityVisible) handler.post(pollTask);
@@ -271,10 +272,11 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (destroyed) return;
-                    connected = false; connectButton.setEnabled(true);
+                    connected = false; detecting = false; txArmed = false; measurementAvailable = false;
+                    connectButton.setEnabled(true);
                     connectionText.setText("● تعذّر الاتصال — تحقق من Wi‑Fi والعنوان");
                     connectionText.setTextColor(Color.rgb(255, 170, 110));
-                    detectButton.setEnabled(false); calibrateButton.setEnabled(false);
+                    updateControlAvailability();
                     toast("لم نتمكن من قراءة /status");
                 });
             }
@@ -296,9 +298,10 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (destroyed) return;
-                    connected = false; connectionText.setText("● انقطع الاتصال بالجهاز");
+                    connected = false; detecting = false; txArmed = false; measurementAvailable = false;
+                    connectionText.setText("● انقطع الاتصال بالجهاز");
                     connectionText.setTextColor(Color.rgb(255,170,110));
-                    detectButton.setEnabled(false); calibrateButton.setEnabled(false);
+                    updateControlAvailability();
                 });
             } finally { requestRunning.set(false); }
         });
@@ -339,6 +342,8 @@ public class MainActivity extends Activity {
     private void applyStatus(JSONObject root) {
         JSONObject data = root.optJSONObject("data");
         if (data == null) data = root;
+        txArmed = data.optBoolean("tx_armed", false);
+        measurementAvailable = data.optBoolean("measurement_available", false);
         double signal = number(data, "signal", "raw", "amplitude");
         double confidence = number(data, "confidence", "confidence_percent");
         double depth = number(data, "depth_cm", "depth");
@@ -347,7 +352,8 @@ public class MainActivity extends Activity {
         depthText.setText(Double.isNaN(depth) ? "--" : format(depth) + " سم");
         boolean calibrated = data.optBoolean("calibrated", false);
         double calibration = number(data, "calibration_percent", "calibration");
-        if (!Double.isNaN(calibration)) calibrationText.setText("معايرة التربة: " + format(calibration) + "%");
+        if (!measurementAvailable) calibrationText.setText("المعايرة غير متاحة: لا توجد عينات ADC");
+        else if (!Double.isNaN(calibration)) calibrationText.setText("معايرة التربة: " + format(calibration) + "%");
         else calibrationText.setText(calibrated ? "التربة مُعايرة" : "المعايرة: لم تؤكد بعد");
         String state = data.optString("state", data.optString("status", ""));
         if ("detecting".equalsIgnoreCase(state) || data.optBoolean("detecting", false)) {
@@ -355,6 +361,7 @@ public class MainActivity extends Activity {
         } else if ("stopped".equalsIgnoreCase(state) || "idle".equalsIgnoreCase(state)) {
             detecting = false; detectButton.setText("بدء الكشف");
         }
+        updateControlAvailability();
         lastUpdateText.setText("آخر تحديث: " + timeFormat.format(new Date()) +
                 (data.has("device") ? " • " + data.optString("device") : ""));
         if (!Double.isNaN(signal) && System.currentTimeMillis() - lastSavedAt > 5000) {
@@ -377,6 +384,16 @@ public class MainActivity extends Activity {
             });
         }
     }
+    private void updateControlAvailability() {
+        if (detectButton != null) {
+            detectButton.setText(detecting ? "إيقاف الكشف" : (txArmed ? "بدء الكشف" : "الكشف غير متاح"));
+            detectButton.setEnabled(connected && (detecting || txArmed));
+        }
+        if (calibrateButton != null) {
+            calibrateButton.setEnabled(connected && measurementAvailable);
+        }
+    }
+
     private double number(JSONObject o, String... keys) {
         for (String key : keys) if (o.has(key) && !o.isNull(key)) {
             Object v = o.opt(key);
@@ -392,24 +409,28 @@ public class MainActivity extends Activity {
 
     private void sendControl(String command) {
         if (!connected) { toast("اتصل بالجهاز أولاً"); return; }
+        if ("start".equals(command) && !txArmed) {
+            toast("بدء الكشف غير متاح: حماية TX لم تعتمد بعد"); return;
+        }
+        if ("calibrate".equals(command) && !measurementAvailable) {
+            toast("المعايرة غير متاحة: لا توجد عينات ADC"); return;
+        }
         final String host = activeHost;
         detectButton.setEnabled(false); calibrateButton.setEnabled(false);
         network.execute(() -> {
             try {
                 JSONObject body = new JSONObject(); body.put("command", command);
                 requestJson(host + "/control", "POST", body);
+                JSONObject status = requestJson(host + "/status", "GET", null);
                 runOnUiThread(() -> {
                     if (destroyed) return;
-                    if ("start".equals(command)) { detecting = true; detectButton.setText("إيقاف الكشف"); }
-                    if ("stop".equals(command)) { detecting = false; detectButton.setText("بدء الكشف"); }
-                    toast("تم إرسال الأمر: " + command);
-                    detectButton.setEnabled(true); calibrateButton.setEnabled(true);
+                    applyStatus(status);
+                    toast("تم تحديث حالة الجهاز");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (destroyed) return;
-                    detectButton.setEnabled(connected);
-                    calibrateButton.setEnabled(connected);
+                    updateControlAvailability();
                     toast("الجهاز لم يقبل الأمر. تحقق من الاتصال وإصدار ESP32");
                 });
             }

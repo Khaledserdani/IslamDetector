@@ -52,3 +52,14 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 - The ESP32-S3 session rejects any MEASUREMENT whose profile_id differs from DEVICE_INFO.active_profile_id.
 - Accepted session records retain profile_crc32 and info_generation so the sample can be traced to the exact advertised timing-profile revision.
 - A mismatch counter is exposed in the UART bridge status snapshot. This is host-code validation; no board-to-board loopback is claimed.
+
+
+## تحديث 2026-11-25 — واجهة Wi-Fi/HTTP آمنة أولية
+
+- أضيف SoftAP اختياري وHTTP API متوافق مع مسارات Android: `GET /status` و`POST /control`.
+- SoftAP معطل افتراضياً (`CONFIG_REV_A_WIFI_ENABLE=n)). عند الاختبار المحلي يجب ضبط SSID وكلمة مرور WPA2 خاصة بطول 8..63 حرفاً؛ لا تضع كلمة المرور في Git أو sdkconfig المرفوع.
+- عنوان SoftAP الافتراضي في ESP-IDF هو `192.168.4.1`.
+- `GET /status` يعيد signal/confidence/depth/calibration_percent كـnull، و`tx_armed=false` و`measurement_available=false` و`adc_present=false`. هذه حالة صادقة؛ لا توجد عينات أو قياسات وهمية.
+- `POST /control`: أمر `stop` يعيد حالة idle الآمنة فقط؛ `start` يرفض بـHTTP 409 بسبب عدم وجود TX interlock معتمد؛ `calibrate` يرفض بـHTTP 409 لعدم وجود ADC مركب.
+- Android يعطل زر البدء والمعايرة ما لم يعلن الجهاز صراحةً `tx_armed=true` أو `measurement_available=true`. لا يغيّر التطبيق حالة الكشف بتفاؤل بعد إرسال الأمر؛ يعيد قراءة `/status`.
+- هذا تنفيذ برمجي اختياري لم يُشغّل على لوحة فعلية. لا يثبت SoftAP أو HTTP على العتاد، ولا يفعّل UART أو ADC أو TX.

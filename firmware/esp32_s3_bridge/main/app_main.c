@@ -1,6 +1,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "rev_a_uart_bridge.h"
+#include "rev_a_http_api.h"
 static const char *TAG = "islam_rev_a";
 #if CONFIG_REV_A_UART_ENABLE
 #if CONFIG_REV_A_UART_TX_GPIO < 0 || CONFIG_REV_A_UART_RX_GPIO < 0
@@ -19,5 +20,13 @@ void app_main(void) {
     ESP_LOGI(TAG, "UART protocol bridge active; waiting for DEVICE_INFO.");
 #else
     ESP_LOGW(TAG, "UART bridge compiled but disabled. Verify board pinout and set TX/RX GPIOs before enabling.");
+#endif
+#if CONFIG_REV_A_WIFI_ENABLE
+    const esp_err_t wifi_result = rev_a_http_api_start();
+    if (wifi_result != ESP_OK) {
+        ESP_LOGE(TAG, "Wi-Fi HTTP API not started: %s", esp_err_to_name(wifi_result));
+    }
+#else
+    ESP_LOGI(TAG, "Wi-Fi SoftAP/HTTP API disabled by default; configure WPA2 credentials before enabling.");
 #endif
 }

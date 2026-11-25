@@ -25,3 +25,25 @@ config REV_A_UART_BAUD
     range 9600 2000000
     default 921600
 endmenu
+
+
+menu "Islam Detector Rev A Wi-Fi HTTP API"
+config REV_A_WIFI_ENABLE
+    bool "Enable WPA2 SoftAP and HTTP API"
+    default n
+    help
+        Disabled by default. Enable only after setting a private WPA2 password.
+        This API reports no measurements and rejects START until hardware safety
+        interlock and a real ADC measurement path are implemented and verified.
+config REV_A_WIFI_SSID
+    string "SoftAP SSID"
+    default "IslamDetector-RevA"
+    help
+        Local Wi-Fi network name. Keep the SSID within 1..32 bytes.
+config REV_A_WIFI_PASSWORD
+    string "SoftAP WPA2 password"
+    default ""
+    help
+        Set a private 8..63 character WPA2 password in local menuconfig.
+        Do not commit sdkconfig or expose this value in source control.
+endmenu
