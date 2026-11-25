@@ -479,3 +479,16 @@ CI #2092 على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` نجح في ال
 - SoftAP معطل افتراضياً، ولا يبدأ إلا بعد تفعيل Kconfig وإدخال WPA2 password خاص (8..63 حرفاً). لا تحفظ كلمة المرور في المستودع.
 - لا تتغير خريطة الأرجل ولا تفعيل UART أو ADC أو TX بسبب هذه الإضافة. نجاح البناء لا يثبت اتصال Wi-Fi أو الهاتف على لوحة فعلية.
 - التفاصيل والعقد ورموز HTTP في `REV_A_WIFI_HTTP_API_AR.md`.
+
+
+## 33. نجاح تكامل ESP32-S3 وKconfig — CI #2100 — 2026-11-25
+
+نجح CI #2100 / run ID `45629014852` على commit `b7d0515b0cb0cf193b642aa3af74e22e72741059` في الوظائف الأربع، بما فيها ESP-IDF release-v5.4 لـESP32-S3. هذا يؤكد أن رموز Kconfig الخاصة بـUART وSoftAP أصبحت معرفة في build بعد نقلها إلى `main/Kconfig` وإضافة `sdkconfig.h` إلى ملفات التطبيق.
+
+- RP2040 UF2 وAndroid APK موجودان كـArtifacts؛ التفاصيل في `ISLAM.md` §20.
+- نجاح البناء لا يثبت أن SoftAP أو HTTP أو UART يعمل على لوحة فعلية. تبقى `CONFIG_REV_A_WIFI_ENABLE=n` و`CONFIG_REV_A_UART_ENABLE=n` افتراضياً، وأرجل UART غير معينة.
+- لا يوجد flash أو loopback أو ADC capture أو قياس TX/RX. يبقى ADS8861 capture معطلاً وDEVICE_INFO يعلن ADC_NONE.
+- البوابة التالية: تحديد مراجعة لوحة ESP32-S3 ومخططها الرسمي، ثم اختبار continuity والـUART منخفض الجهد قبل تفعيل الجسر. لا يُعتمد pin map أو TX من نتيجة CI وحدها.
+
+[CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852)
+
