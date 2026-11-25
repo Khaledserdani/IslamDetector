@@ -2052,3 +2052,16 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - [CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
 - الخطوة التالية: تحديد لوحة ESP32-S3 ومراجعتها ومخططها، ثم فحص continuity واختبار UART loopback آمن 3.3V؛ بعد ذلك اختبار SoftAP/HTTP على اللوحة مع كلمة مرور خاصة. لا تفعيل ADC أو TX قبل إغلاق الحماية والقياسات.
 
+
+
+## 21) تحقق HEAD الحالي — CI #2103 — 2026-11-25
+
+- بعد تحديث README الخاص بجسر ESP32، اكتمل CI #2103 / run ID `45630001149` بحالة **success** على رأس PR #7: `342d4d439caa337ec6f00d6cfbf5b55d243f35d4`.
+- نجحت الوظائف الأربع: protocol-tests، Android، RP2040، ESP32-S3. نجحت 92 اختبارات Python واختبار C/HTTP policy؛ Gradle APK build/verify نجح؛ ESP-IDF build/link نجح؛ UF2 verify/upload نجح.
+- Artifacts لهذا الرأس: APK ID `15030247423` بحجم21,312 bytes، وRP2040 timing-test UF2 ID `15029029084` بحجم30,262 bytes.
+- هذا أحدث إثبات بناء على رأس PR وقت التحقق. UF2 لا يزال اختبار GP4/GP5/GP6 المنطقي فقط، وADS8861 capture معطل. لا يوجد ESP32 binary artifact أو flash فعلي.
+- لا UART loopback أو Wi-Fi/HTTP على لوحة فعلية، ولا ADC أو MEASUREMENT حقيقي. لا مخطط KiCad أو PCB/PCBA أو BOM نهائي.
+- PR #7 مفتوح Draft وغير مدمج؛ PR #6 مغلق وغير مدمج. لا تعديل على main.
+- [CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+- الخطوة التالية: تحديد لوحة ESP32-S3 الفعلية ومخططها، ثم تنفيذ فحص continuity واختبار UART loopback منخفض الجهد، ثم اختبار SoftAP/HTTP على اللوحة. لا تفعيل ADC أو TX قبل اعتماد الحماية والقياسات.
+
