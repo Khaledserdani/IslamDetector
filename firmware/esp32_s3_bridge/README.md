@@ -67,4 +67,6 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 
 ### تصحيح إعدادات Kconfig — 2026-11-25
 
-أظهر CI #2096 أن ملف Kconfig في جذر مشروع ESP-IDF لم يعرّف رموز REV_A_WIFI_* في build الفعلي. نُقلت إعدادات UART وWi-Fi إلى `main/Kconfig` بجانب `main/CMakeLists.txt` حتى يحمّلها مكوّن main، وأضيف تضمين `sdkconfig.h` صراحةً في ملفات التطبيق. أُعيد تشغيل CI بعد هذا التصحيح؛ لا تعتمد الواجهة حتى ينجح بناء ESP32-S3.
+أظهر CI #2096 / run ID `45624352985` أن رمزي `CONFIG_REV_A_WIFI_SSID` و`CONFIG_REV_A_WIFI_PASSWORD` غير معرفين في `rev_a_http_api.c`. عند commit الفاشل كان ملف الإعدادات في جذر المشروع، ولم يكن `main/Kconfig` موجوداً. نُقلت إعدادات UART وWi-Fi إلى `main/Kconfig` بجانب `main/CMakeLists.txt`، وأضيف `#include "sdkconfig.h"` صراحةً إلى `app_main.c` و`rev_a_http_api.c`.
+
+مقارنة GitHub أكدت أن الفرع يحتوي الآن هذين التغييرين بعد commit الفشل. هذا يتفق مع دليل Espressif الرسمي الذي يحدد جذر كل component موضعاً تلقائياً لاكتشاف `Kconfig` و`Kconfig.projbuild`. مع ذلك، لا يُعد التصحيح ناجحاً حتى ينجح بناء ESP32-S3 على commit لاحق. تبقى UART وSoftAP معطلتين افتراضياً، وGPIO غير معينة، وكلمة مرور SoftAP فارغة افتراضياً؛ لا تفعّلها قبل ضبط كلمة مرور خاصة ومراجعة pinout اللوحة.
