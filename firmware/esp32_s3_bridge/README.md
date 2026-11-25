@@ -69,4 +69,6 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 
 أظهر CI #2096 / run ID `45624352985` أن رمزي `CONFIG_REV_A_WIFI_SSID` و`CONFIG_REV_A_WIFI_PASSWORD` غير معرفين في `rev_a_http_api.c`. عند commit الفاشل كان ملف الإعدادات في جذر المشروع، ولم يكن `main/Kconfig` موجوداً. نُقلت إعدادات UART وWi-Fi إلى `main/Kconfig` بجانب `main/CMakeLists.txt`، وأضيف `#include "sdkconfig.h"` صراحةً إلى `app_main.c` و`rev_a_http_api.c`.
 
-مقارنة GitHub أكدت أن الفرع يحتوي الآن هذين التغييرين بعد commit الفشل. هذا يتفق مع دليل Espressif الرسمي الذي يحدد جذر كل component موضعاً تلقائياً لاكتشاف `Kconfig` و`Kconfig.projbuild`. مع ذلك، لا يُعد التصحيح ناجحاً حتى ينجح بناء ESP32-S3 على commit لاحق. تبقى UART وSoftAP معطلتين افتراضياً، وGPIO غير معينة، وكلمة مرور SoftAP فارغة افتراضياً؛ لا تفعّلها قبل ضبط كلمة مرور خاصة ومراجعة pinout اللوحة.
+نجح التصحيح في CI #2100 / run ID `45629014852` على commit `b7d0515b0cb0cf193b642aa3af74e22e72741059`: اكتملت وظيفة ESP32-S3 build/link بنجاح، إلى جانب protocol-tests وAndroid وRP2040. هذا يؤكد أن رموز Kconfig أصبحت معرفة في الترجمة. مرجع Espressif الرسمي يوضح أن ملفات `Kconfig` و`Kconfig.projbuild` تُكتشف من جذر كل component.
+
+تبقى UART وSoftAP معطلتين افتراضياً، وGPIO غير معينة، وكلمة مرور SoftAP الافتراضية فارغة؛ لذلك لا يبدأ AP تلقائياً. نجاح build لا يثبت flash أو تشغيل Wi-Fi/HTTP أو UART على لوحة فعلية. لا تفعّل SoftAP قبل ضبط كلمة مرور خاصة، ولا تفعّل UART قبل مراجعة pinout اللوحة وفحص continuity.
