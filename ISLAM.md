@@ -2023,3 +2023,17 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - التصحيح: نقل إعدادات UART وWi-Fi إلى `firmware/esp32_s3_bridge/main/Kconfig` بجانب `main/CMakeLists.txt`، وإضافة `#include "sdkconfig.h"` صراحةً إلى `app_main.c` و`rev_a_http_api.c`. أزيل ملف Kconfig القديم من جذر المشروع في commit التصحيح.
 - لم نغيّر القيم الافتراضية الآمنة: UART disabled، GPIO=-1، Wi-Fi disabled، وكلمة مرور WPA2 الافتراضية فارغة؛ لذلك لا يبدأ AP تلقائياً.
 - يجب إعادة CI على commit التصحيح. لا يُسجل نجاح ESP32-S3 أو حزمة جديدة قبل ظهور build ناجح.
+
+
+## 19) متابعة Rev A — تشخيص CI #2096 وتصحيح Kconfig — 2026-11-25
+
+- أُعيدت قراءة هذا الملف والوثائق الهندسية الأربع من الفرع قبل فحص GitHub.
+- CI #2096 / run ID `45624352985` على commit `b77d9a4a9417f17993c6adf84a7df6245ead9351` اكتمل مع فشل وظيفة `esp32-s3-bridge` فقط. سجل الخطأ الدقيق في `rev_a_http_api.c`: الرمزان `CONFIG_REV_A_WIFI_SSID` و`CONFIG_REV_A_WIFI_PASSWORD` غير معرفين. Android وprotocol-tests وRP2040 نجحت.
+- Artifacts لهذا التشغيل: UF2 ID `15027867364` (30262 bytes) وAPK ID `15027781753` (21313 bytes). لا يوجد ESP32 firmware artifact من التشغيل الفاشل؛ لا يُعد وجود UF2 إثباتاً لتشغيل اللوحة.
+- مقارنة الفرع مع commit الفاشل أظهرت commitين لاحقين، دون تراجع خلفي عن ذلك commit. نُقل ملف Kconfig من جذر مشروع ESP-IDF إلى `firmware/esp32_s3_bridge/main/Kconfig` بجانب `main/CMakeLists.txt`، وأضيف `#include "sdkconfig.h"` إلى `app_main.c` و`rev_a_http_api.c`. بقيت UART وWi-Fi معطلتين افتراضياً، وGPIO=-1، وكلمة مرور SoftAP الافتراضية فارغة؛ لا تفعيل تلقائي للشبكة.
+- هذا النقل يتفق مع دليل Espressif الرسمي: يكتشف ESP-IDF ملفات `Kconfig` و`Kconfig.projbuild` في جذر كل component تلقائياً؛ لذلك `main/Kconfig` موضع صحيح لمكوّن main. المصدر: https://docs.espressif.com/projects/esp-idf/en/v5.4/esp32/api-guides/kconfig/component-configuration-guide.html
+- CI لم يُثبت بعد نجاح التصحيح؛ يجب أن ينجح بناء ESP32-S3 على commit لاحق ويُظهر الرموز في sdkconfig generated قبل تسجيل الإصلاح كناجح.
+- نتيجة مقارنة الفرع مع main وقت الفحص: 604 commits أماماً و6 خلفاً؛ لا merge أو rebase.
+- PR #6 ما زال مغلقاً وغير مدمج وفق GitHub؛ لم يُعد فتحه. PR #7 هو طلب Rev A المفتوح Draft. لا دمج لأي منهما.
+- الخطوة التالية: تشغيل CI على رأس الفرع بعد تصحيح Kconfig، ثم مراجعة سجل ESP-IDF ونتيجة الوظائف الأربع. لا Flash أو اختبار Wi-Fi/UART مادي حتى تحديد نسخة لوحة ESP32-S3 ومراجعة مخططها.
+
