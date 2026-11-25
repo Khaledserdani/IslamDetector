@@ -16,23 +16,6 @@ typedef struct {
     const char *reason;
 } rev_a_http_command_result_t;
 
-/*
- * Conservative Rev A policy:
- * - STOP is idempotently accepted while the TX path is not implemented.
- * - START remains blocked until an independently verified hardware interlock exists.
- * - CALIBRATE remains blocked until a real ADC measurement path is installed.
- */
-void rev_a_http_command_decide(
-    const char *command,
-    rev_a_http_command_result_t *result_out);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
-
 typedef struct {
     bool uart_running;
     bool device_info_valid;
@@ -43,9 +26,25 @@ typedef struct {
     uint32_t adc_vref_uv;
 } rev_a_http_device_status_t;
 
+/*
+ * Conservative Rev A policy:
+ * - STOP is idempotently accepted while the TX path is not implemented.
+ * - START remains blocked until an independently verified hardware interlock exists.
+ * - CALIBRATE remains blocked until a real ADC measurement path is installed.
+ */
+void rev_a_http_command_decide(
+    const char *command,
+    rev_a_http_command_result_t *result_out);
+
 /* Build a truthful /status snapshot. Measurements and TX remain unavailable
  * until a real ADC producer and independently verified TX interlock exist. */
 bool rev_a_http_build_status_json(
     const rev_a_http_device_status_t *device_status,
     char *buffer,
     size_t buffer_capacity);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
