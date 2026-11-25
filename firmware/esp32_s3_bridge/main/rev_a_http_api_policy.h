@@ -2,6 +2,8 @@
 #define ISLAM_REV_A_HTTP_API_POLICY_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,3 +31,21 @@ void rev_a_http_command_decide(
 #endif
 
 #endif
+
+
+typedef struct {
+    bool uart_running;
+    bool device_info_valid;
+    uint8_t adc_model_id;
+    uint8_t sample_format_id;
+    uint8_t adc_resolution_bits;
+    uint8_t adc_input_mode_id;
+    uint32_t adc_vref_uv;
+} rev_a_http_device_status_t;
+
+/* Build a truthful /status snapshot. Measurements and TX remain unavailable
+ * until a real ADC producer and independently verified TX interlock exist. */
+bool rev_a_http_build_status_json(
+    const rev_a_http_device_status_t *device_status,
+    char *buffer,
+    size_t buffer_capacity);

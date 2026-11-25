@@ -344,6 +344,10 @@ public class MainActivity extends Activity {
         if (data == null) data = root;
         txArmed = data.optBoolean("tx_armed", false);
         measurementAvailable = data.optBoolean("measurement_available", false);
+        boolean uartRunning = data.optBoolean("uart_running", false);
+        boolean deviceInfoValid = data.optBoolean("device_info_valid", false);
+        boolean adcPresent = data.optBoolean("adc_present", false);
+        int adcModelId = data.optInt("adc_model_id", 0);
         double signal = number(data, "signal", "raw", "amplitude");
         double confidence = number(data, "confidence", "confidence_percent");
         double depth = number(data, "depth_cm", "depth");
@@ -362,8 +366,19 @@ public class MainActivity extends Activity {
             detecting = false; detectButton.setText("بدء الكشف");
         }
         updateControlAvailability();
+        String rp2040State;
+        if (deviceInfoValid) {
+            rp2040State = adcPresent
+                    ? "RP2040 متصل • ADC ID " + adcModelId
+                    : "RP2040 متصل • لا يوجد ADC";
+        } else if (uartRunning) {
+            rp2040State = "UART مفعّل • ينتظر هوية RP2040";
+        } else {
+            rp2040State = "UART غير مفعّل";
+        }
         lastUpdateText.setText("آخر تحديث: " + timeFormat.format(new Date()) +
-                (data.has("device") ? " • " + data.optString("device") : ""));
+                (data.has("device") ? " • " + data.optString("device") : "") +
+                "\n" + rp2040State);
         if (!Double.isNaN(signal) && System.currentTimeMillis() - lastSavedAt > 5000) {
             lastSavedAt = System.currentTimeMillis();
             final double savedSignal = signal;

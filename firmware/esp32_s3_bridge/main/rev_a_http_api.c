@@ -12,27 +12,12 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "rev_a_http_api_policy.h"
+#include "rev_a_uart_bridge.h"
 
 #define TAG "rev_a_http"
 #define CONTROL_BODY_MAX 128u
 
 static httpd_handle_t s_http_server;
-
-static const char k_status_json[] =
-    "{\"device\":\"Islam Detector\","
-    "\"state\":\"idle\","
-    "\"signal\":null,"
-    "\"confidence\":null,"
-    "\"depth_cm\":null,"
-    "\"calibrated\":false,"
-    "\"calibration_percent\":null,"
-    "\"tx_armed\":false,"
-    "\"measurement_available\":false,"
-    "\"adc_present\":false,"
-    "\"adc_model_id\":0,"
-    "\"device_info_valid\":false,"
-    "\"measurement_source\":\"none\","
-    "\"availability_reason\":\"TX_INTERLOCK_NOT_IMPLEMENTED;ADC_NOT_INSTALLED\"}";
 
 static esp_err_t send_json(
     httpd_req_t *request,
@@ -45,7 +30,26 @@ static esp_err_t send_json(
 }
 
 static esp_err_t status_get_handler(httpd_req_t *request) {
-    return send_json(request, "200 OK", k_status_json);
+    rev_a_uart_bridge_status_t bridge_status = {0};
+    rev_a_uart_bridge_get_status(&bridge_status);
+
+    rev_a_http_device_status_t device_status = {0};
+    device_status.uart_running = bridge_status.running;
+    device_status.device_info_valid =
+        bridge_status.running && bridge_status.device_info_valid;
+    if (device_status.device_info_valid) {
+        device_status.adc_model_id = bridge_status.device_info.adc_model_id;
+        device_status.sample_format_id = bridge_status.device_info.sample_format_id;
+        device_status.adc_resolution_bits = bridge_status.device_info.adc_resolution_bits;
+        device_status.adc_input_mode_id = bridge_status.device_info.adc_input_mode_id;
+        device_status.adc_vref_uv = bridge_status.device_info.adc_vref_uv;
+    }
+
+    char body[640];
+    if (!rev_a_http_build_status_json(&device_status, body, sizeof(body))) {
+        return ESP_FAIL;
+    }
+    return send_json(request, "200 OK", body);
 }
 
 static const char *status_phrase(int status_code) {
