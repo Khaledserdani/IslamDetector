@@ -367,3 +367,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - RP2040 ما زال يرسل ACK وDEVICE_INFO فقط عند الطلب؛ DEVICE_INFO الفعلي في firmware يعلن ADC_NONE وSAMPLE_UNKNOWN وresolution=0 وVREF=0. لا يوجد ADC MEASUREMENT producer، ولا يجوز تحويل مخرجات الاختبار أو USB log إلى عينات قياس.
 - ESP32 UART bridge مبني لكنه disabled افتراضياً؛ GPIO غير معينة، ولا يوجد loopback على اللوحتين.
 - [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952). القبول التالي: تثبيت pinout اللوحتين من المخططات الفعلية، ثم اختبار UART منخفض الجهد، وبعد تركيب ADC والحماية فقط يُفعّل مسار الالتقاط ويُختبر RAW16 ميدانياً.
+
+
+## 9.12 تحقق البروتوكول وسياسة HTTP — CI #2100 — 2026-11-25
+
+- نجح `protocol-tests` في CI #2100 / run ID `45629014852` على commit `b7d0515b0cb0cf193b642aa3af74e22e72741059`.
+- نجحت 92 اختبارات Python، وبناء واختبار C protocol/session بخيارات `-Wall -Wextra -Werror -pedantic`، واختبار سياسة أوامر HTTP.
+- هذا يثبت اختبارات parser/session وسياسة START/STOP/CALIBRATE على المضيف فقط. لا يثبت UART بين اللوحتين، أو DEVICE_INFO فعلياً من RP2040 بعد تركيب ADC، أو إرسال MEASUREMENT حقيقي.
+- يظل RP2040 يعلن ADC_NONE ولا ينتج MEASUREMENT، وESP32 UART bridge معطل افتراضياً وGPIO غير معينة.
+- [CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852)
+
