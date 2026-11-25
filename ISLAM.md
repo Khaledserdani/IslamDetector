@@ -2075,3 +2075,21 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - PR #7 مفتوح Draft وغير مدمج. PR #6 مغلق وغير مدمج وفق GitHub؛ لم يُفتح مجدداً.
 - لا يزال pinout ESP32-S3 والاختبار المادي وADC capture والحماية وKiCad/BOM/PCB/PCBA مفتوحاً.
 
+
+
+## 23) ربط حالة UART/DEVICE_INFO بواجهة Android — 2026-11-25
+
+- أضيفت الدالة rev_a_http_build_status_json() إلى سياسة HTTP المحمولة؛ أصبحت GET /status تقرأ snapshot من rev_a_uart_bridge_get_status() بدلاً من JSON ثابت.
+- يعرض status الآن uart_running وdevice_info_valid وadc_present وadc_model_id وsample_format_id وadc_resolution_bits وadc_input_mode_id وadc_vref_uv.
+- لا تزال measurement_available=false وtx_armed=false وsignal/confidence/depth/calibration=null دائماً حتى وجود producer ADC فعلي ومسار TX interlock مستقل مختبر. عند غياب DEVICE_INFO لا تُعرض هوية قديمة؛ تُربط صلاحية الهوية بحالة UART running.
+- أضيفت اختبارات C لحالات UART متوقف، وDEVICE_INFO=ADC_NONE، وهوية ADS8861 معلنة مع بقاء القياس غير متاح، وسعة JSON غير كافية.
+- تطبيق Android يعرض الآن حالة RP2040: متصل مع ADC ID، أو متصل بلا ADC، أو UART ينتظر DEVICE_INFO، أو UART غير مفعّل.
+- CI #2108 / run ID 45636028184 نجح على HEAD d00d0039c5838251f59806297907c62f93fe204e في الوظائف الأربع: protocol-tests، Android، RP2040، ESP32-S3.
+- protocol-tests: 92 اختبار Python، C protocol/session مع التحذيرات الصارمة، واختبارات HTTP status/policy. Android APK build/ZIP verify نجح؛ SHA-256 للـAPK 720d4d310ac068a16def1c26cd0619b923cc8c8e66771fb8a3db6bece345a627، Artifact ID 15032513963.
+- RP2040 UF2 اجتاز التحقق: 150 blocks، 38,400 payload bytes، Family ID 0xE48BFF56، المجال 0x10000000..0x10009600، SHA-256 9a87c457252c90b37694dede281ba59c274be8e430a8d19827d4bccc7e125be0، Artifact ID 15033770232.
+- ESP32-S3 ESP-IDF release-v5.4 build/link اكتمل؛ binary size 0x27720 bytes، لكنه لم يُرفع كـArtifact في workflow. لا flash على لوحة فعلية.
+- PR #6 مغلق وغير مدمج وفق GitHub، وPR #7 مفتوح Draft وغير مدمج. مقارنة الفرع مع main: 616 commit أماماً و6 خلفاً؛ لم يحدث merge أو rebase.
+- settings.gradle يضم :app فقط؛ النسخة الفعلية المبنية هي app/src/main/.... يوجد مجلد متداخل قديم app/app/... لا يدخل في build الحالي، وقد تُرك دون حذف.
+- حدود الإثبات: UART وSoftAP معطلان افتراضياً، GPIO ESP32 غير معين، RP2040 يعلن ADC_NONE، وADS8861 capture معطل. لا UART loopback أو Wi-Fi/HTTP على لوحة فعلية، ولا MEASUREMENT producer أو KiCad/BOM/PCB/PCBA نهائي.
+- CI #2108: https://github.com/Khaledserdani/IslamDetector/actions/runs/45636028184
+- الخطوة التالية: تحديد مراجعة لوحة ESP32-S3 ومخططها الرسمي، ثم فحص continuity واختبار UART 3.3V منخفض الجهد. بعد ذلك اختبار SoftAP/HTTP من الهاتف، ثم استكمال ADC/MEASUREMENT بعد تركيب AFE والحماية.

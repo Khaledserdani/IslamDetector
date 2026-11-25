@@ -278,3 +278,12 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - ESP32-S3 UART bridge معطل وTX/RX GPIO=-1. لا تثبت أي رجل قبل رقم/مراجعة لوحة التطوير ومخططها وفحص التعارضات.
 - لا flash أو UART loopback أو ADC capture فعلي حتى الآن.
 [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952)
+
+
+## 17. تحقق pin map بعد CI #2108 — 2026-11-25
+
+- CI #2108 / run ID 45636028184 نجح في بناء Android وRP2040 وESP32-S3 واختبارات البروتوكول؛ UF2 اجتاز فحص البنية وFamily ID.
+- لا يثبت هذا التشغيل أي GPIO على اللوحات. ESP32-S3 UART TX/RX ما زالت -1 والجسر معطل افتراضياً. GP0/GP1 على RP2040 تبقى UART0 مرشحة، وGP8/GP9/GP10 لمسار ADS8861 المقترح والمعطل، وGP4/GP5/GP6 اختبار منطق فقط.
+- UART وSoftAP معطلان افتراضياً. لا continuity أو loopback أو قياس logic-analyzer على لوحة فعلية حتى الآن.
+- PR #7 مفتوح Draft؛ PR #6 مغلق وغير مدمج. لا merge أو rebase.
+- بوابة التوصيل التالية: تحديد رقم ومراجعة لوحة ESP32-S3-N16R8 الفعلية ومخططها الرسمي، ثم فحص continuity والجهود والـGPIO conflicts والـ3.3V UART loopback واللوحات مفصولة عن أي مرحلة TX.

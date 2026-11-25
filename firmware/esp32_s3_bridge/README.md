@@ -72,3 +72,14 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 نجح التصحيح في CI #2100 / run ID `45629014852` على commit `b7d0515b0cb0cf193b642aa3af74e22e72741059`: اكتملت وظيفة ESP32-S3 build/link بنجاح، إلى جانب protocol-tests وAndroid وRP2040. هذا يؤكد أن رموز Kconfig أصبحت معرفة في الترجمة. مرجع Espressif الرسمي يوضح أن ملفات `Kconfig` و`Kconfig.projbuild` تُكتشف من جذر كل component.
 
 تبقى UART وSoftAP معطلتين افتراضياً، وGPIO غير معينة، وكلمة مرور SoftAP الافتراضية فارغة؛ لذلك لا يبدأ AP تلقائياً. نجاح build لا يثبت flash أو تشغيل Wi-Fi/HTTP أو UART على لوحة فعلية. لا تفعّل SoftAP قبل ضبط كلمة مرور خاصة، ولا تفعّل UART قبل مراجعة pinout اللوحة وفحص continuity.
+
+
+## تحديث 2026-11-25 — عرض حالة RP2040 في تطبيق Android
+
+بعد إضافة حقول uart_running وdevice_info_valid وadc_present إلى /status، يعرض التطبيق:
+- RP2040 متصل وADC ID معلن.
+- RP2040 متصل لكن ADC غير مركب.
+- UART مفعّل وينتظر DEVICE_INFO.
+- UART غير مفعّل.
+
+لا يغير ذلك حالة الكشف ولا يتيح START أو CALIBRATE. CI #2108 نجح في بناء APK والتحقق من ZIP؛ لم يثبت تثبيت APK أو اتصاله بهاتف/لوحة فعلية.

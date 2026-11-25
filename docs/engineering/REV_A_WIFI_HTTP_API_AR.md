@@ -83,3 +83,15 @@ cc -std=c11 -Wall -Wextra -Werror -pedantic \
 ## تصحيح Kconfig — 2026-11-25
 
 أظهر CI #2096 أن ملف Kconfig في جذر مشروع ESP-IDF لم يعرّف رموز Wi-Fi في build الخاص بمكوّن main. الإعدادات موجودة الآن في `firmware/esp32_s3_bridge/main/Kconfig` بجانب `main/CMakeLists.txt`، مع تضمين `sdkconfig.h` صراحةً. لا تزال Wi-Fi وUART معطلتين افتراضياً.
+
+
+## 8. حالة GET /status بعد ربط UART — CI #2108
+
+أصبحت استجابة /status ديناميكية بالنسبة إلى UART bridge:
+- uart_running: هل مهمة UART مفعلة.
+- device_info_valid: هل وصلت DEVICE_INFO صالحة خلال جلسة UART الحالية.
+- adc_present وحقول adc_model_id وsample_format_id وadc_resolution_bits وadc_input_mode_id وadc_vref_uv: هوية ADC المعلنة والمتحقق منها في طبقة البروتوكول.
+- إذا توقف UART، تُخفى الهوية القديمة وتعود القيم إلى غير متاحة.
+- measurement_available وtx_armed يظلان false، وsignal/confidence/depth/calibration null؛ لا توجد MEASUREMENT producer أو خوارزمية قياس أو TX interlock معتمد.
+
+أضيفت اختبارات C لهذه الحالات. CI #2108 / run ID 45636028184 نجح في الوظائف الأربع. لم يحدث اختبار SoftAP أو HTTP من هاتف Android على لوحة فعلية، وما زالت إعدادات Wi-Fi/UART معطلة افتراضياً وGPIO غير مثبتة.

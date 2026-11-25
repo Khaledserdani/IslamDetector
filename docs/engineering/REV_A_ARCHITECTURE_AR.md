@@ -505,3 +505,10 @@ CI #2103 / run ID `45630001149` نجح على رأس PR #7 `342d4d439caa337ec6f0
 
 [CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149)
 
+
+
+## تحديث 2026-11-25 — حالة الهاتف من DEVICE_INFO
+
+أصبحت GET /status تجمع snapshot من UART bridge بدلاً من JSON ثابت. تعرض حالة UART وصلاحية DEVICE_INFO وهوية ADC ومرجعه. صلاحية DEVICE_INFO لا تبقى ظاهرة بعد توقف UART. يظل measurement_available=false وtx_armed=false، وتظل قراءات signal/confidence/depth null؛ وجود هوية ADC وحده لا يعني أن مسار القياس أو التحليل جاهز. تطبيق Android يعرض حالة RP2040/ADC بوضوح دون تفعيل أزرار الكشف أو المعايرة.
+
+CI #2108 / run ID 45636028184 نجح على HEAD d00d0039c5838251f59806297907c62f93fe204e في الوظائف الأربع. هذا يثبت البناء واختبارات المضيف فقط؛ لا يثبت UART أو Wi-Fi أو ADC على اللوحات. PR #7 يبقى Draft، وPR #6 مغلق وغير مدمج. لا flash أو pinout نهائي أو TX.

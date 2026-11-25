@@ -387,3 +387,14 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - DEVICE_INFO في RP2040 ما زال ADC_NONE، ولا يوجد MEASUREMENT producer. لا تفسر أو تحفظ عينات حقيقية قبل تركيب ADC والتحقق من metadata والـVREF.
 - [CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149)
 
+
+
+## 9.14 ربط حالة UART وDEVICE_INFO بواجهة الهاتف — CI #2108 — 2026-11-25
+
+- GET /status في ESP32-S3 يقرأ snapshot من rev_a_uart_bridge_get_status() ويعرض uart_running وdevice_info_valid وبيانات ADC المعلنة.
+- لا تعرض هوية DEVICE_INFO على أنها صالحة إذا كان UART متوقفاً؛ ويظل adc_present=false عند ADC_NONE.
+- measurement_available=false وtx_armed=false وقراءات القياس null حتى إضافة MEASUREMENT producer ومستهلك/تحليل فعلي واعتماد interlock.
+- Android يعرض حالة RP2040/ADC لكنه لا يفتح زر البدء أو المعايرة اعتماداً على وجود DEVICE_INFO فقط.
+- أضيفت اختبارات C لحالات UART disabled، وADC_NONE، وهوية ADC صحيحة مع غياب pipeline، وسعة JSON القصيرة.
+- CI #2108 / 45636028184: 92 Python tests، C parser/session، HTTP status/policy tests، Android APK، RP2040 UF2، وESP32-S3 build/link نجحت.
+- هذا تحقق برمجي فقط؛ لا UART loopback أو DEVICE_INFO فعلي من اللوحة أو ADC capture أو Wi-Fi/HTTP مادي.
