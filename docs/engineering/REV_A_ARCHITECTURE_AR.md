@@ -492,3 +492,16 @@ CI #2092 على HEAD `c747171f0dfb4016ca85ab28a6d8b93a0d7170a4` نجح في ال
 
 [CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852)
 
+
+
+## 34. تحقق رأس PR بعد تحديث Kconfig — CI #2103 — 2026-11-25
+
+CI #2103 / run ID `45630001149` نجح على رأس PR #7 `342d4d439caa337ec6f00d6cfbf5b55d243f35d4` في الوظائف الأربع: protocol-tests، Android APK، RP2040 timing-test UF2، وESP32-S3 ESP-IDF build/link. هذا يؤكد أن إصلاح Kconfig مستمر على الرأس الحالي، وليس فقط على تشغيل #2100.
+
+- APK Artifact ID: `15030247423`؛ RP2040 UF2 Artifact ID: `15029029084`.
+- UF2 يبقى اختبار توقيت منطقي فقط؛ لا ADC capture ولا MOSFET drive. لا flash أو اختبار فعلي.
+- UART وSoftAP معطلان افتراضياً، وGPIO ESP32 غير مثبتة. لا يعتمد pin map قبل مراجعة نسخة اللوحة ومخططها وcontinuity.
+- لا KiCad/PCB/BOM تصنيع نهائي حتى الآن.
+
+[CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149)
+
