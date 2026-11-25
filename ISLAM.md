@@ -2037,3 +2037,18 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - PR #6 ما زال مغلقاً وغير مدمج وفق GitHub؛ لم يُعد فتحه. PR #7 هو طلب Rev A المفتوح Draft. لا دمج لأي منهما.
 - الخطوة التالية: تشغيل CI على رأس الفرع بعد تصحيح Kconfig، ثم مراجعة سجل ESP-IDF ونتيجة الوظائف الأربع. لا Flash أو اختبار Wi-Fi/UART مادي حتى تحديد نسخة لوحة ESP32-S3 ومراجعة مخططها.
 
+
+
+## 20) تحقق CI #2100 بعد تصحيح Kconfig — 2026-11-25
+
+- CI #2100 / run ID `45629014852` على commit `b7d0515b0cb0cf193b642aa3af74e22e72741059` اكتمل بحالة **success**؛ الوظائف الأربع نجحت: `protocol-tests` و`android-app` و`rp2040-firmware` و`esp32-s3-bridge`.
+- `protocol-tests`: نجحت 92 اختبارات Python، ونجح C protocol/session مع التحذيرات الصارمة، ونجح اختبار سياسة أوامر HTTP الآمنة.
+- `android-app`: `BUILD SUCCESSFUL`، ونجح فحص APK وZIP ورفع Artifact ID `15030346247` بحجم 21,310 bytes.
+- `rp2040-firmware`: نجح البناء والتحقق من UF2: 150 blocks، و38,400 payload bytes، وFamily ID=`0xE48BFF56`، والعناوين `0x10000000..0x10009600`. Artifact ID `15030635189` بحجم 30,262 bytes.
+- `esp32-s3-bridge`: نجح ESP-IDF release-v5.4 build/link، وسجل البناء `Project build complete`. لم يُرفع ESP32 binary كـArtifact في هذا workflow.
+- نجاح ESP32-S3 يؤكد أن نقل إعدادات Kconfig إلى `main/Kconfig` وإضافة `sdkconfig.h` عالج خطأ الرموز غير المعرفة الذي ظهر في #2096.
+- الحدود: UF2 لا يزال logic timing test فقط؛ `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO يعلن ADC_NONE، ولا يوجد MEASUREMENT producer. لا UART loopback أو Flash أو Wi-Fi/HTTP على لوحة فعلية. SoftAP وUART معطلان افتراضياً، وGPIO غير مثبتة. APK لم يُثبت على هاتف المستخدم.
+- PR #6 مغلق وغير مدمج؛ PR #7 هو Draft المفتوح. لم يحدث merge أو rebase. مقارنة الفرع مع main وقت الفحص: 605 commits أماماً و6 خلفاً.
+- [CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+- الخطوة التالية: تحديد لوحة ESP32-S3 ومراجعتها ومخططها، ثم فحص continuity واختبار UART loopback آمن 3.3V؛ بعد ذلك اختبار SoftAP/HTTP على اللوحة مع كلمة مرور خاصة. لا تفعيل ADC أو TX قبل إغلاق الحماية والقياسات.
+
