@@ -377,3 +377,13 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - يظل RP2040 يعلن ADC_NONE ولا ينتج MEASUREMENT، وESP32 UART bridge معطل افتراضياً وGPIO غير معينة.
 - [CI #2100](https://github.com/Khaledserdani/IslamDetector/actions/runs/45629014852)
 
+
+
+## 9.13 تأكيد بروتوكول Rev A على رأس PR الحالي — CI #2103 — 2026-11-25
+
+- نجح `protocol-tests` في CI #2103 / run ID `45630001149` على commit `342d4d439caa337ec6f00d6cfbf5b55d243f35d4`.
+- اجتازت 92 اختبارات Python، وبناء/اختبار C parser/session، واختبار سياسة HTTP الآمنة.
+- لا يزال هذا تحققاً برمجياً على المضيف؛ لا يثبت UART loopback أو DEVICE_INFO من لوحة فعلية أو MEASUREMENT من ADS8861.
+- DEVICE_INFO في RP2040 ما زال ADC_NONE، ولا يوجد MEASUREMENT producer. لا تفسر أو تحفظ عينات حقيقية قبل تركيب ADC والتحقق من metadata والـVREF.
+- [CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149)
+
