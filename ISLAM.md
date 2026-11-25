@@ -2065,3 +2065,13 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - [CI #2103](https://github.com/Khaledserdani/IslamDetector/actions/runs/45630001149) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
 - الخطوة التالية: تحديد لوحة ESP32-S3 الفعلية ومخططها، ثم تنفيذ فحص continuity واختبار UART loopback منخفض الجهد، ثم اختبار SoftAP/HTTP على اللوحة. لا تفعيل ADC أو TX قبل اعتماد الحماية والقياسات.
 
+
+
+## 22) رأس الفرع بعد تحديثات التوثيق — 2026-11-25
+
+- HEAD الحالي للفرع/PR #7: `f0aacddc3397d0c3d4f702c34691a5d6dfc2544f`.
+- مقارنة HEAD الحالي مع commit CI #2103 `342d4d439caa337ec6f00d6cfbf5b55d243f35d4` أظهرت ثلاثة commits لاحقة فقط، وجميع الملفات المتغيرة هي `ISLAM.md` و`REV_A_ARCHITECTURE_AR.md` و`REV_A_DATA_PROTOCOL_AR.md`. لم تتغير Firmware أو Android بعد CI #2103؛ لذلك يبقى #2103 أحدث تحقق برمجي للكود.
+- مقارنة الفرع مع main: 613 commits أماماً و6 خلفاً؛ لا merge أو rebase.
+- PR #7 مفتوح Draft وغير مدمج. PR #6 مغلق وغير مدمج وفق GitHub؛ لم يُفتح مجدداً.
+- لا يزال pinout ESP32-S3 والاختبار المادي وADC capture والحماية وKiCad/BOM/PCB/PCBA مفتوحاً.
+
