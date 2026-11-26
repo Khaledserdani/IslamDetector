@@ -1,6 +1,6 @@
 # تنفيذ جسر UART على ESP32-S3 — Rev A
 
-**الحالة (2026-11-15):** مكوّن ESP-IDF وparser/session وUART task ومقابل RP2040 command responder/ACK/DEVICE_INFO منفذة برمجياً، واكتمل build على CI #1371 و#1372. لا يوجد توصيل عتادي أو UART loopback، وDEVICE_INFO يعلن ADC_NONE لأن ADC غير مركب.
+**الحالة (2026-11-26):** parser/session وUART task وRP2040 command responder وSoftAP/HTTP API منفذة برمجياً. لا يوجد توصيل عتادي أو UART loopback أو Flash. اكتُشف أن بناء ESP-IDF السابق استهدف `esp32` العام لا `esp32s3`؛ أضيف تثبيت الهدف والتحقق منه إلى المشروع وCI، وينتظر تشغيل CI جديد.
 
 ## ما أضيف
 - مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
@@ -138,3 +138,23 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 - راجعت `main/app_main.c`: لا يبدأ UART bridge إلا إذا فُعّل Kconfig مع GPIO صالحة؛ لا يوجد حالياً Wi-Fi SoftAP أو HTTP server في Firmware. في المقابل، Android يطلب `GET /status` و`POST /control`. لذلك واجهة الهاتف لم تُربط بعد باللوحة.
 - المرحلة التالية بعد تحديد نسخة لوحة ESP32-S3 ومخططها هي اختبار UART 3.3V منخفض الجهد، ثم تنفيذ SoftAP/HTTP API يعيد حالة صادقة بلا قياسات وهمية، ويرفض START ما دام interlock غير موجود.
 - [CI #2093](https://github.com/Khaledserdani/IslamDetector/actions/runs/45409935952) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+
+
+## تصحيح هدف الشريحة — 2026-11-26
+
+**اكتشاف جوهري:** راجعت سجل ESP32 job في CI #2109 / run ID `45637215817`. رغم اسم الوظيفة، أظهر السجل `Creating esp32 image...` وأمر التفليش `--chip esp32`، وليس `esp32s3`. لم يكن في المشروع `sdkconfig.defaults` يحدد الهدف، ولم يكن workflow ينفذ `idf.py set-target`. لذلك لا يجوز احتساب CI #2109 كإثبات بناء ESP32-S3.
+
+توضح وثائق Espressif ESP-IDF v5.4 أن الهدف الافتراضي عند عدم تحديده هو `esp32`، وأن اختيار ESP32-S3 يتم بواسطة `idf.py set-target esp32s3` أو إعداد `CONFIG_IDF_TARGET` في `sdkconfig.defaults`:
+https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/linux-macos-setup.html
+
+**التصحيح المضاف على فرع العمل:**
+1. إنشاء `sdkconfig.defaults` وفيه `CONFIG_IDF_TARGET="esp32s3"`.
+2. جعل CI ينفذ `idf.py set-target esp32s3 && idf.py build` داخل صورة ESP-IDF release-v5.4.
+3. رفض نتيجة البناء ما لم يثبت `CONFIG_IDF_TARGET="esp32s3"` و`CONFIG_IDF_TARGET_ESP32S3=y` وظهور `--chip esp32s3` في `build/flash_args`.
+4. تجهيز Artifact منفصل باسم `IslamDetector-RevA-ESP32S3-BUILD-ONLY` يحتوي BIN وbootloader وجدول الأقسام وflash_args مع ملف تحذير build-only. لا يُرفع إلا بعد اجتياز فحوص الهدف والملفات.
+
+**حالة الإثبات:** لم يُشغّل CI بعد على commit التصحيح وقت كتابة هذه الملاحظة؛ لذلك لا نسجل بناء ESP32-S3 ناجحاً حتى ينجح التشغيل الجديد وتظهر الحزمة. لا Flash أو UART أو Wi-Fi على لوحة فعلية.
+
+## تحديث SoftAP/HTTP — 2026-11-26
+
+أصبحت الدوال البرمجية الاختيارية `rev_a_http_api_start()` وواجهتا `GET /status` و`POST /control` موجودة في `main/rev_a_http_api.c`. تظل `CONFIG_REV_A_WIFI_ENABLE=n` افتراضياً، وتتطلب كلمة مرور WPA2 خاصة من 8 إلى63 حرفاً قبل التفعيل. /status لا يعرض قياسات وهمية؛ START وCALIBRATE مرفوضان. هذا compile/test برمجي، وليس اختبار SoftAP أو اتصال Android فعلي.

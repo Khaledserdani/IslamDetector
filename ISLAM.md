@@ -2093,3 +2093,19 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - حدود الإثبات: UART وSoftAP معطلان افتراضياً، GPIO ESP32 غير معين، RP2040 يعلن ADC_NONE، وADS8861 capture معطل. لا UART loopback أو Wi-Fi/HTTP على لوحة فعلية، ولا MEASUREMENT producer أو KiCad/BOM/PCB/PCBA نهائي.
 - CI #2108: https://github.com/Khaledserdani/IslamDetector/actions/runs/45636028184
 - الخطوة التالية: تحديد مراجعة لوحة ESP32-S3 ومخططها الرسمي، ثم فحص continuity واختبار UART 3.3V منخفض الجهد. بعد ذلك اختبار SoftAP/HTTP من الهاتف، ثم استكمال ADC/MEASUREMENT بعد تركيب AFE والحماية.
+
+
+## 24) تدقيق هدف ESP32-S3 وتصحيح CI — 2026-11-26
+
+- أُعيدت قراءة `ISLAM.md` والوثائق الهندسية الأربع من فرع `hardware/rev-a-measurement-design` قبل فحص PR والـCI والملفات.
+- PR #6 في GitHub حالته الفعلية `closed` وغير مدمج، وحقل Draft ما زال true؛ لم يُفتح مجدداً ولم يُدمج. PR #7 هو الطلب المفتوح Draft الحالي، ورأسه `39054e060e7336a74f4aa004ddd0c26e9256f1cd`.
+- CI #2109 / run ID `45637215817` نجح في الوظائف الأربع: 92 اختبار Python، C protocol/session وHTTP policy، Android APK build/ZIP، RP2040 UF2 build/verify، وESP-IDF compile/link.
+- **تصحيح جوهري:** سجل ESP-IDF في #2109 أنشأ `esp32 image` وأمر esptool استخدم `--chip esp32`. لذلك لم يكن هذا إثباتاً لبناء ESP32-S3. وثائق Espressif v5.4 توضح أن الهدف الافتراضي هو `esp32` ما لم يحدد `IDF_TARGET`.
+- أضيف `firmware/esp32_s3_bridge/sdkconfig.defaults` لتثبيت `CONFIG_IDF_TARGET="esp32s3"`، وعدّل workflow ليشغّل `idf.py set-target esp32s3` ثم build، ويرفض النتيجة إذا لم يثبت `CONFIG_IDF_TARGET_ESP32S3=y` و`--chip esp32s3`.
+- أضيفت regression test إلى `tools/test_rev_a_safety_gates.py` لمنع رجوع هدف البناء إلى ESP32 العام.
+- أضيف تجهيز حزمة Artifact build-only للـESP32-S3 بعد التحقق من target ووجود BIN/bootloader/partition-table. لا تُرفع ولا تعتمد قبل CI الجديد. لا تحتوي الحزمة على إعدادات أو كلمات مرور.
+- ملفات التحديث: `.github/workflows/main.yml`، `tools/test_rev_a_safety_gates.py`، `firmware/esp32_s3_bridge/sdkconfig.defaults`، `firmware/esp32_s3_bridge/README.md`، `docs/engineering/REV_A_ESP32_UART_INTEGRATION_AR.md`، `docs/engineering/REV_A_ARCHITECTURE_AR.md`، وهذا الملف.
+- حالة CI للتصحيح: تنتظر تشغيل workflow على commit التصحيح؛ لا نسجل ESP32-S3 build ناجحاً قبل تحقق السجل وظهور Artifact.
+- حدود العتاد لم تتغير: RP2040 UF2 اختبار GP4/GP5/GP6 منطقي فقط؛ ADS8861 capture=0 وDEVICE_INFO=ADC_NONE؛ UART وSoftAP معطلان افتراضياً؛ لا GPIO ESP32 مثبتة ولا loopback أو flash أو قياس فعلي. لا MOSFET/ملف بحث أو قيم حماية نهائية، ولا KiCad/BOM/PCB/PCBA.
+- مرجع اختيار الهدف الرسمي: https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/linux-macos-setup.html
+- [CI #2109](https://github.com/Khaledserdani/IslamDetector/actions/runs/45637215817) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)

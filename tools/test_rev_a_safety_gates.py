@@ -8,6 +8,8 @@ RP_MAIN = ROOT / "firmware/rp2040_timing_test/src/main.c"
 RP_CMAKE = ROOT / "firmware/rp2040_timing_test/CMakeLists.txt"
 ADC_DRIVER = ROOT / "firmware/rp2040_timing_test/src/ads8861_capture.c"
 UART_KCONFIG = ROOT / "firmware/esp32_s3_bridge/main/Kconfig"
+ESP32_SDKCONFIG_DEFAULTS = ROOT / "firmware/esp32_s3_bridge/sdkconfig.defaults"
+ESP32_WORKFLOW = ROOT / ".github/workflows/main.yml"
 UART_APP_MAIN = ROOT / "firmware/esp32_s3_bridge/main/app_main.c"
 UART_DRIVER = ROOT / "firmware/esp32_s3_bridge/components/rev_a_uart_bridge/rev_a_uart_bridge.c"
 TX_INTERLOCK_SPEC = ROOT / "docs/engineering/REV_A_TX_INTERLOCK_SPEC_AR.md"
@@ -23,6 +25,8 @@ class RevASafetyGateTests(unittest.TestCase):
         cls.rp_cmake = RP_CMAKE.read_text(encoding="utf-8")
         cls.adc_driver = ADC_DRIVER.read_text(encoding="utf-8")
         cls.kconfig = UART_KCONFIG.read_text(encoding="utf-8")
+        cls.esp32_sdkconfig_defaults = ESP32_SDKCONFIG_DEFAULTS.read_text(encoding="utf-8")
+        cls.esp32_workflow = ESP32_WORKFLOW.read_text(encoding="utf-8")
         cls.app_main = UART_APP_MAIN.read_text(encoding="utf-8")
         cls.uart_driver = UART_DRIVER.read_text(encoding="utf-8")
         cls.tx_interlock_spec = TX_INTERLOCK_SPEC.read_text(encoding="utf-8")
@@ -41,6 +45,13 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertRegex(self.kconfig, r"config REV_A_UART_ENABLE[\s\S]*?default n")
         self.assertRegex(self.kconfig, r"config REV_A_UART_TX_GPIO[\s\S]*?default -1")
         self.assertRegex(self.kconfig, r"config REV_A_UART_RX_GPIO[\s\S]*?default -1")
+
+    def test_esp32_s3_target_is_pinned_in_defaults_and_ci(self):
+        self.assertIn('CONFIG_IDF_TARGET="esp32s3"', self.esp32_sdkconfig_defaults)
+        self.assertIn("idf.py set-target esp32s3", self.esp32_workflow)
+        self.assertIn('CONFIG_IDF_TARGET_ESP32S3=y', self.esp32_workflow)
+        self.assertIn("--chip esp32s3", self.esp32_workflow)
+        self.assertIn("IslamDetector-RevA-ESP32S3-BUILD-ONLY", self.esp32_workflow)
 
     def test_enabling_uart_without_verified_gpio_fails_the_build(self):
         self.assertIn("#if CONFIG_REV_A_UART_ENABLE", self.app_main)

@@ -224,10 +224,55 @@ jobs:
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Build ESP32-S3 UART bridge in official ESP-IDF release-v5.4 container
+      - name: Select ESP32-S3 target and build in official ESP-IDF release-v5.4 container
+        shell: bash
         run: |
+          set -euo pipefail
           docker pull espressif/idf:release-v5.4
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/project" \
             -w /project/firmware/esp32_s3_bridge \
-            espressif/idf:release-v5.4 idf.py build
+            espressif/idf:release-v5.4 \
+            sh -c 'idf.py set-target esp32s3 && idf.py build'
+
+          ESP32_DIR="firmware/esp32_s3_bridge"
+          grep -Fxq 'CONFIG_IDF_TARGET="esp32s3"' "$ESP32_DIR/sdkconfig"
+          grep -Fxq 'CONFIG_IDF_TARGET_ESP32S3=y' "$ESP32_DIR/sdkconfig"
+          grep -q -- '--chip esp32s3' "$ESP32_DIR/build/flash_args"
+          test -s "$ESP32_DIR/build/islam_detector_rev_a_bridge.bin"
+          test -s "$ESP32_DIR/build/bootloader/bootloader.bin"
+          test -s "$ESP32_DIR/build/partition_table/partition-table.bin"
+
+          cat > "$ESP32_DIR/build/BUILD-ONLY-NOT-FOR-FLASH.txt" <<EOF
+          target=esp32s3
+          esp_idf=release-v5.4
+          source_commit=$GITHUB_SHA
+          uart_enabled_default=no
+          wifi_enabled_default=no
+          hardware_validation=not_performed
+          status=build_only_not_for_flashing
+          EOF
+
+          sha256sum \
+            "$ESP32_DIR/build/islam_detector_rev_a_bridge.bin" \
+            "$ESP32_DIR/build/bootloader/bootloader.bin" \
+            "$ESP32_DIR/build/partition_table/partition-table.bin"
+
+          tar -czf "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz" \
+            -C "$ESP32_DIR/build" \
+            islam_detector_rev_a_bridge.bin \
+            bootloader/bootloader.bin \
+            partition_table/partition-table.bin \
+            flash_args \
+            BUILD-ONLY-NOT-FOR-FLASH.txt
+          sha256sum "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz"
+
+      - name: Install pinned local artifact uploader dependency
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock --prefix .github/actions/upload-artifact
+
+      - name: Upload ESP32-S3 build-only bundle
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: IslamDetector-RevA-ESP32S3-BUILD-ONLY
+          path: firmware/esp32_s3_bridge/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz
+          retention_days: "30"

@@ -512,3 +512,9 @@ CI #2103 / run ID `45630001149` نجح على رأس PR #7 `342d4d439caa337ec6f0
 أصبحت GET /status تجمع snapshot من UART bridge بدلاً من JSON ثابت. تعرض حالة UART وصلاحية DEVICE_INFO وهوية ADC ومرجعه. صلاحية DEVICE_INFO لا تبقى ظاهرة بعد توقف UART. يظل measurement_available=false وtx_armed=false، وتظل قراءات signal/confidence/depth null؛ وجود هوية ADC وحده لا يعني أن مسار القياس أو التحليل جاهز. تطبيق Android يعرض حالة RP2040/ADC بوضوح دون تفعيل أزرار الكشف أو المعايرة.
 
 CI #2108 / run ID 45636028184 نجح على HEAD d00d0039c5838251f59806297907c62f93fe204e في الوظائف الأربع. هذا يثبت البناء واختبارات المضيف فقط؛ لا يثبت UART أو Wi-Fi أو ADC على اللوحات. PR #7 يبقى Draft، وPR #6 مغلق وغير مدمج. لا flash أو pinout نهائي أو TX.
+
+
+## تحديث 2026-11-26 — تصحيح هدف بناء ESP32-S3
+
+أظهر سجل CI #2109 أن صورة ESP-IDF كانت `--chip esp32` رغم تسمية الوظيفة ESP32-S3. سبب ذلك أن المشروع لم يثبت `IDF_TARGET`، وESP-IDF يعود إلى هدف `esp32` العام عند غياب التحديد. أضيف `firmware/esp32_s3_bridge/sdkconfig.defaults` بقيمة `CONFIG_IDF_TARGET="esp32s3"`، وأصبح CI يختار الهدف صراحةً عبر `idf.py set-target esp32s3` ثم يتحقق من sdkconfig و`flash_args`. لا يعتمد هذا التصحيح كنجاح حتى يكتمل CI على commit الجديد. لا تغيير في UART GPIO أو AFE أو TX؛ كلها تبقى معطلة/غير معتمدة مادياً.
+مرجع Espressif v5.4: https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/linux-macos-setup.html

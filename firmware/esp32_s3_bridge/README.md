@@ -1,6 +1,6 @@
 # ESP32-S3 Rev A — UART bridge
 
-**الحالة عند 2026-11-15:** تنفيذ برمجي أولي مكتمل البناء على CI #1371؛ لا يوجد بعد اتصال فعلي بين اللوحتين، ولا Wi-Fi/WebServer، ولا Flash على لوحة ESP32-S3.
+**الحالة عند 2026-11-26:** parser/session وUART task وSoftAP/HTTP API موجودة برمجياً. لم يثبت أي اتصال UART أو Wi-Fi أو Flash على لوحة فعلية. تصحيح هدف ESP-IDF إلى ESP32-S3 أُضيف إلى إعدادات المشروع وCI، وينتظر تحقق التشغيل الجديد.
 
 ## مكونات البرنامج
 
@@ -32,7 +32,10 @@
 
 ## ADC وواجهة الهاتف
 - ADS8861 PIO/DMA capture driver موجود في مشروع RP2040 ويُجمع في CI، لكنه `ENABLE_ADS8861_CAPTURE=0` افتراضياً؛ لا توجد قراءة ADC فعلية.
-- لا توجد Wi-Fi AP أو WebServer JSON endpoints على ESP32-S3 بعد. تطبيق Android الحالي يتوقع `GET /status` و`POST /control`؛ لذلك لا يوجد تكامل هاتف↔جهاز حتى الآن.
+- أضيف SoftAP اختياري مع WPA2 وHTTP endpoints: `GET /status` و`POST /control`. كلاهما معطل افتراضياً حتى ضبط كلمة مرور خاصة ومراجعة الأرجل.
+- `GET /status` يعرض حالة UART وDEVICE_INFO وهوية ADC؛ وتبقى القياسات null و`measurement_available=false` و`tx_armed=false`.
+- `POST /control` يقبل STOP كحالة idle آمنة فقط، ويرفض START لغياب TX interlock ويرفض CALIBRATE لغياب ADC حقيقي.
+- هذا يطابق واجهة Android برمجياً فقط؛ لا يوجد اختبار هاتف↔ESP32 فعلي أو قياس MEASUREMENT.
 
 ## التحقق الآلي
 - CI #1371 / run ID `43725575113` على commit `e37fde414924eed0344285e642b43982158f52eb`: كل الوظائف الأربع Success.
@@ -83,3 +86,12 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 - UART غير مفعّل.
 
 لا يغير ذلك حالة الكشف ولا يتيح START أو CALIBRATE. CI #2108 نجح في بناء APK والتحقق من ZIP؛ لم يثبت تثبيت APK أو اتصاله بهاتف/لوحة فعلية.
+
+
+## تثبيت هدف ESP32-S3 والتحقق من CI — 2026-11-26
+
+- أظهر سجل CI #2109 أن esptool بنى صورة عامة `--chip esp32`؛ نجاح compile/link السابق لم يكن دليلاً على بناء ESP32-S3.
+- أضيف `sdkconfig.defaults` مع `CONFIG_IDF_TARGET="esp32s3"`، ويشغّل CI صراحةً `idf.py set-target esp32s3` قبل البناء.
+- يتحقق CI من `CONFIG_IDF_TARGET_ESP32S3=y` ومن `--chip esp32s3` داخل `build/flash_args` قبل قبول النتيجة.
+- يرفع CI حزمة build-only تشمل التطبيق والـbootloader وجدول الأقسام و`flash_args`. هذه الحزمة ليست تصريحاً بالتفليش أو التشغيل؛ UART وWi-Fi معطلان افتراضياً ولا يوجد تحقق مادي.
+- عند البناء المحلي ابدأ من مجلد المشروع بـ`idf.py set-target esp32s3` ثم `idf.py build`.
