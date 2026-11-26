@@ -239,37 +239,39 @@ jobs:
           grep -Fxq 'CONFIG_IDF_TARGET="esp32s3"' "$ESP32_DIR/sdkconfig"
           grep -Fxq 'CONFIG_IDF_TARGET_ESP32S3=y' "$ESP32_DIR/sdkconfig"
           docker run --rm \
+            -e SOURCE_COMMIT="$GITHUB_SHA" \
             -v "$GITHUB_WORKSPACE:/project" \
             -w /project/firmware/esp32_s3_bridge \
             espressif/idf:release-v5.4 \
-            python -m esptool --chip esp32s3 image_info build/islam_detector_rev_a_bridge.bin
-          test -s "$ESP32_DIR/build/islam_detector_rev_a_bridge.bin"
-          test -s "$ESP32_DIR/build/bootloader/bootloader.bin"
-          test -s "$ESP32_DIR/build/partition_table/partition-table.bin"
-
-          cat > "$ESP32_DIR/build/BUILD-ONLY-NOT-FOR-FLASH.txt" <<EOF
-          target=esp32s3
-          esp_idf=release-v5.4
-          source_commit=$GITHUB_SHA
-          uart_enabled_default=no
-          wifi_enabled_default=no
-          hardware_validation=not_performed
-          status=build_only_not_for_flashing
-          EOF
-
-          sha256sum \
-            "$ESP32_DIR/build/islam_detector_rev_a_bridge.bin" \
-            "$ESP32_DIR/build/bootloader/bootloader.bin" \
-            "$ESP32_DIR/build/partition_table/partition-table.bin"
-
-          tar -czf "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz" \
-            -C "$ESP32_DIR/build" \
-            islam_detector_rev_a_bridge.bin \
-            bootloader/bootloader.bin \
-            partition_table/partition-table.bin \
-            flash_args \
-            BUILD-ONLY-NOT-FOR-FLASH.txt
-          sha256sum "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz"
+            sh -c '
+              set -eu
+              python -m esptool --chip esp32s3 image_info build/islam_detector_rev_a_bridge.bin
+              test -s build/islam_detector_rev_a_bridge.bin
+              test -s build/bootloader/bootloader.bin
+              test -s build/partition_table/partition-table.bin
+              printf "%s\\n" \
+                "target=esp32s3" \
+                "esp_idf=release-v5.4" \
+                "source_commit=$SOURCE_COMMIT" \
+                "uart_enabled_default=no" \
+                "wifi_enabled_default=no" \
+                "hardware_validation=not_performed" \
+                "status=build_only_not_for_flashing" \
+                > build/BUILD-ONLY-NOT-FOR-FLASH.txt
+              sha256sum \
+                build/islam_detector_rev_a_bridge.bin \
+                build/bootloader/bootloader.bin \
+                build/partition_table/partition-table.bin
+              tar -czf build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz \
+                -C build \
+                islam_detector_rev_a_bridge.bin \
+                bootloader/bootloader.bin \
+                partition_table/partition-table.bin \
+                flash_args \
+                BUILD-ONLY-NOT-FOR-FLASH.txt
+              sha256sum build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz
+            '
+          test -s "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz"
 
       - name: Install pinned local artifact uploader dependency
         run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock --prefix .github/actions/upload-artifact
