@@ -287,3 +287,14 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - UART وSoftAP معطلان افتراضياً. لا continuity أو loopback أو قياس logic-analyzer على لوحة فعلية حتى الآن.
 - PR #7 مفتوح Draft؛ PR #6 مغلق وغير مدمج. لا merge أو rebase.
 - بوابة التوصيل التالية: تحديد رقم ومراجعة لوحة ESP32-S3-N16R8 الفعلية ومخططها الرسمي، ثم فحص continuity والجهود والـGPIO conflicts والـ3.3V UART loopback واللوحات مفصولة عن أي مرحلة TX.
+
+
+## 18. إعادة تحقق برمجية بعد CI #2116 — 2026-11-26
+
+- CI #2116 / run ID `45841379735` نجح في بناء RP2040 UF2 والتحقق من بنيته، وبناء ESP32-S3 مع فحص `esptool image_info`، وبناء Android APK، و94 اختباراً للـprotocol/timing/safety.
+- هذه النتيجة **لا تغيّر اعتماد الأرجل**: لا يزال ESP32 UART TX/RX غير معينين (`GPIO=-1`) وUART/SoftAP معطلين افتراضياً. RP2040 GP0/GP1 مرشحان للـUART فقط؛ GP4/GP5/GP6 إشارات اختبار منطقية؛ GP8/GP9/GP10 مسار ADS8861 مقترح فقط.
+- `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO=`ADC_NONE`. لا ADC capture أو MEASUREMENT حقيقي، ولا UART loopback أو flash أو قياس logic-analyzer على لوحة فعلية.
+- UF2 artifact ID `15129730255` هو timing-test فقط؛ ESP32 artifact ID `15128456766` موسوم BUILD-ONLY-NOT-FOR-FLASH. نجاح CI لا يثبت pin mux أو الجهد أو continuity أو صحة التوصيل.
+- PR #6 مغلق وغير مدمج وفق GitHub؛ PR #7 مفتوح Draft. لا merge أو rebase.
+- بوابة التوصيل ما زالت: تحديد رقم ومراجعة لوحة ESP32-S3 الفعلية، مراجعة schematic الرسمي، continuity واللوحات مفصولة عن الطاقة، ثم UART loopback آمن 3.3V قبل تثبيت pin map.
+- [CI #2116](https://github.com/Khaledserdani/IslamDetector/actions/runs/45841379735)
