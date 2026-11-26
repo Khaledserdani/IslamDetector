@@ -2149,3 +2149,18 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - ESP32-S3: بناء ESP-IDF release-v5.4 وesptool image_info ناجحان؛ checksum وvalidation hash صالحان، و82% من app partition بقيت متاحة. Artifact build-only ID `15128046313` (118,798 bytes).
 - هذا التشغيل يؤكد أن تحديثات التوثيق لم تكسر البناء؛ لا يضيف أي إثبات مادي أو اختبار اتصال على اللوحات.
 - [CI #2114](https://github.com/Khaledserdani/IslamDetector/actions/runs/45840198549)
+
+
+## 26) تحقق HEAD بعد إصلاح اختبار تغليف ESP32 — 2026-11-26
+
+- HEAD البرمجي المختبر: `b656b74a6740be49c5417f6811c14b09f4d2e5c4`؛ commit الرسالة: `Fix workflow packaging regression test boundary`.
+- CI #2116 / run ID `45841379735` اكتمل بحالة **success** على الفرع `hardware/rev-a-measurement-design`، ونجحت الوظائف الأربع: `protocol-tests` و`rp2040-firmware` و`android-app` و`esp32-s3-bridge`.
+- protocol-tests: نجحت **94 اختباراً**، بما فيها اختبار حدود تغليف Docker، وCRC/SYNC وDEVICE_INFO/ADC metadata، واختبارات التوقيت وسلامة UF2 وسياسة HTTP الآمنة.
+- RP2040: بُني UF2 واكتمل `verify_uf2.py`: 150 blocks، و38,400 payload bytes، وFamily ID `0xE48BFF56`. Artifact ID `15129730255`، الحجم 30,262 bytes. SHA-256 لملف UF2 الخام: `77debb1e84adbdb75b6457c2459e464a252c3e6bf87ddbfc2ae99d614fd2f530`. SHA-256 المعلن من GitHub للـartifact ZIP: `bbf06e6406374f43c6c5dc959ed59b64c80f49255ed3960a7f00ebcc432588c2`.
+- Android: `BUILD SUCCESSFUL` على Gradle 8.9، وفحص ZIP ناجح. Artifact ID `15129625231`، الحجم 21,732 bytes. بقي تحذير استخدام API قديمة في `MainActivity.java`؛ ليس فشل بناء.
+- ESP32-S3: بناء ESP-IDF release-v5.4 اكتمل، و`esptool image_info` أكد 6 segments وchecksum صالحاً. Artifact build-only ID `15128456766`، الحجم 118,800 bytes، وSHA-256 للـartifact ZIP: `34464ef4c29329d572f8fa0b2f91ef379d8804b66f67ce7b727ad2f45e6b763b`. الحزمة تحمل بوضوح `BUILD-ONLY-NOT-FOR-FLASH`؛ لا تعتبر firmware قابلاً للتفليش/التشغيل الميداني.
+- إصلاح الاختبار في commit الحالي عدّل حد استخراج نص أمر `sh -c` داخل regression test، بعد أن كان الاختبار يبحث عن تسلسل newline حرفي لا يطابق النص المخزن. لم يتغير Firmware أو Android في هذا commit.
+- الحالة الكهربائية لم تتغير: UART وSoftAP معطلان افتراضياً؛ ESP32 TX/RX GPIO=-1؛ RP2040 GP0/GP1 اقتراح UART فقط، وGP4/GP5/GP6 منطق اختبار؛ `ENABLE_ADS8861_CAPTURE=0` وDEVICE_INFO=`ADC_NONE`. لا MEASUREMENT producer لعينات ADC فعلية، ولا loopback أو flash أو اختبار Wi-Fi/HTTP على لوحة حقيقية.
+- لا مخطط KiCad أو PCB/PCBA أو BOM نهائي، ولا قياس L/DCR أو transient/clip-release للملف. لا تشغيل TX عالي الطاقة.
+- حالة GitHub الفعلية: PR #6 مغلق وغير مدمج، وPR #7 مفتوح Draft. لم يُعد فتح #6 ولم يُدمج أي PR. مقارنة الفرع مع `main`: 624 commit أماماً و6 خلفاً؛ لا مزامنة أو rebase تلقائي.
+- [CI #2116](https://github.com/Khaledserdani/IslamDetector/actions/runs/45841379735) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
