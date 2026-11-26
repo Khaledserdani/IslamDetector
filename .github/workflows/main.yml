@@ -238,7 +238,11 @@ jobs:
           ESP32_DIR="firmware/esp32_s3_bridge"
           grep -Fxq 'CONFIG_IDF_TARGET="esp32s3"' "$ESP32_DIR/sdkconfig"
           grep -Fxq 'CONFIG_IDF_TARGET_ESP32S3=y' "$ESP32_DIR/sdkconfig"
-          grep -q -- '--chip esp32s3' "$ESP32_DIR/build/flash_args"
+          docker run --rm \\
+            -v "$GITHUB_WORKSPACE:/project" \\
+            -w /project/firmware/esp32_s3_bridge \\
+            espressif/idf:release-v5.4 \\
+            python -m esptool --chip esp32s3 image_info build/islam_detector_rev_a_bridge.bin
           test -s "$ESP32_DIR/build/islam_detector_rev_a_bridge.bin"
           test -s "$ESP32_DIR/build/bootloader/bootloader.bin"
           test -s "$ESP32_DIR/build/partition_table/partition-table.bin"

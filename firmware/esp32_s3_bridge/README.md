@@ -92,6 +92,6 @@ A syntactically valid frame with inconsistent ADC metadata invalidates the sessi
 
 - أظهر سجل CI #2109 أن esptool بنى صورة عامة `--chip esp32`؛ نجاح compile/link السابق لم يكن دليلاً على بناء ESP32-S3.
 - أضيف `sdkconfig.defaults` مع `CONFIG_IDF_TARGET="esp32s3"`، ويشغّل CI صراحةً `idf.py set-target esp32s3` قبل البناء.
-- يتحقق CI من `CONFIG_IDF_TARGET_ESP32S3=y` ومن `--chip esp32s3` داخل `build/flash_args` قبل قبول النتيجة.
+- يتحقق CI من `CONFIG_IDF_TARGET_ESP32S3=y`، ثم يشغّل `esptool image_info --chip esp32s3` على صورة BIN الناتجة؛ لا يعتمد على `flash_args` لأن معامل الشريحة يمر خارج هذا الملف في أمر esptool.
 - يرفع CI حزمة build-only تشمل التطبيق والـbootloader وجدول الأقسام و`flash_args`. هذه الحزمة ليست تصريحاً بالتفليش أو التشغيل؛ UART وWi-Fi معطلان افتراضياً ولا يوجد تحقق مادي.
 - عند البناء المحلي ابدأ من مجلد المشروع بـ`idf.py set-target esp32s3` ثم `idf.py build`.

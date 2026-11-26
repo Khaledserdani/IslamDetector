@@ -150,7 +150,7 @@ https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/
 **التصحيح المضاف على فرع العمل:**
 1. إنشاء `sdkconfig.defaults` وفيه `CONFIG_IDF_TARGET="esp32s3"`.
 2. جعل CI ينفذ `idf.py set-target esp32s3 && idf.py build` داخل صورة ESP-IDF release-v5.4.
-3. رفض نتيجة البناء ما لم يثبت `CONFIG_IDF_TARGET="esp32s3"` و`CONFIG_IDF_TARGET_ESP32S3=y` وظهور `--chip esp32s3` في `build/flash_args`.
+3. رفض نتيجة البناء ما لم يثبت `CONFIG_IDF_TARGET="esp32s3"` و`CONFIG_IDF_TARGET_ESP32S3=y`، ثم اجتياز `esptool image_info --chip esp32s3` على BIN الناتج. لا نبحث عن معامل الشريحة داخل `flash_args`؛ فهو يمر خارج الملف في أمر esptool.
 4. تجهيز Artifact منفصل باسم `IslamDetector-RevA-ESP32S3-BUILD-ONLY` يحتوي BIN وbootloader وجدول الأقسام وflash_args مع ملف تحذير build-only. لا يُرفع إلا بعد اجتياز فحوص الهدف والملفات.
 
 **حالة الإثبات:** لم يُشغّل CI بعد على commit التصحيح وقت كتابة هذه الملاحظة؛ لذلك لا نسجل بناء ESP32-S3 ناجحاً حتى ينجح التشغيل الجديد وتظهر الحزمة. لا Flash أو UART أو Wi-Fi على لوحة فعلية.

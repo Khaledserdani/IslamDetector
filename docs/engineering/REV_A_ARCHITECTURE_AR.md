@@ -516,5 +516,5 @@ CI #2108 / run ID 45636028184 نجح على HEAD d00d0039c5838251f59806297907c62
 
 ## تحديث 2026-11-26 — تصحيح هدف بناء ESP32-S3
 
-أظهر سجل CI #2109 أن صورة ESP-IDF كانت `--chip esp32` رغم تسمية الوظيفة ESP32-S3. سبب ذلك أن المشروع لم يثبت `IDF_TARGET`، وESP-IDF يعود إلى هدف `esp32` العام عند غياب التحديد. أضيف `firmware/esp32_s3_bridge/sdkconfig.defaults` بقيمة `CONFIG_IDF_TARGET="esp32s3"`، وأصبح CI يختار الهدف صراحةً عبر `idf.py set-target esp32s3` ثم يتحقق من sdkconfig و`flash_args`. لا يعتمد هذا التصحيح كنجاح حتى يكتمل CI على commit الجديد. لا تغيير في UART GPIO أو AFE أو TX؛ كلها تبقى معطلة/غير معتمدة مادياً.
+أظهر سجل CI #2109 أن صورة ESP-IDF كانت `--chip esp32` رغم تسمية الوظيفة ESP32-S3. سبب ذلك أن المشروع لم يثبت `IDF_TARGET`، وESP-IDF يعود إلى هدف `esp32` العام عند غياب التحديد. أضيف `firmware/esp32_s3_bridge/sdkconfig.defaults` بقيمة `CONFIG_IDF_TARGET="esp32s3"`، وأصبح CI يختار الهدف صراحةً عبر `idf.py set-target esp32s3`، ويتحقق من sdkconfig ثم يشغّل `esptool image_info --chip esp32s3` على BIN الناتج. لا يعتمد هذا التصحيح كنجاح حتى يكتمل CI على commit الجديد. لا تغيير في UART GPIO أو AFE أو TX؛ كلها تبقى معطلة/غير معتمدة مادياً.
 مرجع Espressif v5.4: https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/linux-macos-setup.html

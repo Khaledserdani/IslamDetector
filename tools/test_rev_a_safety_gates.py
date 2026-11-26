@@ -51,6 +51,7 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("idf.py set-target esp32s3", self.esp32_workflow)
         self.assertIn('CONFIG_IDF_TARGET_ESP32S3=y', self.esp32_workflow)
         self.assertIn("--chip esp32s3", self.esp32_workflow)
+        self.assertIn("image_info", self.esp32_workflow)
         self.assertIn("IslamDetector-RevA-ESP32S3-BUILD-ONLY", self.esp32_workflow)
 
     def test_enabling_uart_without_verified_gpio_fails_the_build(self):
