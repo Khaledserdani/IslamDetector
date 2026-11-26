@@ -109,7 +109,7 @@ class RevASafetyGateTests(unittest.TestCase):
             "grep -Fxq 'CONFIG_IDF_TARGET_ESP32S3=y'"
         )
         package_start = self.esp32_workflow.index("sh -c '", target_check)
-        package_end = self.esp32_workflow.index("\\n            '", package_start)
+        package_end = self.esp32_workflow.index("            '", package_start + len("sh -c '"))
         package_script = self.esp32_workflow[package_start:package_end]
         self.assertIn("image_info", package_script)
         self.assertIn("BUILD-ONLY-NOT-FOR-FLASH.txt", package_script)
