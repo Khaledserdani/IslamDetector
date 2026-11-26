@@ -1,6 +1,6 @@
 # تنفيذ جسر UART على ESP32-S3 — Rev A
 
-**الحالة (2026-11-26):** parser/session وUART task وRP2040 command responder وSoftAP/HTTP API منفذة برمجياً. لا يوجد توصيل عتادي أو UART loopback أو Flash. اكتُشف أن بناء ESP-IDF السابق استهدف `esp32` العام لا `esp32s3`؛ أضيف تثبيت الهدف والتحقق منه إلى المشروع وCI، وينتظر تشغيل CI جديد.
+**الحالة (2026-11-26):** parser/session وUART task وRP2040 command responder وSoftAP/HTTP API منفذة برمجياً، واجتازت البناء الآلي في CI #2116 و#2117. جميع وظائف UART وSoftAP معطلة افتراضياً، ولا يوجد توصيل عتادي أو UART loopback أو Flash أو اختبار Android end-to-end. صورة ESP32-S3 المتاحة حزمة BUILD-ONLY-NOT-FOR-FLASH.
 
 ## ما أضيف
 - مشروع ESP-IDF مستقل داخل firmware/esp32_s3_bridge.
@@ -30,7 +30,7 @@ UART1 افتراضياً؛ UART2 متاح؛ 921600 baud و8N1؛ RX buffer 4096؛
 ## الحدود الحالية
 - ACK decoder وRP2040 command receiver وDEVICE_INFO transmitter أصبحت منفذة برمجياً؛ لا يعني ذلك أن الاتصال اختبر على اللوحتين.
 - لا يوجد UART loopback أو قياس فعلي بين ESP32-S3 وRP2040.
-- لا يوجد Wi-Fi AP أو WebServer أو JSON endpoint أو ربط Android end-to-end.
+- SoftAP وWebServer وJSON endpoints موجودة برمجياً، لكنها معطلة افتراضياً ولم تختبر على لوحة فعلية؛ لا يوجد ربط Android end-to-end مثبت.
 - لا يوجد ADC مركب أو MEASUREMENT producer فعلي؛ DEVICE_INFO يعلن ADC_NONE.
 - لا توجد مرحلة TX أو MOSFET أو ملف بحث أو interlock ضمن هذا البرنامج.
 
@@ -175,3 +175,15 @@ https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/
 ## إعادة تحقق CI #2114 — 2026-11-26
 
 أعيد workflow بعد توثيق إصلاحات #2113. نجحت الوظائف الأربع: protocol-tests (93 Python tests مع C parser/session وHTTP policy)، RP2040 UF2 validation، Android APK build/ZIP verification، وESP32-S3 ESP-IDF build مع esptool image_info. Artifacts: UF2 `15128096060`، APK `15126114608`، وESP32-S3 build-only `15128046313`. لا يوجد flash أو UART/SoftAP hardware test.
+
+
+## تحقق CI #2117 — 2026-11-26
+
+- HEAD التوثيقي المختبر: `c0e51baea8601222ee110c596afad13d41984232`.
+- CI #2117 / run ID `45844798196` نجح في الوظائف الأربع: protocol-tests وRP2040 firmware وAndroid APK وESP32-S3 bridge.
+- protocol-tests: 94 اختباراً ناجحاً، مع C parser/session وHTTP policy.
+- RP2040 UF2 artifact ID `15131556105`، الحجم 30,262 bytes؛ timing-test فقط، وليس ADC/coil firmware.
+- Android APK artifact ID `15131930874`، الحجم 21,735 bytes.
+- ESP32-S3 build-only artifact ID `15131466287`، الحجم 118,806 bytes؛ build وimage_info ناجحان، لكنه غير معتمد للتفليش.
+- هذه إعادة تحقق برمجية للتوثيق؛ لا تضيف أي إثبات UART/SoftAP/ADC على العتاد.
+- [CI #2117](https://github.com/Khaledserdani/IslamDetector/actions/runs/45844798196)
