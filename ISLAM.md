@@ -2119,3 +2119,21 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - عُدّل workflow ليشغّل `python -m esptool --chip esp32s3 image_info build/islam_detector_rev_a_bridge.bin` بعد البناء، مع الإبقاء على فحص sdkconfig ووجود ملفات BIN/bootloader/partition table. عُدّل regression test والوثائق المتصلة.
 - لا يوجد حتى الآن Artifact ESP32-S3؛ خطوة رفعه لم تصل بسبب فشل guard السابق. يلزم CI جديد لإثبات نجاح الفحص والحزمة.
 - لا Flash أو اختبار عتادي؛ UART/Wi-Fi معطلان افتراضياً، وGPIO غير مثبتة.
+
+
+## متابعة CI #2113 وإصلاح بناء ESP32-S3 — 2026-11-26
+
+- HEAD البرمجي الذي اختُبر: `feed3a39802ac89bd866e212af40d687738909f2`.
+- CI #2113 / run ID `45839153715` نجح في الوظائف الأربع: `protocol-tests` و`rp2040-firmware` و`android-app` و`esp32-s3-bridge`.
+- سبب فشل #2111: كُتبت backslashes مضاعفة في أسطر استمرار أمر Docker؛ مرّر Bash محرف backslash حرفياً وانتهى Docker بـ`invalid reference format`.
+- سبب فشل #2112 بعد إصلاح الاستمرار: أنشأ Docker مجلد build وملفاته بملكية root، ثم حاول Runner المضيف إنشاء ملف marker داخل المجلد نفسه فحصل على `Permission denied`.
+- الإصلاح النهائي: تنفيذ فحص esptool وإنشاء marker وحساب SHA-256 وتجميع tar.gz داخل حاوية ESP-IDF نفسها. تم حفظه في commit `feed3a39802ac89bd866e212af40d687738909f2`.
+- اختبارات البروتوكول: 93 اختبار Python نجحت، إضافة إلى بناء/اختبار C parser/session وسياسة HTTP.
+- RP2040 UF2: صالح بنيوياً، 150 كتلة، 38,400 بايت payload، Family ID `0xE48BFF56`. SHA-256: `77debb1e84adbdb75b6457c2459e464a252c3e6bf87ddbfc2ae99d614fd2f530`. Artifact ID: `15125614948`.
+- Android APK: Gradle BUILD SUCCESSFUL، وفحص ZIP بلا أخطاء. الحجم 21,739 بايت. SHA-256: `9f1277d98526e4de5fef065eef46797180d74545383fa1bb467ec447a38fd673`. Artifact ID: `15125524834`.
+- ESP32-S3: بُني باستخدام ESP-IDF `release-v5.4` بعد تثبيت الهدف `esp32s3`. نجح `esptool image_info`: 6 segments، checksum وvalidation hash صالحان. حجم BIN 189,936 بايت، والمتبقي من app partition 82%. SHA-256 لحزمة build-only: `12a7d23919e804368611a41bca902912298cabf28bd86d267e889f62a473eacd`. Artifact ID: `15126758714` (118,808 بايت).
+- حزمة ESP32 موسومة BUILD-ONLY-NOT-FOR-FLASH؛ لا تعني صلاحية التفليش أو التشغيل على اللوحة. لا يزال UART وWi-Fi معطلين افتراضياً، وأرجل ESP32 TX/RX غير معينة.
+- UF2 ما زال اختبار التوقيت المنطقي فقط؛ `ENABLE_ADS8861_CAPTURE=0`، ولا ADC فعلي أو MEASUREMENT producer أو UART loopback.
+- لم يحدث flash أو اختبار SoftAP/HTTP من الهاتف أو قياس مادي. لم يتم اعتماد TX أو حماية RX أو KiCad/BOM/PCB.
+- حالة الطلبات حسب GitHub: PR #6 مغلق وغير مدمج؛ PR #7 مفتوح Draft وهو طلب المراجعة النشط. لم يُفتح #6 من جديد ولم يدمج أي PR.
+- [CI #2113](https://github.com/Khaledserdani/IslamDetector/actions/runs/45839153715)

@@ -95,3 +95,8 @@ cc -std=c11 -Wall -Wextra -Werror -pedantic \
 - measurement_available وtx_armed يظلان false، وsignal/confidence/depth/calibration null؛ لا توجد MEASUREMENT producer أو خوارزمية قياس أو TX interlock معتمد.
 
 أضيفت اختبارات C لهذه الحالات. CI #2108 / run ID 45636028184 نجح في الوظائف الأربع. لم يحدث اختبار SoftAP أو HTTP من هاتف Android على لوحة فعلية، وما زالت إعدادات Wi-Fi/UART معطلة افتراضياً وGPIO غير مثبتة.
+
+
+## تحديث البناء — CI #2113 (2026-11-26)
+
+اجتاز ESP32-S3 firmware البناء في ESP-IDF release-v5.4 بعد تثبيت الهدف صراحةً. نجح esptool image_info في قراءة الصورة والتحقق من checksum وvalidation hash. حزمة build-only رُفعت كـArtifact ID `15126758714`، لكنها لا تثبت التفليش أو التشغيل على اللوحة. أصلحنا أيضاً تغليف الملفات داخل الحاوية لتجنب Permission denied من ملفات build المملوكة لـroot. تظل Wi-Fi وUART معطلتين افتراضياً ولا توجد تجربة هاتف/لوحة فعلية.

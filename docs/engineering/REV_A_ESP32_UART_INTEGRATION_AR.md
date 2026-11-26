@@ -158,3 +158,15 @@ https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/
 ## تحديث SoftAP/HTTP — 2026-11-26
 
 أصبحت الدوال البرمجية الاختيارية `rev_a_http_api_start()` وواجهتا `GET /status` و`POST /control` موجودة في `main/rev_a_http_api.c`. تظل `CONFIG_REV_A_WIFI_ENABLE=n` افتراضياً، وتتطلب كلمة مرور WPA2 خاصة من 8 إلى63 حرفاً قبل التفعيل. /status لا يعرض قياسات وهمية؛ START وCALIBRATE مرفوضان. هذا compile/test برمجي، وليس اختبار SoftAP أو اتصال Android فعلي.
+
+
+## CI #2113 — بناء ESP32-S3 وتغليف الحزمة — 2026-11-26
+
+- نجحت الوظائف الأربع في run `45839153715` على commit `feed3a39802ac89bd866e212af40d687738909f2`.
+- أصلحنا استمرارية أمر Docker بعد أن كان #2111 يفشل بـ`invalid reference format` بسبب backslashes مضاعفة.
+- كشف #2112 مشكلة صلاحيات: ملفات build أنشأها Docker كمستخدم root، ولم يستطع Runner المضيف الكتابة داخل مجلد build. أصبح فحص الصورة وإنشاء marker والتغليف داخل الحاوية نفسها.
+- ESP32-S3 target مثبت صراحةً؛ `esptool image_info` أكد 6 segments وchecksum وvalidation hash صالحين. حجم التطبيق 189,936 بايت مع 82% مساحة app partition متبقية.
+- رُفعت حزمة `IslamDetector-RevA-ESP32S3-BUILD-ONLY`، Artifact ID `15126758714`، حجمها 118,808 بايت. SHA-256 للـtar.gz الداخلي: `12a7d23919e804368611a41bca902912298cabf28bd86d267e889f62a473eacd`.
+- هذه حزمة بناء فقط وليست ملف تفليش معتمداً؛ لا تُفلش قبل تحديد مراجعة اللوحة ومراجعة الإعدادات والاختبار الآمن.
+- تظل `CONFIG_REV_A_UART_ENABLE=n` و`CONFIG_REV_A_WIFI_ENABLE=n`، وGPIO غير معينة. لا يوجد اختبار UART أو SoftAP فعلي.
+- [CI #2113](https://github.com/Khaledserdani/IslamDetector/actions/runs/45839153715)
