@@ -100,3 +100,8 @@ cc -std=c11 -Wall -Wextra -Werror -pedantic \
 ## تحديث البناء — CI #2113 (2026-11-26)
 
 اجتاز ESP32-S3 firmware البناء في ESP-IDF release-v5.4 بعد تثبيت الهدف صراحةً. نجح esptool image_info في قراءة الصورة والتحقق من checksum وvalidation hash. حزمة build-only رُفعت كـArtifact ID `15126758714`، لكنها لا تثبت التفليش أو التشغيل على اللوحة. أصلحنا أيضاً تغليف الملفات داخل الحاوية لتجنب Permission denied من ملفات build المملوكة لـroot. تظل Wi-Fi وUART معطلتين افتراضياً ولا توجد تجربة هاتف/لوحة فعلية.
+
+
+## إعادة التحقق — CI #2114 (2026-11-26)
+
+أعاد CI بناء Android وRP2040 وESP32-S3 بعد تحديث وثائق التكامل، ونجحت الوظائف الأربع. ESP32-S3 image_info أكد checksum وvalidation hash صالحين. تظل الحزمة build-only، وWi-Fi/UART معطلين افتراضياً؛ لا توجد تجربة على اللوحة أو الهاتف.

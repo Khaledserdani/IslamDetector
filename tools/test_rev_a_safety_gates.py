@@ -99,5 +99,29 @@ class RevASafetyGateTests(unittest.TestCase):
         self.assertIn("لا يعتمد comparator أو الشنت بعد", self.tx_current_limit_candidates)
 
 
+    def test_esp32_build_artifact_packaging_uses_single_shell_continuations(self):
+        lines = self.esp32_workflow.splitlines()
+        self.assertFalse(
+            any(line.endswith("\\\\") for line in lines),
+            "Workflow continuation lines must never end with two backslashes.",
+        )
+        target_check = self.esp32_workflow.index(
+            "grep -Fxq 'CONFIG_IDF_TARGET_ESP32S3=y'"
+        )
+        package_start = self.esp32_workflow.index("sh -c '", target_check)
+        package_end = self.esp32_workflow.index("\\n            '", package_start)
+        package_script = self.esp32_workflow[package_start:package_end]
+        self.assertIn("image_info", package_script)
+        self.assertIn("BUILD-ONLY-NOT-FOR-FLASH.txt", package_script)
+        self.assertIn(
+            "tar -czf build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz",
+            package_script,
+        )
+        self.assertIn(
+            'test -s "$ESP32_DIR/build/IslamDetector-RevA-ESP32S3-BUILD-ONLY.tar.gz"',
+            self.esp32_workflow,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2137,3 +2137,15 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - لم يحدث flash أو اختبار SoftAP/HTTP من الهاتف أو قياس مادي. لم يتم اعتماد TX أو حماية RX أو KiCad/BOM/PCB.
 - حالة الطلبات حسب GitHub: PR #6 مغلق وغير مدمج؛ PR #7 مفتوح Draft وهو طلب المراجعة النشط. لم يُفتح #6 من جديد ولم يدمج أي PR.
 - [CI #2113](https://github.com/Khaledserdani/IslamDetector/actions/runs/45839153715)
+
+
+## إعادة تحقق توثيقية — CI #2114 — 2026-11-26
+
+- بعد تسجيل نتائج #2113 في الوثائق، أُعيد تشغيل workflow على commit التوثيق `ccd9e0443615abdda6defb7624c0575a75776cf7`.
+- CI #2114 / run ID `45840198549` اكتمل بنجاح في الوظائف الأربع: protocol-tests وRP2040 وAndroid وESP32-S3.
+- protocol-tests: 93 اختبار Python ناجح، مع نجاح C parser/session وHTTP policy.
+- RP2040: UF2 صالح (150 blocks، 38,400 payload bytes، Family ID `0xE48BFF56`)، Artifact ID `15128096060`.
+- Android: APK Debug نجح وفحص ZIP نجح، Artifact ID `15126114608` (21,735 bytes).
+- ESP32-S3: بناء ESP-IDF release-v5.4 وesptool image_info ناجحان؛ checksum وvalidation hash صالحان، و82% من app partition بقيت متاحة. Artifact build-only ID `15128046313` (118,798 bytes).
+- هذا التشغيل يؤكد أن تحديثات التوثيق لم تكسر البناء؛ لا يضيف أي إثبات مادي أو اختبار اتصال على اللوحات.
+- [CI #2114](https://github.com/Khaledserdani/IslamDetector/actions/runs/45840198549)

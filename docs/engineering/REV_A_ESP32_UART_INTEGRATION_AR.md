@@ -170,3 +170,8 @@ https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/
 - هذه حزمة بناء فقط وليست ملف تفليش معتمداً؛ لا تُفلش قبل تحديد مراجعة اللوحة ومراجعة الإعدادات والاختبار الآمن.
 - تظل `CONFIG_REV_A_UART_ENABLE=n` و`CONFIG_REV_A_WIFI_ENABLE=n`، وGPIO غير معينة. لا يوجد اختبار UART أو SoftAP فعلي.
 - [CI #2113](https://github.com/Khaledserdani/IslamDetector/actions/runs/45839153715)
+
+
+## إعادة تحقق CI #2114 — 2026-11-26
+
+أعيد workflow بعد توثيق إصلاحات #2113. نجحت الوظائف الأربع: protocol-tests (93 Python tests مع C parser/session وHTTP policy)، RP2040 UF2 validation، Android APK build/ZIP verification، وESP32-S3 ESP-IDF build مع esptool image_info. Artifacts: UF2 `15128096060`، APK `15126114608`، وESP32-S3 build-only `15128046313`. لا يوجد flash أو UART/SoftAP hardware test.
