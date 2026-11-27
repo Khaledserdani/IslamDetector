@@ -398,3 +398,15 @@ CRC يحسب من VERSION حتى آخر عينة، ولا يشمل SYNC أو ب�
 - أضيفت اختبارات C لحالات UART disabled، وADC_NONE، وهوية ADC صحيحة مع غياب pipeline، وسعة JSON القصيرة.
 - CI #2108 / 45636028184: 92 Python tests، C parser/session، HTTP status/policy tests، Android APK، RP2040 UF2، وESP32-S3 build/link نجحت.
 - هذا تحقق برمجي فقط؛ لا UART loopback أو DEVICE_INFO فعلي من اللوحة أو ADC capture أو Wi-Fi/HTTP مادي.
+
+
+## 14. تحقق البروتوكول على HEAD #2118 — 2026-11-27
+
+- اجتازت وظيفة `protocol-tests` في CI #2118 عدد 94 اختبار Python، ثم strict compile/test لطبقتي C parser/session وسياسة HTTP.
+- ESP32 bridge يرسل HELLO عند البدء، ويعيد GET_INFO كل ثانية تقريباً إلى أن تصل DEVICE_INFO صحيحة. يقبل ACK بشكل منفصل، ويتحقق من ADC metadata قبل إعلان الهوية.
+- session لا يقبل MEASUREMENT إلا بعد DEVICE_INFO صالح، ومع ADC model غير ADC_NONE، وصحة شكل العينة، وتطابق profile_id. تُفسر raw16 وفق SAMPLE_FORMAT_ID وADC_RESOLUTION_BITS؛ ADS8861 يستخدم two's-complement.
+- RP2040 firmware الحالي يرسل ACK ثم DEVICE_INFO عند GET_INFO، لكنه يعلن ADC_NONE وVREF=0. أمر START يظل مرفوضاً.
+- لا يوجد حالياً MEASUREMENT producer من عينات ADS8861 فعلية؛ وجود encoder/parser وmeasurement queue لا يعني أن البيانات تُنتج أو تُرسل. PIO capture معطل افتراضياً.
+- هذه نتائج اختبارات برمجية آلية، وليست UART loopback أو قياساً كهربائياً أو إثباتاً لصحة التوقيت على لوحة فعلية.
+
+[CI #2118](https://github.com/Khaledserdani/IslamDetector/actions/runs/45845552509)
