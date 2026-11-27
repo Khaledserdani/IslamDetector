@@ -3,7 +3,7 @@
 > **كلمة الاسترجاع:** إسلام  
 > عند كتابة المستخدم «إسلام» أو «مشروع إسلام»، ابدأ بهذا الملف ثم استرجع أحدث حالة GitHub والمتابعة والقرارات السابقة. هذا الملف هو سجل المشروع العملي، ويُحدّث بعد كل تغيير أو اختبار مؤكد.
 
-آخر مراجعة لهذا الملف: 2026-11-25  
+آخر مراجعة لهذا الملف: 2026-11-27  
 المستودع المعتمد: https://github.com/Khaledserdani/IslamDetector  
 الفرع الأساسي: `main`  
 الاسم البرمجي للتطبيق: `Islam Detector`  
@@ -2164,3 +2164,24 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - لا مخطط KiCad أو PCB/PCBA أو BOM نهائي، ولا قياس L/DCR أو transient/clip-release للملف. لا تشغيل TX عالي الطاقة.
 - حالة GitHub الفعلية: PR #6 مغلق وغير مدمج، وPR #7 مفتوح Draft. لم يُعد فتح #6 ولم يُدمج أي PR. مقارنة الفرع مع `main`: 624 commit أماماً و6 خلفاً؛ لا مزامنة أو rebase تلقائي.
 - [CI #2116](https://github.com/Khaledserdani/IslamDetector/actions/runs/45841379735) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+
+
+## 27) تحقق CI #2118 وإعادة محاولة Android — 2026-11-27
+
+- HEAD الذي فُحص قبل هذا التحديث التوثيقي: `13231db26d66c5da7790dc54fb85d98c97df65b9`.
+- CI #2118 / run ID `45845552509` على PR #7 انتهى **success** بعد المحاولة الثانية.
+- المحاولة الأولى فشلت في وظيفة Android فقط بسبب HTTP 429 من Maven Central أثناء تنزيل تبعيات Gradle الانتقالية (مثل JNA وjuniversalchardet وjavax.annotation وslf4j وغيرها). لم يكن السجل خطأ Java أو Manifest أو source compile؛ Gradle توقف أثناء dependency resolution.
+- أُعيد تشغيل الوظيفة الفاشلة فقط. في المحاولة الثانية ظهر `BUILD SUCCESSFUL` خلال 43 ثانية، واجتاز APK فحص ZIP، ثم رُفع Artifact. لا تغيير مصدر كان مطلوباً لهذا العطل.
+- `protocol-tests`: نجحت 94 اختبارات Python، ثم نجح C parser/session وHTTP command policy تحت `-Wall -Wextra -Werror -pedantic`.
+- RP2040: `verify_uf2.py` أكد 150 blocks و38,400 payload bytes وFamily ID `0xE48BFF56` والعنوان `0x10000000..0x10009600`. Artifact ID `15132166594`، الحجم 30,262 bytes، SHA-256 للـZIP: `6d83e13f39feba784f17a3ab3b27648749b38a03cd2f152d33a9f25edc994a75`.
+- Android: APK Debug بحجم 21,743 bytes، Artifact ID `15203992806`، SHA-256 للـZIP: `d676ab1ca4c8950fd6d7b64dbe54e18b5f5fdb0de641d995e711f9196e5bd6a8`.
+- ESP32-S3: ESP-IDF `release-v5.4` بنى الهدف `esp32s3`; `esptool image_info` أكد 6 segments وchecksum/validation صالحين. BIN=189,936 bytes، والمساحة المتبقية من app partition=82%. Artifact ID `15130662181`، الحجم 118,801 bytes، SHA-256 للـZIP: `6b4c53fd9ab3d405f8d42e45c9da011e00705967fe383af01da1cf96d8217a92`. الحزمة موسومة BUILD-ONLY-NOT-FOR-FLASH.
+- Artifacts الخاصة بـRP2040 وESP32 أُنتجت في المحاولة الأولى الناجحة لهاتين الوظيفتين؛ APK أُنتج في إعادة تشغيل Android. جميعها لنفس HEAD `13231db`.
+- مراجعة الكود: ESP32 UART bridge يرسل HELLO ويعيد GET_INFO حتى قبول DEVICE_INFO؛ session يرفض MEASUREMENT قبل DEVICE_INFO أو مع ADC_NONE أو profile mismatch. RP2040 يجيب DEVICE_INFO بقيمة ADC_NONE ويرفض START. لا يوجد MEASUREMENT producer من ADC فعلي؛ مسار ADS8861 PIO مضمّن في البناء لكنه `ENABLE_ADS8861_CAPTURE=0`.
+- SoftAP/HTTP موجودان اختيارياً، لكن Wi-Fi/UART معطلان افتراضياً وGPIO ESP32 TX/RX غير معينتين. لا يوجد flash أو UART loopback أو اختبار SoftAP/Android على لوحة فعلية.
+- Android: فُحص MainActivity وManifest وGradle؛ الشبكة والتخزين يعملان عبر executor منفصل، مع timeouts وإغلاق HttpURLConnection في finally، وSQLite/CSV على executor تخزين. لم يظهر خطأ مصدر مؤكد. توجد نسخ متداخلة غير مستخدمة تحت `app/app/src/...` خارج مسار Gradle الفعلي؛ لم تُحذف.
+- حالة PR حسب GitHub: PR #6 **closed + draft + unmerged** منذ 2026-11-11؛ PR #7 **open + draft** على الفرع نفسه. لا إعادة فتح #6 تلقائياً لتجنب طلبين متداخلين، ولا دمج لأي PR.
+- مقارنة الفرع مع `main`: 627 commit ahead و6 behind؛ status=diverged. لا مزامنة أو rebase تلقائي.
+- [CI #2118](https://github.com/Khaledserdani/IslamDetector/actions/runs/45845552509) · [PR #7](https://github.com/Khaledserdani/IslamDetector/pull/7)
+
+**بوابة العمل التالية:** تحديد مراجعة لوحة ESP32-S3 الفعلية ومخططها قبل تثبيت GPIO؛ ثم continuity والـ3.3V UART loopback منخفض الجهد. بعد ذلك ربط منتج MEASUREMENT الحقيقي من RP2040/ADS8861، دون تفعيل ADC أو TX قبل وجود العتاد والحماية والقياسات.
