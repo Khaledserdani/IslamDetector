@@ -298,3 +298,13 @@ DIN لا يحتاج GPIO لأنه مربوط إلى DVDD. يجب إضافة مق
 - PR #6 مغلق وغير مدمج وفق GitHub؛ PR #7 مفتوح Draft. لا merge أو rebase.
 - بوابة التوصيل ما زالت: تحديد رقم ومراجعة لوحة ESP32-S3 الفعلية، مراجعة schematic الرسمي، continuity واللوحات مفصولة عن الطاقة، ثم UART loopback آمن 3.3V قبل تثبيت pin map.
 - [CI #2116](https://github.com/Khaledserdani/IslamDetector/actions/runs/45841379735)
+
+
+## 19. حالة pin map بعد CI #2118 — 2026-11-27
+
+- RP2040-Zero وفق تعريف Waveshare SDK: GP0/GP1 مرشحا UART0 (TX/RX)، GP4=TX_TEST logic-only، GP5=SAMPLE_MARKER، GP6=PIO_ECHO، وGP8/GP9/GP10 مرشحات CONVST/SCLK/DOUT لـADS8861. هذه خريطة firmware/bench وليست اعتماد توصيل منتج.
+- ESP32-S3-N16R8: UART1 مرشح، لكن GPIO TX/RX غير معينة (`-1`) وKconfig UART disabled افتراضياً. لا تثبت GPIO من اسم الشريحة أو أرقام شائعة؛ يلزم رقم ومراجعة لوحة التطوير ومخططها الرسمي.
+- CI #2118 بنى RP2040 UF2 وESP32-S3 image بنجاح، لكنه لا يثبت pin mux أو continuity أو مستويات الجهد أو loopback.
+- اختبار التوصيل اللاحق (بعد تحديد اللوحة فقط): افصل كل التغذيات، طابق أسماء الأرجل مع schematic، افحص continuity بين header والـGPIO، ثم اختبر TX/RX متقاطعين مع GND مشترك وإشارات 3.3V TTL فقط. لا تربط VBUS/5V بين اللوحتين، ولا تربط 3V3 rail معاً، ولا توصل GP4 أو أي GPIO ببوابة MOSFET أو ملف البحث.
+- قبل UART: تحقق من عدم تعارض GPIO مع flash/PSRAM/USB/strap/peripherals على لوحة ESP32-S3 المحددة. ابدأ loopback منخفض الجهد ومحدود التيار، ثم HELLO/ACK وGET_INFO/DEVICE_INFO. سجّل waveform وbaud framing قبل اعتماد pin map.
+- لم تُجرَ continuity أو loopback أو flash أو قياسات logic-analyzer بعد؛ لا توجد أرجل ESP32 معتمدة حتى الآن.
