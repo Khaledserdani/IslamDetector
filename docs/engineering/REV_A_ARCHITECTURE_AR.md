@@ -518,3 +518,18 @@ CI #2108 / run ID 45636028184 نجح على HEAD d00d0039c5838251f59806297907c62
 
 أظهر سجل CI #2109 أن صورة ESP-IDF كانت `--chip esp32` رغم تسمية الوظيفة ESP32-S3. سبب ذلك أن المشروع لم يثبت `IDF_TARGET`، وESP-IDF يعود إلى هدف `esp32` العام عند غياب التحديد. أضيف `firmware/esp32_s3_bridge/sdkconfig.defaults` بقيمة `CONFIG_IDF_TARGET="esp32s3"`، وأصبح CI يختار الهدف صراحةً عبر `idf.py set-target esp32s3`، ويتحقق من sdkconfig ثم يشغّل `esptool image_info --chip esp32s3` على BIN الناتج. لا يعتمد هذا التصحيح كنجاح حتى يكتمل CI على commit الجديد. لا تغيير في UART GPIO أو AFE أو TX؛ كلها تبقى معطلة/غير معتمدة مادياً.
 مرجع Espressif v5.4: https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/get-started/linux-macos-setup.html
+
+
+## 35. حالة التكامل بعد CI #2118 — 2026-11-27
+
+- CI #2118 / run `45845552509` انتهى success على HEAD `13231db26d66c5da7790dc54fb85d98c97df65b9` بعد إعادة محاولة وظيفة Android وحدها. سبب المحاولة الأولى HTTP 429 من Maven Central أثناء dependency resolution؛ المحاولة الثانية حققت Gradle BUILD SUCCESSFUL وفحص APK ناجحاً.
+- RP2040 UF2 تحقق بنيوياً: 150 blocks و38,400 payload bytes وFamily ID `0xE48BFF56`. هذا firmware اختبار توقيت منطقي فقط، لا قيادة MOSFET ولا قياس ملف.
+- ESP32-S3 build/link على ESP-IDF release-v5.4 نجح مع target esp32s3، وesptool image_info أكد 6 segments؛ الحزمة build-only وغير معتمدة للتفليش.
+- ESP32 UART bridge يحتوي parser/session فعليين: HELLO، GET_INFO مع retry، ACK، DEVICE_INFO، والتحقق من ADC model/sample format/resolution/input mode/VREF. الجسر لا يبدأ إلا بعد تفعيل Kconfig وتعيين GPIO صحيحة؛ الافتراضي disabled وGPIO=-1.
+- RP2040 يرد على GET_INFO بإطار DEVICE_INFO يعلن ADC_NONE، ويرفض START بـTX_NOT_ARMED. لذلك لا يجوز تفسير أي قيمة على أنها عينة ADC.
+- يوجد measurement queue في ESP32 bridge، لكن لا يوجد producer فعلي على RP2040 يرسل MEASUREMENT من ADS8861؛ PIO capture driver موجود ويُبنى، لكنه معطل افتراضياً. لا توجد قراءة ADC فعلية.
+- SoftAP/HTTP endpoints `GET /status` و`POST /control` موجودة اختيارياً، لكن Wi-Fi disabled افتراضياً؛ status يظل صادقاً (signal/depth=null وmeasurement_available=false وtx_armed=false)، وSTART/CALIBRATE مرفوضان.
+- لا flash أو UART loopback أو Wi-Fi/HTTP اختبار على لوحة أو هاتف فعلي. لا تثبيت pin map أو AFE أو قيم حماية أو KiCad/BOM/PCB/PCBA.
+- لا تعتمد نتيجة CI على أنها اختبار عتاد أو دليل سلامة مرحلة TX.
+
+[CI #2118](https://github.com/Khaledserdani/IslamDetector/actions/runs/45845552509)
