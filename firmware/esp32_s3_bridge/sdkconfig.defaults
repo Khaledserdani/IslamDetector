@@ -1,0 +1,2 @@
+# Pin the project to the actual controller used by Rev A.
+CONFIG_IDF_TARGET="esp32s3"

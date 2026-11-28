@@ -1,0 +1,54 @@
+menu "Islam Detector Rev A"
+
+config REV_A_UART_ENABLE
+    bool "Enable RP2040 UART bridge"
+    default n
+    help
+        Keep disabled until the exact ESP32-S3 development-board pinout is verified.
+
+config REV_A_UART_PORT
+    int "UART peripheral (UART0 is reserved for console)"
+    range 1 2
+    default 1
+
+config REV_A_UART_TX_GPIO
+    int "ESP32-S3 UART TX GPIO"
+    range -1 48
+    default -1
+    help
+        -1 means not assigned. Do not select a GPIO from the chip name alone.
+
+config REV_A_UART_RX_GPIO
+    int "ESP32-S3 UART RX GPIO"
+    range -1 48
+    default -1
+    help
+        -1 means not assigned. Verify the development-board schematic first.
+
+config REV_A_UART_BAUD
+    int "RP2040 UART baud rate"
+    range 9600 2000000
+    default 921600
+
+config REV_A_WIFI_ENABLE
+    bool "Enable WPA2 SoftAP and HTTP API"
+    default n
+    help
+        Disabled by default. Enable only after setting a private WPA2 password.
+        This API reports no measurements and rejects START until hardware safety
+        interlock and a real ADC measurement path are implemented and verified.
+
+config REV_A_WIFI_SSID
+    string "SoftAP SSID"
+    default "IslamDetector-RevA"
+    help
+        Local Wi-Fi network name. Keep the SSID within 1..32 bytes.
+
+config REV_A_WIFI_PASSWORD
+    string "SoftAP WPA2 password"
+    default ""
+    help
+        Set a private 8..63 character WPA2 password in local menuconfig.
+        Do not commit sdkconfig or expose this value in source control.
+
+endmenu
