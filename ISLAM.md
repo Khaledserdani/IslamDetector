@@ -2193,3 +2193,16 @@ APK واحد يشمل الكشف والمختبر والأرشيف والمحا�
 - صُححت مقدمة `REV_A_ANALOG_FRONT_END_AR.md` والقسم 9 من `REV_A_PURCHASE_PLAN_AR.md` لتتفقا مع DD32 (TX/RX منفصلان وRX تفاضلي)، مع إبقاء Mono Spiral فرعاً بديلاً محفوظاً.
 - لم تتغير أي قيمة كهربائية أو توصية شراء أو حالة تمكين Firmware؛ THS4521/ADS8861 والحماية وR/C ما زالت دراسة غير نهائية، ولا توجد قياسات ملف فعلية أو KiCad/BOM تصنيع.
 - هذه التغييرات توثيقية فقط؛ لا تستبدل قياس L/DCR/Q/القطبية/الاقتران أو RX transient وclip-release.
+
+
+## 29) تحقق CI #2122 بعد تصحيح baseline — 2026-11-28
+
+- HEAD المختبر: `8df62e112f7e14eafd0affc56a4bc0c04b42ce41` على `hardware/rev-a-measurement-design`.
+- [CI #2122 / run ID `46149642921`](https://github.com/Khaledserdani/IslamDetector/actions/runs/46149642921) اكتمل بنجاح في الوظائف الأربع: `protocol-tests` و`rp2040-firmware` و`android-app` و`esp32-s3-bridge`.
+- `protocol-tests`: 94 اختبار Python، ثم C protocol/session وHTTP policy مع `-Wall -Wextra -Werror -pedantic`؛ كلها نجحت.
+- RP2040 UF2: Artifact ID `15265280797`، الحجم 30,262 بايت، SHA-256=`b5aceef971d0557927d4e6284586cf59d5c09a1f2cb3dba84f7702ab649c59ed`. تحقق `verify_uf2.py`: 150 كتلة، 38,400 payload bytes، Family ID `0xE48BFF56`، والعنوان `0x10000000..0x10009600`.
+- Android Debug APK: Artifact ID `15264809676`، الحجم 21,737 بايت؛ Gradle BUILD SUCCESSFUL وفحص ZIP بلا أخطاء.
+- ESP32-S3: Artifact ID `15265860263`، حزمة BUILD-ONLY بحجم 118,806 بايت. ESP-IDF v5.4 أنشأ صورة `esp32s3` بحجم BIN=189,936 بايت، 6 segments، checksum وvalidation hash صالحين، و82% من app partition متاح. لا يُفلش هذا artifact قبل مطابقة اللوحة الفعلية.
+- المقارنة الحالية مع `main`: الفرع متباعد، 635 commit ahead و6 behind. PR #7 مفتوح Draft؛ PR #6 مغلق وغير مدمج. لا rebase ولا merge تلقائي.
+- حدود العتاد لم تتغير: `ENABLE_ADS8861_CAPTURE=0`، وRP2040 يعلن `ADC_NONE`؛ UART وSoftAP معطلان افتراضياً، وGPIO الخاصة بـESP32 غير مثبتة لأن موديل لوحة التطوير/مراجعتها لم يُعرف. لا يوجد flash أو UART loopback أو Wi-Fi/Android end-to-end أو قياس ملف فعلي.
+- الخطوة التالية: تحديد اللوحة الفعلية ومخططها قبل اختيار UART GPIO، ثم loopback UART منخفض الجهد. بالتوازي، يلزم قياس DD32 الفعلي (طوبولوجيا اللفات، DCR، L/Q، القطبية والاقتران) قبل إغلاق RX protection/AFE أو حساب TX النهائي.
